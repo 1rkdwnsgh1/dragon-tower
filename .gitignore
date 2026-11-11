@@ -1,11 +1,7 @@
 # Generated files and local settings
 .DS_Store
 Thumbs.db
-.godot/
-.import/
 .vs/
 .vscode/
-[Bb]uild/
-[Ll]ibrary/
-[Tt]emp/
-[Ll]ogs/
+build/
+cmake-build-*/
