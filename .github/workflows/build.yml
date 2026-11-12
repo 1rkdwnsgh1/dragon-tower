@@ -1,0 +1,44 @@
+name: build
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure
+        run: cmake -S . -B build -A x64
+
+      - name: Build
+        run: cmake --build build --config Release
+
+      - name: Core tests
+        run: ctest --test-dir build -C Release --output-on-failure
+
+      - name: Package
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force dist/DragonTower | Out-Null
+          Copy-Item build/Release/dragon_tower.exe dist/DragonTower/
+          Copy-Item -Recurse assets dist/DragonTower/assets
+          Copy-Item README.md dist/DragonTower/
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: DragonTower-windows
+          path: dist/DragonTower
+
+  core-linux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build and test core rules
+        run: |
+          cmake -S . -B build
+          cmake --build build -j
+          ctest --test-dir build --output-on-failure
