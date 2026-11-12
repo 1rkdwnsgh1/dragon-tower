@@ -1,0 +1,45 @@
+#include "core/Progression.h"
+
+#include <algorithm>
+
+#include "core/Config.h"
+
+namespace dt {
+
+int expToNext(int level) {
+    level = std::max(1, level);
+    return 30 * level + 10 * level * level;  // 40, 100, 180, 280, 400 ...
+}
+
+int totalExpToReach(int level) {
+    int total = 0;
+    for (int l = 1; l < level; ++l) total += expToNext(l);
+    return total;
+}
+
+int autoExpCap() { return totalExpToReach(cfg::kAutoExpCapLevel); }
+
+ExpResult grantExp(DragonRecord& d, int amount, bool fromAuto) {
+    ExpResult r;
+    if (!d.alive || amount <= 0) {
+        r.capReached = fromAuto && d.autoExp >= autoExpCap();
+        return r;
+    }
+    if (fromAuto) {
+        int room = std::max(0, autoExpCap() - d.autoExp);
+        amount = std::min(amount, room);
+        d.autoExp += amount;
+        r.capReached = d.autoExp >= autoExpCap();
+    }
+    r.granted = amount;
+    d.exp += amount;
+    while (d.level < cfg::kMaxLevel && d.exp >= expToNext(d.level)) {
+        d.exp -= expToNext(d.level);
+        ++d.level;
+        ++r.levelsGained;
+    }
+    if (d.level >= cfg::kMaxLevel) d.exp = 0;
+    return r;
+}
+
+}  // namespace dt
