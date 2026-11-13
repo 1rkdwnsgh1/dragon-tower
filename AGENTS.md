@@ -16,6 +16,7 @@
 - `assets/dragons/README.md`: 드래곤 추가·그림 넣기 사용법
 - `assets/enemies/README.md`: 적 추가·그림 넣기 사용법
 - `docs/ai-workflow-notes.md`: AI 작업 비용 기록과 개선
+- `docs/team-ai-prompt.md`: 팀원이 쓰는 AI 도구의 프로젝트 지침에 붙여넣을 요약 (이 문서와 `CLAUDE.md`의 요약이므로, 어긋나면 이쪽 둘이 기준)
 
 새 문서를 추가하면 이 목록에도 추가한다.
 
