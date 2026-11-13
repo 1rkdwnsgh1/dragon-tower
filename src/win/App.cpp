@@ -162,12 +162,18 @@ bool App::init(HINSTANCE inst) {
     ShowWindow(button_, SW_SHOWNOACTIVATE);
     // 처음 선택 화면이면 바로 고를 수 있도록 입력을 켠다.
     setInputEnabled(game_.needsInput());
+    taskbarCreatedMsg_ = RegisterWindowMessageW(L"TaskbarCreated");
     createTray();
     // Ctrl+Shift+D 로 게임 입력을 켜고 끈다. 이미 쓰는 조합이면 조용히 넘어간다.
     if (!RegisterHotKey(overlay_, kHotkeyId, MOD_CONTROL | MOD_SHIFT | MOD_NOREPEAT, 'D')) {
         game_.notify("Ctrl+Shift+D 단축키를 등록하지 못했습니다(다른 앱이 쓰는 중).", 0xFFFFD166, 6.f);
     }
     refreshTrayTip();
+    if (!game_.hintShown()) {
+        game_.notify("Ctrl+Shift+D로 게임 입력을 켜고 끕니다. 트레이 아이콘에도 메뉴가 있습니다.", 0xFFAAD4FF, 12.f);
+        game_.markHintShown();
+        saveNow();
+    }
     render();
     return true;
 }
@@ -323,6 +329,8 @@ void App::tick(float dt) {
     PlayerInput in = pollKeys();
     game_.update(dt, in, hidden_, inputEnabled_);
     if (game_.consumeSaveRequest()) saveNow();
+
+    pumpAlerts();
 
     // 클릭 통과 범위는 매 프레임 갱신한다(요소가 움직이므로).
     updateClickThrough();
@@ -512,6 +520,28 @@ void App::refreshTrayTip() {
     Shell_NotifyIconW(NIM_MODIFY, &tray_);
 }
 
+void App::showBalloon(const std::string& title, const std::string& body, bool warning) {
+    if (!trayAdded_) return;
+    NOTIFYICONDATAW d{};
+    d.cbSize = sizeof(d);
+    d.hWnd = overlay_;
+    d.uID = kTrayId;
+    d.uFlags = NIF_INFO;
+    d.dwInfoFlags = warning ? NIIF_WARNING : NIIF_INFO;
+    wcsncpy_s(d.szInfoTitle, widen(title).c_str(), _TRUNCATE);
+    wcsncpy_s(d.szInfo, widen(body).c_str(), _TRUNCATE);
+    Shell_NotifyIconW(NIM_MODIFY, &d);
+}
+
+void App::pumpAlerts() {
+    // 사망·탑 결과처럼 화면을 보고 있지 않아도 알아야 하는 일은 트레이 풍선으로 알린다.
+    // 소리는 쓰지 않는다(기획서의 "소리 금지"). 한 프레임에 하나씩 내보낸다.
+    if (!game_.hasAlert()) return;
+    Game::Alert a = game_.takeAlert();
+    if (a.title.empty()) return;
+    showBalloon(a.title, a.body, a.warning);
+}
+
 void App::showTrayMenu() {
     HMENU m = CreatePopupMenu();
     if (!m) return;
@@ -558,6 +588,13 @@ bool App::startDrag(float lx, float ly) {
 
 LRESULT App::handle(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
     const bool isButton = hwnd == button_;
+    // 탐색기가 다시 시작하면 트레이 아이콘이 사라진다. 다시 넣어 준다.
+    if (!isButton && taskbarCreatedMsg_ != 0 && msg == taskbarCreatedMsg_) {
+        trayAdded_ = false;
+        createTray();
+        refreshTrayTip();
+        return 0;
+    }
     switch (msg) {
         case WM_MOUSEACTIVATE:
             // 설정 버튼은 포커스를 빼앗지 않는다. 오버레이는 입력이 켜졌을 때만 활성화된다.
@@ -654,6 +691,11 @@ LRESULT App::handle(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
             return TRUE;
 
         case WM_DISPLAYCHANGE:
+            if (!isButton) layout();
+            return 0;
+
+        case WM_DPICHANGED:
+            // 화면 배율이 바뀌면 다시 재서 그린다(다시 켜지 않아도 되게).
             if (!isButton) layout();
             return 0;
 

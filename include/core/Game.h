@@ -84,6 +84,8 @@ public:
     // v0.6: 상태창 위치·접힘. 화면 밖으로 나가지 않게 맞춘다.
     Vec2 panelPos() const { return {save_.panelX, save_.panelY}; }
     void setPanelPos(Vec2 p);
+    bool hintShown() const { return save_.hintShown; }
+    void markHintShown() { save_.hintShown = true; saveRequested_ = true; }
     bool panelCollapsed() const { return save_.panelCollapsed; }
     void setPanelCollapsed(bool on);
     const RectF& desktopBounds() const { return desktop_; }
@@ -95,6 +97,16 @@ public:
     SaveData snapshotForSave();
 
     void notify(const std::string& text, uint32_t color = 0xFFFFFFFF, float duration = 4.f);
+    // 화면을 보고 있지 않아도 알아야 하는 일(사망·탑 결과·저장 실패)을 따로 모은다.
+    // 플랫폼 쪽에서 가져가 트레이 풍선 알림 등으로 보여 준다.
+    struct Alert {
+        std::string title;
+        std::string body;
+        bool warning = false;  // 경고(빨간 아이콘)로 보여 줄지
+    };
+    void alert(const std::string& title, const std::string& body, bool warning = false);
+    bool hasAlert() const { return !alerts_.empty(); }
+    Alert takeAlert();  // 하나 꺼내 간다(없으면 빈 것)
 
 private:
     EnemyKind meleeByKey(const std::string& key) const;
@@ -124,6 +136,7 @@ private:
     bool saveRequested_ = false;
     float autosaveTimer_ = 0.f;
     std::vector<Notice> notices_;
+    std::vector<Alert> alerts_;
 };
 
 }  // namespace dt
