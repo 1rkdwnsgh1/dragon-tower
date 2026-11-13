@@ -1,5 +1,7 @@
 # 이미지 자료(assets)
 
+> 애니메이션(스프라이트 시트)과 드래곤별 폴더 구성 계획은 [캐릭터 적용 기획](../docs/character-pipeline.md)에 있다. 아래는 현재 구현된 정지 이미지 규격이다.
+
 ## 캐릭터별 참고 자료
 
 - [망령룡 제작 진행사항 및 원본 패키지](../docs/characters/revenant-dragon-progress.md): 2026-11-13 전달 자료와 백업은 `references/revenant-dragon/work-2026-11-13/`에 Git LFS로 보관한다. `REVENANT_SOUL_MIST_WALK_V1`은 생성만 완료했으며 검수·수정 대기다. 해당 자료는 현재 게임에서 자동 로딩되지 않는다.
