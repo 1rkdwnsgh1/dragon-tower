@@ -79,7 +79,11 @@ private:
                         float flash, float alpha);
     void drawFx(Gdiplus::Graphics& g, const World& w);
 
-    void drawStatusCard(Gdiplus::Graphics& g, const Game& game, const Sprites& sprites, const RenderContext& ctx);
+    void drawStatusCard(Gdiplus::Graphics& g, const Game& game, const Sprites& sprites, const RenderContext& ctx,
+                        std::vector<UiButton>& out);
+    // 켜짐/꺼짐 토글 스위치. 누르면 action이 발생한다.
+    void toggle(Gdiplus::Graphics& g, std::vector<UiButton>& out, const RenderContext& ctx, const Gdiplus::RectF& r,
+                const std::string& label, bool on, UiAction action, int arg, bool enabled);
     void drawMenu(Gdiplus::Graphics& g, const Game& game, const RenderContext& ctx, std::vector<UiButton>& out);
     void drawNotices(Gdiplus::Graphics& g, const Game& game);
     void drawTowerHud(Gdiplus::Graphics& g, const Game& game);

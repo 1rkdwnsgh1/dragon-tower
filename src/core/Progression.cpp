@@ -17,7 +17,19 @@ int totalExpToReach(int level) {
     return total;
 }
 
-int autoExpCap() { return totalExpToReach(cfg::kAutoExpCapLevel); }
+namespace {
+int g_capOverride = -1;
+}
+
+void setAutoExpCapOverride(int cap) { g_capOverride = cap; }
+
+int autoExpCap() {
+    if (g_capOverride >= 0) return g_capOverride;
+    // 상한을 끄면 아주 큰 값을 돌려준다. 호출하는 쪽을 고치지 않아도 되고,
+    // 저장 파일의 autoExp 기록도 그대로 쌓인다(나중에 다시 켤 수 있다).
+    if (!cfg::kAutoExpCapEnabled) return kNoAutoExpCap;
+    return totalExpToReach(cfg::kAutoExpCapLevel);
+}
 
 ExpResult grantExp(DragonRecord& d, int amount, bool fromAuto) {
     ExpResult r;

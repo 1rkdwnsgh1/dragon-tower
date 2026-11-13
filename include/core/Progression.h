@@ -18,7 +18,12 @@ struct DragonRecord {
 
 int expToNext(int level);         // level -> level+1에 필요한 경험치
 int totalExpToReach(int level);   // 레벨 1, 경험치 0에서 해당 레벨까지 필요한 총 경험치
+// 상한이 꺼져 있을 때 autoExpCap()이 돌려주는 값. 사실상 무한이다.
+constexpr int kNoAutoExpCap = 1000000000;
 int autoExpCap();                 // 개체별 자동 사냥 누적 경험치 상한
+// 테스트 전용. 상한을 켠 상태의 계산을 검증하기 위해 값을 덮어쓴다.
+// -1을 주면 다시 설정값(cfg::kAutoExpCapEnabled)을 따른다. 게임 코드에서는 쓰지 않는다.
+void setAutoExpCapOverride(int cap);
 
 struct ExpResult {
     int granted = 0;       // 실제로 지급된 양(자동 상한으로 잘릴 수 있음)

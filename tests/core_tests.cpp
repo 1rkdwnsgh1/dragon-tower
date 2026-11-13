@@ -54,11 +54,29 @@ static void testExpCurve() {
     CHECK(expToNext(4) == 280);
     CHECK(totalExpToReach(1) == 0);
     CHECK(totalExpToReach(5) == 40 + 100 + 180 + 280);
+    // v0.5: 자동 전투 경험치 상한은 꺼져 있다(기획서 10장). 켜면 아래 값이 된다.
+    CHECK(!cfg::kAutoExpCapEnabled);
+    CHECK(autoExpCap() == kNoAutoExpCap);
+    setAutoExpCapOverride(totalExpToReach(cfg::kAutoExpCapLevel));
     CHECK(autoExpCap() == totalExpToReach(cfg::kAutoExpCapLevel));
+    setAutoExpCapOverride(-1);
 }
 
+// 상한을 끈 지금도 자동 전투는 제한 없이 경험치를 준다
+static void testNoAutoCap() {
+    std::printf("[auto exp uncapped]\n");
+    DragonRecord d;
+    d.level = 1;
+    ExpResult r = grantExp(d, 100000, true);
+    CHECK(r.granted == 100000);
+    CHECK(!r.capReached);
+    CHECK(d.level > 5);  // 상한이 없으니 레벨 5를 넘어간다
+}
+
+// 상한을 다시 켤 때를 대비해 자르는 계산 자체는 계속 검증한다
 static void testAutoCapClamp() {
-    std::printf("[auto exp cap]\n");
+    std::printf("[auto exp cap (켠 상태)]\n");
+    setAutoExpCapOverride(totalExpToReach(cfg::kAutoExpCapLevel));
     DragonRecord d;
     d.autoExp = autoExpCap() - 10;
     d.level = 4;
@@ -77,8 +95,8 @@ static void testAutoCapClamp() {
     CHECK(r3.granted == 30);
     CHECK(d.autoExp == autoExpCap());
     CHECK(d.exp == 30);
+    setAutoExpCapOverride(-1);
 }
-
 static void testMultiLevelUp() {
     std::printf("[multi level up]\n");
     DragonRecord d;
@@ -257,6 +275,7 @@ static void testAutoStopsAtCap() {
     s.dragon.species = Species::Earth;
     s.dragon.level = 4;
     s.dragon.exp = 0;
+    setAutoExpCapOverride(totalExpToReach(cfg::kAutoExpCapLevel));
     s.dragon.autoExp = autoExpCap() - 5;
     s.huntMode = CombatMode::Auto;
     Game g;
@@ -277,6 +296,7 @@ static void testAutoStopsAtCap() {
     CHECK(g.setHuntMode(CombatMode::SkillManual));
     CHECK(!g.setHuntMode(CombatMode::Auto));
     CHECK(g.huntMode() == CombatMode::SkillManual);
+    setAutoExpCapOverride(-1);
 }
 
 static void testTowerFlow() {
@@ -766,8 +786,119 @@ static void testBossPhase2Summons() {
     CHECK(foundAdd);
 }
 
+
+// ---------------------------------------------------------------------------
+// v0.5: 바탕화면 디펜스 전투
+// ---------------------------------------------------------------------------
+
+static void testDefenseBattle() {
+    std::printf("[defense battle]\n");
+    Game g;
+    SaveData s;
+    s.hasDragon = true;
+    s.dragon.species = Species::Fire;
+    s.dragon.level = 6;
+    s.dragon.hp = -1.f;
+    s.huntMode = CombatMode::SkillManual;
+    g.init(s, kDesk);
+
+    // 전투 전에는 바탕화면 전체를 쓴다
+    CHECK(g.world().bounds().h > cfg::kBandHeight + 1.f);
+
+    RectF band = g.battleBand();
+    // 띠는 화면 맨 아래에 붙어 있다(작업 표시줄 바로 위)
+    CHECK(band.bottom() <= kDesk.bottom());
+    CHECK(kDesk.bottom() - band.bottom() <= cfg::kBandBottomMargin + 0.01f);
+    CHECK(band.h <= cfg::kBandHeight + 0.01f);
+    CHECK(band.x == kDesk.x && band.w == kDesk.w);
+
+    g.startHunt();
+    CHECK(g.hunting());
+    // 전투를 켜면 경계가 띠로 바뀌고 드래곤이 띠 안으로 내려온다
+    CHECK(g.world().bounds().h <= cfg::kBandHeight + 0.01f);
+    Vec2 dp = g.world().dragon().pos;
+    CHECK(dp.y >= band.y && dp.y <= band.bottom());
+
+    // 첫 무리가 나오면 모두 화면 왼쪽 밖에서 들어온다
+    PlayerInput in;
+    for (int i = 0; i < 30 * 10 && g.world().enemies().empty(); ++i) g.update(1.f / 30.f, in, false, true);
+    CHECK(!g.world().enemies().empty());
+    bool allFromLeft = true, allEntering = true;
+    for (const Enemy& e : g.world().enemies()) {
+        if (e.pos.x > band.x) allFromLeft = false;
+        if (!e.entering) allEntering = false;
+    }
+    CHECK(allFromLeft);
+    CHECK(allEntering);
+
+    // 적은 오른쪽(드래곤 쪽)으로 다가와 띠 안으로 들어온다
+    float before = g.world().enemies().front().pos.x;
+    for (int i = 0; i < 30 * 5; ++i) g.update(1.f / 30.f, in, false, true);
+    bool someoneEntered = false;
+    for (const Enemy& e : g.world().enemies())
+        if (!e.entering) someoneEntered = true;
+    CHECK(someoneEntered || g.world().enemies().empty() || g.world().enemies().front().pos.x > before);
+
+    // 전투를 끄면 다시 바탕화면 전체를 돌아다닌다
+    g.stopHunt("테스트");
+    CHECK(!g.hunting());
+    CHECK(g.world().bounds().h > cfg::kBandHeight + 1.f);
+}
+
+static void testDefenseWaveGrows() {
+    std::printf("[defense wave grows]\n");
+    // 웨이브가 쌓이면 한 번에 나오는 적이 늘어난다(상한은 kWaveMax)
+    Game g;
+    SaveData s;
+    s.hasDragon = true;
+    s.dragon.species = Species::Earth;
+    s.dragon.level = 1;
+    s.dragon.hp = -1.f;
+    s.huntMode = CombatMode::Auto;
+    g.init(s, kDesk);
+    g.startHunt();
+    g.confirmAutoWarning();
+    CHECK(g.hunting());
+    g.world().dragon().hp = 1e6f;  // 죽지 않게 해서 웨이브만 센다
+
+    int maxSeen = 0, waves = 0;
+    bool wasActive = false;
+    PlayerInput in;
+    for (int i = 0; i < 30 * 600; ++i) {
+        g.update(1.f / 30.f, in, false, true);
+        bool active = g.waveActive();
+        if (active && !wasActive) ++waves;
+        wasActive = active;
+        maxSeen = std::max(maxSeen, static_cast<int>(g.world().enemies().size()));
+        if (waves >= 12) break;
+    }
+    CHECK(waves >= 3);
+    CHECK(maxSeen >= 1 && maxSeen <= cfg::kWaveMax + 2);  // 보스 소환 등을 감안한 여유
+}
+
+static void testAutoBattleNoLongerCapped() {
+    std::printf("[auto battle uncapped in game]\n");
+    // 상한을 껐으므로 자동 전투가 레벨 5에서 멈추지 않는다
+    Game g;
+    SaveData s;
+    s.hasDragon = true;
+    s.dragon.species = Species::Fire;
+    s.dragon.level = 4;
+    s.dragon.hp = -1.f;
+    s.huntMode = CombatMode::Auto;
+    g.init(s, kDesk);
+    g.world().dragon().hp = 1e6f;
+    g.startHunt();
+    g.confirmAutoWarning();
+    PlayerInput in;
+    for (int i = 0; i < 30 * 900 && g.dragonRecord().level <= 6; ++i) g.update(1.f / 30.f, in, false, true);
+    CHECK(g.dragonRecord().level > 5);  // 예전 상한(5)을 넘어선다
+    CHECK(g.hunting());                 // 상한 때문에 멈추지 않는다
+}
+
 int main() {
     testExpCurve();
+    testNoAutoCap();
     testAutoCapClamp();
     testMultiLevelUp();
     testSaveRoundTrip();
@@ -788,6 +919,9 @@ int main() {
     testEnemyTextParse();
     testEnemyFolderScan();
     testBossPhase2Summons();
+    testDefenseBattle();
+    testDefenseWaveGrows();
+    testAutoBattleNoLongerCapped();
     std::printf("\n%d passed, %d failed\n", g_passed, g_failed);
     return g_failed == 0 ? 0 : 1;
 }

@@ -74,6 +74,8 @@ public:
     const SaveData& save() const { return save_; }
     const std::vector<Notice>& notices() const { return notices_; }
     RectF arena() const;
+    // 바탕화면 디펜스 전투가 일어나는 띠. 화면 맨 아래, 작업 표시줄 바로 위다.
+    RectF battleBand() const;
     const RectF& desktopBounds() const { return desktop_; }
     const GraveEntry* lastGrave() const { return save_.graves.empty() ? nullptr : &save_.graves.back(); }
 
@@ -88,6 +90,7 @@ private:
     EnemyKind meleeByKey(const std::string& key) const;
     EnemyKind randomMelee();
     void spawnWave();
+    int waveNumber_ = 0;  // 이번 전투에서 보낸 웨이브 수
     void spawnTowerFloor();
     void processEvents(bool autoExp);
     void onDragonDied();
