@@ -68,6 +68,10 @@ std::string serializeSave(const SaveData& s) {
     o << "version=" << s.version << "\n";
     o << "nextDragonId=" << s.nextDragonId << "\n";
     o << "huntMode=" << static_cast<int>(s.huntMode) << "\n";
+    o << "ui.panelX=" << s.panelX << "\n";
+    o << "ui.panelY=" << s.panelY << "\n";
+    o << "ui.panelCollapsed=" << (s.panelCollapsed ? 1 : 0) << "\n";
+    o << "ui.confineToBand=" << (s.confineToBand ? 1 : 0) << "\n";
     o << "bestFloor=" << s.bestFloor << "\n";
     o << "towerClears=" << s.towerClears << "\n";
     o << "dragon.present=" << (s.hasDragon ? 1 : 0) << "\n";
@@ -123,6 +127,10 @@ bool deserializeSave(const std::string& text, SaveData& out) {
 
         if (key == "version") { s.version = toInt(val, 1); sawVersion = true; }
         else if (key == "nextDragonId") s.nextDragonId = std::max(1, toInt(val, 1));
+        else if (key == "ui.panelX") s.panelX = toFloat(val, -1.f);
+        else if (key == "ui.panelY") s.panelY = toFloat(val, -1.f);
+        else if (key == "ui.panelCollapsed") s.panelCollapsed = toInt(val, 0) != 0;
+        else if (key == "ui.confineToBand") s.confineToBand = toInt(val, 0) != 0;
         else if (key == "huntMode") {
             int m = toInt(val, 1);
             s.huntMode = (m >= 0 && m <= 2) ? static_cast<CombatMode>(m) : CombatMode::SkillManual;

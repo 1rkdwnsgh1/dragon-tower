@@ -48,6 +48,43 @@ RectF Game::battleBand() const {
     return {desktop_.x, y, desktop_.w, h};
 }
 
+void Game::setConfineToBand(bool on) {
+    if (save_.confineToBand == on) return;
+    save_.confineToBand = on;
+    saveRequested_ = true;
+    if (!hunting_ && !inTowerFlow() && save_.hasDragon) {
+        RectF b = on ? battleBand() : desktop_;
+        world_.setBounds(b);
+        world_.dragon().pos = b.clampPoint(world_.dragon().pos, cfg::kDragonRadius);
+        world_.dragon().groundY = world_.dragon().pos.y;
+        world_.dragon().behaviorLeft = 0.f;
+    }
+    notify(on ? "드래곤이 화면 아래쪽에만 머뭅니다." : "드래곤이 바탕화면 전체를 돌아다닙니다.", kGood, 2.5f);
+}
+
+void Game::placeDragon(Vec2 pos) {
+    if (!save_.hasDragon) return;
+    DragonActor& d = world_.dragon();
+    d.pos = world_.bounds().clampPoint(pos, cfg::kDragonRadius);
+    d.groundY = d.pos.y;
+    d.wanderTarget = d.pos;
+    d.behaviorLeft = 0.f;
+    d.flying = false;
+    d.landing = false;
+}
+
+void Game::setPanelPos(Vec2 p) {
+    save_.panelX = p.x;
+    save_.panelY = p.y;
+    saveRequested_ = true;
+}
+
+void Game::setPanelCollapsed(bool on) {
+    if (save_.panelCollapsed == on) return;
+    save_.panelCollapsed = on;
+    saveRequested_ = true;
+}
+
 RectF Game::arena() const {
     float w = std::min(cfg::kArenaWidth, desktop_.w - 40.f);
     float h = std::min(cfg::kArenaHeight, desktop_.h - 140.f);
@@ -186,7 +223,8 @@ void Game::stopHunt(const std::string& reason) {
     waveNumber_ = 0;
     // 전투가 끝나면 다시 바탕화면 전체를 돌아다닌다.
     if (!inTowerFlow()) {
-        world_.setBounds(desktop_);
+        // 설정에 따라 띠에 머물거나 바탕화면 전체로 돌아간다
+        world_.setBounds(save_.confineToBand ? battleBand() : desktop_);
         world_.dragon().behaviorLeft = 0.f;  // 다음 프레임에 새 행동을 고른다
     }
     world_.clearEnemies(true);

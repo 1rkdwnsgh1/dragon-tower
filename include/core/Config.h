@@ -87,6 +87,9 @@ constexpr float kGroundEpsilon = 2.0f;
 constexpr float kIdleWalkTopRatio = 0.55f;
 constexpr float kIdleFlyTopRatio = 0.08f;
 
+// 조용할 때(전투·효과·입력 없음) 다시 그리는 간격(초). 0.1이면 약 10fps.
+constexpr float kIdleFrameInterval = 0.1f;
+
 // 애니메이션(1회 재생 상태를 유지하는 시간). 시트가 더 길면 그만큼만 보인다.
 constexpr float kAnimAttackHold = 0.35f;
 constexpr float kAnimHitHold = 0.22f;

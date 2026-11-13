@@ -14,6 +14,10 @@ namespace dt::win {
 
 enum class UiAction {
     None,
+    DragPanel,        // 상태창 끌기 손잡이
+    TogglePanel,      // 상태창 접기/펼치기
+    ToggleConfine,    // 드래곤을 아래 띠에만 둘지
+    DragDragon,       // 드래곤 끌어 옮기기
     ChooseSpecies,  // arg = 종류
     StartHunt,
     StopHunt,
@@ -43,6 +47,14 @@ struct RenderContext {
     float mouseY = -1.f;
 };
 
+// 한 프레임에 그린 것들의 위치. 어디서 클릭을 받을지(나머지는 통과)와
+// 어디를 다시 그릴지 정하는 데 쓴다.
+struct FrameRegions {
+    std::vector<Gdiplus::RectF> hit;   // 마우스를 받아야 하는 영역
+    bool fullScreen = false;           // 창·모달이 떠 있어 화면 전체를 받아야 한다
+    void add(const Gdiplus::RectF& r) { hit.push_back(r); }
+};
+
 class Renderer {
 public:
     bool init();
@@ -50,7 +62,7 @@ public:
 
     // 전체 오버레이(바탕화면 크기). 눌릴 수 있는 버튼 목록을 outButtons에 채운다.
     void drawOverlay(Gdiplus::Graphics& g, const Game& game, const Sprites& sprites, const RenderContext& ctx,
-                     std::vector<UiButton>& outButtons);
+                     std::vector<UiButton>& outButtons, FrameRegions* outRegions = nullptr);
 
     // 설정 버튼 창. attention이면 입력을 켜 달라는 의미로 깜빡인다.
     void drawSettingsButton(Gdiplus::Graphics& g, float size, const Sprites& sprites, bool inputOn, bool attention,

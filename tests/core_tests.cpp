@@ -896,6 +896,89 @@ static void testAutoBattleNoLongerCapped() {
     CHECK(g.hunting());                 // 상한 때문에 멈추지 않는다
 }
 
+
+// ---------------------------------------------------------------------------
+// v0.6: 바탕화면 UI 설정
+// ---------------------------------------------------------------------------
+
+static void testUiSettingsSaved() {
+    std::printf("[ui settings save]\n");
+    SaveData s;
+    s.panelX = 123.5f;
+    s.panelY = 45.f;
+    s.panelCollapsed = true;
+    s.confineToBand = true;
+    SaveData l;
+    CHECK(deserializeSave(serializeSave(s), l));
+    CHECK(l.panelX > 123.f && l.panelX < 124.f);
+    CHECK(l.panelY == 45.f);
+    CHECK(l.panelCollapsed);
+    CHECK(l.confineToBand);
+
+    // 이전 저장 파일(설정 키가 없음)도 그대로 읽히고 기본값이 쓰인다
+    SaveData old;
+    CHECK(deserializeSave("version=1\nnextDragonId=2\nhuntMode=1\n", old));
+    CHECK(old.panelX < 0.f && old.panelY < 0.f);
+    CHECK(!old.panelCollapsed && !old.confineToBand);
+}
+
+static void testConfineToBand() {
+    std::printf("[confine to band]\n");
+    Game g;
+    SaveData s;
+    s.hasDragon = true;
+    s.dragon.species = Species::Wind;
+    s.dragon.level = 3;
+    s.dragon.hp = -1.f;
+    g.init(s, kDesk);
+    CHECK(!g.confineToBand());
+    CHECK(g.world().bounds().h > cfg::kBandHeight + 1.f);
+
+    g.setConfineToBand(true);
+    CHECK(g.confineToBand());
+    CHECK(g.world().bounds().h <= cfg::kBandHeight + 0.01f);
+    // 오래 두어도 띠를 벗어나지 않는다
+    RectF band = g.battleBand();
+    PlayerInput in;
+    for (int i = 0; i < 30 * 120; ++i) {
+        g.update(1.f / 30.f, in, false, false);
+        CHECK_SILENT(g.world().dragon().pos.y >= band.y - 1.f &&
+                     g.world().dragon().pos.y <= band.bottom() + 1.f);
+    }
+    CHECK(true);
+
+    g.setConfineToBand(false);
+    CHECK(g.world().bounds().h > cfg::kBandHeight + 1.f);
+}
+
+static void testPlaceAndPanel() {
+    std::printf("[drag dragon / panel pos]\n");
+    Game g;
+    SaveData s;
+    s.hasDragon = true;
+    s.dragon.species = Species::Water;
+    s.dragon.level = 2;
+    s.dragon.hp = -1.f;
+    g.init(s, kDesk);
+
+    // 끌어다 놓으면 그 자리에 선다
+    g.placeDragon({700.f, 500.f});
+    CHECK(std::fabs(g.world().dragon().pos.x - 700.f) < 1.f);
+    CHECK(std::fabs(g.world().dragon().pos.y - 500.f) < 1.f);
+    CHECK(!g.world().dragon().flying);
+    // 경계 밖으로는 놓이지 않는다
+    g.placeDragon({-9999.f, 9999.f});
+    CHECK(g.world().bounds().contains(g.world().dragon().pos.x, g.world().dragon().pos.y));
+
+    // 상태창 위치·접힘은 저장 요청을 남긴다
+    g.setPanelPos({10.f, 20.f});
+    CHECK(g.panelPos().x == 10.f && g.panelPos().y == 20.f);
+    g.setPanelCollapsed(true);
+    CHECK(g.panelCollapsed());
+    CHECK(g.snapshotForSave().panelCollapsed);
+    CHECK(g.snapshotForSave().panelX == 10.f);
+}
+
 int main() {
     testExpCurve();
     testNoAutoCap();
@@ -922,6 +1005,9 @@ int main() {
     testDefenseBattle();
     testDefenseWaveGrows();
     testAutoBattleNoLongerCapped();
+    testUiSettingsSaved();
+    testConfineToBand();
+    testPlaceAndPanel();
     std::printf("\n%d passed, %d failed\n", g_passed, g_failed);
     return g_failed == 0 ? 0 : 1;
 }

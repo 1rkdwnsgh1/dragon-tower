@@ -176,6 +176,8 @@ public:
     std::vector<WorldEvent> takeEvents();
 
     const std::vector<Enemy>& enemies() const { return enemies_; }
+    // 화면에 아직 움직이는 효과·글자가 남아 있는가(조용할 때 그리기를 줄이는 판단에 쓴다)
+    bool hasActiveFx() const { return !fx_.empty() || !texts_.empty(); }
     std::vector<Enemy>& enemiesMutable() { return enemies_; }
     const std::vector<AttackZone>& zones() const { return zones_; }
     const std::vector<Projectile>& projectiles() const { return projectiles_; }

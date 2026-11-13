@@ -7,6 +7,8 @@
 
 #include "Renderer.h"
 #include "Sprites.h"
+#include <shellapi.h>  // NOTIFYICONDATAW (트레이 아이콘)
+
 #include "WinCommon.h"
 #include "core/Game.h"
 
@@ -48,6 +50,13 @@ private:
     void saveNow();
     void requestExit();
     void updateFullscreenState();
+    // v0.6
+    void updateClickThrough();   // 커서가 우리 요소 위에 있을 때만 입력을 받는다
+    void createTray();
+    void destroyTray();
+    void showTrayMenu();
+    void refreshTrayTip();
+    bool startDrag(float lx, float ly);  // 상태창·드래곤 끌기 시작
 
     HINSTANCE inst_ = nullptr;
     HWND overlay_ = nullptr;
@@ -71,6 +80,19 @@ private:
     float mouseX_ = -1.f;
     float mouseY_ = -1.f;
     bool keyPrev_[256] = {};
+
+    // v0.6 클릭 통과: 커서가 요소 위에 있는 동안만 입력을 받는다
+    FrameRegions regions_;
+    bool cursorOnUi_ = false;
+    // v0.6 끌기
+    enum class Drag { None, Panel, Dragon };
+    Drag drag_ = Drag::None;
+    float dragDX_ = 0.f, dragDY_ = 0.f;
+    // v0.6 트레이 아이콘
+    NOTIFYICONDATAW tray_{};
+    bool trayAdded_ = false;
+    // v0.6 조용할 때 프레임을 줄인다
+    float idleAccum_ = 0.f;
 
     Game game_;
     Renderer renderer_;
