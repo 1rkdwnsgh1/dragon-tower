@@ -8,6 +8,7 @@ Windows 바탕화면에서 드래곤을 육성하고 탑에 도전하는 게임�
 - [개발 로드맵과 체크포인트](docs/roadmap.md)
 - [구현 메모: 임시로 정한 사항과 확인할 것](docs/implementation-notes.md)
 - [이미지 자료 규격과 생성 요청 예시](assets/README.md)
+- [캐릭터 이미지·애니메이션·스킬 적용 기획 (드래곤 추가 구조)](docs/character-pipeline.md)
 
 ## 지금 할 수 있는 것(첫 수직 단면)
 
