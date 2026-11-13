@@ -1,6 +1,7 @@
 // 핵심 규칙 검증. Windows 없이도 빌드·실행된다.
 #include <cstdio>
 #include <filesystem>
+#include <algorithm>
 #include <fstream>
 #include <string>
 
@@ -24,6 +25,17 @@ static int g_passed = 0;
             ++g_failed;                                                      \
             std::printf("  FAIL %s:%d  %s\n", __FILE__, __LINE__, #cond);    \
         }                                                                    \
+    } while (0)
+
+// 루프 안에서 매 프레임 검사할 때 쓴다. 통과는 세지 않고, 실패하면 한 번만 알린다.
+static bool g_silentFailed = false;
+#define CHECK_SILENT(cond)                                                       \
+    do {                                                                         \
+        if (!(cond) && !g_silentFailed) {                                        \
+            g_silentFailed = true;                                               \
+            ++g_failed;                                                          \
+            std::printf("  FAIL %s:%d  %s\n", __FILE__, __LINE__, #cond);        \
+        }                                                                        \
     } while (0)
 
 static const RectF kDesk{0.f, 0.f, 1600.f, 900.f};
@@ -448,10 +460,12 @@ static void testAnimStates() {
     w.updateCombat(1.f / 30.f, CombatMode::SkillManual, in);
     CHECK(w.dragon().anim == AnimState::Attack);
 
-    // 공격 상태는 유지 시간(kAnimAttackHold)이 지나면 저절로 풀린다
+    // 공격 상태는 유지 시간(kAnimAttackHold)이 지나면 저절로 풀린다.
+    // 적이 없으면 자동 행동으로 넘어가므로 Fly도 나올 수 있다.
     w.clearEnemies(false);
     for (int i = 0; i < 30; ++i) w.updateCombat(1.f / 30.f, CombatMode::SkillManual, in);
-    CHECK(w.dragon().anim == AnimState::Idle || w.dragon().anim == AnimState::Move);
+    CHECK(w.dragon().anim == AnimState::Idle || w.dragon().anim == AnimState::Move ||
+          w.dragon().anim == AnimState::Fly);
 
     // 사망 상태는 다른 상태로 덮이지 않는다
     World w2;
@@ -464,12 +478,89 @@ static void testAnimStates() {
     w2.setDragonAnim(AnimState::Move, 1.f);
     CHECK(w2.dragon().anim == AnimState::Death);
 
-    // 배회만 할 때도 애니메이션 시간이 한 번만 흐른다
+    // 배회만 할 때도 애니메이션 시간이 한 번만 흐른다(두 번 흐르면 1.0이 된다)
     World w3;
     w3.setBounds({0.f, 0.f, 800.f, 600.f});
     w3.setupDragon(Species::Fire, 1, -1.f, {400.f, 300.f});
+    w3.dragon().behavior = IdleBehavior::Rest;  // 상태가 바뀌지 않게 고정
+    w3.dragon().behaviorLeft = 100.f;
     w3.updateWander(0.5f);
+    CHECK(w3.dragon().anim == AnimState::Idle);
     CHECK(w3.dragon().animTime > 0.49f && w3.dragon().animTime < 0.51f);
+}
+
+// ---------------------------------------------------------------------------
+// v0.3: 바탕화면 자동 행동
+// ---------------------------------------------------------------------------
+
+static void testIdleBehavior() {
+    std::printf("[desktop idle behavior]\n");
+    const RectF area{0.f, 0.f, 1600.f, 900.f};
+
+    // 충분히 오래 두면 세 행동이 모두 나온다
+    World w;
+    w.setBounds(area);
+    w.seed(12345u);
+    w.setupDragon(Species::Fire, 1, -1.f, {800.f, 700.f});
+    bool sawRest = false, sawWalk = false, sawFly = false;
+    float topSeenFly = area.bottom(), topSeenWalk = area.bottom();
+    for (int i = 0; i < 30 * 600; ++i) {  // 10분
+        w.updateWander(1.f / 30.f);
+        const DragonActor& d = w.dragon();
+        if (d.behavior == IdleBehavior::Rest) sawRest = true;
+        if (d.behavior == IdleBehavior::Walk) { sawWalk = true; topSeenWalk = std::min(topSeenWalk, d.pos.y); }
+        if (d.behavior == IdleBehavior::Fly) { sawFly = true; topSeenFly = std::min(topSeenFly, d.pos.y); }
+        // 어떤 행동이든 화면 밖으로 나가지 않는다
+        CHECK_SILENT(d.pos.x >= area.x && d.pos.x <= area.right());
+        CHECK_SILENT(d.pos.y >= area.y && d.pos.y <= area.bottom());
+    }
+    CHECK(sawRest);
+    CHECK(sawWalk);
+    CHECK(sawFly);
+    // 날 때가 걸을 때보다 위로 올라간다
+    CHECK(topSeenFly < topSeenWalk);
+
+    // 쉴 때는 제자리, 날 때는 Fly 애니메이션
+    World w2;
+    w2.setBounds(area);
+    w2.setupDragon(Species::Fire, 1, -1.f, {800.f, 700.f});
+    w2.dragon().behavior = IdleBehavior::Rest;
+    w2.dragon().behaviorLeft = 100.f;
+    Vec2 before = w2.dragon().pos;
+    for (int i = 0; i < 60; ++i) w2.updateWander(1.f / 30.f);
+    CHECK(distance(w2.dragon().pos, before) < 0.01f);
+    CHECK(!w2.dragon().flying);
+    CHECK(w2.dragon().anim == AnimState::Idle);
+
+    w2.dragon().behavior = IdleBehavior::Fly;
+    w2.dragon().behaviorLeft = 100.f;
+    w2.dragon().wanderTarget = {200.f, 100.f};
+    for (int i = 0; i < 30; ++i) w2.updateWander(1.f / 30.f);
+    CHECK(w2.dragon().flying);
+    CHECK(w2.dragon().anim == AnimState::Fly);
+    CHECK(w2.dragon().pos.y < before.y);  // 위로 올라갔다
+
+    // 전투가 시작되면 날기를 멈춘다(전투에는 Fly를 쓰지 않는다)
+    w2.spawnEnemy(EnemyKind::Imp, 1, {820.f, 700.f});
+    PlayerInput in;
+    w2.updateCombat(1.f / 30.f, CombatMode::SkillManual, in);
+    CHECK(!w2.dragon().flying);
+    CHECK(w2.dragon().anim != AnimState::Fly);
+
+    // 적이 사라지면 다시 자동 행동으로 돌아간다
+    w2.clearEnemies(false);
+    for (int i = 0; i < 30 * 40; ++i) w2.updateCombat(1.f / 30.f, CombatMode::SkillManual, in);
+    CHECK(w2.dragon().behaviorLeft > 0.f);
+
+    // 화면이 아주 낮아도 목적지가 뒤집히지 않는다
+    World w3;
+    w3.setBounds({0.f, 0.f, 400.f, 120.f});
+    w3.setupDragon(Species::Fire, 1, -1.f, {200.f, 60.f});
+    for (int i = 0; i < 30 * 60; ++i) {
+        w3.updateWander(1.f / 30.f);
+        CHECK_SILENT(w3.dragon().pos.y >= 0.f && w3.dragon().pos.y <= 120.f);
+    }
+    CHECK(true);
 }
 
 static void testLoadDragonFolders() {
@@ -531,6 +622,7 @@ int main() {
     testUnknownSpeciesKeepsIdentity();
     testAnimStates();
     testLoadDragonFolders();
+    testIdleBehavior();
     std::printf("\n%d passed, %d failed\n", g_passed, g_failed);
     return g_failed == 0 ? 0 : 1;
 }

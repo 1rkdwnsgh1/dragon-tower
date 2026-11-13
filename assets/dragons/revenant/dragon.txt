@@ -38,6 +38,12 @@ fps=8
 loop=yes
 frame_w=256
 
+; fly: 바탕화면에서 스스로 날 때 쓴다. 권장 타이밍이 없어 임시값이다.
+[anim.fly]
+fps=10
+loop=yes
+frame_w=256
+
 ; attack / hit / death 시트는 아직 없다. idle 로 대신 그려진다.
 
 [skill.1]

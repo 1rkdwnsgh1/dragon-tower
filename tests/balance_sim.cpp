@@ -85,7 +85,7 @@ static void autoHunt(Species sp) {
         if (g.screen() == Screen::Death) deaths++;
         else if (g.dragonRecord().autoExp >= autoExpCap()) { capped++; capTime += time; }
     }
-    std::printf("  %-12s auto: cap %2d/%d (avg %4.1f min), death %2d/%d\n", speciesDef(sp).name, capped, trials,
+    std::printf("  %-12s auto: cap %2d/%d (avg %4.1f min), death %2d/%d\n", speciesDef(sp).name.c_str(), capped, trials,
                 capped ? capTime / capped / 60.f : 0.f, deaths, trials);
 }
 
@@ -109,7 +109,7 @@ static void manualHunt(Species sp, CombatMode mode, int targetLevel) {
         if (!g.hasDragon()) deaths++;
         else if (g.dragonRecord().level >= targetLevel) { reached++; total += time; }
     }
-    std::printf("  %-12s %-6s Lv1→%d: reached %2d/%d (avg %4.1f min), death %2d/%d\n", speciesDef(sp).name,
+    std::printf("  %-12s %-6s Lv1→%d: reached %2d/%d (avg %4.1f min), death %2d/%d\n", speciesDef(sp).name.c_str(),
                 mode == CombatMode::Direct ? "direct" : "skill", targetLevel, reached, trials,
                 reached ? total / reached / 60.f : 0.f, deaths, trials);
 }
@@ -155,7 +155,7 @@ int main() {
     }
     std::printf("\n[tower]\n");
     for (int i = 0; i < kBuiltinSpeciesCount; ++i) {
-        std::printf("  %s\n", speciesDef(static_cast<Species>(i)).name);
+        std::printf("  %s\n", speciesDef(static_cast<Species>(i)).name.c_str());
         for (int lv : {5, 7, 9}) {
             tower(static_cast<Species>(i), CombatMode::SkillManual, lv);
             tower(static_cast<Species>(i), CombatMode::Direct, lv);

@@ -64,6 +64,7 @@ SpeciesDef builtinSpecies(int i) {
     d.anims[static_cast<int>(AnimState::Attack)] = {12.f, false, 0};
     d.anims[static_cast<int>(AnimState::Hit)] = {12.f, false, 0};
     d.anims[static_cast<int>(AnimState::Death)] = {10.f, false, 0};
+    d.anims[static_cast<int>(AnimState::Fly)] = {10.f, true, 0};
     return d;
 }
 
@@ -88,6 +89,7 @@ const char* animStateName(AnimState s) {
         case AnimState::Attack: return "attack";
         case AnimState::Hit: return "hit";
         case AnimState::Death: return "death";
+        case AnimState::Fly: return "fly";
     }
     return "idle";
 }

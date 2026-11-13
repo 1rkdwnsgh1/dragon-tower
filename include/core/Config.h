@@ -56,6 +56,25 @@ constexpr float kArenaHeight = 600.f;
 // 저장
 constexpr float kAutosaveInterval = 10.f;
 
+// 바탕화면에서 사냥하지 않을 때 스스로 고르는 행동. 전부 임시값이다.
+// 고를 확률(합이 1이 아니어도 비율로 쓰인다)
+constexpr float kIdleWeightRest = 3.0f;   // 쉬기(제자리)
+constexpr float kIdleWeightWalk = 4.0f;   // 걷기(아래쪽 바닥을 따라)
+constexpr float kIdleWeightFly = 2.0f;    // 날기(화면 위쪽까지)
+// 한 번 고른 행동을 이어 가는 시간(초)
+constexpr float kIdleRestMin = 2.0f;
+constexpr float kIdleRestMax = 6.0f;
+constexpr float kIdleWalkMin = 4.0f;
+constexpr float kIdleWalkMax = 9.0f;
+constexpr float kIdleFlyMin = 5.0f;
+constexpr float kIdleFlyMax = 11.0f;
+// 이동 속도 배율(기본 speed 대비)
+constexpr float kIdleWalkSpeed = 0.35f;
+constexpr float kIdleFlySpeed = 0.80f;
+// 걷기는 화면 아래 이만큼 아래에서만, 날기는 위쪽 이만큼까지 올라간다(화면 높이 비율)
+constexpr float kIdleWalkTopRatio = 0.55f;
+constexpr float kIdleFlyTopRatio = 0.08f;
+
 // 애니메이션(1회 재생 상태를 유지하는 시간). 시트가 더 길면 그만큼만 보인다.
 constexpr float kAnimAttackHold = 0.35f;
 constexpr float kAnimHitHold = 0.22f;

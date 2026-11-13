@@ -44,8 +44,9 @@ struct SkillDef {
 };
 
 // 캐릭터 애니메이션 상태. assets/dragons/<키>/<상태 이름>.png 시트와 짝이다.
-enum class AnimState { Idle = 0, Move = 1, Attack = 2, Hit = 3, Death = 4 };
-constexpr int kAnimStateCount = 5;
+// Fly는 바탕화면에서 스스로 날아다닐 때만 쓴다(전투에는 쓰지 않는다).
+enum class AnimState { Idle = 0, Move = 1, Attack = 2, Hit = 3, Death = 4, Fly = 5 };
+constexpr int kAnimStateCount = 6;
 const char* animStateName(AnimState s);  // "idle", "move", ...
 
 struct AnimDef {

@@ -15,6 +15,7 @@
 | `attack.png` | 공격·스킬 동작 시트 | `idle.png`로 대신 그림 |
 | `hit.png` | 피격 동작 시트 | `idle.png` + 깜빡임 효과 |
 | `death.png` | 사망 동작 시트 | `idle.png` + 사라지는 효과 |
+| `fly.png` | 비행 시트. 바탕화면에서 스스로 날 때 | `move.png` → 없으면 `idle.png` |
 | `dragon.png` | 애니메이션 없이 쓸 정지 이미지 1장 | 시트가 있으면 쓰이지 않음 |
 | `CREDITS.md` | 제작자·출처·라이선스·사용한 생성 도구 | (직접 적어 주세요) |
 

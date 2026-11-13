@@ -99,6 +99,7 @@ SpeciesDef newSpeciesTemplate(const std::string& key) {
     d.anims[static_cast<int>(AnimState::Attack)] = {12.f, false, 0};
     d.anims[static_cast<int>(AnimState::Hit)] = {12.f, false, 0};
     d.anims[static_cast<int>(AnimState::Death)] = {10.f, false, 0};
+    d.anims[static_cast<int>(AnimState::Fly)] = {10.f, true, 0};
     return d;
 }
 
@@ -146,7 +147,7 @@ DragonParseResult parseDragonText(const std::string& text, const std::string& fo
             } else if (name.rfind("anim.", 0) == 0) {
                 AnimState st;
                 if (animStateFromName(name.substr(5), st)) { section = "anim"; animSec = st; }
-                else { warn("모르는 애니메이션 상태 [" + name + "] (idle/move/attack/hit/death)"); sectionValid = false; }
+                else { warn("모르는 애니메이션 상태 [" + name + "] (idle/move/attack/hit/death/fly)"); sectionValid = false; }
             } else if (name.rfind("skill.", 0) == 0) {
                 int n;
                 if (parseInt(name.substr(6), n) && n >= 1 && n <= 3) { section = "skill"; skillSec = n - 1; }

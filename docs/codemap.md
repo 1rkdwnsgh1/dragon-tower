@@ -29,6 +29,8 @@ tests/                     코어 규칙 검증
 | 전투 진행(피해, 회피, 스킬 발동) | `src/core/World.cpp` | `updateCombat`, `castSkill`, `damageDragon` |
 | 적 행동과 공격 예고 | `src/core/World.cpp` | `updateEnemies`, `resolveZone` |
 | 애니메이션 상태 전환 | `src/core/World.cpp` | `updateDragonAnim`, `setDragonAnim` |
+| 바탕화면 자동 행동(쉬기·걷기·날기) | `src/core/World.cpp` | `pickBehavior`, `wander`, `randomRoamTarget` |
+| 자동 행동 확률·시간·속도 | `include/core/Config.h` | `cfg::kIdle...` |
 | 화면 흐름(선택→사냥→탑→사망) | `src/core/Game.cpp` | `Game::update`, `Screen` |
 | 영구 사망 처리 | `src/core/Game.cpp` | `onDragonDied` |
 | 저장 형식 | `src/core/SaveData.cpp` | `serializeSave`, `deserializeSave` |
