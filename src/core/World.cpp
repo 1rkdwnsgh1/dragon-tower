@@ -97,6 +97,8 @@ Enemy& World::spawnEnemy(EnemyKind kind, int level, Vec2 pos) {
     e.expReward = st.expReward;
     e.attackCd = def.role == EnemyRole::Boss ? def.attackCooldown : rng_.uniform(0.6f, 1.6f);
     e.hp = e.maxHp;
+    // 경계 밖에서 생겨났으면 들어오는 중으로 표시한다(그 전까지는 가두지 않는다)
+    e.entering = !bounds_.contains(e.pos.x, e.pos.y);
     enemies_.push_back(e);
     events_.push_back({WorldEventType::EnemySpawned, kind, 0});
     addFx(FxType::Poof, pos, pos, e.radius * 1.4f, 0.4f, 0xFFB08CFF);
@@ -582,7 +584,12 @@ void World::updateEnemies(float dt) {
             continue;
         }
         if (dist > keepDist) e.pos += to.normalized() * (e.speed * dt);
-        e.pos = bounds_.clampPoint(e.pos, e.radius);
+        if (e.entering) {
+            // 경계 안으로 완전히 들어오면 그때부터 가둔다
+            if (bounds_.contains(e.pos.x, e.pos.y)) e.entering = false;
+        } else {
+            e.pos = bounds_.clampPoint(e.pos, e.radius);
+        }
     }
     // 적끼리 겹치지 않게 밀어낸다
     for (size_t i = 0; i < enemies_.size(); ++i) {

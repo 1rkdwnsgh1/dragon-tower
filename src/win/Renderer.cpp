@@ -230,7 +230,7 @@ void Renderer::drawOverlay(Graphics& g, const Game& game, const Sprites& sprites
     }
 
     if (game.hasDragon() || sc == Screen::Death) drawWorld(g, game, sprites, ctx);
-    if (game.hasDragon()) drawStatusCard(g, game, sprites, ctx);
+    if (game.hasDragon()) drawStatusCard(g, game, sprites, ctx, out);
     if (sc == Screen::Tower) drawTowerHud(g, game);
     if (sc == Screen::Desktop && ctx.inputEnabled && game.hasDragon()) drawMenu(g, game, ctx, out);
 
@@ -653,11 +653,33 @@ void Renderer::drawFx(Graphics& g, const World& w) {
 // HUD
 // ---------------------------------------------------------------------------
 
-void Renderer::drawStatusCard(Graphics& g, const Game& game, const Sprites& sprites, const RenderContext& ctx) {
+void Renderer::toggle(Graphics& g, std::vector<UiButton>& out, const RenderContext& ctx, const RectF& r,
+                      const std::string& label, bool on, UiAction action, int arg, bool enabled) {
+    bool hover = enabled && r.Contains(PointF(ctx.mouseX, ctx.mouseY));
+    // 글자 + 스위치. 스위치는 오른쪽 끝에 둔다.
+    float sw = 42.f, sh = 22.f;
+    RectF knobArea(r.GetRight() - sw, r.Y + (r.Height - sh) * 0.5f, sw, sh);
+    Color track = !enabled ? Color(200, 48, 50, 60)
+                           : on ? Color(255, 70, 190, 120) : Color(235, 60, 64, 80);
+    auto lift = [](BYTE v) { return static_cast<BYTE>(v > 230 ? 255 : v + 25); };
+    if (hover) track = Color(255, lift(track.GetR()), lift(track.GetG()), lift(track.GetB()));
+    fillRound(g, knobArea, sh * 0.5f, track);
+    strokeRound(g, knobArea, sh * 0.5f, Color(255, 20, 22, 30), 1.f);
+    float kr = sh * 0.5f - 3.f;
+    float kx = on ? knobArea.GetRight() - kr - 3.f : knobArea.X + kr + 3.f;
+    fillCircle(g, kx, knobArea.Y + sh * 0.5f, kr, Color(255, 245, 248, 255));
+    text(g, label, r.X, r.Y + (r.Height - 16.f) * 0.5f, 14.f, enabled ? kText : 0xFF7C8090, 0, true);
+    text(g, on ? "ON" : "OFF", knobArea.X - 8.f, r.Y + (r.Height - 14.f) * 0.5f + 1.f, 12.f,
+         on ? 0xFF8CFFA0 : 0xFF9AA2B4, 2);
+    if (enabled) out.push_back({r, action, arg});
+}
+
+void Renderer::drawStatusCard(Graphics& g, const Game& game, const Sprites& sprites, const RenderContext& ctx,
+                              std::vector<UiButton>& out) {
     const DragonRecord& rec = game.dragonRecord();
     const DragonActor& d = game.world().dragon();
     const SpeciesDef& sp = speciesDef(rec.species);
-    RectF r(width_ - 96.f - 270.f, height_ - 16.f - 186.f, 270.f, 186.f);
+    RectF r(width_ - 96.f - 270.f, height_ - 16.f - 232.f, 270.f, 232.f);
     panel(g, r, 224);
     float x = r.X + 14.f;
     float y = r.Y + 10.f;
@@ -677,10 +699,14 @@ void Renderer::drawStatusCard(Graphics& g, const Game& game, const Sprites& spri
             "EXP " + std::to_string(rec.exp) + " / " + std::to_string(expToNext(rec.level)));
     }
     y += 17.f;
-    int cap = autoExpCap();
-    bar(g, RectF(x, y, w, 12.f), rec.autoExp / static_cast<float>(cap), kAutoC,
-        rec.autoExp >= cap ? "자동 경험치 상한 도달" : "자동 경험치 " + std::to_string(rec.autoExp) + " / " + std::to_string(cap));
-    y += 20.f;
+    if (cfg::kAutoExpCapEnabled) {
+        int cap = autoExpCap();
+        bar(g, RectF(x, y, w, 12.f), rec.autoExp / static_cast<float>(cap), kAutoC,
+            rec.autoExp >= cap ? "자동 경험치 상한 도달" : "자동 경험치 " + std::to_string(rec.autoExp) + " / " + std::to_string(cap));
+        y += 20.f;
+    } else {
+        y += 3.f;
+    }
 
     std::string state;
     if (game.screen() == Screen::Tower || game.screen() == Screen::FloorClear) {
@@ -694,7 +720,24 @@ void Renderer::drawStatusCard(Graphics& g, const Game& game, const Sprites& spri
         state = std::string("대기 중 · 모드: ") + combatModeName(game.huntMode());
     }
     text(g, state, x, y, 13.f, kSub);
-    y += 22.f;
+    y += 20.f;
+
+    // 바탕화면 전투 토글과 모드 선택 (v0.5)
+    bool inTower = game.screen() == Screen::Tower || game.screen() == Screen::FloorClear;
+    bool on = game.hunting();
+    toggle(g, out, ctx, RectF(x, y, w, 26.f), "바탕화면 전투", on,
+           on ? UiAction::StopHunt : UiAction::StartHunt, 0, !inTower);
+    y += 30.f;
+
+    // 모드는 무리와 무리 사이에만 바꿀 수 있다(전투 도중 교체 방지)
+    const CombatMode modes[3] = {CombatMode::Direct, CombatMode::SkillManual, CombatMode::Auto};
+    const char* shortName[3] = {"직접", "스킬", "자동"};
+    float bw = (w - 8.f) / 3.f;
+    for (int i = 0; i < 3; ++i) {
+        button(g, out, ctx, RectF(x + i * (bw + 4.f), y, bw, 24.f), shortName[i], UiAction::SetMode,
+               static_cast<int>(modes[i]), game.canChangeMode(), game.huntMode() == modes[i]);
+    }
+    y += 28.f;
 
     // 스킬 칸
     float box = 40.f;

@@ -33,6 +33,8 @@ struct Enemy {
     float hitFlash = 0.f;
     float facing = 1.f;      // 1 오른쪽, -1 왼쪽
     bool alive = true;
+    // 화면 밖에서 들어오는 중이면 경계에 가두지 않는다(디펜스 전투의 등장 연출)
+    bool entering = false;
     // 보스 전용
     bool phase2 = false;
     bool spawnedAdds = false;

@@ -5,7 +5,10 @@ namespace dt::cfg {
 
 // 성장
 constexpr int kMaxLevel = 30;
-constexpr int kAutoExpCapLevel = 5;  // 자동 사냥 누적 경험치 상한: 이 레벨 도달에 필요한 총 경험치
+// 자동 전투 경험치 상한. v0.5에서 끄기로 했다(기획서 10장 참고).
+// 상한을 다시 켜려면 kAutoExpCapEnabled 를 true 로 바꾼다. 수치와 저장 필드는 그대로 둔다.
+constexpr bool kAutoExpCapEnabled = false;
+constexpr int kAutoExpCapLevel = 5;  // 상한을 켤 때 쓰는 값
 
 // 크기(픽셀)
 constexpr float kDragonRadius = 34.f;
@@ -50,6 +53,12 @@ constexpr float kGuardianPhase2Speedup = 0.8f;  // 2페이즈 예고·대기 시
 constexpr float kTowerFloorHeal = 0.30f;   // 층 돌파 시 회복 비율
 constexpr int kTowerClearExp = 120;
 constexpr int kTowerRecommendedLevel = 8;
+// 바탕화면 디펜스 전투(v0.5). 전투는 화면 맨 아래 띠에서만 일어난다.
+constexpr float kBandHeight = 150.f;      // 작업 표시줄 바로 위 전투 띠의 높이
+constexpr float kBandBottomMargin = 8.f;  // 띠 아래 여백
+constexpr float kSpawnOffsetX = 60.f;     // 왼쪽 화면 밖에서 이만큼 떨어져 등장
+constexpr float kWaveLevelStep = 3;       // 웨이브 이만큼마다 적 수가 한 마리 늘어난다
+
 constexpr float kArenaWidth = 960.f;
 constexpr float kArenaHeight = 600.f;
 

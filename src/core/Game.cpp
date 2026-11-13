@@ -40,6 +40,14 @@ void Game::setDesktopBounds(const RectF& desktop) {
     }
 }
 
+RectF Game::battleBand() const {
+    // 작업 표시줄은 작업 영역(desktop_)에서 이미 빠져 있으므로, 그 아래쪽 띠를 쓴다.
+    float h = std::min(cfg::kBandHeight, desktop_.h);
+    float y = desktop_.bottom() - h - cfg::kBandBottomMargin;
+    if (y < desktop_.y) y = desktop_.y;
+    return {desktop_.x, y, desktop_.w, h};
+}
+
 RectF Game::arena() const {
     float w = std::min(cfg::kArenaWidth, desktop_.w - 40.f);
     float h = std::min(cfg::kArenaHeight, desktop_.h - 140.f);
@@ -148,6 +156,11 @@ void Game::startHunt() {
     }
     hunting_ = true;
     waveActive_ = false;
+    waveNumber_ = 0;
+    // 전투는 맨 아래 띠에서만 일어난다. 드래곤을 띠 안으로 내려 세운다.
+    world_.setBounds(battleBand());
+    world_.dragon().pos = battleBand().clampPoint(world_.dragon().pos, cfg::kDragonRadius);
+    world_.dragon().groundY = world_.dragon().pos.y;
     breakTimer_ = 1.5f;
     notify(std::string(combatModeName(save_.huntMode)) + " 모드로 사냥을 시작합니다.", kGood, 2.5f);
 }
@@ -170,6 +183,12 @@ void Game::stopHunt(const std::string& reason) {
     if (!hunting_) return;
     hunting_ = false;
     waveActive_ = false;
+    waveNumber_ = 0;
+    // 전투가 끝나면 다시 바탕화면 전체를 돌아다닌다.
+    if (!inTowerFlow()) {
+        world_.setBounds(desktop_);
+        world_.dragon().behaviorLeft = 0.f;  // 다음 프레임에 새 행동을 고른다
+    }
     world_.clearEnemies(true);
     if (!reason.empty()) notify(reason, kWarn, 5.f);
     saveRequested_ = true;
@@ -193,12 +212,20 @@ EnemyKind Game::randomMelee() {
 }
 
 void Game::spawnWave() {
+    // 디펜스형: 적은 화면 왼쪽 밖에서 줄지어 들어와 드래곤에게 걸어온다.
+    ++waveNumber_;
+    RectF band = battleBand();
     int level = save_.dragon.level;
-    int maxCount = std::clamp(1 + level / 2, cfg::kWaveMin, cfg::kWaveMax);
+    int byLevel = 1 + level / 2;
+    int byWave = 1 + static_cast<int>(waveNumber_ / cfg::kWaveLevelStep);
+    int maxCount = std::clamp(std::max(byLevel, byWave), cfg::kWaveMin, cfg::kWaveMax);
     int count = rng_.range(cfg::kWaveMin, maxCount);
     for (int i = 0; i < count; ++i) {
         int lv = std::max(1, level - rng_.range(0, 1));
-        world_.spawnEnemy(randomMelee(), lv, world_.randomEdgePoint(40.f));
+        // 한 줄로 겹치지 않게 왼쪽 밖에서 간격을 두고 세운다
+        float x = band.x - cfg::kSpawnOffsetX - static_cast<float>(i) * 70.f;
+        float y = rng_.uniform(band.y + 40.f, band.bottom() - 30.f);
+        world_.spawnEnemy(randomMelee(), lv, {x, y});
     }
     waveActive_ = true;
 }
