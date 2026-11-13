@@ -36,6 +36,37 @@ void World::setupDragon(Species s, int level, float hp, Vec2 pos) {
     dragon_.alive = true;
 }
 
+void World::setDragonAnim(AnimState s, float hold) {
+    DragonActor& d = dragon_;
+    // 사망 상태는 어떤 것으로도 덮이지 않는다.
+    if (d.anim == AnimState::Death) return;
+    if (d.anim != s) {
+        d.anim = s;
+        d.animTime = 0.f;
+    }
+    d.animHold = std::max(d.animHold, hold);
+}
+
+void World::updateDragonAnim(float dt) {
+    DragonActor& d = dragon_;
+    d.animTime += dt;
+    d.animHold = std::max(0.f, d.animHold - dt);
+    if (!d.alive) {
+        if (d.anim != AnimState::Death) {
+            d.anim = AnimState::Death;
+            d.animTime = 0.f;
+            d.animHold = cfg::kAnimDeathHold;
+        }
+        return;
+    }
+    if (d.animHold > 0.f) return;  // 1회 재생이 끝나지 않았다
+    AnimState want = d.moving ? AnimState::Move : AnimState::Idle;
+    if (d.anim != want) {
+        d.anim = want;
+        d.animTime = 0.f;
+    }
+}
+
 void World::setDragonLevel(int level) {
     float oldMax = dragon_.stats.maxHp;
     dragon_.level = level;
@@ -200,6 +231,7 @@ void World::basicAttack() {
     projectiles_.push_back(p);
     d.basicCd = cfg::kBasicAttackCooldown;
     if (std::fabs(t->pos.x - d.pos.x) > 4.f) d.facing = Vec2{t->pos.x > d.pos.x ? 1.f : -1.f, 0.f};
+    setDragonAnim(AnimState::Attack, cfg::kAnimAttackHold);
 }
 
 bool World::castSkill(int i, bool aiChoice) {
@@ -314,6 +346,7 @@ bool World::castSkill(int i, bool aiChoice) {
         }
     }
     d.skillCd[i] = s.cooldown;
+    setDragonAnim(AnimState::Attack, cfg::kAnimAttackHold);
     addText(s.name, d.pos - Vec2{0.f, 78.f}, sp.color | 0xFF000000, 15.f, 0.9f);
     return true;
 }
@@ -322,7 +355,7 @@ void World::dragonAi(float dt, bool castSkills) {
     DragonActor& d = dragon_;
     Enemy* t = nearestEnemy(d.pos, 1e9f);
     if (!t) {
-        updateWander(dt);
+        wander(dt);  // 애니메이션은 updateCombat 끝에서 한 번만 진행한다
         return;
     }
     float desired = cfg::kBasicAttackRange * 0.7f;
@@ -339,6 +372,11 @@ void World::dragonAi(float dt, bool castSkills) {
 }
 
 void World::updateWander(float dt) {
+    wander(dt);
+    updateDragonAnim(dt);
+}
+
+void World::wander(float dt) {
     DragonActor& d = dragon_;
     if (d.dashTime > 0.f) {
         moveDragon(dt, {0.f, 0.f}, 1.f);
@@ -510,6 +548,7 @@ void World::damageDragon(float raw) {
     if (d.shieldTime > 0.f) dmg *= (1.f - d.shieldPct);
     d.hp -= dmg;
     d.hitFlash = 0.2f;
+    setDragonAnim(AnimState::Hit, cfg::kAnimHitHold);
     statHitsTaken++;
     addText(intText(dmg), d.pos - Vec2{0.f, 52.f}, kColorDamageToDragon, 20.f, 0.9f);
     addFx(FxType::Hit, d.pos, d.pos, 46.f, 0.25f, kColorDamageToDragon);
@@ -628,6 +667,8 @@ void World::updateCombat(float dt, CombatMode mode, const PlayerInput& in) {
     dots_.erase(std::remove_if(dots_.begin(), dots_.end(), [](const DotZone& z) { return z.remaining <= 0.f; }), dots_.end());
 
     enemies_.erase(std::remove_if(enemies_.begin(), enemies_.end(), [](const Enemy& e) { return !e.alive; }), enemies_.end());
+
+    updateDragonAnim(dt);
 }
 
 void World::updateFx(float dt) {

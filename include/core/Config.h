@@ -56,4 +56,9 @@ constexpr float kArenaHeight = 600.f;
 // 저장
 constexpr float kAutosaveInterval = 10.f;
 
+// 애니메이션(1회 재생 상태를 유지하는 시간). 시트가 더 길면 그만큼만 보인다.
+constexpr float kAnimAttackHold = 0.35f;
+constexpr float kAnimHitHold = 0.22f;
+constexpr float kAnimDeathHold = 3.0f;
+
 }  // namespace dt::cfg

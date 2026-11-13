@@ -1,0 +1,71 @@
+; 망령룡 — 선택 화면에 띄우기 위한 임시 데이터입니다.
+; 수치는 전부 임시값이고, 기존 4종과의 관계(대체인지 추가인지)는 아직 정해지지 않았습니다.
+; 이 폴더를 dragon_tower.exe 옆 assets/dragons/ 안에 두고 게임을 다시 켜세요.
+
+[dragon]
+name=망령룡
+role=저주
+desc=풍화된 골격에 청록 영혼이 흐른다. 지속 피해로 적을 갉아낸다.
+color=FF3FBFA8
+
+hp=105
+atk=12
+def=4
+speed=175
+dodge=0.32
+regen=0
+
+hp_growth=14
+atk_growth=2.6
+def_growth=0.7
+dodge_growth=0
+regen_growth=0
+
+; 좌우 반전 허용(손상 날개 좌우는 유지하지 않기로 2026-11-13 결정)
+flip=yes
+
+; 그림: 작업 자료(references/revenant-dragon/work-2026-11-13)를 tools/make_sheet.py --mirror 로
+; 변환해 넣었다. 원본은 왼쪽 지향이라 뒤집었고, 손상 날개의 신체 기준 좌우는 유지하지 않는다.
+; idle: 동봉 타이밍 파일의 권장값(프레임당 800ms)을 따른다
+[anim.idle]
+fps=1.25
+loop=yes
+frame_w=256
+
+; move: 권장 타이밍이 없어 임시값이다. 실제로 보고 조정할 것
+[anim.move]
+fps=8
+loop=yes
+frame_w=256
+
+; attack / hit / death 시트는 아직 없다. idle 로 대신 그려진다.
+
+[skill.1]
+name=영혼 탄
+desc=가장 가까운 적에게 청록 영혼 덩어리를 날린다.
+kind=Projectile
+level=1
+cooldown=4
+power=2.0
+range=380
+
+[skill.2]
+name=저주의 안개
+desc=적 위치에 안개를 깔아 계속 피해를 준다.
+kind=Zone
+level=3
+cooldown=9
+power=1.0
+radius=100
+range=360
+duration=4
+
+[skill.3]
+name=망령의 포효
+desc=주변 적에게 피해를 주고 잠시 기절시킨다.
+kind=Burst
+level=6
+cooldown=10
+power=1.8
+radius=130
+extra=1.2

@@ -1,4 +1,6 @@
-Dragon Tower (가제)
+# Dragon Tower (가제)
+
+현재 버전: **v0.2** ([바뀐 점](docs/changelog.md))
 
 Windows 바탕화면에서 드래곤을 육성하고 탑에 도전하는 게임입니다. 주 언어는 C++이며 게임 엔진은 사용하지 않습니다. 소리 없이 진행합니다.
 
@@ -9,10 +11,15 @@ Windows 바탕화면에서 드래곤을 육성하고 탑에 도전하는 게임�
 - [구현 메모: 임시로 정한 사항과 확인할 것](docs/implementation-notes.md)
 - [이미지 자료 규격과 생성 요청 예시](assets/README.md)
 - [캐릭터 이미지·애니메이션·스킬 적용 기획 (드래곤 추가 구조)](docs/character-pipeline.md)
+- [**드래곤 추가·그림 넣기 사용법**](assets/dragons/README.md)
+- [버전별 바뀐 점](docs/changelog.md)
+- [**코드 지도: 무엇이 어디에 있나**](docs/codemap.md)
+- [AI 작업 비용 기록과 개선](docs/ai-workflow-notes.md)
 
 ## 지금 할 수 있는 것(첫 수직 단면)
 
 - 드래곤 4종 중 하나를 골라 시작합니다. 이름과 수치는 임시안입니다.
+- **드래곤 추가**: `assets/dragons/`에 폴더를 만들면 코드 수정 없이 새 드래곤이 생깁니다. 그림(스프라이트 시트)도 그 폴더에 넣습니다. → [사용법](assets/dragons/README.md)
 - 드래곤과 몬스터는 다른 프로그램 창보다 항상 위에, 바탕화면 위에 떠서 움직입니다.
 - 오른쪽 아래 **설정 버튼**으로 게임 입력을 켜고 끕니다. 꺼져 있으면 마우스·키보드가 다른 프로그램으로 그대로 갑니다.
 - 다른 앱이 전체화면이 되면 드래곤, 몬스터, 설정 버튼을 숨기고 끝나면 다시 표시합니다. 자동 사냥은 숨겨진 동안에도 계속됩니다.
@@ -43,10 +50,12 @@ ctest --test-dir build -C Release
 
 - `include/core`, `src/core`: 게임 규칙(성장, 전투, 탑, 저장). Windows에 의존하지 않아 다른 환경에서도 테스트할 수 있습니다.
 - `src/win`: 바탕화면 투명 창, 설정 버튼, 전체화면 감지, 그리기와 입력.
-- `assets/`: 이미지 자료. 없으면 임시 도형으로 표시합니다.
+- `assets/dragons/<키>/`: 드래곤별 데이터 파일(`dragon.txt`)과 스프라이트 시트. 게임이 켜질 때 읽습니다.
+- `assets/`: 그 밖의 이미지 자료. 없으면 임시 도형으로 표시합니다.
+- `tools/make_sheet.py`: 낱장 프레임이나 다른 규격의 그림을 시트 규격으로 변환합니다.
 - `tests/core_tests.cpp`: 핵심 규칙 검증(자동 경험치 상한, 영구 사망, 저장, 모드 규칙 등).
 - `tests/balance_sim.cpp`: 임시 수치 점검용 시뮬레이션.
 
 ## 수치 바꾸기
 
-전투·성장 수치는 `include/core/Config.h`, 드래곤별 능력치와 스킬은 `src/core/Species.cpp`, 레벨 곡선은 `src/core/Progression.cpp`에 있습니다.
+드래곤별 능력치와 스킬은 **`assets/dragons/<키>/dragon.txt`에서 코드 수정 없이** 바꿀 수 있습니다(기본값은 `src/core/Species.cpp`). 전투 공통 수치는 `include/core/Config.h`, 레벨 곡선은 `src/core/Progression.cpp`에 있습니다.

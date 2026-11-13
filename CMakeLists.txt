@@ -13,6 +13,7 @@ option(DRAGON_BUILD_TESTS "핵심 규칙 테스트를 빌드한다" ON)
 # ---- 핵심 규칙(플랫폼 무관) ----
 add_library(dragon_core STATIC
     src/core/Species.cpp
+    src/core/DragonData.cpp
     src/core/Progression.cpp
     src/core/SaveData.cpp
     src/core/World.cpp

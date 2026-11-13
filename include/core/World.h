@@ -111,6 +111,11 @@ struct DragonActor {
     bool moving = false;
     Vec2 wanderTarget;
     float wanderWait = 0.f;
+    // v0.2 시트 애니메이션 상태. 프레임 수는 이미지가 정하므로 여기서는 상태와
+    // 경과 시간만 둔다(그리는 쪽이 fps·프레임 수로 현재 칸을 계산한다).
+    AnimState anim = AnimState::Idle;
+    float animTime = 0.f;  // 현재 상태로 바뀐 뒤 흐른 시간
+    float animHold = 0.f;  // 1회 재생 상태를 유지할 남은 시간(0이면 상태 자유)
 };
 
 enum class WorldEventType { EnemyKilled, DragonDied, EnemySpawned };
@@ -149,6 +154,11 @@ public:
     void healPercent(float pct);
     void regen(float pctPerSec, float dt);
 
+    // 드래곤 애니메이션 상태를 진행한다. updateCombat/updateWander가 내부에서 부른다.
+    void updateDragonAnim(float dt);
+    // 1회 재생 상태로 바꾼다(공격·피격·사망). hold 동안 다른 상태로 덮이지 않는다.
+    void setDragonAnim(AnimState s, float hold);
+
     bool skillUnlocked(int i) const;
     bool skillReady(int i) const { return skillUnlocked(i) && dragon_.skillCd[i] <= 0.f; }
 
@@ -169,6 +179,7 @@ public:
     int statHitsTaken = 0;
 
 private:
+    void wander(float dt);  // 애니메이션 진행을 포함하지 않는 배회(내부용)
     Enemy* nearestEnemy(Vec2 from, float maxDist);
     Enemy* findEnemy(int id);
     void moveDragon(float dt, Vec2 dir, float speedMul);

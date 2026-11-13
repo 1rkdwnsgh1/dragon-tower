@@ -278,19 +278,56 @@ void Renderer::drawSprite(Graphics& g, Bitmap* bmp, float cx, float cy, float he
     g.Restore(st);
 }
 
+void Renderer::drawSheetFrame(Graphics& g, const Sheet& sh, int frame, float cx, float cy, float height, bool flip,
+                              float flash, float alpha) {
+    if (!sh.bmp || sh.frames <= 0) return;
+    int f = std::clamp(frame, 0, sh.frames - 1);
+    float fw = static_cast<float>(sh.frameW);
+    float fh = static_cast<float>(sh.frameH);
+    float h = height;
+    float w = h * fw / fh;
+    GraphicsState st = g.Save();
+    g.TranslateTransform(cx, cy);
+    if (flip) g.ScaleTransform(-1.f, 1.f);
+    ColorMatrix cm = {{{1.f, 0.f, 0.f, 0.f, 0.f},
+                       {0.f, 1.f, 0.f, 0.f, 0.f},
+                       {0.f, 0.f, 1.f, 0.f, 0.f},
+                       {0.f, 0.f, 0.f, alpha, 0.f},
+                       {flash, flash, flash, 0.f, 1.f}}};
+    ImageAttributes ia;
+    ia.SetColorMatrix(&cm, ColorMatrixFlagsDefault, ColorAdjustTypeBitmap);
+    ia.SetWrapMode(WrapModeTileFlipXY);  // 칸 경계에서 옆 칸 픽셀이 번지지 않게 한다
+    g.DrawImage(sh.bmp, RectF(-w * 0.5f, -h * 0.5f, w, h), fw * f, 0.f, fw, fh, UnitPixel, &ia);
+    g.Restore(st);
+}
+
 void Renderer::drawDragon(Graphics& g, const DragonActor& d, const Sprites& sprites, float time, float x, float y,
                           float height, bool preview) {
     const SpeciesDef& sp = speciesDef(d.species);
-    bool flip = d.facing.x < 0.f;
-    float bob = std::sin(time * (d.moving ? 9.f : 3.f)) * (d.moving ? 4.f : 2.5f);
-    float cy = y + bob;
+    bool flip = sp.flipAllowed && d.facing.x < 0.f;
     float alpha = (!preview && d.invuln > 0.f) ? 0.55f : 1.f;
     float flash = (!preview && d.hitFlash > 0.f) ? 0.6f : 0.f;
 
+    // 시트 애니메이션이 있으면 그것으로 그린다(v0.2). 미리보기는 항상 대기 동작.
+    AnimState state = preview ? AnimState::Idle : d.anim;
+    Sheet sh = sprites.sheet(sp.key, state);
+    bool animated = sh.bmp != nullptr && sh.frames > 1;
+
+    // 시트가 여러 칸이면 그림 자체가 움직이므로 위아래 흔들기를 하지 않는다.
+    float bob = animated ? 0.f : std::sin(time * (d.moving ? 9.f : 3.f)) * (d.moving ? 4.f : 2.5f);
+    float cy = y + bob;
+
     // 그림자
     {
-        SolidBrush sh(Color(static_cast<BYTE>(70 * alpha), 0, 0, 0));
-        g.FillEllipse(&sh, x - height * 0.32f, y + height * 0.38f, height * 0.64f, height * 0.14f);
+        SolidBrush sh2(Color(static_cast<BYTE>(70 * alpha), 0, 0, 0));
+        g.FillEllipse(&sh2, x - height * 0.32f, y + height * 0.38f, height * 0.64f, height * 0.14f);
+    }
+
+    if (sh.bmp) {
+        const AnimDef& ad = sp.anims[static_cast<int>(state)];
+        float t = preview ? time : d.animTime;
+        drawSheetFrame(g, sh, animFrame(t, ad.fps, sh.frames, ad.loop), x, cy, height, flip, flash, alpha);
+        return;
     }
 
     Bitmap* bmp = sprites.get(std::string("dragon_") + sp.key);
@@ -855,20 +892,36 @@ void Renderer::drawModal(Graphics& g, const Game& game, const Sprites& sprites, 
 
 void Renderer::drawSelect(Graphics& g, const Game& game, const Sprites& sprites, const RenderContext& ctx,
                           std::vector<UiButton>& out) {
-    const float cardW = 222.f;
+    // v0.2: 종이 폴더로 늘어날 수 있으므로 화면 너비에 맞춰 카드 크기를 줄이고,
+    // 그래도 넘치면 들어가는 만큼만 보여 준다.
     const float gap = 14.f;
-    const float pw = cardW * 4.f + gap * 3.f + 48.f;
+    const float minCardW = 150.f;
+    const float maxCardW = 222.f;
+    const float availW = width_ - 80.f - 48.f;  // 양옆 여백과 패널 안쪽 여백
+    int total = speciesCount();
+    int shown = std::max(1, total);
+    float cardW = maxCardW;
+    while (shown > 1) {
+        cardW = (availW - gap * (shown - 1)) / shown;
+        if (cardW >= minCardW) break;
+        --shown;
+    }
+    cardW = std::clamp(cardW, minCardW, maxCardW);
+
+    const float pw = cardW * shown + gap * (shown - 1) + 48.f;
     const float ph = 600.f;
     RectF r(width_ * 0.5f - pw * 0.5f, height_ * 0.5f - ph * 0.5f, pw, ph);
     panel(g, r, 242);
     text(g, "드래곤 선택", r.X + 24.f, r.Y + 18.f, 22.f, kText, 0, true);
-    text(g, "함께 탑을 오를 드래곤 한 마리를 고르세요. 이름과 수치는 임시안입니다.", r.X + 24.f, r.Y + 54.f, 14.f, kSub);
+    std::string sub = "함께 탑을 오를 드래곤 한 마리를 고르세요. 이름과 수치는 임시안입니다.";
+    if (shown < total) sub += "  (" + std::to_string(total) + "종 중 " + std::to_string(shown) + "종 표시)";
+    text(g, sub, r.X + 24.f, r.Y + 54.f, 14.f, kSub);
     if (!game.save().graves.empty() || game.save().bestFloor > 0) {
         button(g, out, ctx, RectF(r.GetRight() - 24.f - 130.f, r.Y + 18.f, 130.f, 34.f), "기록·도감", UiAction::OpenCodex);
     }
 
     float y0 = r.Y + 88.f;
-    for (int i = 0; i < kSpeciesCount; ++i) {
+    for (int i = 0; i < shown; ++i) {
         const SpeciesDef& sp = speciesDef(static_cast<Species>(i));
         RectF c(r.X + 24.f + i * (cardW + gap), y0, cardW, ph - 88.f - 72.f);
         bool hover = c.Contains(PointF(ctx.mouseX, ctx.mouseY));
@@ -878,6 +931,7 @@ void Renderer::drawSelect(Graphics& g, const Game& game, const Sprites& sprites,
         DragonActor preview;
         preview.species = sp.id;
         preview.facing = Vec2{1.f, 0.f};
+        preview.anim = AnimState::Idle;
         drawDragon(g, preview, sprites, ctx.time + i, c.X + c.Width * 0.5f, c.Y + 62.f, 96.f, true);
 
         float x = c.X + 14.f;
@@ -921,16 +975,23 @@ void Renderer::drawCodex(Graphics& g, const Game& game, const RenderContext& ctx
                 "   ·   탑 정복 " + std::to_string(s.towerClears) + "회",
          x, y, 15.f, 0xFFFFE9A8, 0, true);
     y += 34.f;
-    text(g, "드래곤 도감", x, y, 14.f, kSub, 0, true);
+    int total = speciesCount();
+    int seenCount = 0;
+    for (int i = 0; i < total; ++i)
+        if (s.sawSpecies(static_cast<Species>(i))) ++seenCount;
+    text(g, "드래곤 도감 (" + std::to_string(seenCount) + " / " + std::to_string(total) + ")", x, y, 14.f, kSub, 0, true);
     y += 24.f;
-    for (int i = 0; i < kSpeciesCount; ++i) {
+    // 종이 늘어날 수 있으므로 한 줄에 4개씩 줄바꿈한다.
+    const int perRow = 4;
+    for (int i = 0; i < total; ++i) {
         const SpeciesDef& sp = speciesDef(static_cast<Species>(i));
-        bool seen = s.speciesSeen[i];
-        float bx = x + i * 150.f;
-        fillCircle(g, bx + 8.f, y + 9.f, 7.f, seen ? col(sp.color) : Color(255, 70, 72, 80));
-        text(g, seen ? sp.name : "???", bx + 22.f, y, 13.f, seen ? kText : 0xFF7C8090);
+        bool seen = s.sawSpecies(sp.id);
+        float bx = x + (i % perRow) * 150.f;
+        float by = y + (i / perRow) * 22.f;
+        fillCircle(g, bx + 8.f, by + 9.f, 7.f, seen ? col(sp.color) : Color(255, 70, 72, 80));
+        text(g, seen ? sp.name : std::string("???"), bx + 22.f, by, 13.f, seen ? kText : 0xFF7C8090);
     }
-    y += 32.f;
+    y += ((total + perRow - 1) / perRow) * 22.f + 10.f;
     text(g, "만난 적", x, y, 14.f, kSub, 0, true);
     y += 24.f;
     text(g, s.impSeen ? "임프 (일반 적)" : "???", x, y, 13.f, s.impSeen ? kText : 0xFF7C8090);
@@ -941,8 +1002,11 @@ void Renderer::drawCodex(Graphics& g, const Game& game, const RenderContext& ctx
     if (s.graves.empty()) {
         text(g, "아직 없습니다.", x, y, 13.f, 0xFF7C8090);
     } else {
+        // 도감 줄 수에 따라 남는 높이만큼만 보여 준다(종이 늘어나도 패널을 넘지 않게).
+        int room = static_cast<int>((r.GetBottom() - 74.f - y) / 22.f);
+        int limit = std::clamp(room, 1, 8);
         int shown = 0;
-        for (auto it = s.graves.rbegin(); it != s.graves.rend() && shown < 8; ++it, ++shown) {
+        for (auto it = s.graves.rbegin(); it != s.graves.rend() && shown < limit; ++it, ++shown) {
             const SpeciesDef& sp = speciesDef(it->species);
             std::string line = std::string(sp.name) + " #" + std::to_string(it->id) + "  ·  Lv." +
                                std::to_string(it->level) + "  ·  " + placeLabel(it->place);
