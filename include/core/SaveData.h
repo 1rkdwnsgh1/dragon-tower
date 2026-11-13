@@ -2,6 +2,7 @@
 #pragma once
 
 #include <filesystem>
+#include <set>
 #include <string>
 #include <vector>
 
@@ -28,10 +29,15 @@ struct SaveData {
     CombatMode huntMode = CombatMode::SkillManual;
     int bestFloor = 0;        // 탑 최고 도달 층(기록, 개체가 죽어도 유지)
     int towerClears = 0;
-    bool speciesSeen[kSpeciesCount] = {false, false, false, false};
+    // v0.2: 종이 폴더로 추가될 수 있어 고정 배열 대신 키 집합으로 저장한다.
+    // 폴더가 사라진 종의 키도 그대로 남아 도감 기록이 지워지지 않는다.
+    std::set<std::string> speciesSeen;
     bool impSeen = false;
     bool guardianSeen = false;
     std::vector<GraveEntry> graves;
+
+    bool sawSpecies(Species s) const { return speciesSeen.count(speciesDef(s).key) > 0; }
+    void markSeen(Species s) { speciesSeen.insert(speciesDef(s).key); }
 };
 
 std::string serializeSave(const SaveData& s);

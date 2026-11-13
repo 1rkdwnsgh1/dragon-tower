@@ -74,6 +74,9 @@ private:
     void drawEnemy(Gdiplus::Graphics& g, const Enemy& e, const Sprites& sprites, float time);
     void drawSprite(Gdiplus::Graphics& g, Gdiplus::Bitmap* bmp, float cx, float cy, float height, bool flip,
                     float flash, float alpha);
+    // 시트의 한 칸만 그린다. frame은 0부터.
+    void drawSheetFrame(Gdiplus::Graphics& g, const Sheet& sh, int frame, float cx, float cy, float height, bool flip,
+                        float flash, float alpha);
     void drawFx(Gdiplus::Graphics& g, const World& w);
 
     void drawStatusCard(Gdiplus::Graphics& g, const Game& game, const Sprites& sprites, const RenderContext& ctx);

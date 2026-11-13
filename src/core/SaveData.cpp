@@ -83,10 +83,10 @@ std::string serializeSave(const SaveData& s) {
     }
     o << "codex.species=";
     bool first = true;
-    for (int i = 0; i < kSpeciesCount; ++i) {
-        if (!s.speciesSeen[i]) continue;
+    for (const std::string& k : s.speciesSeen) {  // set이라 저장 순서가 항상 같다
+        if (k.empty()) continue;
         if (!first) o << ",";
-        o << speciesDef(static_cast<Species>(i)).key;
+        o << k;
         first = false;
     }
     o << "\n";
@@ -122,16 +122,17 @@ bool deserializeSave(const std::string& text, SaveData& out) {
         else if (key == "towerClears") s.towerClears = std::max(0, toInt(val, 0));
         else if (key == "dragon.present") dragonPresent = toInt(val, 0) != 0;
         else if (key == "dragon.id") s.dragon.id = toInt(val, 0);
-        else if (key == "dragon.species") { Species sp; if (speciesFromKey(val, sp)) s.dragon.species = sp; }
+        // 폴더가 사라진 종이라도 다른 종으로 바뀌지 않도록 자리 표시 종을 등록한다.
+        else if (key == "dragon.species") { if (!val.empty()) s.dragon.species = ensureSpecies(val); }
         else if (key == "dragon.alive") s.dragon.alive = toInt(val, 0) != 0;
         else if (key == "dragon.level") s.dragon.level = std::max(1, toInt(val, 1));
         else if (key == "dragon.exp") s.dragon.exp = std::max(0, toInt(val, 0));
         else if (key == "dragon.autoExp") s.dragon.autoExp = std::max(0, toInt(val, 0));
         else if (key == "dragon.hp") s.dragon.hp = toFloat(val, -1.f);
         else if (key == "codex.species") {
+            // 모르는 키도 그대로 보관한다(폴더를 다시 넣으면 도감이 되살아난다).
             for (const std::string& k : split(val, ',')) {
-                Species sp;
-                if (speciesFromKey(k, sp)) s.speciesSeen[static_cast<int>(sp)] = true;
+                if (!k.empty()) s.speciesSeen.insert(k);
             }
         }
         else if (key == "codex.imp") s.impSeen = toInt(val, 0) != 0;
@@ -141,7 +142,7 @@ bool deserializeSave(const std::string& text, SaveData& out) {
             if (parts.size() >= 4) {
                 GraveEntry g;
                 g.id = toInt(parts[0], 0);
-                speciesFromKey(parts[1], g.species);
+                if (!parts[1].empty()) g.species = ensureSpecies(parts[1]);
                 g.level = std::max(1, toInt(parts[2], 1));
                 g.place = parts[3];
                 s.graves.push_back(g);

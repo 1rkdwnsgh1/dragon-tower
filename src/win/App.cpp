@@ -7,6 +7,7 @@
 
 #include "Platform.h"
 #include "core/Config.h"
+#include "core/DragonData.h"
 
 using namespace Gdiplus;
 
@@ -80,7 +81,11 @@ void Surface::present(HWND hwnd, int x, int y) {
 bool App::init(HINSTANCE inst) {
     inst_ = inst;
     if (!renderer_.init()) return false;
-    sprites_.load(exeDirectory() / L"assets");
+
+    // v0.2: 이미지를 읽기 전에 종 폴더를 먼저 읽는다(새 종의 이미지도 읽어야 하므로).
+    std::filesystem::path assetDir = exeDirectory() / L"assets";
+    DragonScanResult scan = loadDragonFolders(assetDir / "dragons");
+    sprites_.load(assetDir);
 
     WNDCLASSEXW wc{};
     wc.cbSize = sizeof(wc);
@@ -117,7 +122,23 @@ bool App::init(HINSTANCE inst) {
     game_.seed(static_cast<uint32_t>(GetTickCount()));
     game_.init(save, RectF(0.f, 0.f, overlaySurf_.w / scale_, overlaySurf_.h / scale_));
     if (corrupted) game_.notify("저장 파일을 읽을 수 없어 백업해 두고 새로 시작합니다.", 0xFFFFD166, 8.f);
-    if (sprites_.loadedCount() == 0) game_.notify("assets 폴더에 이미지가 없어 임시 도형으로 표시합니다.", 0xFFAAB2C4, 5.f);
+    if (sprites_.loadedCount() == 0 && sprites_.sheetCount() == 0)
+        game_.notify("assets 폴더에 이미지가 없어 임시 도형으로 표시합니다.", 0xFFAAB2C4, 5.f);
+
+    // 데이터 파일·시트의 문제는 조용히 넘기지 않고 화면에 알린다(오타를 바로 찾을 수 있게).
+    if (scan.newSpecies > 0)
+        game_.notify("드래곤 폴더에서 " + std::to_string(scan.newSpecies) + "종을 추가로 읽었습니다.", 0xFF8CFFA0, 5.f);
+    int warned = 0;
+    for (const std::string& w : scan.warnings) {
+        if (warned++ >= 3) break;
+        game_.notify("드래곤 데이터: " + w, 0xFFFFD166, 10.f);
+    }
+    for (const std::string& w : sprites_.warnings()) {
+        if (warned++ >= 5) break;
+        game_.notify("이미지: " + w, 0xFFFFD166, 10.f);
+    }
+    int more = static_cast<int>(scan.warnings.size() + sprites_.warnings().size()) - warned;
+    if (more > 0) game_.notify("경고 " + std::to_string(more) + "건이 더 있습니다.", 0xFFFFD166, 10.f);
 
     ShowWindow(overlay_, SW_SHOWNOACTIVATE);
     ShowWindow(button_, SW_SHOWNOACTIVATE);

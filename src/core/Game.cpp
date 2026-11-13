@@ -96,7 +96,7 @@ void Game::chooseSpecies(Species s) {
     d.hp = -1.f;
     save_.dragon = d;
     save_.hasDragon = true;
-    save_.speciesSeen[static_cast<int>(s)] = true;
+    save_.markSeen(s);
     world_.clearEnemies(false);
     world_.setBounds(desktop_);
     world_.setupDragon(s, 1, -1.f, {desktop_.center().x, desktop_.bottom() - 120.f});

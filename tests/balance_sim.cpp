@@ -147,14 +147,14 @@ static void tower(Species sp, CombatMode mode, int level) {
 
 int main() {
     std::printf("Auto-exp cap = %d (Lv%d)\n\n[auto hunt from Lv1]\n", autoExpCap(), cfg::kAutoExpCapLevel);
-    for (int i = 0; i < kSpeciesCount; ++i) autoHunt(static_cast<Species>(i));
+    for (int i = 0; i < kBuiltinSpeciesCount; ++i) autoHunt(static_cast<Species>(i));
     std::printf("\n[manual hunt]\n");
-    for (int i = 0; i < kSpeciesCount; ++i) {
+    for (int i = 0; i < kBuiltinSpeciesCount; ++i) {
         manualHunt(static_cast<Species>(i), CombatMode::SkillManual, 7);
         manualHunt(static_cast<Species>(i), CombatMode::Direct, 7);
     }
     std::printf("\n[tower]\n");
-    for (int i = 0; i < kSpeciesCount; ++i) {
+    for (int i = 0; i < kBuiltinSpeciesCount; ++i) {
         std::printf("  %s\n", speciesDef(static_cast<Species>(i)).name);
         for (int lv : {5, 7, 9}) {
             tower(static_cast<Species>(i), CombatMode::SkillManual, lv);
