@@ -979,6 +979,91 @@ static void testPlaceAndPanel() {
     CHECK(g.snapshotForSave().panelX == 10.f);
 }
 
+
+// ---------------------------------------------------------------------------
+// v0.7: 안정성·편의
+// ---------------------------------------------------------------------------
+
+static void testAlerts() {
+    std::printf("[alerts]\n");
+    Game g;
+    SaveData s;
+    s.hasDragon = true;
+    s.dragon.species = Species::Fire;
+    s.dragon.level = 1;
+    s.dragon.hp = -1.f;
+    g.init(s, kDesk);
+    CHECK(!g.hasAlert());
+
+    // 사망하면 화면을 못 봐도 알 수 있게 알림이 남는다
+    g.setHuntMode(CombatMode::Direct);
+    g.startHunt();
+    Vec2 dp = g.world().dragon().pos;
+    for (int i = 0; i < 3; ++i) g.world().spawnEnemy(defaultMelee(), 15, dp + Vec2{40.f, -40.f + 40.f * i});
+    g.world().dragon().hp = 1.f;
+    stepGame(g, 20.f, false, true);
+    CHECK(g.screen() == Screen::Death);
+    CHECK(g.hasAlert());
+    Game::Alert a = g.takeAlert();
+    CHECK(!a.title.empty() && !a.body.empty());
+    CHECK(a.warning);                       // 사망은 경고로
+    CHECK(!g.hasAlert());                   // 꺼내 가면 비워진다
+    CHECK(g.takeAlert().title.empty());     // 비었을 때 꺼내도 안전하다
+
+    // 알림은 쌓이기만 하지 않는다(오래된 것부터 버린다)
+    for (int i = 0; i < 10; ++i) g.alert("t" + std::to_string(i), "b");
+    int n = 0;
+    while (g.hasAlert()) { g.takeAlert(); ++n; }
+    CHECK(n <= 4);
+}
+
+static void testFirstRunHint() {
+    std::printf("[first run hint]\n");
+    SaveData s;
+    CHECK(!s.hintShown);
+    Game g;
+    g.init(s, kDesk);
+    CHECK(!g.hintShown());
+    g.markHintShown();
+    CHECK(g.hintShown());
+    CHECK(g.snapshotForSave().hintShown);
+    // 저장하고 다시 읽어도 유지된다(안내가 매번 뜨지 않게)
+    SaveData l;
+    CHECK(deserializeSave(serializeSave(g.snapshotForSave()), l));
+    CHECK(l.hintShown);
+    // 이전 저장 파일에는 없는 키라 기본값(false)이다
+    SaveData old;
+    CHECK(deserializeSave("version=1\nnextDragonId=2\n", old));
+    CHECK(!old.hintShown);
+}
+
+static void testTinyScreen() {
+    std::printf("[tiny screen]\n");
+    // 작업 영역이 아주 작아도 좌표가 뒤집히거나 밖으로 나가지 않는다
+    const RectF tiny{0.f, 0.f, 320.f, 80.f};
+    Game g;
+    SaveData s;
+    s.hasDragon = true;
+    s.dragon.species = Species::Water;
+    s.dragon.level = 2;
+    s.dragon.hp = -1.f;
+    g.init(s, tiny);
+    RectF band = g.battleBand();
+    CHECK(band.w > 0.f && band.h > 0.f);
+    CHECK(band.y >= tiny.y - 0.01f);
+    CHECK(band.bottom() <= tiny.bottom() + 0.01f);
+
+    PlayerInput in;
+    g.startHunt();
+    for (int i = 0; i < 30 * 60; ++i) {
+        g.update(1.f / 30.f, in, false, true);
+        const Vec2 p = g.world().dragon().pos;
+        CHECK_SILENT(p.x >= tiny.x - 1.f && p.x <= tiny.right() + 1.f);
+        CHECK_SILENT(p.y >= tiny.y - 1.f && p.y <= tiny.bottom() + 1.f);
+    }
+    CHECK(true);
+}
+
 int main() {
     testExpCurve();
     testNoAutoCap();
@@ -1008,6 +1093,9 @@ int main() {
     testUiSettingsSaved();
     testConfineToBand();
     testPlaceAndPanel();
+    testAlerts();
+    testFirstRunHint();
+    testTinyScreen();
     std::printf("\n%d passed, %d failed\n", g_passed, g_failed);
     return g_failed == 0 ? 0 : 1;
 }

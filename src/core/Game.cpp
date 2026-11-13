@@ -101,6 +101,22 @@ bool Game::needsInput() const {
     return screen_ != Screen::Desktop;
 }
 
+void Game::alert(const std::string& title, const std::string& body, bool warning) {
+    Alert a;
+    a.title = title;
+    a.body = body;
+    a.warning = warning;
+    alerts_.push_back(a);
+    if (alerts_.size() > 4) alerts_.erase(alerts_.begin());
+}
+
+Game::Alert Game::takeAlert() {
+    if (alerts_.empty()) return Alert{};
+    Alert a = alerts_.front();
+    alerts_.erase(alerts_.begin());
+    return a;
+}
+
 void Game::notify(const std::string& text, uint32_t color, float duration) {
     Notice n;
     n.text = text;
@@ -380,6 +396,10 @@ void Game::onDragonDied() {
     save_.hasDragon = false;
     hunting_ = false;
     waveActive_ = false;
+    alert(speciesDef(save_.dragon.species).name + " 사망",
+          "Lv." + std::to_string(save_.dragon.level) + " · " +
+          (deathPlace_.rfind("tower", 0) == 0 ? "탑에서" : "바탕화면 사냥 중에") +
+          " 쓰러졌습니다. 되살릴 수 없습니다.", true);
     screen_ = Screen::Death;
     saveRequested_ = true;
 }
@@ -485,6 +505,7 @@ void Game::update(float dt, const PlayerInput& in, bool hidden, bool inputEnable
                     save_.towerClears++;
                     ExpResult r = grantExp(save_.dragon, cfg::kTowerClearExp, false);
                     if (r.levelsGained > 0) world_.setDragonLevel(save_.dragon.level);
+                    alert("탑 정복", speciesDef(save_.dragon.species).name + "이(가) 탑을 모두 올랐습니다.");
                     screen_ = Screen::TowerVictory;
                 } else {
                     world_.healPercent(cfg::kTowerFloorHeal);

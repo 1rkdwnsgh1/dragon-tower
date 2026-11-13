@@ -56,6 +56,8 @@ private:
     void destroyTray();
     void showTrayMenu();
     void refreshTrayTip();
+    void showBalloon(const std::string& title, const std::string& body, bool warning);
+    void pumpAlerts();
     bool startDrag(float lx, float ly);  // 상태창·드래곤 끌기 시작
 
     HINSTANCE inst_ = nullptr;
@@ -91,6 +93,7 @@ private:
     // v0.6 트레이 아이콘
     NOTIFYICONDATAW tray_{};
     bool trayAdded_ = false;
+    UINT taskbarCreatedMsg_ = 0;  // 탐색기가 다시 시작하면 트레이 아이콘을 다시 넣는다
     // v0.6 조용할 때 프레임을 줄인다
     float idleAccum_ = 0.f;
 

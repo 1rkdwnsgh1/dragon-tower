@@ -36,6 +36,9 @@ tests/                     코어 규칙 검증
 | 클릭 통과 범위 판정 | `src/win/App.cpp` | `updateClickThrough`, `FrameRegions` |
 | 입력 받을 영역 수집 | `src/win/Renderer.cpp` | `markRegion`, `g_regions` |
 | 트레이 아이콘·메뉴 | `src/win/App.cpp` | `createTray`, `showTrayMenu` |
+| 트레이 풍선 알림 | `src/win/App.cpp` | `showBalloon`, `pumpAlerts` |
+| 중요한 일 알림 모으기 | `src/core/Game.cpp` | `alert`, `takeAlert` |
+| 탐색기 재시작 대응 | `src/win/App.cpp` | `taskbarCreatedMsg_` |
 | 전역 단축키 | `src/win/App.cpp` | `RegisterHotKey`, `WM_HOTKEY` |
 | 상태창·드래곤 끌기 | `src/win/App.cpp` | `startDrag`, `WM_MOUSEMOVE` |
 | 드래곤을 띠에 가두기 | `src/core/Game.cpp` | `setConfineToBand`, `placeDragon` |
