@@ -2,12 +2,12 @@
 # 낱장 프레임 PNG들을 캐릭터 시트 규격(docs/character-pipeline.md 4장)의
 # 가로 한 줄 스프라이트 시트로 변환한다.
 #
-# 규격: 칸 256x256, 발 기준점 (128, 240), 왼쪽 지향.
-# 오른쪽을 보는 원본은 --mirror 로 반전해서 넣는다.
+# 규격: 칸 256x256, 발 기준점 (128, 240), 오른쪽 지향.
+# 왼쪽을 보는 원본(망령룡 작업 자료 등)은 --mirror 로 반전해서 넣는다.
 #
 # 사용 예:
-#   python tools/make_sheet.py 프레임폴더 -o assets/dragons/revenant/walk.png
-#   python tools/make_sheet.py 프레임폴더 -o idle.png --mirror   # 오른쪽 지향 원본
+#   python tools/make_sheet.py 프레임폴더 -o assets/dragons/fire/walk.png
+#   python tools/make_sheet.py 프레임폴더 -o walk.png --mirror   # 왼쪽 지향 원본(망령룡)
 #
 # 프레임은 파일 이름 순서로 이어 붙인다 (walk_01.png, walk_02.png ...).
 #
@@ -44,7 +44,7 @@ def main():
     p.add_argument("--anchor-y", type=int, default=None,
                    help="바닥(발) y 좌표 (기본: 칸 256 기준 240, 칸 크기에 비례)")
     p.add_argument("--mirror", action="store_true",
-                   help="좌우 반전 (오른쪽 지향 원본을 왼쪽 지향으로)")
+                   help="좌우 반전 (왼쪽 지향 원본을 오른쪽 지향으로)")
     args = p.parse_args()
 
     cell = args.cell
