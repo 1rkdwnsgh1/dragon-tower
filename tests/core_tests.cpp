@@ -2,6 +2,7 @@
 #include <cstdio>
 #include <filesystem>
 #include <algorithm>
+#include <cmath>
 #include <fstream>
 #include <string>
 
@@ -356,6 +357,8 @@ static void testDragonTextParse() {
         "fps=14\n"
         "loop=no\n"
         "frame_w=192\n"
+        "[anim.fly]\n"
+        "render_scale=1.37\n"
         "[skill.2]\n"
         "kind=Heal\n"
         "power=0.45\n";
@@ -369,6 +372,9 @@ static void testDragonTextParse() {
     CHECK(r.def.anims[static_cast<int>(AnimState::Move)].fps == 14.f);
     CHECK(!r.def.anims[static_cast<int>(AnimState::Move)].loop);
     CHECK(r.def.anims[static_cast<int>(AnimState::Move)].frameW == 192);
+    CHECK(r.def.anims[static_cast<int>(AnimState::Fly)].renderScale > 1.36f &&
+          r.def.anims[static_cast<int>(AnimState::Fly)].renderScale < 1.38f);
+    CHECK(r.def.anims[static_cast<int>(AnimState::Idle)].renderScale == 1.f);  // 적지 않으면 1배
     CHECK(r.def.skills[1].kind == SkillKind::Heal);
     CHECK(r.def.skills[0].name == fire.skills[0].name);  // 건드리지 않은 스킬은 그대로
 }
@@ -387,6 +393,8 @@ static void testDragonTextWarnings() {
     DragonParseResult r = parseDragonText(txt, "test", nullptr);
     CHECK(r.warnings.size() >= 4);  // 오타를 조용히 넘기지 않는다
     CHECK(r.def.baseDodge <= 0.75f);
+    DragonParseResult r2 = parseDragonText("[anim.fly]\nrender_scale=99\n", "t2", nullptr);
+    CHECK(r2.def.anims[static_cast<int>(AnimState::Fly)].renderScale <= 4.f);
     // 모르는 구역의 내용이 [dragon] 값을 건드리지 않는다
     CHECK(r.def.key == "test");
 }
@@ -551,6 +559,43 @@ static void testIdleBehavior() {
     w2.clearEnemies(false);
     for (int i = 0; i < 30 * 40; ++i) w2.updateCombat(1.f / 30.f, CombatMode::SkillManual, in);
     CHECK(w2.dragon().behaviorLeft > 0.f);
+
+    // 걷기는 수평 이동만 한다
+    World w4;
+    w4.setBounds(area);
+    w4.seed(777u);
+    w4.setupDragon(Species::Fire, 1, -1.f, {800.f, 700.f});
+    float walkedY = -1.f;
+    bool everWalked = false;
+    for (int i = 0; i < 30 * 600; ++i) {
+        w4.updateWander(1.f / 30.f);
+        const DragonActor& d = w4.dragon();
+        if (d.behavior != IdleBehavior::Walk) { walkedY = -1.f; continue; }
+        everWalked = true;
+        if (walkedY < 0.f) walkedY = d.pos.y;
+        CHECK_SILENT(std::fabs(d.pos.y - walkedY) < 0.01f);  // 걷는 동안 높이가 변하지 않는다
+    }
+    CHECK(everWalked);
+    CHECK(true);  // 위 CHECK_SILENT 가 실패하지 않았음
+
+    // 날다가 걷기로 넘어갈 때는 먼저 내려온다(공중에서 걷지 않는다)
+    World w5;
+    w5.setBounds(area);
+    w5.setupDragon(Species::Fire, 1, -1.f, {800.f, 700.f});
+    w5.dragon().behavior = IdleBehavior::Fly;
+    w5.dragon().flying = true;
+    w5.dragon().behaviorLeft = 0.02f;
+    w5.dragon().pos = {800.f, 150.f};  // 공중에 있다
+    w5.updateWander(1.f / 30.f);
+    CHECK(w5.dragon().landing);                      // 바로 걷지 않고 착지부터
+    CHECK(w5.dragon().anim == AnimState::Fly);       // 내려오는 동안에도 나는 모습
+    CHECK(w5.dragon().wanderTarget.y > 150.f);       // 아래로 내려간다
+    for (int i = 0; i < 30 * 30; ++i) {
+        w5.updateWander(1.f / 30.f);
+        if (!w5.dragon().landing) break;
+    }
+    CHECK(!w5.dragon().landing);
+    CHECK(std::fabs(w5.dragon().pos.y - w5.dragon().groundY) < 3.f);
 
     // 화면이 아주 낮아도 목적지가 뒤집히지 않는다
     World w3;

@@ -194,6 +194,7 @@ DragonParseResult parseDragonText(const std::string& text, const std::string& fo
             if (key == "fps") ok = parseFloat(val, a.fps);
             else if (key == "loop") ok = parseBool(val, a.loop);
             else if (key == "frame_w") ok = parseInt(val, a.frameW);
+            else if (key == "render_scale") ok = parseFloat(val, a.renderScale);
             else if (key == "file") {
                 std::string expect = std::string(animStateName(animSec)) + ".png";
                 if (val != expect) warn("file=" + val + "는 쓰이지 않습니다. 파일 이름은 " + expect + "로 고정입니다");
@@ -241,6 +242,9 @@ DragonParseResult parseDragonText(const std::string& text, const std::string& fo
     for (AnimDef& a : d.anims) {
         if (a.fps < 1.f || a.fps > 60.f) a.fps = 8.f;
         if (a.frameW < 0) a.frameW = 0;
+        if (!(a.renderScale > 0.f)) a.renderScale = 1.f;
+        if (a.renderScale < 0.25f) a.renderScale = 0.25f;
+        if (a.renderScale > 4.f) a.renderScale = 4.f;
     }
     return r;
 }

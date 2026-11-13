@@ -329,7 +329,13 @@ void Renderer::drawDragon(Graphics& g, const DragonActor& d, const Sprites& spri
     if (sh.bmp) {
         const AnimDef& ad = sp.anims[static_cast<int>(state)];
         float t = preview ? time : d.animTime;
-        drawSheetFrame(g, sh, animFrame(t, ad.fps, sh.frames, ad.loop), x, cy, height, flip, flash, alpha);
+        // render_scale 로 이 상태만 크게/작게 그린다. 칸 안의 바닥 기준선(240/256)이
+        // 제자리에 남도록 그만큼 위로 올려 그려, 발 위치가 흔들리지 않게 한다.
+        const float kAnchorFrac = 240.f / 256.f;
+        float k = ad.renderScale;
+        float drawH = height * k;
+        float cyAdj = cy - (kAnchorFrac - 0.5f) * height * (k - 1.f);
+        drawSheetFrame(g, sh, animFrame(t, ad.fps, sh.frames, ad.loop), x, cyAdj, drawH, flip, flash, alpha);
         return;
     }
 

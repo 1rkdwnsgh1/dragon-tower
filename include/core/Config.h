@@ -71,6 +71,9 @@ constexpr float kIdleFlyMax = 11.0f;
 // 이동 속도 배율(기본 speed 대비)
 constexpr float kIdleWalkSpeed = 0.35f;
 constexpr float kIdleFlySpeed = 0.80f;
+// 날다가 내려오는 데 쓰는 최대 시간(초)과, 지면에 닿았다고 볼 거리(픽셀)
+constexpr float kIdleLandMax = 8.0f;
+constexpr float kGroundEpsilon = 2.0f;
 // 걷기는 화면 아래 이만큼 아래에서만, 날기는 위쪽 이만큼까지 올라간다(화면 높이 비율)
 constexpr float kIdleWalkTopRatio = 0.55f;
 constexpr float kIdleFlyTopRatio = 0.08f;

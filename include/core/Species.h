@@ -53,6 +53,10 @@ struct AnimDef {
     float fps = 8.f;
     bool loop = true;
     int frameW = 0;  // 시트의 칸 너비. 0이면 정사각(이미지 높이와 같음)으로 본다.
+    // 이 상태만 그릴 때 크기를 곱한다. 날개를 크게 펼치는 비행처럼, 칸 안에 넣느라
+    // 몸이 작게 들어간 시트를 다른 상태와 같은 몸 크기로 보이게 할 때 쓴다.
+    // 바닥 기준선은 유지된다(위아래로 늘어나지 않고 발 위치가 고정된다).
+    float renderScale = 1.f;
 };
 
 struct SpeciesDef {

@@ -51,6 +51,9 @@ frame_w=256
 fps=10
 loop=yes
 frame_w=256
+; render_scale: 이 상태만 크게/작게 그린다(0.25~4). 원본 그림이 상태마다
+; 다른 크기로 그려졌을 때만 쓴다. 바닥 기준선은 유지된다.
+;render_scale=1.0
 
 ; ---- 스킬 ----
 ; kind: Projectile(유도탄) Burst(주변 원형) Line(직선) Dash(돌진)

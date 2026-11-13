@@ -33,6 +33,7 @@ void World::setupDragon(Species s, int level, float hp, Vec2 pos) {
     dragon_.hp = (hp <= 0.f) ? dragon_.stats.maxHp : std::min(hp, dragon_.stats.maxHp);
     dragon_.pos = pos;
     dragon_.wanderTarget = pos;
+    dragon_.groundY = pos.y;  // 처음 선 자리를 걷는 높이로 삼는다
     dragon_.alive = true;
 }
 
@@ -386,6 +387,11 @@ const char* idleBehaviorName(IdleBehavior b) {
     return "";
 }
 
+float World::randomRoamX() {
+    const float m = 80.f;
+    return rng_.uniform(bounds_.x + m, bounds_.right() - m);
+}
+
 Vec2 World::randomRoamTarget(bool fly) {
     const float m = 80.f;
     // 걷기는 아래쪽 바닥을 따라, 날기는 화면 위쪽까지 올라간다.
@@ -396,8 +402,29 @@ Vec2 World::randomRoamTarget(bool fly) {
     return {rng_.uniform(bounds_.x + m, bounds_.right() - m), rng_.uniform(top, bottom)};
 }
 
+float World::randomGroundY() {
+    const float m = 80.f;
+    float top = bounds_.y + bounds_.h * cfg::kIdleWalkTopRatio;
+    float bottom = bounds_.bottom() - m;
+    if (top > bottom) top = bottom;
+    return rng_.uniform(top, bottom);
+}
+
 void World::pickBehavior() {
     DragonActor& d = dragon_;
+
+    // 공중에 있으면 먼저 내려온다. 걷기는 땅에서만 하고, 내려오는 동안에도 나는 모습이다.
+    if (std::fabs(d.pos.y - d.groundY) > cfg::kGroundEpsilon) {
+        d.behavior = IdleBehavior::Fly;
+        d.landing = true;
+        d.flying = true;
+        d.groundY = randomGroundY();
+        d.wanderTarget = {d.pos.x, d.groundY};
+        d.behaviorLeft = cfg::kIdleLandMax;  // 도착하면 곧바로 다시 고른다
+        return;
+    }
+
+    d.landing = false;
     float total = cfg::kIdleWeightRest + cfg::kIdleWeightWalk + cfg::kIdleWeightFly;
     float r = rng_.uniform(0.f, total);
     if (r < cfg::kIdleWeightRest) {
@@ -405,9 +432,10 @@ void World::pickBehavior() {
         d.behaviorLeft = rng_.uniform(cfg::kIdleRestMin, cfg::kIdleRestMax);
         d.wanderTarget = d.pos;
     } else if (r < cfg::kIdleWeightRest + cfg::kIdleWeightWalk) {
+        // 걷기는 수평 이동만 한다. 목적지의 y는 지금 서 있는 높이 그대로다.
         d.behavior = IdleBehavior::Walk;
         d.behaviorLeft = rng_.uniform(cfg::kIdleWalkMin, cfg::kIdleWalkMax);
-        d.wanderTarget = randomRoamTarget(false);
+        d.wanderTarget = {randomRoamX(), d.groundY};
     } else {
         d.behavior = IdleBehavior::Fly;
         d.behaviorLeft = rng_.uniform(cfg::kIdleFlyMin, cfg::kIdleFlyMax);
@@ -432,9 +460,19 @@ void World::wander(float dt) {
         return;
     }
 
-    // 목적지에 닿으면 같은 행동 안에서 다음 지점을 고른다(시간이 남아 있는 동안).
+    // 목적지에 닿았을 때
     if (distance(d.pos, d.wanderTarget) < 8.f) {
-        d.wanderTarget = randomRoamTarget(d.behavior == IdleBehavior::Fly);
+        if (d.landing) {
+            d.pos.y = d.groundY;  // 지면에 정확히 맞춘다
+            pickBehavior();       // 내려왔으니 바로 다음 행동을 고른다
+            d.moving = false;
+            return;               // 착지한 프레임에는 더 움직이지 않는다
+        }
+        if (d.behavior == IdleBehavior::Walk) {
+            d.wanderTarget = {randomRoamX(), d.groundY};  // 수평으로만
+        } else {
+            d.wanderTarget = randomRoamTarget(true);
+        }
     }
 
     d.flying = d.behavior == IdleBehavior::Fly;

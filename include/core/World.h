@@ -125,6 +125,8 @@ struct DragonActor {
     IdleBehavior behavior = IdleBehavior::Rest;
     float behaviorLeft = 0.f;  // 이 행동을 이어 갈 남은 시간
     bool flying = false;       // 날고 있는가(걷기와 그리는 상태가 다르다)
+    bool landing = false;      // 날다가 지면으로 내려오는 중
+    float groundY = 0.f;       // 걷는 높이. 걷기는 이 높이에서 수평으로만 움직인다
 };
 
 enum class WorldEventType { EnemyKilled, DragonDied, EnemySpawned };
@@ -191,6 +193,8 @@ private:
     void wander(float dt);     // 애니메이션 진행을 포함하지 않는 배회(내부용)
     void pickBehavior();       // 다음 행동을 확률로 고르고 목적지를 정한다
     Vec2 randomRoamTarget(bool fly);
+    float randomRoamX();
+    float randomGroundY();
     Enemy* nearestEnemy(Vec2 from, float maxDist);
     Enemy* findEnemy(int id);
     void moveDragon(float dt, Vec2 dir, float speedMul);
