@@ -2,9 +2,16 @@
 
 | 파일 | 원본 | 변환 |
 |---|---|---|
-| `idle.png` | `references/revenant-dragon/work-2026-11-13/REVENANT_IDLE_FINAL_V1.zip` 의 `FINAL_FRAMES` 4장 | `tools/make_sheet.py --mirror` |
-| `move.png` | 같은 폴더 `REVENANT_WALK_FINAL_V1.zip` 의 `FINAL_FRAMES` 8장 | `tools/make_sheet.py --mirror` |
-| `fly.png` | 같은 폴더 `REVENANT_FLY_FINAL_V1.zip` 의 `FINAL_FRAMES` 8장 | `tools/make_sheet.py --mirror` |
+| `idle.png` | `references/revenant-dragon/work-2026-11-13/REVENANT_IDLE_FINAL_V1.zip` 의 `FINAL_FRAMES` 4장 | 아래 한 번의 명령 |
+| `move.png` | 같은 폴더 `REVENANT_WALK_FINAL_V1.zip` 의 `FINAL_FRAMES` 8장 | 아래 한 번의 명령 |
+| `fly.png` | 같은 폴더 `REVENANT_FLY_FINAL_V1.zip` 의 `FINAL_FRAMES` 8장 | 아래 한 번의 명령 |
+
+세 시트는 **한 번의 명령으로 함께 변환**했다(상태 간 크기를 맞추기 위해 필수):
+
+```
+python tools/make_sheet.py --mirror -o assets/dragons/revenant \
+  --set idle=<IDLE>/FINAL_FRAMES --set move=<WALK>/FINAL_FRAMES --set fly=<FLY>/FINAL_FRAMES
+```
 
 생성형 AI로 만든 자료이며, 디자인 기준은 [망령룡 캐릭터 기획](../../../docs/characters/revenant-dragon.md)을 따른다.
 

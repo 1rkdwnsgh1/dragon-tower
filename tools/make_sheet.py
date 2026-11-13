@@ -76,10 +76,121 @@ def load_frames(src: Path, cols, mirror):
     return frames
 
 
+def union_box(boxes):
+    return (min(b[0] for b in boxes), min(b[1] for b in boxes),
+            max(b[2] for b in boxes), max(b[3] for b in boxes))
+
+
+def multi(args, cell, anchor_x, anchor_y):
+    """한 드래곤의 여러 상태를 같은 배율·같은 위치로 변환한다.
+
+    상태마다 따로 변환하면 비행처럼 윤곽이 큰 동작이 더 작게 그려진다
+    (날개를 펼쳐 윤곽 높이가 커지는데 그 높이를 --ratio 에 맞추므로).
+    여기서는 기준 상태의 윤곽으로 배율을 한 번 정하고 모든 상태에 그대로 쓴다.
+    원본 캔버스 안에서의 상태 간 위치 차이도 그대로 보존된다.
+    """
+    sets = {}
+    for item in args.set:
+        if "=" not in item:
+            sys.exit(f"--set 형식은 상태=경로 입니다: {item}")
+        state, path = item.split("=", 1)
+        sets[state.strip()] = Path(path.strip())
+
+    loaded = {}
+    for state, path in sets.items():
+        frames = load_frames(path, args.cols, args.mirror)
+        boxes = []
+        for name, img in frames:
+            b = content_bbox(img)
+            if b is None:
+                sys.exit(f"{name} 가 완전히 투명합니다.")
+            boxes.append(b)
+        loaded[state] = (frames, union_box(boxes))
+
+    tweak = {}
+    for item in args.scale_state:
+        if "=" not in item:
+            sys.exit(f"--scale-state 형식은 상태=배수 입니다: {item}")
+        k, v = item.split("=", 1)
+        if k.strip() not in loaded:
+            sys.exit(f"--scale-state {k.strip()} 는 --set 에 없습니다.")
+        try:
+            tweak[k.strip()] = float(v)
+        except ValueError:
+            sys.exit(f"--scale-state 배수를 읽을 수 없습니다: {v}")
+
+    ref = args.ref or ("idle" if "idle" in loaded else next(iter(loaded)))
+    if ref not in loaded:
+        sys.exit(f"--ref {ref} 는 --set 에 없습니다.")
+
+    # 1) 기준 상태의 윤곽 높이를 --ratio 로 맞추는 배율
+    rx0, ry0, rx1, ry1 = loaded[ref][1]
+    scale = (args.ratio * cell) / (ry1 - ry0)
+
+    # 2) 모든 상태가 칸 안에 들어가도록 배율의 상한을 구한다.
+    #    상태마다 바닥을 anchor_y 에 맞추므로, 각 상태가 그 선 위에 들어가야 한다.
+    limits = []
+    for state, (_, (ux0, uy0, ux1, uy1)) in loaded.items():
+        t = tweak.get(state, 1.0)
+        limits.append(anchor_y / (uy1 - uy0) / t)             # 바닥선 위에 들어가야 한다
+        limits.append(2.0 * anchor_x / (ux1 - ux0) / t)       # 가로 중심 기준으로 칸 안에
+        limits.append(2.0 * (cell - anchor_x) / (ux1 - ux0) / t)
+    cap = min(limits) * 0.995
+    if cap < scale:
+        print(f"[알림] 가장 큰 상태가 칸을 넘어 공통 배율을 {scale:.4f} → {cap:.4f} 로 낮췄습니다. "
+              f"기준 상태 높이가 칸의 {(ry1 - ry0) * cap / cell:.0%}가 됩니다(목표 {args.ratio:.0%}).")
+        scale = cap
+
+    # 3) 배율은 모든 상태가 공유하고(크기가 변하지 않게), 위치는 상태마다
+    #    자기 윤곽의 바닥 중앙을 기준점에 맞춘다.
+    #    원본 캔버스 안의 상태 간 위치 차이는 믿지 않는다. 패키지가 따로 만들어져
+    #    기준이 다를 수 있고, 공중에 떠 보이게 하는 것은 게임이 화면에서 처리한다
+    #    (날 때는 화면 위쪽으로 올라가고 그림자가 작아진다).
+
+    out_dir = Path(args.out)
+    out_dir.mkdir(parents=True, exist_ok=True)
+    for state, (frames, (ux0, uy0, ux1, uy1)) in loaded.items():
+        st_scale = scale * tweak.get(state, 1.0)
+        # 이 상태의 바닥 중앙을 기준점으로. 프레임 간 움직임은 보존된다.
+        ox = anchor_x - ((ux0 + ux1) * 0.5) * st_scale
+        oy = anchor_y - uy1 * st_scale
+        sheet = Image.new("RGBA", (cell * len(frames), cell), (0, 0, 0, 0))
+        for i, (name, img) in enumerate(frames):
+            w = max(1, round(img.width * st_scale))
+            h = max(1, round(img.height * st_scale))
+            small = img.resize((w, h), Image.LANCZOS)
+            # 칸보다 큰 원본을 음수 좌표에도 놓을 수 있게 넉넉한 임시 캔버스를 쓴다
+            pad = max(w, h, cell)
+            tmp = Image.new("RGBA", (cell + 2 * pad, cell + 2 * pad), (0, 0, 0, 0))
+            tmp.alpha_composite(small, (round(ox) + pad, round(oy) + pad))
+            fcell = tmp.crop((pad, pad, pad + cell, pad + cell))
+            sheet.alpha_composite(fcell, (cell * i, 0))
+        path = out_dir / f"{state}.png"
+        sheet.save(path)
+        bh = round((uy1 - uy0) * st_scale)
+        mark = " (기준)" if state == ref else (f" x{tweak[state]:g}" if state in tweak else "")
+        print(f"완료: {path}  프레임 {len(frames)}장, 윤곽 높이 {bh}px{mark}")
+    print(f"공통 배율 {scale:.4f}, 칸 {cell}x{cell}, 바닥 y={anchor_y}")
+    print(f"dragon.txt 에 적을 값: frame_w={cell}")
+    return 0
+
+
 def main():
     p = argparse.ArgumentParser(description="낱장 프레임/원본 시트 -> 규격 스프라이트 시트")
-    p.add_argument("src", help="프레임 PNG 폴더, 또는 이어 붙인 시트 PNG 1장")
-    p.add_argument("-o", "--out", required=True, help="출력 시트 PNG 경로")
+    p.add_argument("src", nargs="?", help="프레임 PNG 폴더, 또는 이어 붙인 시트 PNG 1장")
+    p.add_argument("-o", "--out", required=True,
+                   help="출력 시트 PNG 경로. --set 을 쓸 때는 출력 폴더")
+    p.add_argument("--set", action="append", default=[], metavar="상태=경로",
+                   help="한 드래곤의 여러 상태를 한 번에 변환한다(권장). "
+                        "예: --set idle=프레임/대기 --set fly=프레임/비행. "
+                        "모든 상태에 같은 배율·같은 위치를 써서 상태가 바뀔 때 크기가 변하지 않는다.")
+    p.add_argument("--scale-state", action="append", default=[], metavar="상태=배수",
+                   help="--set 과 함께. 그 상태만 공통 배율에 배수를 곱한다. "
+                        "원본 그림 자체가 다른 상태보다 작거나 크게 그려졌을 때만 쓴다. "
+                        "예: --scale-state fly=1.08")
+    p.add_argument("--ref", default=None, metavar="상태",
+                   help="--set 과 함께. 크기 기준이 되는 상태(기본: idle, 없으면 첫 번째). "
+                        "이 상태의 윤곽 높이가 --ratio 가 되고 나머지는 같은 배율을 쓴다.")
     p.add_argument("--cols", type=int, default=None,
                    help="입력이 시트 1장일 때 프레임 수")
     p.add_argument("--cell", type=int, default=256, help="출력 칸 크기 (기본 256)")
@@ -97,6 +208,13 @@ def main():
     cell = args.cell
     anchor_y = args.anchor_y if args.anchor_y is not None else round(cell * 240 / 256)
     anchor_x = cell // 2
+
+    if args.set:
+        return multi(args, cell, anchor_x, anchor_y)
+    if not args.src:
+        sys.exit("프레임 폴더를 지정하거나 --set 을 쓰세요.")
+    print("[알림] 상태를 하나씩 따로 변환하면 상태마다 캐릭터 크기가 달라질 수 있습니다.\n"
+          "       한 드래곤의 여러 상태는 --set 으로 한 번에 변환하세요.")
 
     frames = load_frames(Path(args.src), args.cols, args.mirror)
 
