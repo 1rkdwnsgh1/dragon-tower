@@ -1,0 +1,62 @@
+; 리치 — 적 정의. 수치는 전부 임시안이다.
+; 형식과 쓰는 법: assets/enemies/README.md
+
+[enemy]
+name=리치
+role=boss
+desc=탑의 주인. 멀리서 패턴을 건다.
+color=FFB07CE0
+
+hp=0
+atk=2
+def=0
+speed=70
+radius=62
+exp=40
+
+hp_growth=110
+atk_growth=3.0
+def_growth=0.75
+speed_growth=0.0
+exp_growth=10
+
+; 공격 사거리와 거리 유지(사거리 * keep_ratio 보다 멀면 다가간다)
+attack_range=700
+keep_ratio=0.34
+windup=0.0
+attack_cooldown=1.5
+
+; 체력 절반에서 2페이즈로 바뀌고 부하를 부른다
+phase2=yes
+summon=goblin
+summon_count=2
+summon_level=5
+
+; ---- 애니메이션 ----
+; idle/move/hit/death 는 monsters-desk.png(칸 256), attack 은 monsters.png(칸이 더 커서
+; 같은 배율로는 크게 보인다)에서 왔다. render_scale 로 몸 크기를 맞춘다.
+[anim.idle]
+fps=6
+loop=yes
+frame_w=256
+
+[anim.move]
+fps=8
+loop=yes
+frame_w=256
+
+[anim.attack]
+fps=8
+loop=no
+frame_w=256
+render_scale=1.09
+
+[anim.hit]
+fps=8
+loop=no
+frame_w=256
+
+[anim.death]
+fps=6
+loop=no
+frame_w=256

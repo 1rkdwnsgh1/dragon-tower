@@ -9,6 +9,7 @@
 #include <vector>
 
 #include "WinCommon.h"
+#include "core/Enemy.h"
 #include "core/Species.h"
 
 namespace dt::win {
@@ -44,7 +45,9 @@ private:
         int frameW = 0;
         int frameH = 0;
     };
-    void loadSheetsFor(const std::filesystem::path& dir, const SpeciesDef& def);
+    // prefix는 시트 이름 앞에 붙는 구분자다(적은 "enemy:<키>").
+    void loadSheetsFor(const std::filesystem::path& dir, const AnimDef* anims, const std::string& prefix,
+                       const std::string& label);
 
     std::map<std::string, std::unique_ptr<Gdiplus::Bitmap>> images_;
     std::map<std::string, SheetData> sheets_;  // "<키>/<상태>"

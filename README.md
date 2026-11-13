@@ -1,6 +1,6 @@
 # Dragon Tower (가제)
 
-현재 버전: **v0.2** ([바뀐 점](docs/changelog.md))
+현재 버전: **v0.4** ([바뀐 점](docs/changelog.md))
 
 Windows 바탕화면에서 드래곤을 육성하고 탑에 도전하는 게임입니다. 주 언어는 C++이며 게임 엔진은 사용하지 않습니다. 소리 없이 진행합니다.
 
@@ -12,6 +12,7 @@ Windows 바탕화면에서 드래곤을 육성하고 탑에 도전하는 게임�
 - [이미지 자료 규격과 생성 요청 예시](assets/README.md)
 - [캐릭터 이미지·애니메이션·스킬 적용 기획 (드래곤 추가 구조)](docs/character-pipeline.md)
 - [**드래곤 추가·그림 넣기 사용법**](assets/dragons/README.md)
+- [**적 추가·그림 넣기 사용법**](assets/enemies/README.md)
 - [버전별 바뀐 점](docs/changelog.md)
 - [**코드 지도: 무엇이 어디에 있나**](docs/codemap.md)
 - [AI 작업 비용 기록과 개선](docs/ai-workflow-notes.md)

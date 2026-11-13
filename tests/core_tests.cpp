@@ -8,6 +8,7 @@
 
 #include "core/Config.h"
 #include "core/DragonData.h"
+#include "core/EnemyData.h"
 #include "core/Game.h"
 #include "core/Progression.h"
 #include "core/SaveData.h"
@@ -106,7 +107,7 @@ static void testSaveRoundTrip() {
     s.towerClears = 1;
     s.markSeen(Species::Fire);
     s.markSeen(Species::Water);
-    s.impSeen = true;
+    s.enemiesSeen.insert(enemyDef(defaultMelee()).key);
     s.graves.push_back({1, Species::Fire, 4, "tower2"});
     s.graves.push_back({2, Species::Wind, 3, "auto"});
 
@@ -123,7 +124,7 @@ static void testSaveRoundTrip() {
     CHECK(l.bestFloor == 2);
     CHECK(l.towerClears == 1);
     CHECK(l.sawSpecies(Species::Fire) && !l.sawSpecies(Species::Earth) && l.sawSpecies(Species::Water));
-    CHECK(l.impSeen && !l.guardianSeen);
+    CHECK(l.sawEnemy(defaultMelee()) && !l.sawEnemy(defaultBoss()));
     CHECK(l.graves.size() == 2);
     CHECK(l.graves[0].place == "tower2");
     CHECK(placeLabel("tower2") == "탑 2층");
@@ -164,7 +165,7 @@ static void testSelectAndDeath() {
     g.startHunt();
     CHECK(g.hunting());
     Vec2 p = g.world().dragon().pos;
-    for (int i = 0; i < 3; ++i) g.world().spawnEnemy(EnemyKind::Imp, 15, p + Vec2{40.f, -40.f + 40.f * i});
+    for (int i = 0; i < 3; ++i) g.world().spawnEnemy(defaultMelee(), 15, p + Vec2{40.f, -40.f + 40.f * i});
     g.world().dragon().hp = 1.f;
     stepGame(g, 20.f, false, true);
     CHECK(g.screen() == Screen::Death);
@@ -306,7 +307,7 @@ static void testTowerFlow() {
     CHECK(g.screen() == Screen::TowerVictory);
     CHECK(g.save().bestFloor == 3);
     CHECK(g.save().towerClears == 1);
-    CHECK(g.save().guardianSeen);
+    CHECK(g.save().sawEnemy(defaultBoss()));
     g.leaveTower();
     CHECK(g.screen() == Screen::Desktop);
 
@@ -323,7 +324,7 @@ static void testDirectDodge() {
     w.seed(7);
     w.setBounds(kDesk);
     w.setupDragon(Species::Fire, 1, -1.f, {800.f, 450.f});
-    Enemy& e = w.spawnEnemy(EnemyKind::Imp, 3, {850.f, 450.f});
+    Enemy& e = w.spawnEnemy(defaultMelee(), 3, {850.f, 450.f});
     e.attackCd = 0.f;
     PlayerInput none;
     w.updateCombat(0.01f, CombatMode::Direct, none);  // 임프가 공격 예고
@@ -463,7 +464,7 @@ static void testAnimStates() {
     CHECK(w.dragon().anim == AnimState::Idle);
 
     // 사거리 안의 적을 치면 공격 상태로 바뀐다(기본 공격은 첫 프레임에 나간다)
-    w.spawnEnemy(EnemyKind::Imp, 1, {430.f, 300.f});
+    w.spawnEnemy(defaultMelee(), 1, {430.f, 300.f});
     PlayerInput in;
     w.updateCombat(1.f / 30.f, CombatMode::SkillManual, in);
     CHECK(w.dragon().anim == AnimState::Attack);
@@ -549,7 +550,7 @@ static void testIdleBehavior() {
     CHECK(w2.dragon().pos.y < before.y);  // 위로 올라갔다
 
     // 전투가 시작되면 날기를 멈춘다(전투에는 Fly를 쓰지 않는다)
-    w2.spawnEnemy(EnemyKind::Imp, 1, {820.f, 700.f});
+    w2.spawnEnemy(defaultMelee(), 1, {820.f, 700.f});
     PlayerInput in;
     w2.updateCombat(1.f / 30.f, CombatMode::SkillManual, in);
     CHECK(!w2.dragon().flying);
@@ -650,6 +651,121 @@ static void testLoadDragonFolders() {
     fs::remove_all(root, ec);
 }
 
+
+// ---------------------------------------------------------------------------
+// v0.4: 적 등록부와 enemy.txt
+// ---------------------------------------------------------------------------
+
+static void testEnemyRegistry() {
+    std::printf("[enemy registry]\n");
+    CHECK(enemyCount() >= kBuiltinEnemyCount);
+    EnemyKind k;
+    CHECK(enemyFromKey("slime", k));
+    CHECK(enemyDef(k).role == EnemyRole::Melee);
+    CHECK(enemyFromKey("lich", k));
+    CHECK(enemyDef(k).role == EnemyRole::Boss);
+    CHECK(enemyDef(defaultBoss()).role == EnemyRole::Boss);
+    CHECK(enemyDef(defaultMelee()).role == EnemyRole::Melee);
+
+    // 레벨이 오르면 수치가 오른다
+    EnemyStats a = enemyStatsFor(defaultMelee(), 1);
+    EnemyStats b = enemyStatsFor(defaultMelee(), 5);
+    CHECK(b.maxHp > a.maxHp && b.atk > a.atk && b.expReward > a.expReward);
+
+    // 같은 키로 다시 등록하면 덮어쓰고 id는 유지된다
+    int before = enemyCount();
+    EnemyDef d = enemyDef(defaultMelee());
+    d.name = "바뀐 이름";
+    EnemyKind again = registerOrUpdateEnemy(d);
+    CHECK(again == defaultMelee());
+    CHECK(enemyCount() == before);
+    CHECK(enemyDef(again).name == "바뀐 이름");
+    d.name = enemyDef(defaultMelee()).key == "slime" ? "슬라임" : d.name;
+    registerOrUpdateEnemy(d);
+
+    // 모르는 키는 자리 표시로 등록된다
+    EnemyKind ghost = ensureEnemy("nosuchenemy");
+    CHECK(enemyDef(ghost).key == "nosuchenemy");
+    CHECK(enemyCount() == before + 1);
+}
+
+static void testEnemyTextParse() {
+    std::printf("[enemy.txt parse]\n");
+    EnemyKind sl;
+    CHECK(enemyFromKey("slime", sl));
+    const EnemyDef& base = enemyDef(sl);
+    float oldAtk = base.baseAtk;
+    std::string txt =
+        "[enemy]\n"
+        "name=큰 슬라임   ; 주석\n"
+        "hp=99\n"
+        "role=boss\n"
+        "[anim.attack]\n"
+        "render_scale=0.81\n";
+    EnemyParseResult r = parseEnemyText(txt, "slime", &base);
+    CHECK(r.warnings.empty());
+    CHECK(r.def.name == "큰 슬라임");
+    CHECK(r.def.baseHp == 99.f);
+    CHECK(r.def.baseAtk == oldAtk);  // 적지 않은 값은 그대로
+    CHECK(r.def.role == EnemyRole::Boss);
+    CHECK(r.def.anims[static_cast<int>(AnimState::Attack)].renderScale > 0.8f);
+
+    // 모르는 키·잘못된 값은 경고로 남고 범위는 잘린다
+    EnemyParseResult w = parseEnemyText(
+        "[enemy]\nhpp=1\nrole=없는역할\nkeep_ratio=9\nwindup=99\n[wings]\na=1\n", "t", nullptr);
+    CHECK(w.warnings.size() >= 4);
+    CHECK(w.def.keepRatio >= 0.05f && w.def.keepRatio <= 1.f);
+    CHECK(w.def.windup <= 5.f);
+}
+
+static void testEnemyFolderScan() {
+    std::printf("[enemy folder scan]\n");
+    namespace fs = std::filesystem;
+    fs::path root = fs::temp_directory_path() / "dt_enemies_test";
+    std::error_code ec;
+    fs::remove_all(root, ec);
+    fs::create_directories(root / "_skip", ec);
+    fs::create_directories(root / "wisp", ec);
+    fs::create_directories(root / "slime", ec);
+    { std::ofstream f(root / "_skip" / "enemy.txt"); f << "[enemy]\nname=안됨\n"; }
+    { std::ofstream f(root / "wisp" / "enemy.txt"); f << "[enemy]\nname=도깨비불\nhp=33\nspeed=140\n"; }
+    { std::ofstream f(root / "slime" / "enemy.txt"); f << "[enemy]\ndesc=덮어쓴 설명\n"; }
+
+    int before = enemyCount();
+    EnemyScanResult r = loadEnemyFolders(root);
+    CHECK(r.newEnemies == 1);
+    CHECK(enemyCount() == before + 1);
+    EnemyKind k;
+    CHECK(enemyFromKey("wisp", k));
+    CHECK(enemyDef(k).name == "도깨비불");
+    CHECK(enemyStatsFor(k, 1).maxHp == 33.f + enemyDef(k).hpGrowth);
+    CHECK(!enemyFromKey("_skip", k));
+    CHECK(enemyFromKey("slime", k) && enemyDef(k).desc == "덮어쓴 설명");
+
+    EnemyScanResult none = loadEnemyFolders(root / "없음");
+    CHECK(none.folderCount == 0 && none.warnings.empty());
+    fs::remove_all(root, ec);
+}
+
+static void testBossPhase2Summons() {
+    std::printf("[boss phase2 summon]\n");
+    World w;
+    w.setBounds(kDesk);
+    w.setupDragon(Species::Fire, 20, -1.f, {400.f, 500.f});
+    Enemy& boss = w.spawnEnemy(defaultBoss(), 8, {1000.f, 500.f});
+    int id = boss.id;
+    CHECK(w.enemies().size() == 1);
+    // 체력을 절반 아래로 떨어뜨리면 부하를 부른다
+    for (Enemy& e : w.enemiesMutable()) if (e.id == id) e.hp = e.maxHp * 0.4f;
+    PlayerInput in;
+    for (int i = 0; i < 10 && w.enemies().size() < 2; ++i) w.updateCombat(1.f / 30.f, CombatMode::SkillManual, in);
+    CHECK(w.enemies().size() >= 2);
+    bool foundAdd = false;
+    for (const Enemy& e : w.enemies())
+        if (e.id != id && enemyDef(e.kind).role == EnemyRole::Melee) foundAdd = true;
+    CHECK(foundAdd);
+}
+
 int main() {
     testExpCurve();
     testAutoCapClamp();
@@ -668,6 +784,10 @@ int main() {
     testAnimStates();
     testLoadDragonFolders();
     testIdleBehavior();
+    testEnemyRegistry();
+    testEnemyTextParse();
+    testEnemyFolderScan();
+    testBossPhase2Summons();
     std::printf("\n%d passed, %d failed\n", g_passed, g_failed);
     return g_failed == 0 ? 0 : 1;
 }

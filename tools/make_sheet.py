@@ -26,6 +26,7 @@
 # 같은 캔버스 크기로 만들어 달라고 요청하는 것이 좋다.
 
 import argparse
+import math
 import sys
 from pathlib import Path
 
@@ -41,6 +42,64 @@ def content_bbox(img: Image.Image):
     """알파가 ALPHA_MIN을 넘는 영역의 윤곽 상자. 완전히 비면 None."""
     alpha = img.getchannel("A").point(lambda a: 255 if a > ALPHA_MIN else 0)
     return alpha.getbbox()
+
+
+def parse_grid(spec):
+    """'파일.png@행x열:행번호,열범위' 를 (경로, 행수, 열수, 행, [열...]) 로 읽는다.
+
+    여러 종이 행으로, 동작이 열로 들어간 격자 시트에서 한 종의 칸만 꺼낸다.
+    격자 크기(@행x열)는 반드시 적는다. 칸 크기를 추측하면 틀리기 쉽다
+    (2048x1024 는 128칸으로도 256칸으로도 나뉜다).
+    행·열 번호는 1부터 센다. 칸 크기가 정수로 나누어떨어지지 않아도 된다.
+
+    예:
+      monsters-desk.png@4x8:2,1-4   4행8열 격자의 2행 1~4열
+      monsters.png@4x4:3,2-3        4행4열 격자의 3행 2~3열
+    """
+    if "@" not in spec or ":" not in spec:
+        return None
+    path, rest = spec.split("@", 1)
+    if ":" not in rest:
+        return None
+    grid, sel = rest.split(":", 1)
+    if "x" not in grid.lower():
+        return None
+    gr, gc = grid.lower().split("x", 1)
+    parts = sel.split(",")
+    if len(parts) < 2:
+        return None
+    try:
+        nrows, ncols, row = int(gr), int(gc), int(parts[0])
+    except ValueError:
+        return None
+    cols = []
+    for p in parts[1:]:
+        p = p.strip()
+        if "-" in p:
+            x, y = p.split("-", 1)
+            cols.extend(range(int(x), int(y) + 1))
+        else:
+            cols.append(int(p))
+    return Path(path), nrows, ncols, row, cols
+
+
+def load_grid(path: Path, nrows: int, ncols: int, row: int, cols, mirror):
+    """격자 시트에서 지정한 행·열의 칸만 꺼내 프레임 목록으로 만든다."""
+    img = Image.open(path).convert("RGBA")
+    w, h = img.size
+    cw, ch = w / ncols, h / nrows
+    if row < 1 or row > nrows:
+        sys.exit(f"{path}: {nrows}행 격자인데 {row}행을 요청했습니다.")
+    frames = []
+    for c in cols:
+        if c < 1 or c > ncols:
+            sys.exit(f"{path}: {ncols}열 격자인데 {c}열을 요청했습니다.")
+        box = (round((c - 1) * cw), round((row - 1) * ch), round(c * cw), round(row * ch))
+        f = img.crop(box)
+        if mirror:
+            f = f.transpose(Image.FLIP_LEFT_RIGHT)
+        frames.append((f"{path.name}[{row},{c}]", f))
+    return frames
 
 
 def load_frames(src: Path, cols, mirror):
@@ -94,11 +153,15 @@ def multi(args, cell, anchor_x, anchor_y):
         if "=" not in item:
             sys.exit(f"--set 형식은 상태=경로 입니다: {item}")
         state, path = item.split("=", 1)
-        sets[state.strip()] = Path(path.strip())
+        sets[state.strip()] = path.strip()
 
     loaded = {}
     for state, path in sets.items():
-        frames = load_frames(path, args.cols, args.mirror)
+        grid = parse_grid(path)
+        if grid:
+            frames = load_grid(*grid, args.mirror)
+        else:
+            frames = load_frames(Path(path), args.cols, args.mirror)
         boxes = []
         for name, img in frames:
             b = content_bbox(img)
@@ -183,6 +246,8 @@ def main():
     p.add_argument("--set", action="append", default=[], metavar="상태=경로",
                    help="한 드래곤의 여러 상태를 한 번에 변환한다(권장). "
                         "예: --set idle=프레임/대기 --set fly=프레임/비행. "
+                        "격자 시트는 '파일.png@행x열:행번호,열범위' 로 칸을 지정한다 "
+                        "(예: --set move=monsters-desk.png@4x8:2,1-4). 번호는 1부터 센다. "
                         "모든 상태에 같은 배율·같은 위치를 써서 상태가 바뀔 때 크기가 변하지 않는다.")
     p.add_argument("--scale-state", action="append", default=[], metavar="상태=배수",
                    help="--set 과 함께. 그 상태만 공통 배율에 배수를 곱한다. "

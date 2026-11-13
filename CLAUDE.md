@@ -16,6 +16,7 @@
 - `src/core` — 게임 규칙(플랫폼 무관), `src/win` — Windows 오버레이·그리기 (진입점: `src/win/main.cpp`)
 - `include/` — 공유 헤더
 - `assets/dragons/<키>/` — 드래곤별 `dragon.txt`와 스프라이트 시트 ([사용법](assets/dragons/README.md))
+- `assets/enemies/<키>/` — 적별 `enemy.txt`와 스프라이트 시트 ([사용법](assets/enemies/README.md))
 - `assets/` — 직접 제작했거나 사용 권한이 확인된 이미지·시각 자료만. 출처 불명 에셋 금지
 - `tools/` — 에셋 변환 스크립트
 - `docs/` — 기획서·로드맵·변경 기록
@@ -44,7 +45,7 @@ cmake --build build
 - 커밋은 로드맵 단계/체크포인트 단위로, 메시지에 해당 단계 명시 (예: `1단계: 공격 예고와 회피 구현`)
 - 3명이 함께 개발한다. **main에 직접 커밋하지 말고 브랜치를 만들어 PR로 올린다.**
 - 코드 식별자는 영어, 주석·문서는 한국어
-- 드래곤의 수치·스킬은 코드가 아니라 `assets/dragons/<키>/dragon.txt`에서 바꾼다
+- 드래곤의 수치·스킬은 `assets/dragons/<키>/dragon.txt`, 적의 수치·행동은 `assets/enemies/<키>/enemy.txt`에서 바꾼다
 
 ## AI 도구에게: 적게 주고받기
 

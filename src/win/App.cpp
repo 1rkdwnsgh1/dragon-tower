@@ -8,6 +8,7 @@
 #include "Platform.h"
 #include "core/Config.h"
 #include "core/DragonData.h"
+#include "core/EnemyData.h"
 
 using namespace Gdiplus;
 
@@ -85,6 +86,7 @@ bool App::init(HINSTANCE inst) {
     // v0.2: 이미지를 읽기 전에 종 폴더를 먼저 읽는다(새 종의 이미지도 읽어야 하므로).
     std::filesystem::path assetDir = exeDirectory() / L"assets";
     DragonScanResult scan = loadDragonFolders(assetDir / "dragons");
+    EnemyScanResult escan = loadEnemyFolders(assetDir / "enemies");
     sprites_.load(assetDir);
 
     WNDCLASSEXW wc{};
@@ -128,6 +130,9 @@ bool App::init(HINSTANCE inst) {
     // 데이터 파일·시트의 문제는 조용히 넘기지 않고 화면에 알린다(오타를 바로 찾을 수 있게).
     if (scan.newSpecies > 0)
         game_.notify("드래곤 폴더에서 " + std::to_string(scan.newSpecies) + "종을 추가로 읽었습니다.", 0xFF8CFFA0, 5.f);
+    if (escan.newEnemies > 0)
+        game_.notify("적 폴더에서 " + std::to_string(escan.newEnemies) + "종을 추가로 읽었습니다.", 0xFF8CFFA0, 5.f);
+    for (const std::string& w : escan.warnings) scan.warnings.push_back(w);
     int warned = 0;
     for (const std::string& w : scan.warnings) {
         if (warned++ >= 3) break;

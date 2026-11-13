@@ -85,6 +85,8 @@ public:
     void notify(const std::string& text, uint32_t color = 0xFFFFFFFF, float duration = 4.f);
 
 private:
+    EnemyKind meleeByKey(const std::string& key) const;
+    EnemyKind randomMelee();
     void spawnWave();
     void spawnTowerFloor();
     void processEvents(bool autoExp);
