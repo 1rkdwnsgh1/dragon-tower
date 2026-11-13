@@ -469,8 +469,8 @@ void App::updateClickThrough() {
             GetCursorPos(&p);
             float lx = (p.x - work_.left) / scale_;
             float ly = (p.y - work_.top) / scale_;
-            for (const RectF& r : regions_.hit) {
-                if (r.Contains(PointF(lx, ly))) { want = true; break; }
+            for (const Gdiplus::RectF& r : regions_.hit) {
+                if (r.Contains(Gdiplus::PointF(lx, ly))) { want = true; break; }
             }
             if (drag_ != Drag::None) want = true;  // 끄는 중에는 놓칠 수 없다
         }
@@ -532,7 +532,7 @@ void App::showTrayMenu() {
 
 bool App::startDrag(float lx, float ly) {
     for (const UiButton& b : buttons_) {
-        if (!b.enabled || !b.rect.Contains(PointF(lx, ly))) continue;
+        if (!b.enabled || !b.rect.Contains(Gdiplus::PointF(lx, ly))) continue;
         if (b.action == UiAction::DragPanel) {
             drag_ = Drag::Panel;
             // 상태창 왼쪽 위에서 커서까지의 거리를 기억한다

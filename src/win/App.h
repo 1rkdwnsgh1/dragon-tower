@@ -7,6 +7,8 @@
 
 #include "Renderer.h"
 #include "Sprites.h"
+#include <shellapi.h>  // NOTIFYICONDATAW (트레이 아이콘)
+
 #include "WinCommon.h"
 #include "core/Game.h"
 

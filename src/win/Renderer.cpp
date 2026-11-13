@@ -161,17 +161,17 @@ void Renderer::paragraph(Graphics& g, const std::string& s, const RectF& r, floa
     g.DrawString(w.c_str(), static_cast<INT>(w.size()), font(size, bold), r, &fmt, &b);
 }
 
+// 이번 프레임에 모은 영역. drawOverlay 동안만 유효하다.
+static FrameRegions* g_regions = nullptr;
+static void markRegion(const RectF& r, float pad = 6.f) {
+    if (g_regions) g_regions->add(RectF(r.X - pad, r.Y - pad, r.Width + pad * 2.f, r.Height + pad * 2.f));
+}
+
 void Renderer::panel(Graphics& g, const RectF& r, uint8_t alpha) {
     markRegion(r);
     fillRound(g, RectF(r.X + 3.f, r.Y + 5.f, r.Width, r.Height), 14.f, Color(static_cast<BYTE>(alpha / 3), 0, 0, 0));
     fillRound(g, r, 14.f, Color(alpha, 24, 26, 38));
     strokeRound(g, r, 14.f, Color(255, 86, 96, 140), 1.5f);
-}
-
-// 이번 프레임에 모은 영역. drawOverlay 동안만 유효하다.
-static FrameRegions* g_regions = nullptr;
-static void markRegion(const RectF& r, float pad = 6.f) {
-    if (g_regions) g_regions->add(RectF(r.X - pad, r.Y - pad, r.Width + pad * 2.f, r.Height + pad * 2.f));
 }
 
 void Renderer::button(Graphics& g, std::vector<UiButton>& out, const RenderContext& ctx, const RectF& r,
