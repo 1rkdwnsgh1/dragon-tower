@@ -396,12 +396,14 @@ void Renderer::drawEnemy(Graphics& g, const Enemy& e, const Sprites& sprites, fl
     float bob = std::sin(time * 6.f + e.id) * 2.f;
     float x = e.pos.x;
     float y = e.pos.y + bob;
-    float height = e.kind == EnemyKind::Imp ? e.radius * 2.6f : e.radius * 2.6f;
+    const EnemyDef& ed = enemyDef(e.kind);
+    bool isBoss = ed.role == EnemyRole::Boss;
+    float height = e.radius * 2.6f;
 
     SolidBrush sh(Color(70, 0, 0, 0));
     g.FillEllipse(&sh, x - e.radius, e.pos.y + e.radius * 0.9f, e.radius * 2.f, e.radius * 0.5f);
 
-    if (e.kind == EnemyKind::Guardian && e.phase2) {
+    if (isBoss && e.phase2) {
         float pulse = 0.5f + 0.5f * std::sin(time * 6.f);
         fillCircle(g, x, y, e.radius * 1.45f, Color(static_cast<BYTE>(40 + 40 * pulse), 255, 60, 40));
     }
@@ -409,10 +411,27 @@ void Renderer::drawEnemy(Graphics& g, const Enemy& e, const Sprites& sprites, fl
         strokeCircle(g, x, y, e.radius * 1.25f, Color(200, 255, 90, 60), 2.f);
     }
 
-    Bitmap* bmp = sprites.get(e.kind == EnemyKind::Imp ? "enemy_imp" : "boss_guardian");
-    if (bmp) {
+    bool drawnBySheet = false;
+    // v0.4: 적도 시트 애니메이션을 쓴다. 상태는 움직임·예고·피격으로 정한다.
+    AnimState st = AnimState::Idle;
+    if (e.hitFlash > 0.f) st = AnimState::Hit;
+    else if (e.castTimer > 0.f) st = AnimState::Attack;
+    else if (e.stun <= 0.f) st = AnimState::Move;
+    Sheet sh2 = sprites.sheet("enemy:" + ed.key, st);
+    if (sh2.bmp) {
+        const AnimDef& ad = ed.anims[static_cast<int>(st)];
+        const float kAnchorFrac = 240.f / 256.f;
+        float k = ad.renderScale;
+        float cyAdj = y - (kAnchorFrac - 0.5f) * height * (k - 1.f);
+        drawSheetFrame(g, sh2, animFrame(time, ad.fps, sh2.frames, ad.loop), x, cyAdj, height * k, flip, flash, 1.f);
+        drawnBySheet = true;
+    }
+    Bitmap* bmp = drawnBySheet ? nullptr : sprites.get(isBoss ? "boss_guardian" : "enemy_imp");
+    if (drawnBySheet) {
+        // 시트로 이미 그렸다
+    } else if (bmp) {
         drawSprite(g, bmp, x, y, height, flip, flash, 1.f);
-    } else if (e.kind == EnemyKind::Imp) {
+    } else if (!isBoss) {
         float r = e.radius;
         uint32_t c = flash > 0.f ? 0xFFF0E0FF : 0xFF8E5BD8;
         SolidBrush hornB(col(0xFF4A2B78));
@@ -454,7 +473,7 @@ void Renderer::drawEnemy(Graphics& g, const Enemy& e, const Sprites& sprites, fl
     }
 
     // 체력 바(보스는 탑 HUD에 크게 표시)
-    if (e.kind == EnemyKind::Imp) {
+    if (!isBoss) {
         float w = 56.f;
         bar(g, RectF(x - w * 0.5f, e.pos.y - e.radius - 18.f, w, 7.f), e.hp / e.maxHp, 0xFFFF6B6B);
         text(g, "Lv." + std::to_string(e.level), x, e.pos.y - e.radius - 36.f, 12.f, 0xFFE0D0FF, 1, false, true);
@@ -777,9 +796,10 @@ void Renderer::drawTowerHud(Graphics& g, const Game& game) {
     text(g, std::string(combatModeName(game.towerMode())) + " · 자동 사냥 불가", a.GetRight() - 16.f, a.Y - 30.f, 14.f,
          kSub, 2, false, true);
     for (const Enemy& e : game.world().enemies()) {
-        if (e.kind != EnemyKind::Guardian) continue;
+        if (enemyDef(e.kind).role != EnemyRole::Boss) continue;
         RectF br(a.X + a.Width * 0.2f, a.Y + 14.f, a.Width * 0.6f, 16.f);
-        bar(g, br, e.hp / e.maxHp, e.phase2 ? 0xFFFF4D4D : 0xFFE0703A, e.phase2 ? "탑의 수호자 (분노)" : "탑의 수호자");
+        const std::string& bn = enemyDef(e.kind).name;
+        bar(g, br, e.hp / e.maxHp, e.phase2 ? 0xFFFF4D4D : 0xFFE0703A, e.phase2 ? bn + " (분노)" : bn);
     }
 }
 
@@ -1003,9 +1023,20 @@ void Renderer::drawCodex(Graphics& g, const Game& game, const RenderContext& ctx
     y += ((total + perRow - 1) / perRow) * 22.f + 10.f;
     text(g, "만난 적", x, y, 14.f, kSub, 0, true);
     y += 24.f;
-    text(g, s.impSeen ? "임프 (일반 적)" : "???", x, y, 13.f, s.impSeen ? kText : 0xFF7C8090);
-    text(g, s.guardianSeen ? "탑의 수호자 (보스)" : "???", x + 220.f, y, 13.f, s.guardianSeen ? kText : 0xFF7C8090);
-    y += 34.f;
+    {
+        int et = enemyCount();
+        for (int i = 0; i < et; ++i) {
+            EnemyKind k = static_cast<EnemyKind>(i);
+            const EnemyDef& d = enemyDef(k);
+            bool seen = s.sawEnemy(k);
+            float bx = x + (i % perRow) * 150.f;
+            float by = y + (i / perRow) * 22.f;
+            fillCircle(g, bx + 8.f, by + 9.f, 7.f, seen ? col(d.color) : Color(255, 70, 72, 80));
+            std::string label = seen ? d.name + (d.role == EnemyRole::Boss ? " (보스)" : "") : std::string("???");
+            text(g, label, bx + 22.f, by, 13.f, seen ? kText : 0xFF7C8090);
+        }
+        y += ((et + perRow - 1) / perRow) * 22.f + 12.f;
+    }
     text(g, "쓰러진 드래곤 (" + std::to_string(s.graves.size()) + ")", x, y, 14.f, kSub, 0, true);
     y += 24.f;
     if (s.graves.empty()) {

@@ -6,6 +6,7 @@
 #include <string>
 #include <vector>
 
+#include "core/Enemy.h"
 #include "core/Progression.h"
 
 namespace dt {
@@ -32,10 +33,11 @@ struct SaveData {
     // v0.2: 종이 폴더로 추가될 수 있어 고정 배열 대신 키 집합으로 저장한다.
     // 폴더가 사라진 종의 키도 그대로 남아 도감 기록이 지워지지 않는다.
     std::set<std::string> speciesSeen;
-    bool impSeen = false;
-    bool guardianSeen = false;
+    // v0.4: 적도 폴더로 늘어날 수 있어 키 집합으로 저장한다.
+    std::set<std::string> enemiesSeen;
     std::vector<GraveEntry> graves;
 
+    bool sawEnemy(EnemyKind k) const { return enemiesSeen.count(enemyDef(k).key) > 0; }
     bool sawSpecies(Species s) const { return speciesSeen.count(speciesDef(s).key) > 0; }
     void markSeen(Species s) { speciesSeen.insert(speciesDef(s).key); }
 };

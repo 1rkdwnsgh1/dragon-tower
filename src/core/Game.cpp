@@ -175,13 +175,30 @@ void Game::stopHunt(const std::string& reason) {
     saveRequested_ = true;
 }
 
+EnemyKind Game::meleeByKey(const std::string& key) const {
+    EnemyKind k;
+    if (enemyFromKey(key, k) && enemyDef(k).role == EnemyRole::Melee) return k;
+    return defaultMelee();
+}
+
+EnemyKind Game::randomMelee() {
+    // 바탕화면 사냥에는 일반 적이 섞여 나온다.
+    std::vector<EnemyKind> pool;
+    for (int i = 0; i < enemyCount(); ++i) {
+        EnemyKind k = static_cast<EnemyKind>(i);
+        if (enemyDef(k).role == EnemyRole::Melee) pool.push_back(k);
+    }
+    if (pool.empty()) return defaultMelee();
+    return pool[static_cast<size_t>(rng_.range(0, static_cast<int>(pool.size()) - 1))];
+}
+
 void Game::spawnWave() {
     int level = save_.dragon.level;
     int maxCount = std::clamp(1 + level / 2, cfg::kWaveMin, cfg::kWaveMax);
     int count = rng_.range(cfg::kWaveMin, maxCount);
     for (int i = 0; i < count; ++i) {
         int lv = std::max(1, level - rng_.range(0, 1));
-        world_.spawnEnemy(EnemyKind::Imp, lv, world_.randomEdgePoint(40.f));
+        world_.spawnEnemy(randomMelee(), lv, world_.randomEdgePoint(40.f));
     }
     waveActive_ = true;
 }
@@ -197,15 +214,17 @@ void Game::spawnTowerFloor() {
     RectF a = arena();
     float rx = a.right() - 120.f;
     float cy = a.center().y;
+    // 층마다 등장하는 적이 다르다. 없는 키는 첫 번째 일반 적으로 대신한다.
     if (towerFloor_ == 1) {
-        world_.spawnEnemy(EnemyKind::Imp, 4, {rx, cy - 110.f});
-        world_.spawnEnemy(EnemyKind::Imp, 4, {rx, cy + 110.f});
+        EnemyKind k = meleeByKey("slime");
+        world_.spawnEnemy(k, 4, {rx, cy - 110.f});
+        world_.spawnEnemy(k, 4, {rx, cy + 110.f});
     } else if (towerFloor_ == 2) {
-        world_.spawnEnemy(EnemyKind::Imp, 6, {rx, cy - 160.f});
-        world_.spawnEnemy(EnemyKind::Imp, 6, {rx - 60.f, cy});
-        world_.spawnEnemy(EnemyKind::Imp, 6, {rx, cy + 160.f});
+        world_.spawnEnemy(meleeByKey("goblin"), 6, {rx, cy - 160.f});
+        world_.spawnEnemy(meleeByKey("ogre"), 6, {rx - 60.f, cy});
+        world_.spawnEnemy(meleeByKey("goblin"), 6, {rx, cy + 160.f});
     } else {
-        world_.spawnEnemy(EnemyKind::Guardian, 8, {rx - 40.f, cy});
+        world_.spawnEnemy(defaultBoss(), 8, {rx - 40.f, cy});
     }
 }
 
@@ -303,8 +322,8 @@ void Game::onDragonDied() {
 void Game::processEvents(bool autoExp) {
     for (const WorldEvent& ev : world_.takeEvents()) {
         if (ev.type == WorldEventType::EnemySpawned) {
-            if (ev.enemyKind == EnemyKind::Imp && !save_.impSeen) { save_.impSeen = true; saveRequested_ = true; }
-            if (ev.enemyKind == EnemyKind::Guardian && !save_.guardianSeen) { save_.guardianSeen = true; saveRequested_ = true; }
+            const std::string& ek = enemyDef(ev.enemyKind).key;
+            if (!ek.empty() && save_.enemiesSeen.insert(ek).second) saveRequested_ = true;
         } else if (ev.type == WorldEventType::EnemyKilled) {
             if (!save_.hasDragon) continue;
             int oldLevel = save_.dragon.level;

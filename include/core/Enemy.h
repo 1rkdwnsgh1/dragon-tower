@@ -1,0 +1,73 @@
+// 적 종류의 정의와 등록부.
+// 드래곤(Species.h)과 같은 방식이다: 코드에 내장된 기본값이 있고,
+// assets/enemies/<키>/enemy.txt 로 덮어쓰거나 새 종류를 추가할 수 있다.
+#pragma once
+
+#include <string>
+
+#include "Species.h"  // AnimDef, AnimState
+
+namespace dt {
+
+// 적 종류의 식별자. 값은 등록 순서이며 코드에 하드코딩하지 않는다.
+// 키("slime", "lich")로 찾아 쓴다.
+enum class EnemyKind : int {};
+
+// 적의 행동 방식. 코드 분기 대신 데이터로 둔다.
+enum class EnemyRole {
+    Melee,  // 가까이 붙어 때린다(일반 적)
+    Boss,   // 거리를 두고 패턴을 쓴다. 밀려나지 않는다
+};
+
+struct EnemyDef {
+    EnemyKind id{};
+    std::string key;   // 폴더 이름. 저장 파일에 기록된다
+    std::string name;  // 화면에 보이는 이름
+    std::string desc;
+    EnemyRole role = EnemyRole::Melee;
+    uint32_t color = 0xFFB0B6C8;
+
+    // 1레벨 기준값과 레벨당 증가량
+    float baseHp = 40.f, hpGrowth = 15.f;
+    float baseAtk = 7.f, atkGrowth = 2.5f;
+    float baseDef = 1.f, defGrowth = 0.5f;
+    float baseSpeed = 85.f, speedGrowth = 3.f;
+    float radius = 24.f;
+    int baseExp = 3, expGrowth = 2;
+
+    // 거리 유지와 공격
+    float attackRange = 72.f;  // 이 거리 안이면 공격한다
+    float keepRatio = 0.8f;    // attackRange * 이 값보다 멀면 다가간다
+    float windup = 0.85f;      // 공격 예고 시간. 0이면 기본값을 쓴다
+    float attackCooldown = 2.2f;
+
+    // 보스 전용. role == Boss 일 때만 쓰인다
+    bool phase2 = false;         // 체력 절반에서 2페이즈로 바뀌는가
+    std::string summonKey;       // 2페이즈에서 소환할 적의 키(비어 있으면 소환 없음)
+    int summonCount = 0;
+    int summonLevel = 5;
+
+    AnimDef anims[kAnimStateCount];
+};
+
+// 등록부. 드래곤과 같은 규칙이다.
+int enemyCount();
+const EnemyDef& enemyDef(EnemyKind k);
+bool enemyFromKey(const std::string& key, EnemyKind& out);
+EnemyKind registerOrUpdateEnemy(const EnemyDef& def);
+// 없으면 자리 표시로 등록한다(폴더가 사라진 적의 기록을 지키기 위해).
+EnemyKind ensureEnemy(const std::string& key);
+// 내장 종류의 수. 폴더로 추가된 것은 포함하지 않는다.
+extern const int kBuiltinEnemyCount;
+
+struct EnemyStats {
+    float maxHp, atk, def, speed;
+    int expReward;
+};
+EnemyStats enemyStatsFor(EnemyKind k, int level);
+
+// 첫 번째로 등록된 일반 적과 보스. 내장 기본값이 있으므로 항상 유효하다.
+EnemyKind defaultMelee();
+EnemyKind defaultBoss();
+
+}  // namespace dt

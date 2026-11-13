@@ -87,24 +87,15 @@ Enemy& World::spawnEnemy(EnemyKind kind, int level, Vec2 pos) {
     e.kind = kind;
     e.level = std::max(1, level);
     e.pos = pos;
-    float n = static_cast<float>(e.level);
-    if (kind == EnemyKind::Imp) {
-        e.radius = cfg::kImpRadius;
-        e.maxHp = 40.f + 15.f * n;
-        e.atk = 7.f + 2.5f * n;
-        e.def = 1.f + 0.5f * n;
-        e.speed = 85.f + 3.f * n;
-        e.expReward = 3 + 2 * e.level;
-        e.attackCd = rng_.uniform(0.6f, 1.6f);
-    } else {
-        e.radius = cfg::kGuardianRadius;
-        e.maxHp = 110.f * n;
-        e.atk = 3.f * n + 2.f;
-        e.def = 0.75f * n;
-        e.speed = 70.f;
-        e.expReward = 40 + 10 * e.level;
-        e.attackCd = 1.5f;
-    }
+    const EnemyDef& def = enemyDef(kind);
+    EnemyStats st = enemyStatsFor(kind, e.level);
+    e.radius = def.radius;
+    e.maxHp = st.maxHp;
+    e.atk = st.atk;
+    e.def = st.def;
+    e.speed = st.speed;
+    e.expReward = st.expReward;
+    e.attackCd = def.role == EnemyRole::Boss ? def.attackCooldown : rng_.uniform(0.6f, 1.6f);
     e.hp = e.maxHp;
     enemies_.push_back(e);
     events_.push_back({WorldEventType::EnemySpawned, kind, 0});
@@ -491,7 +482,7 @@ void World::enemyAttack(Enemy& e) {
     Vec2 toDragon = dragon_.pos - e.pos;
     Vec2 dir = toDragon.normalized();
     if (dir.length() < 0.01f) dir = {e.facing, 0.f};
-    if (e.kind == EnemyKind::Imp) {
+    if (enemyDef(e.kind).role != EnemyRole::Boss) {
         AttackZone z;
         z.shape = ZoneShape::Circle;
         z.a = e.pos + dir * 36.f;
@@ -566,15 +557,17 @@ void World::updateEnemies(float dt) {
         }
         if (!dragon_.alive) continue;
 
-        if (e.kind == EnemyKind::Guardian && !e.phase2 && e.hp < e.maxHp * 0.5f) {
+        const EnemyDef& ed = enemyDef(e.kind);
+        if (ed.phase2 && !e.phase2 && e.hp < e.maxHp * 0.5f) {
             e.phase2 = true;
-            addText("수호자가 분노했다!", e.pos - Vec2{0.f, 90.f}, 0xFFFF7070, 20.f, 1.6f);
-            if (!e.spawnedAdds) {
+            addText(ed.name + "이(가) 분노했다!", e.pos - Vec2{0.f, 90.f}, 0xFFFF7070, 20.f, 1.6f);
+            EnemyKind add;
+            if (!e.spawnedAdds && ed.summonCount > 0 && enemyFromKey(ed.summonKey, add)) {
                 e.spawnedAdds = true;
-                Vec2 p1 = bounds_.clampPoint(e.pos + Vec2{-120.f, -80.f}, 40.f);
-                Vec2 p2 = bounds_.clampPoint(e.pos + Vec2{-120.f, 80.f}, 40.f);
-                spawnEnemy(EnemyKind::Imp, 5, p1);
-                spawnEnemy(EnemyKind::Imp, 5, p2);
+                for (int i = 0; i < ed.summonCount; ++i) {
+                    float dy = -80.f + 160.f * (ed.summonCount == 1 ? 0.5f : static_cast<float>(i) / (ed.summonCount - 1));
+                    spawnEnemy(add, ed.summonLevel, bounds_.clampPoint(e.pos + Vec2{-120.f, dy}, 40.f));
+                }
                 return;  // 벡터가 재할당되었을 수 있으므로 이번 프레임은 여기서 멈춘다
             }
         }
@@ -582,8 +575,8 @@ void World::updateEnemies(float dt) {
         Vec2 to = dragon_.pos - e.pos;
         float dist = to.length();
         if (std::fabs(to.x) > 4.f) e.facing = to.x > 0.f ? 1.f : -1.f;
-        float attackRange = e.kind == EnemyKind::Imp ? cfg::kImpAttackRange : 700.f;
-        float keepDist = e.kind == EnemyKind::Imp ? cfg::kImpAttackRange * 0.8f : 240.f;
+        float attackRange = ed.attackRange;
+        float keepDist = attackRange * ed.keepRatio;
         if (dist <= attackRange && e.attackCd <= 0.f) {
             enemyAttack(e);
             continue;
@@ -602,8 +595,8 @@ void World::updateEnemies(float dt) {
             float minD = a.radius + b.radius;
             if (len < minD && len > 0.01f) {
                 Vec2 push = d.normalized() * ((minD - len) * 0.5f);
-                if (a.kind != EnemyKind::Guardian) a.pos -= push;
-                if (b.kind != EnemyKind::Guardian) b.pos += push;
+                if (enemyDef(a.kind).role != EnemyRole::Boss) a.pos -= push;
+                if (enemyDef(b.kind).role != EnemyRole::Boss) b.pos += push;
             }
         }
     }
@@ -637,7 +630,7 @@ void World::damageDragon(float raw) {
     if (d.hp <= 0.f) {
         d.hp = 0.f;
         d.alive = false;
-        events_.push_back({WorldEventType::DragonDied, EnemyKind::Imp, 0});
+        events_.push_back({WorldEventType::DragonDied, EnemyKind{}, 0});
         addFx(FxType::Death, d.pos, d.pos, 90.f, 0.9f, speciesDef(d.species).color);
     }
 }

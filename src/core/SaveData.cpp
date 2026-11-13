@@ -90,8 +90,17 @@ std::string serializeSave(const SaveData& s) {
         first = false;
     }
     o << "\n";
-    o << "codex.imp=" << (s.impSeen ? 1 : 0) << "\n";
-    o << "codex.guardian=" << (s.guardianSeen ? 1 : 0) << "\n";
+    o << "codex.enemies=";
+    {
+        bool f2 = true;
+        for (const std::string& k : s.enemiesSeen) {
+            if (k.empty()) continue;
+            if (!f2) o << ",";
+            o << k;
+            f2 = false;
+        }
+    }
+    o << "\n";
     for (const GraveEntry& g : s.graves) {
         o << "grave=" << g.id << "|" << speciesDef(g.species).key << "|" << g.level << "|" << g.place << "\n";
     }
@@ -135,8 +144,14 @@ bool deserializeSave(const std::string& text, SaveData& out) {
                 if (!k.empty()) s.speciesSeen.insert(k);
             }
         }
-        else if (key == "codex.imp") s.impSeen = toInt(val, 0) != 0;
-        else if (key == "codex.guardian") s.guardianSeen = toInt(val, 0) != 0;
+        else if (key == "codex.enemies") {
+            for (const std::string& k : split(val, ',')) {
+                if (!k.empty()) s.enemiesSeen.insert(k);
+            }
+        }
+        // v0.3 이전 저장 파일 호환: 임프·수호자 기록을 키로 옮긴다.
+        else if (key == "codex.imp") { if (toInt(val, 0) != 0) s.enemiesSeen.insert("imp"); }
+        else if (key == "codex.guardian") { if (toInt(val, 0) != 0) s.enemiesSeen.insert("guardian"); }
         else if (key == "grave") {
             auto parts = split(val, '|');
             if (parts.size() >= 4) {

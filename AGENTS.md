@@ -14,6 +14,7 @@
 - `docs/implementation-notes.md`: 구현하며 임시로 정한 값과 확인할 것
 - `docs/character-pipeline.md`: 캐릭터 이미지·애니메이션·스킬 적용 규격
 - `assets/dragons/README.md`: 드래곤 추가·그림 넣기 사용법
+- `assets/enemies/README.md`: 적 추가·그림 넣기 사용법
 - `docs/ai-workflow-notes.md`: AI 작업 비용 기록과 개선
 
 새 문서를 추가하면 이 목록에도 추가한다.

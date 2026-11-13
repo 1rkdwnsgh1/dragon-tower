@@ -18,11 +18,9 @@ struct PlayerInput {
     bool skill[3] = {false, false, false};
 };
 
-enum class EnemyKind { Imp, Guardian };
-
 struct Enemy {
     int id = 0;
-    EnemyKind kind = EnemyKind::Imp;
+    EnemyKind kind{};
     int level = 1;
     Vec2 pos;
     float radius = 24.f;
@@ -133,7 +131,7 @@ enum class WorldEventType { EnemyKilled, DragonDied, EnemySpawned };
 
 struct WorldEvent {
     WorldEventType type;
-    EnemyKind enemyKind = EnemyKind::Imp;
+    EnemyKind enemyKind{};
     int exp = 0;
 };
 
@@ -176,6 +174,7 @@ public:
     std::vector<WorldEvent> takeEvents();
 
     const std::vector<Enemy>& enemies() const { return enemies_; }
+    std::vector<Enemy>& enemiesMutable() { return enemies_; }
     const std::vector<AttackZone>& zones() const { return zones_; }
     const std::vector<Projectile>& projectiles() const { return projectiles_; }
     const std::vector<DotZone>& dots() const { return dots_; }

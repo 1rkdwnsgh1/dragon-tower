@@ -38,11 +38,21 @@ void Sprites::load(const std::filesystem::path& assetDir) {
         std::error_code ec;
         if (!std::filesystem::is_directory(dir, ec)) continue;
         if (auto bmp = loadPng(dir / "dragon.png")) images_["dragon_" + def.key] = std::move(bmp);
-        loadSheetsFor(dir, def);
+        loadSheetsFor(dir, def.anims, def.key, "dragons/" + def.key);
+    }
+
+    // 적 폴더 (v0.4)
+    for (int i = 0; i < enemyCount(); ++i) {
+        const EnemyDef& def = enemyDef(static_cast<EnemyKind>(i));
+        std::filesystem::path dir = assetDir / "enemies" / def.key;
+        std::error_code ec;
+        if (!std::filesystem::is_directory(dir, ec)) continue;
+        loadSheetsFor(dir, def.anims, "enemy:" + def.key, "enemies/" + def.key);
     }
 }
 
-void Sprites::loadSheetsFor(const std::filesystem::path& dir, const SpeciesDef& def) {
+void Sprites::loadSheetsFor(const std::filesystem::path& dir, const AnimDef* anims, const std::string& prefix,
+                            const std::string& label) {
     for (int i = 0; i < kAnimStateCount; ++i) {
         AnimState st = static_cast<AnimState>(i);
         std::string name = animStateName(st);
@@ -51,11 +61,11 @@ void Sprites::loadSheetsFor(const std::filesystem::path& dir, const SpeciesDef& 
 
         int w = static_cast<int>(bmp->GetWidth());
         int h = static_cast<int>(bmp->GetHeight());
-        int frameW = def.anims[i].frameW;
+        int frameW = anims[i].frameW;
         if (frameW <= 0) frameW = h;  // frame_w가 없으면 정사각형 칸으로 본다
         if (frameW > w) frameW = w;
         if (w % frameW != 0) {
-            warnings_.push_back("dragons/" + def.key + "/" + name + ".png: 너비 " + std::to_string(w) +
+            warnings_.push_back(label + "/" + name + ".png: 너비 " + std::to_string(w) +
                                 "가 칸 너비 " + std::to_string(frameW) + "로 나누어떨어지지 않습니다");
             continue;
         }
@@ -64,7 +74,7 @@ void Sprites::loadSheetsFor(const std::filesystem::path& dir, const SpeciesDef& 
         s.frameW = frameW;
         s.frameH = h;
         s.bmp = std::move(bmp);
-        sheets_[def.key + "/" + name] = std::move(s);
+        sheets_[prefix + "/" + name] = std::move(s);
     }
 }
 
