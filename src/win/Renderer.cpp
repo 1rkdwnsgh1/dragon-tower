@@ -162,9 +162,16 @@ void Renderer::paragraph(Graphics& g, const std::string& s, const RectF& r, floa
 }
 
 void Renderer::panel(Graphics& g, const RectF& r, uint8_t alpha) {
+    markRegion(r);
     fillRound(g, RectF(r.X + 3.f, r.Y + 5.f, r.Width, r.Height), 14.f, Color(static_cast<BYTE>(alpha / 3), 0, 0, 0));
     fillRound(g, r, 14.f, Color(alpha, 24, 26, 38));
     strokeRound(g, r, 14.f, Color(255, 86, 96, 140), 1.5f);
+}
+
+// 이번 프레임에 모은 영역. drawOverlay 동안만 유효하다.
+static FrameRegions* g_regions = nullptr;
+static void markRegion(const RectF& r, float pad = 6.f) {
+    if (g_regions) g_regions->add(RectF(r.X - pad, r.Y - pad, r.Width + pad * 2.f, r.Height + pad * 2.f));
 }
 
 void Renderer::button(Graphics& g, std::vector<UiButton>& out, const RenderContext& ctx, const RectF& r,
@@ -186,6 +193,7 @@ void Renderer::button(Graphics& g, std::vector<UiButton>& out, const RenderConte
     b.arg = arg;
     b.enabled = enabled;
     out.push_back(b);
+    markRegion(r);
 }
 
 void Renderer::bar(Graphics& g, const RectF& r, float ratio, uint32_t color, const std::string& label) {
@@ -207,7 +215,16 @@ void Renderer::bar(Graphics& g, const RectF& r, float ratio, uint32_t color, con
 // ---------------------------------------------------------------------------
 
 void Renderer::drawOverlay(Graphics& g, const Game& game, const Sprites& sprites, const RenderContext& ctx,
-                           std::vector<UiButton>& out) {
+                           std::vector<UiButton>& out, FrameRegions* outRegions) {
+    g_regions = outRegions;
+    if (outRegions) {
+        outRegions->hit.clear();
+        // 선택 화면·탑·모달이 떠 있으면 화면 전체에서 입력을 받는다(배경 클릭 방지).
+        outRegions->fullScreen = game.screen() != Screen::Desktop;
+    }
+    struct RegionGuard {
+        ~RegionGuard() { g_regions = nullptr; }
+    } guard;
     out.clear();
     width_ = game.desktopBounds().w;
     height_ = game.desktopBounds().h;
@@ -303,6 +320,7 @@ void Renderer::drawSheetFrame(Graphics& g, const Sheet& sh, int frame, float cx,
 
 void Renderer::drawDragon(Graphics& g, const DragonActor& d, const Sprites& sprites, float time, float x, float y,
                           float height, bool preview) {
+    if (!preview) markRegion(RectF(x - height * 0.5f, y - height * 0.5f, height, height), 4.f);
     const SpeciesDef& sp = speciesDef(d.species);
     bool flip = sp.flipAllowed && d.facing.x < 0.f;
     float alpha = (!preview && d.invuln > 0.f) ? 0.55f : 1.f;
@@ -672,6 +690,7 @@ void Renderer::toggle(Graphics& g, std::vector<UiButton>& out, const RenderConte
     text(g, on ? "ON" : "OFF", knobArea.X - 8.f, r.Y + (r.Height - 14.f) * 0.5f + 1.f, 12.f,
          on ? 0xFF8CFFA0 : 0xFF9AA2B4, 2);
     if (enabled) out.push_back({r, action, arg});
+    markRegion(r);
 }
 
 void Renderer::drawStatusCard(Graphics& g, const Game& game, const Sprites& sprites, const RenderContext& ctx,
@@ -679,10 +698,35 @@ void Renderer::drawStatusCard(Graphics& g, const Game& game, const Sprites& spri
     const DragonRecord& rec = game.dragonRecord();
     const DragonActor& d = game.world().dragon();
     const SpeciesDef& sp = speciesDef(rec.species);
-    RectF r(width_ - 96.f - 270.f, height_ - 16.f - 232.f, 270.f, 232.f);
+    const float cardW = 270.f;
+    float cardH = game.panelCollapsed() ? 44.f : 292.f;
+    Vec2 saved = game.panelPos();
+    float rx = saved.x >= 0.f ? saved.x : width_ - 96.f - cardW;
+    float ry = saved.y >= 0.f ? saved.y : height_ - 16.f - 292.f;
+    // 화면 밖으로 나가지 않게 맞춘다(해상도가 바뀌어도 사라지지 않게)
+    rx = std::clamp(rx, 0.f, std::max(0.f, width_ - cardW));
+    ry = std::clamp(ry, 0.f, std::max(0.f, height_ - cardH));
+    RectF r(rx, ry, cardW, cardH);
     panel(g, r, 224);
+
+    // 제목 줄은 끌기 손잡이다. 오른쪽 끝에 접기 버튼이 있다.
+    RectF handle(r.X, r.Y, r.Width - 34.f, 30.f);
+    out.push_back({handle, UiAction::DragPanel, 0, true});
+    {
+        bool hov = handle.Contains(PointF(ctx.mouseX, ctx.mouseY));
+        for (int i = 0; i < 3; ++i)
+            fillRound(g, RectF(r.X + 10.f, r.Y + 9.f + i * 4.f, 14.f, 2.f), 1.f,
+                      Color(hov ? 220 : 120, 180, 190, 220));
+    }
+    button(g, out, ctx, RectF(r.GetRight() - 30.f, r.Y + 4.f, 26.f, 22.f),
+           game.panelCollapsed() ? "▴" : "▾", UiAction::TogglePanel);
+    if (game.panelCollapsed()) {
+        text(g, dragonName(rec) + "  Lv." + std::to_string(rec.level), r.X + 30.f, r.Y + 13.f, 14.f, kText, 0, true);
+        bar(g, RectF(r.X + 14.f, r.Y + 32.f, r.Width - 28.f, 8.f), d.hp / std::max(1.f, d.stats.maxHp), kHpC);
+        return;
+    }
     float x = r.X + 14.f;
-    float y = r.Y + 10.f;
+    float y = r.Y + 32.f;  // 제목 줄(끌기 손잡이) 아래부터
     float w = r.Width - 28.f;
 
     fillCircle(g, x + 6.f, y + 10.f, 6.f, col(sp.color));
@@ -737,6 +781,10 @@ void Renderer::drawStatusCard(Graphics& g, const Game& game, const Sprites& spri
         button(g, out, ctx, RectF(x + i * (bw + 4.f), y, bw, 24.f), shortName[i], UiAction::SetMode,
                static_cast<int>(modes[i]), game.canChangeMode(), game.huntMode() == modes[i]);
     }
+    y += 28.f;
+
+    // 드래곤을 화면 아래쪽 띠에만 둘지 (v0.6)
+    toggle(g, out, ctx, RectF(x, y, w, 24.f), "아래쪽에만", game.confineToBand(), UiAction::ToggleConfine, 0, true);
     y += 28.f;
 
     // 스킬 칸

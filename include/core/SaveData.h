@@ -28,6 +28,11 @@ struct SaveData {
     bool hasDragon = false;   // 살아 있는 현재 개체가 있는가
     DragonRecord dragon;
     CombatMode huntMode = CombatMode::SkillManual;
+    // v0.6 바탕화면 UI 설정. 모르는 키는 읽을 때 무시되므로 이전 저장 파일과 호환된다.
+    float panelX = -1.f;          // 상태창 왼쪽 위 좌표(논리 픽셀). -1이면 기본 위치
+    float panelY = -1.f;
+    bool panelCollapsed = false;  // 상태창을 접어 두었는가
+    bool confineToBand = false;   // 드래곤을 화면 맨 아래 띠에만 두는가
     int bestFloor = 0;        // 탑 최고 도달 층(기록, 개체가 죽어도 유지)
     int towerClears = 0;
     // v0.2: 종이 폴더로 추가될 수 있어 고정 배열 대신 키 집합으로 저장한다.

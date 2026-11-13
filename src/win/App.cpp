@@ -1,5 +1,7 @@
 #include "App.h"
 
+#include <shellapi.h>
+
 #include <chrono>
 #include <cmath>
 #include <ctime>
@@ -13,6 +15,17 @@
 using namespace Gdiplus;
 
 namespace dt::win {
+
+namespace {
+constexpr UINT kTrayMsg = WM_APP + 1;
+constexpr UINT kTrayId = 1;
+constexpr int kHotkeyId = 1;
+constexpr int kMenuToggleInput = 100;
+constexpr int kMenuShowHide = 101;
+constexpr int kMenuResetPanel = 102;
+constexpr int kMenuExit = 103;
+}  // namespace
+
 
 namespace {
 const wchar_t* kWindowClass = L"DragonTowerWindow";
@@ -149,6 +162,12 @@ bool App::init(HINSTANCE inst) {
     ShowWindow(button_, SW_SHOWNOACTIVATE);
     // 처음 선택 화면이면 바로 고를 수 있도록 입력을 켠다.
     setInputEnabled(game_.needsInput());
+    createTray();
+    // Ctrl+Shift+D 로 게임 입력을 켜고 끈다. 이미 쓰는 조합이면 조용히 넘어간다.
+    if (!RegisterHotKey(overlay_, kHotkeyId, MOD_CONTROL | MOD_SHIFT | MOD_NOREPEAT, 'D')) {
+        game_.notify("Ctrl+Shift+D 단축키를 등록하지 못했습니다(다른 앱이 쓰는 중).", 0xFFFFD166, 6.f);
+    }
+    refreshTrayTip();
     render();
     return true;
 }
@@ -171,6 +190,8 @@ void App::layout() {
 }
 
 void App::shutdown() {
+    UnregisterHotKey(overlay_, kHotkeyId);
+    destroyTray();
     overlaySurf_.destroy();
     buttonSurf_.destroy();
     renderer_.shutdown();
@@ -302,7 +323,27 @@ void App::tick(float dt) {
     PlayerInput in = pollKeys();
     game_.update(dt, in, hidden_, inputEnabled_);
     if (game_.consumeSaveRequest()) saveNow();
-    if (!hidden_) render();
+
+    // 클릭 통과 범위는 매 프레임 갱신한다(요소가 움직이므로).
+    updateClickThrough();
+
+    if (hidden_) return;
+
+    // 조용할 때는 다시 그리는 횟수를 줄인다. 바탕화면 전체를 30fps로 계속 그리면
+    // 노트북에서 배터리와 CPU를 쓴다. 전투·효과·입력이 있으면 바로 30fps로 돌아간다.
+    bool busy = game_.hunting() || game_.inTowerFlow() || inputEnabled_ ||
+                !game_.world().enemies().empty() || game_.world().hasActiveFx() ||
+                game_.screen() != Screen::Desktop || drag_ != Drag::None;
+    if (busy) {
+        idleAccum_ = 0.f;
+        render();
+        return;
+    }
+    idleAccum_ += dt;
+    if (idleAccum_ >= cfg::kIdleFrameInterval) {
+        idleAccum_ = 0.f;
+        render();
+    }
 }
 
 void App::render() {
@@ -320,7 +361,7 @@ void App::render() {
         ctx.time = time_;
         ctx.mouseX = mouseX_;
         ctx.mouseY = mouseY_;
-        renderer_.drawOverlay(g, game_, sprites_, ctx, buttons_);
+        renderer_.drawOverlay(g, game_, sprites_, ctx, buttons_, &regions_);
         g.Flush(FlushIntentionSync);
         overlaySurf_.present(overlay_, work_.left, work_.top);
     }
@@ -367,6 +408,10 @@ void App::doAction(const UiButton& b) {
         case UiAction::OpenCodex: game_.openCodex(); break;
         case UiAction::AckDeath: game_.acknowledgeDeath(); break;
         case UiAction::ExitGame: requestExit(); return;
+        case UiAction::TogglePanel: game_.setPanelCollapsed(!game_.panelCollapsed()); break;
+        case UiAction::ToggleConfine: game_.setConfineToBand(!game_.confineToBand()); break;
+        case UiAction::DragPanel:   // 끌기는 WM_LBUTTONDOWN에서 시작한다
+        case UiAction::DragDragon:
         case UiAction::None: break;
     }
     if (game_.consumeSaveRequest()) saveNow();
@@ -407,6 +452,110 @@ LRESULT CALLBACK App::StaticProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
     return DefWindowProcW(hwnd, msg, wp, lp);
 }
 
+// ---------------------------------------------------------------------------
+// v0.6: 클릭 통과 · 트레이 아이콘 · 전역 단축키 · 끌기
+// ---------------------------------------------------------------------------
+
+void App::updateClickThrough() {
+    // 입력이 꺼져 있으면 언제나 통과시킨다.
+    // 켜져 있어도, 우리가 그린 것 위에 커서가 있을 때만 받는다. 나머지는 바탕화면과
+    // 다른 창으로 그대로 넘어간다(기획서의 "클릭 통과 범위" 결정).
+    bool want = false;
+    if (inputEnabled_ && !hidden_) {
+        if (regions_.fullScreen) {
+            want = true;  // 선택 화면·탑·모달은 화면 전체를 받는다
+        } else {
+            POINT p{};
+            GetCursorPos(&p);
+            float lx = (p.x - work_.left) / scale_;
+            float ly = (p.y - work_.top) / scale_;
+            for (const RectF& r : regions_.hit) {
+                if (r.Contains(PointF(lx, ly))) { want = true; break; }
+            }
+            if (drag_ != Drag::None) want = true;  // 끄는 중에는 놓칠 수 없다
+        }
+    }
+    if (want == cursorOnUi_) return;
+    cursorOnUi_ = want;
+    LONG_PTR ex = GetWindowLongPtrW(overlay_, GWL_EXSTYLE);
+    if (want) ex &= ~static_cast<LONG_PTR>(WS_EX_TRANSPARENT);
+    else ex |= static_cast<LONG_PTR>(WS_EX_TRANSPARENT);
+    SetWindowLongPtrW(overlay_, GWL_EXSTYLE, ex);
+}
+
+void App::createTray() {
+    if (trayAdded_) return;
+    tray_ = NOTIFYICONDATAW{};
+    tray_.cbSize = sizeof(tray_);
+    tray_.hWnd = overlay_;
+    tray_.uID = kTrayId;
+    tray_.uFlags = NIF_ICON | NIF_MESSAGE | NIF_TIP;
+    tray_.uCallbackMessage = kTrayMsg;
+    tray_.hIcon = LoadIconW(nullptr, IDI_APPLICATION);
+    wcscpy_s(tray_.szTip, L"Dragon Tower");
+    trayAdded_ = Shell_NotifyIconW(NIM_ADD, &tray_) != FALSE;
+}
+
+void App::destroyTray() {
+    if (!trayAdded_) return;
+    Shell_NotifyIconW(NIM_DELETE, &tray_);
+    trayAdded_ = false;
+}
+
+void App::refreshTrayTip() {
+    if (!trayAdded_) return;
+    std::wstring tip = L"Dragon Tower — ";
+    tip += inputEnabled_ ? L"입력 켜짐" : L"입력 꺼짐";
+    if (hidden_) tip += L" (숨김)";
+    wcsncpy_s(tray_.szTip, tip.c_str(), _TRUNCATE);
+    tray_.uFlags = NIF_TIP;
+    Shell_NotifyIconW(NIM_MODIFY, &tray_);
+}
+
+void App::showTrayMenu() {
+    HMENU m = CreatePopupMenu();
+    if (!m) return;
+    AppendMenuW(m, MF_STRING, kMenuToggleInput,
+                inputEnabled_ ? L"게임 입력 끄기 (Ctrl+Shift+D)" : L"게임 입력 켜기 (Ctrl+Shift+D)");
+    AppendMenuW(m, MF_STRING, kMenuShowHide, hidden_ ? L"드래곤 보이기" : L"드래곤 숨기기");
+    AppendMenuW(m, MF_SEPARATOR, 0, nullptr);
+    AppendMenuW(m, MF_STRING, kMenuResetPanel, L"상태창 위치 되돌리기");
+    AppendMenuW(m, MF_SEPARATOR, 0, nullptr);
+    AppendMenuW(m, MF_STRING, kMenuExit, L"종료");
+    POINT p{};
+    GetCursorPos(&p);
+    SetForegroundWindow(overlay_);  // 메뉴가 바로 닫히지 않게 한다
+    TrackPopupMenu(m, TPM_RIGHTBUTTON | TPM_BOTTOMALIGN, p.x, p.y, 0, overlay_, nullptr);
+    PostMessageW(overlay_, WM_NULL, 0, 0);
+    DestroyMenu(m);
+}
+
+bool App::startDrag(float lx, float ly) {
+    for (const UiButton& b : buttons_) {
+        if (!b.enabled || !b.rect.Contains(PointF(lx, ly))) continue;
+        if (b.action == UiAction::DragPanel) {
+            drag_ = Drag::Panel;
+            // 상태창 왼쪽 위에서 커서까지의 거리를 기억한다
+            dragDX_ = lx - b.rect.X;
+            dragDY_ = ly - b.rect.Y;
+            return true;
+        }
+        if (b.action == UiAction::DragDragon) break;
+    }
+    // 드래곤 위를 눌렀으면 드래곤을 끈다(전투 중에는 방해가 되므로 하지 않는다)
+    if (game_.hasDragon() && !game_.hunting() && !game_.inTowerFlow()) {
+        const DragonActor& d = game_.world().dragon();
+        float rr = cfg::kDragonRadius * 1.6f;
+        if (std::fabs(lx - d.pos.x) <= rr && std::fabs(ly - d.pos.y) <= rr) {
+            drag_ = Drag::Dragon;
+            dragDX_ = lx - d.pos.x;
+            dragDY_ = ly - d.pos.y;
+            return true;
+        }
+    }
+    return false;
+}
+
 LRESULT App::handle(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
     const bool isButton = hwnd == button_;
     switch (msg) {
@@ -430,6 +579,11 @@ LRESULT App::handle(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
             } else {
                 mouseX_ = x / scale_;
                 mouseY_ = y / scale_;
+                if (drag_ == Drag::Panel) {
+                    game_.setPanelPos({mouseX_ - dragDX_, mouseY_ - dragDY_});
+                } else if (drag_ == Drag::Dragon) {
+                    game_.placeDragon({mouseX_ - dragDX_, mouseY_ - dragDY_});
+                }
             }
             return 0;
         }
@@ -443,12 +597,56 @@ LRESULT App::handle(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
             } else if (inputEnabled_) {
                 float x = static_cast<float>(static_cast<short>(LOWORD(lp)));
                 float y = static_cast<float>(static_cast<short>(HIWORD(lp)));
-                onClick(x / scale_, y / scale_);
+                float lx = x / scale_, ly = y / scale_;
+                SetCapture(hwnd);
+                if (!startDrag(lx, ly)) onClick(lx, ly);
+            }
+            return 0;
+
+        case WM_LBUTTONUP:
+            if (!isButton) {
+                if (drag_ != Drag::None) {
+                    drag_ = Drag::None;
+                    saveNow();  // 옮긴 위치를 바로 남긴다
+                }
+                if (GetCapture() == hwnd) ReleaseCapture();
             }
             return 0;
 
         case WM_RBUTTONDOWN:
             if (isButton) setInputEnabled(!inputEnabled_);
+            else if (inputEnabled_) showTrayMenu();  // 오버레이에서 오른쪽 클릭하면 같은 메뉴
+            return 0;
+
+        case WM_HOTKEY:
+            if (wp == kHotkeyId) {
+                setInputEnabled(!inputEnabled_);
+                refreshTrayTip();
+            }
+            return 0;
+
+        case kTrayMsg:
+            if (LOWORD(lp) == WM_RBUTTONUP || LOWORD(lp) == WM_CONTEXTMENU) showTrayMenu();
+            else if (LOWORD(lp) == WM_LBUTTONDBLCLK) { setInputEnabled(!inputEnabled_); refreshTrayTip(); }
+            return 0;
+
+        case WM_COMMAND:
+            switch (LOWORD(wp)) {
+                case kMenuToggleInput: setInputEnabled(!inputEnabled_); refreshTrayTip(); return 0;
+                case kMenuShowHide:
+                    hidden_ = !hidden_;
+                    ShowWindow(overlay_, hidden_ ? SW_HIDE : SW_SHOWNOACTIVATE);
+                    ShowWindow(button_, hidden_ ? SW_HIDE : SW_SHOWNOACTIVATE);
+                    refreshTrayTip();
+                    return 0;
+                case kMenuResetPanel:
+                    game_.setPanelPos({-1.f, -1.f});
+                    game_.setPanelCollapsed(false);
+                    saveNow();
+                    return 0;
+                case kMenuExit: requestExit(); return 0;
+                default: break;
+            }
             return 0;
 
         case WM_SETCURSOR:

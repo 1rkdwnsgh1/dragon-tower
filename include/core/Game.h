@@ -76,6 +76,16 @@ public:
     RectF arena() const;
     // 바탕화면 디펜스 전투가 일어나는 띠. 화면 맨 아래, 작업 표시줄 바로 위다.
     RectF battleBand() const;
+    // v0.6: 드래곤을 띠에만 둘지. 켜면 전투를 꺼도 맨 아래 띠에서만 돌아다닌다.
+    bool confineToBand() const { return save_.confineToBand; }
+    void setConfineToBand(bool on);
+    // v0.6: 드래곤을 마우스로 끌어다 놓는다(경계 안으로 맞춘다).
+    void placeDragon(Vec2 pos);
+    // v0.6: 상태창 위치·접힘. 화면 밖으로 나가지 않게 맞춘다.
+    Vec2 panelPos() const { return {save_.panelX, save_.panelY}; }
+    void setPanelPos(Vec2 p);
+    bool panelCollapsed() const { return save_.panelCollapsed; }
+    void setPanelCollapsed(bool on);
     const RectF& desktopBounds() const { return desktop_; }
     const GraveEntry* lastGrave() const { return save_.graves.empty() ? nullptr : &save_.graves.back(); }
 

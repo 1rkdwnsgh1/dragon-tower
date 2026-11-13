@@ -33,6 +33,13 @@ tests/                     코어 규칙 검증
 | 왼쪽에서 들어오는 웨이브 | `src/core/Game.cpp` | `spawnWave`, `waveNumber_` |
 | 띠 높이·등장 위치·웨이브 증가 | `include/core/Config.h` | `kBandHeight`, `kSpawnOffsetX`, `kWaveLevelStep` |
 | 전투 토글 스위치·모드 버튼 | `src/win/Renderer.cpp` | `toggle`, `drawStatusCard` |
+| 클릭 통과 범위 판정 | `src/win/App.cpp` | `updateClickThrough`, `FrameRegions` |
+| 입력 받을 영역 수집 | `src/win/Renderer.cpp` | `markRegion`, `g_regions` |
+| 트레이 아이콘·메뉴 | `src/win/App.cpp` | `createTray`, `showTrayMenu` |
+| 전역 단축키 | `src/win/App.cpp` | `RegisterHotKey`, `WM_HOTKEY` |
+| 상태창·드래곤 끌기 | `src/win/App.cpp` | `startDrag`, `WM_MOUSEMOVE` |
+| 드래곤을 띠에 가두기 | `src/core/Game.cpp` | `setConfineToBand`, `placeDragon` |
+| 조용할 때 프레임 줄이기 | `src/win/App.cpp` | `App::tick`의 `busy`, `cfg::kIdleFrameInterval` |
 | 자동 경험치 상한 켜고 끄기 | `include/core/Config.h` | `kAutoExpCapEnabled` |
 | `dragon.txt` 읽는 규칙 | `src/core/DragonData.cpp` | `parseDragonText` |
 | 폴더 스캔 | `src/core/DragonData.cpp` | `loadDragonFolders` |
