@@ -13,6 +13,8 @@ Windows 바탕화면에서 드래곤을 육성하고 탑에 도전하는 게임�
 - [캐릭터 이미지·애니메이션·스킬 적용 기획 (드래곤 추가 구조)](docs/character-pipeline.md)
 - [**드래곤 추가·그림 넣기 사용법**](assets/dragons/README.md)
 - [버전별 바뀐 점](docs/changelog.md)
+- [**코드 지도: 무엇이 어디에 있나**](docs/codemap.md)
+- [AI 작업 비용 기록과 개선](docs/ai-workflow-notes.md)
 
 ## 지금 할 수 있는 것(첫 수직 단면)
 
