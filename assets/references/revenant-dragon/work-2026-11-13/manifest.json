@@ -1,0 +1,72 @@
+[
+  {
+    "path": "망령용 모델링 기준 이미지.png",
+    "bytes": 2302550,
+    "sha256": "3189A0208075C87DE8BB7A24B468B09A9C11CA17AD88C25180414248C1DF2B5A"
+  },
+  {
+    "path": "망령용 배경 일러스트.png",
+    "bytes": 2893198,
+    "sha256": "2BE826438AE694FC9F73FAD6D8BC62CD44E502AC5F253765C76D7A327E24245A"
+  },
+  {
+    "path": "REVENANT_FLY_FINAL_V1.zip",
+    "bytes": 36413151,
+    "sha256": "3EA2C2568D7F7EC30ADF476F49DD79D2464BFF308145C2CD0AADF009093174B2"
+  },
+  {
+    "path": "REVENANT_IDLE_FINAL_V1.zip",
+    "bytes": 46197132,
+    "sha256": "DE80594D50CDD2079BA88A88A7AC99561ACD2859F923534020D841FADCEEFA08"
+  },
+  {
+    "path": "REVENANT_SOUL_MIST_IDLE_FINAL.zip",
+    "bytes": 80198297,
+    "sha256": "A8FE6A7AEBCDF9FD658517EFAF8BF4F657B4BC3A2A110556AA456A48E5E2D654"
+  },
+  {
+    "path": "REVENANT_SOUL_MIST_WALK_V1.zip",
+    "bytes": 46017057,
+    "sha256": "E97243747AE9B34CC42130B52102DDA61663C68D18AA5A6D85A31208555778C2"
+  },
+  {
+    "path": "REVENANT_WALK_FINAL_V1.zip",
+    "bytes": 25917766,
+    "sha256": "211480DA397D77B530628899C109BD12B919673403709EC7589B59BBD1799C41"
+  },
+  {
+    "path": "revenant-dragon-ground-idle-master-v1..png",
+    "bytes": 1531807,
+    "sha256": "12B6EB2E88B8C71FC95521004C7FA2CC2A5AB78B7E3A41B1EF1DC93E4F6655D4"
+  },
+  {
+    "path": "백업/REVENANT_DRAGON_RIG_ASSETS_V1.zip",
+    "bytes": 44705943,
+    "sha256": "33991A13D43CF8DDA770BB8BF13FF1700FCFFB30E6CF0731F352298E3F09DF7F"
+  },
+  {
+    "path": "백업/파츠분리 v.1 (검수전)/revenant-dragon-part01-body-neck-head.png",
+    "bytes": 2196404,
+    "sha256": "FF129B7D77C513C0AFD22E584EBD4189AE7A18946E3439751042A033FBD603CF"
+  },
+  {
+    "path": "백업/파츠분리 v.1 (검수전)/revenant-dragon-part02-front-legs.zip",
+    "bytes": 4552538,
+    "sha256": "4DADB51FF92FF7E9B19119BE36DCF1210686807E3D3B60529E64E0B3C99F409A"
+  },
+  {
+    "path": "백업/파츠분리 v.1 (검수전)/revenant-dragon-part03-hind-legs.zip",
+    "bytes": 4476904,
+    "sha256": "8A38317970465CF38BAC83353EA96A37EA4D9FFC23FDF86B242CC504EE73926F"
+  },
+  {
+    "path": "백업/파츠분리 v.1 (검수전)/revenant-dragon-part04-wings.zip",
+    "bytes": 2749096,
+    "sha256": "3F86586945CC3C5D7AB9703A88DE92FDF59B17C5A6B7E2DFBD65B2E59186E206"
+  },
+  {
+    "path": "백업/파츠분리 v.1 (검수전)/revenant-dragon-part05-tail-chains-glow.zip",
+    "bytes": 1828586,
+    "sha256": "3AEC23307DCC78AB49811BA8CCBF72BC05F6C339DCA00F3662D72E94C1C05646"
+  }
+]
