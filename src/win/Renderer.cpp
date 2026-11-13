@@ -317,16 +317,25 @@ void Renderer::drawDragon(Graphics& g, const DragonActor& d, const Sprites& spri
     float bob = animated ? 0.f : std::sin(time * (d.moving ? 9.f : 3.f)) * (d.moving ? 4.f : 2.5f);
     float cy = y + bob;
 
-    // 그림자
+    // 그림자. 날고 있으면 작고 옅게 그려 공중에 떠 있는 것을 알린다.
     {
-        SolidBrush sh2(Color(static_cast<BYTE>(70 * alpha), 0, 0, 0));
-        g.FillEllipse(&sh2, x - height * 0.32f, y + height * 0.38f, height * 0.64f, height * 0.14f);
+        float shrink = (!preview && d.flying) ? 0.6f : 1.f;
+        BYTE a = static_cast<BYTE>(70 * alpha * (shrink < 1.f ? 0.55f : 1.f));
+        float w = height * 0.64f * shrink;
+        SolidBrush sh2(Color(a, 0, 0, 0));
+        g.FillEllipse(&sh2, x - w * 0.5f, y + height * 0.38f, w, height * 0.14f * shrink);
     }
 
     if (sh.bmp) {
         const AnimDef& ad = sp.anims[static_cast<int>(state)];
         float t = preview ? time : d.animTime;
-        drawSheetFrame(g, sh, animFrame(t, ad.fps, sh.frames, ad.loop), x, cy, height, flip, flash, alpha);
+        // render_scale 로 이 상태만 크게/작게 그린다. 칸 안의 바닥 기준선(240/256)이
+        // 제자리에 남도록 그만큼 위로 올려 그려, 발 위치가 흔들리지 않게 한다.
+        const float kAnchorFrac = 240.f / 256.f;
+        float k = ad.renderScale;
+        float drawH = height * k;
+        float cyAdj = cy - (kAnchorFrac - 0.5f) * height * (k - 1.f);
+        drawSheetFrame(g, sh, animFrame(t, ad.fps, sh.frames, ad.loop), x, cyAdj, drawH, flip, flash, alpha);
         return;
     }
 

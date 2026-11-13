@@ -99,6 +99,7 @@ SpeciesDef newSpeciesTemplate(const std::string& key) {
     d.anims[static_cast<int>(AnimState::Attack)] = {12.f, false, 0};
     d.anims[static_cast<int>(AnimState::Hit)] = {12.f, false, 0};
     d.anims[static_cast<int>(AnimState::Death)] = {10.f, false, 0};
+    d.anims[static_cast<int>(AnimState::Fly)] = {10.f, true, 0};
     return d;
 }
 
@@ -146,7 +147,7 @@ DragonParseResult parseDragonText(const std::string& text, const std::string& fo
             } else if (name.rfind("anim.", 0) == 0) {
                 AnimState st;
                 if (animStateFromName(name.substr(5), st)) { section = "anim"; animSec = st; }
-                else { warn("모르는 애니메이션 상태 [" + name + "] (idle/move/attack/hit/death)"); sectionValid = false; }
+                else { warn("모르는 애니메이션 상태 [" + name + "] (idle/move/attack/hit/death/fly)"); sectionValid = false; }
             } else if (name.rfind("skill.", 0) == 0) {
                 int n;
                 if (parseInt(name.substr(6), n) && n >= 1 && n <= 3) { section = "skill"; skillSec = n - 1; }
@@ -193,6 +194,7 @@ DragonParseResult parseDragonText(const std::string& text, const std::string& fo
             if (key == "fps") ok = parseFloat(val, a.fps);
             else if (key == "loop") ok = parseBool(val, a.loop);
             else if (key == "frame_w") ok = parseInt(val, a.frameW);
+            else if (key == "render_scale") ok = parseFloat(val, a.renderScale);
             else if (key == "file") {
                 std::string expect = std::string(animStateName(animSec)) + ".png";
                 if (val != expect) warn("file=" + val + "는 쓰이지 않습니다. 파일 이름은 " + expect + "로 고정입니다");
@@ -240,6 +242,9 @@ DragonParseResult parseDragonText(const std::string& text, const std::string& fo
     for (AnimDef& a : d.anims) {
         if (a.fps < 1.f || a.fps > 60.f) a.fps = 8.f;
         if (a.frameW < 0) a.frameW = 0;
+        if (!(a.renderScale > 0.f)) a.renderScale = 1.f;
+        if (a.renderScale < 0.25f) a.renderScale = 0.25f;
+        if (a.renderScale > 4.f) a.renderScale = 4.f;
     }
     return r;
 }

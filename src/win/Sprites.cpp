@@ -74,8 +74,9 @@ Gdiplus::Bitmap* Sprites::get(const std::string& key) const {
 }
 
 Sheet Sprites::sheet(const std::string& speciesKey, AnimState state) const {
-    // 대체 규칙(docs/character-pipeline.md 4장): move/attack/hit/death가 없으면 idle로 그린다.
-    AnimState order[2] = {state, AnimState::Idle};
+    // 대체 규칙(docs/character-pipeline.md 4장): 없는 상태는 idle로 그린다.
+    // fly 시트가 없으면 move를 먼저 써 본다(걷는 그림이 가만히 있는 것보다 낫다).
+    AnimState order[3] = {state, state == AnimState::Fly ? AnimState::Move : AnimState::Idle, AnimState::Idle};
     for (AnimState s : order) {
         auto it = sheets_.find(speciesKey + "/" + animStateName(s));
         if (it == sheets_.end()) continue;

@@ -91,6 +91,11 @@ struct FloatText {
     float size = 16.f;
 };
 
+// 바탕화면에서 사냥하지 않을 때 드래곤이 스스로 고르는 행동.
+// 전투 중에는 쓰지 않는다(전투는 모드에 따라 이동·공격이 정해진다).
+enum class IdleBehavior { Rest = 0, Walk = 1, Fly = 2 };
+const char* idleBehaviorName(IdleBehavior b);
+
 struct DragonActor {
     Species species = Species::Fire;
     int level = 1;
@@ -116,6 +121,12 @@ struct DragonActor {
     AnimState anim = AnimState::Idle;
     float animTime = 0.f;  // 현재 상태로 바뀐 뒤 흐른 시간
     float animHold = 0.f;  // 1회 재생 상태를 유지할 남은 시간(0이면 상태 자유)
+    // v0.3 바탕화면 자동 행동(사냥하지 않을 때만 쓴다)
+    IdleBehavior behavior = IdleBehavior::Rest;
+    float behaviorLeft = 0.f;  // 이 행동을 이어 갈 남은 시간
+    bool flying = false;       // 날고 있는가(걷기와 그리는 상태가 다르다)
+    bool landing = false;      // 날다가 지면으로 내려오는 중
+    float groundY = 0.f;       // 걷는 높이. 걷기는 이 높이에서 수평으로만 움직인다
 };
 
 enum class WorldEventType { EnemyKilled, DragonDied, EnemySpawned };
@@ -179,7 +190,11 @@ public:
     int statHitsTaken = 0;
 
 private:
-    void wander(float dt);  // 애니메이션 진행을 포함하지 않는 배회(내부용)
+    void wander(float dt);     // 애니메이션 진행을 포함하지 않는 배회(내부용)
+    void pickBehavior();       // 다음 행동을 확률로 고르고 목적지를 정한다
+    Vec2 randomRoamTarget(bool fly);
+    float randomRoamX();
+    float randomGroundY();
     Enemy* nearestEnemy(Vec2 from, float maxDist);
     Enemy* findEnemy(int id);
     void moveDragon(float dt, Vec2 dir, float speedMul);

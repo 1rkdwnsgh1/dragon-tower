@@ -33,6 +33,7 @@ void World::setupDragon(Species s, int level, float hp, Vec2 pos) {
     dragon_.hp = (hp <= 0.f) ? dragon_.stats.maxHp : std::min(hp, dragon_.stats.maxHp);
     dragon_.pos = pos;
     dragon_.wanderTarget = pos;
+    dragon_.groundY = pos.y;  // 처음 선 자리를 걷는 높이로 삼는다
     dragon_.alive = true;
 }
 
@@ -60,7 +61,8 @@ void World::updateDragonAnim(float dt) {
         return;
     }
     if (d.animHold > 0.f) return;  // 1회 재생이 끝나지 않았다
-    AnimState want = d.moving ? AnimState::Move : AnimState::Idle;
+    // 날고 있으면 잠시 멈춰 있어도 공중이므로 Fly를 유지한다.
+    AnimState want = d.flying ? AnimState::Fly : (d.moving ? AnimState::Move : AnimState::Idle);
     if (d.anim != want) {
         d.anim = want;
         d.animTime = 0.f;
@@ -376,32 +378,112 @@ void World::updateWander(float dt) {
     updateDragonAnim(dt);
 }
 
+const char* idleBehaviorName(IdleBehavior b) {
+    switch (b) {
+        case IdleBehavior::Rest: return "쉬는 중";
+        case IdleBehavior::Walk: return "걷는 중";
+        case IdleBehavior::Fly: return "나는 중";
+    }
+    return "";
+}
+
+float World::randomRoamX() {
+    const float m = 80.f;
+    return rng_.uniform(bounds_.x + m, bounds_.right() - m);
+}
+
+Vec2 World::randomRoamTarget(bool fly) {
+    const float m = 80.f;
+    // 걷기는 아래쪽 바닥을 따라, 날기는 화면 위쪽까지 올라간다.
+    float topRatio = fly ? cfg::kIdleFlyTopRatio : cfg::kIdleWalkTopRatio;
+    float top = bounds_.y + bounds_.h * topRatio;
+    float bottom = bounds_.bottom() - m;
+    if (top > bottom) top = bottom;  // 화면이 아주 낮을 때를 대비
+    return {rng_.uniform(bounds_.x + m, bounds_.right() - m), rng_.uniform(top, bottom)};
+}
+
+float World::randomGroundY() {
+    const float m = 80.f;
+    float top = bounds_.y + bounds_.h * cfg::kIdleWalkTopRatio;
+    float bottom = bounds_.bottom() - m;
+    if (top > bottom) top = bottom;
+    return rng_.uniform(top, bottom);
+}
+
+void World::pickBehavior() {
+    DragonActor& d = dragon_;
+
+    // 공중에 있으면 먼저 내려온다. 걷기는 땅에서만 하고, 내려오는 동안에도 나는 모습이다.
+    if (std::fabs(d.pos.y - d.groundY) > cfg::kGroundEpsilon) {
+        d.behavior = IdleBehavior::Fly;
+        d.landing = true;
+        d.flying = true;
+        d.groundY = randomGroundY();
+        d.wanderTarget = {d.pos.x, d.groundY};
+        d.behaviorLeft = cfg::kIdleLandMax;  // 도착하면 곧바로 다시 고른다
+        return;
+    }
+
+    d.landing = false;
+    float total = cfg::kIdleWeightRest + cfg::kIdleWeightWalk + cfg::kIdleWeightFly;
+    float r = rng_.uniform(0.f, total);
+    if (r < cfg::kIdleWeightRest) {
+        d.behavior = IdleBehavior::Rest;
+        d.behaviorLeft = rng_.uniform(cfg::kIdleRestMin, cfg::kIdleRestMax);
+        d.wanderTarget = d.pos;
+    } else if (r < cfg::kIdleWeightRest + cfg::kIdleWeightWalk) {
+        // 걷기는 수평 이동만 한다. 목적지의 y는 지금 서 있는 높이 그대로다.
+        d.behavior = IdleBehavior::Walk;
+        d.behaviorLeft = rng_.uniform(cfg::kIdleWalkMin, cfg::kIdleWalkMax);
+        d.wanderTarget = {randomRoamX(), d.groundY};
+    } else {
+        d.behavior = IdleBehavior::Fly;
+        d.behaviorLeft = rng_.uniform(cfg::kIdleFlyMin, cfg::kIdleFlyMax);
+        d.wanderTarget = randomRoamTarget(true);
+    }
+    d.flying = d.behavior == IdleBehavior::Fly;
+}
+
 void World::wander(float dt) {
     DragonActor& d = dragon_;
     if (d.dashTime > 0.f) {
         moveDragon(dt, {0.f, 0.f}, 1.f);
         return;
     }
-    if (d.wanderWait > 0.f) {
-        d.wanderWait -= dt;
+
+    d.behaviorLeft -= dt;
+    if (d.behaviorLeft <= 0.f) pickBehavior();
+
+    if (d.behavior == IdleBehavior::Rest) {
+        d.flying = false;
         d.moving = false;
         return;
     }
+
+    // 목적지에 닿았을 때
     if (distance(d.pos, d.wanderTarget) < 8.f) {
-        d.wanderWait = rng_.uniform(1.5f, 4.f);
-        float m = 80.f;
-        d.wanderTarget = {rng_.uniform(bounds_.x + m, bounds_.right() - m),
-                          rng_.uniform(bounds_.y + bounds_.h * 0.35f, bounds_.bottom() - m)};
-        d.moving = false;
-        return;
+        if (d.landing) {
+            d.pos.y = d.groundY;  // 지면에 정확히 맞춘다
+            pickBehavior();       // 내려왔으니 바로 다음 행동을 고른다
+            d.moving = false;
+            return;               // 착지한 프레임에는 더 움직이지 않는다
+        }
+        if (d.behavior == IdleBehavior::Walk) {
+            d.wanderTarget = {randomRoamX(), d.groundY};  // 수평으로만
+        } else {
+            d.wanderTarget = randomRoamTarget(true);
+        }
     }
+
+    d.flying = d.behavior == IdleBehavior::Fly;
+    float mul = d.behavior == IdleBehavior::Fly ? cfg::kIdleFlySpeed : cfg::kIdleWalkSpeed;
     Vec2 dir = d.wanderTarget - d.pos;
-    float step = d.stats.speed * 0.35f * dt;
+    float step = d.stats.speed * mul * dt;
     if (dir.length() <= step) {
         d.pos = d.wanderTarget;
         d.moving = false;
     } else {
-        moveDragon(dt, dir, 0.35f);
+        moveDragon(dt, dir, mul);
     }
 }
 
@@ -586,6 +668,8 @@ void World::resolveZone(const AttackZone& z, CombatMode mode) {
 void World::updateCombat(float dt, CombatMode mode, const PlayerInput& in) {
     currentMode_ = mode;
     DragonActor& d = dragon_;
+    // 전투 중에는 자동 행동(날기)을 쓰지 않는다. 적이 없어 wander가 돌면 그 안에서 다시 켜진다.
+    d.flying = false;
     // 타이머
     d.basicCd = std::max(0.f, d.basicCd - dt);
     for (float& c : d.skillCd) c = std::max(0.f, c - dt);

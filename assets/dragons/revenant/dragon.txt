@@ -33,10 +33,22 @@ loop=yes
 frame_w=256
 
 ; move: 권장 타이밍이 없어 임시값이다. 실제로 보고 조정할 것
+; render_scale: 원본 그림이 대기보다 작게 그려져 있어 몸 크기를 맞춘다
+; (흉곽 발광부 높이 기준 대기 145px : 걷기 128px -> 1.13배)
 [anim.move]
 fps=8
 loop=yes
 frame_w=256
+render_scale=1.13
+
+; fly: 바탕화면에서 스스로 날 때 쓴다. 권장 타이밍이 없어 임시값이다.
+; fly: 날개를 펼쳐 칸을 꽉 채우느라 몸이 작게 들어갔다. 그리는 단계에서 키워 맞춘다
+; (흉곽 발광부 높이 기준 대기 145px : 비행 106px -> 1.37배)
+[anim.fly]
+fps=10
+loop=yes
+frame_w=256
+render_scale=1.37
 
 ; attack / hit / death 시트는 아직 없다. idle 로 대신 그려진다.
 
