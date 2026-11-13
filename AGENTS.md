@@ -6,9 +6,15 @@
 
 어떤 작업이든 시작 전에 아래 문서를 모두 확인한다. 일부만 읽고 작업하면 다른 문서에 있는 결정과 충돌할 수 있다.
 
+- `docs/codemap.md`: **무엇이 어디에 있는지 적은 표. 코드를 찾기 전에 여기부터 본다.**
 - `README.md`: 프로젝트 개요, 개발 환경, 빌드 방법
 - `docs/game-design.md`: 통합 기획서 (확정 사항과 미결정 사항)
 - `docs/roadmap.md`: 개발 단계와 체크포인트
+- `docs/changelog.md`: 버전별 바뀐 점과 저장 파일 호환 여부
+- `docs/implementation-notes.md`: 구현하며 임시로 정한 값과 확인할 것
+- `docs/character-pipeline.md`: 캐릭터 이미지·애니메이션·스킬 적용 규격
+- `assets/dragons/README.md`: 드래곤 추가·그림 넣기 사용법
+- `docs/ai-workflow-notes.md`: AI 작업 비용 기록과 개선
 
 새 문서를 추가하면 이 목록에도 추가한다.
 
