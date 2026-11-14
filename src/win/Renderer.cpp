@@ -380,6 +380,7 @@ void Renderer::drawOverlay(Graphics& g, const Game& game, const Sprites& sprites
     if (sc == Screen::Tower) drawTowerHud(g, game);
     // v1.0: 메뉴는 키보드 조작과 상관없이 열려 있으면 그린다. 마우스로 언제든 쓸 수 있다.
     if (sc == Screen::Desktop && game.menuOpen() && game.hasDragon()) drawMenu(g, game, ctx, out);
+    drawMotionMenu(g, game, sprites, ctx, out);
 
     drawNotices(g, game);
 
@@ -454,7 +455,8 @@ void Renderer::drawDragon(Graphics& g, const DragonActor& d, const Sprites& spri
     const SpeciesDef& sp = speciesDef(d.species);
     bool flip = sp.flipAllowed && d.facing.x < 0.f;
     float alpha = (!preview && d.invuln > 0.f) ? 0.55f : 1.f;
-    float flash = (!preview && d.hitFlash > 0.f) ? 0.6f : 0.f;
+    // v1.5: 맞았을 때 번쩍임을 낮췄다(0.6 -> 0.25). 전에는 그림이 안 보일 만큼 밝았다.
+    float flash = (!preview && d.hitFlash > 0.f) ? 0.25f : 0.f;
 
     // 시트 애니메이션이 있으면 그것으로 그린다(v0.2). 미리보기는 항상 대기 동작.
     AnimState state = preview ? AnimState::Idle : d.anim;
@@ -550,12 +552,15 @@ void Renderer::drawDragon(Graphics& g, const DragonActor& d, const Sprites& spri
 }
 
 void Renderer::drawEnemy(Graphics& g, const Enemy& e, const Sprites& sprites, float time, float charScale) {
-    bool flip = e.facing < 0.f;
-    float flash = e.hitFlash > 0.f ? 0.7f : 0.f;
+    const EnemyDef& edef = enemyDef(e.kind);
+    // v1.5: 적 그림은 왼쪽을 보고 그려져 있다. 드래곤(오른쪽 기준)과 반대라 전에는 거꾸로 걸었다.
+    bool flip = edef.artFacesRight ? (e.facing < 0.f) : (e.facing > 0.f);
+    // v1.5: 맞았을 때 번쩍임이 너무 밝다는 이야기가 있어 낮췄다(0.7 -> 0.3).
+    float flash = e.hitFlash > 0.f ? 0.3f : 0.f;
     float bob = std::sin(time * 6.f + e.id) * 2.f;
     float x = e.pos.x;
     float y = e.pos.y + bob;
-    const EnemyDef& ed = enemyDef(e.kind);
+    const EnemyDef& ed = edef;
     bool isBoss = ed.role == EnemyRole::Boss;
     float height = e.radius * 2.6f * charScale;
 
@@ -843,13 +848,15 @@ void Renderer::toggle(Graphics& g, std::vector<UiButton>& out, const RenderConte
 
 // 스킬 한 칸. 상태창(장착 4칸)과 스킬 관리창(목록)이 함께 쓴다.
 // skillIndex < 0 이면 빈 칸, 해제 전이면 필요한 레벨을 보여 준다.
-void Renderer::drawSkillBox(Graphics& g, const SpeciesDef& sp, const DragonActor& d, int skillIndex,
+void Renderer::drawSkillBox(Graphics& g, const Sprites& sprites, const SpeciesDef& sp,
+                            const DragonActor& d, int skillIndex,
                             const RectF& b, int level, const std::string& cornerLabel) {
     const bool empty = skillIndex < 0 || skillIndex >= static_cast<int>(sp.skills.size());
     if (empty) {
         fillRound(g, b, 6.f, Color(150, 30, 32, 40));
         strokeRound(g, b, 6.f, Color(120, 90, 96, 120), 1.f);
-        text(g, "＋", b.X + b.Width * 0.5f, b.Y + b.Height * 0.5f - 11.f, 15.f, 0xFF6E7380, 1, true);
+        // 폰트에 없는 글자를 쓰면 깨져 보인다(v1.4에서 겪음). 평범한 더하기 기호를 쓴다.
+        text(g, "+", b.X + b.Width * 0.5f, b.Y + b.Height * 0.5f - 11.f, 17.f, 0xFF6E7380, 1, true);
         if (!cornerLabel.empty())
             text(g, cornerLabel, b.X + 3.f, b.Y + b.Height - 15.f, 11.f, 0xFF8A8FA0, 0, true, true);
         return;
@@ -859,15 +866,22 @@ void Renderer::drawSkillBox(Graphics& g, const SpeciesDef& sp, const DragonActor
     const bool passive = skillIsPassive(s.kind);
     fillRound(g, b, 6.f, unlocked ? col(darken(sp.color, passive ? 0.60f : 0.45f)) : Color(255, 40, 42, 52));
     if (unlocked) {
-        // 첫 글자(UTF-8 한 글자)로 표시한다. 스킬 아이콘 그림은 아직 없다
-        // (v1.3까지 있던 skill_<종>_<번호> 읽기는 쓰는 그림이 하나도 없어 지웠다).
-        std::string first = s.name;
-        size_t len = 1;
-        if (!first.empty()) {
-            unsigned char c0 = static_cast<unsigned char>(first[0]);
-            if (c0 >= 0xF0) len = 4; else if (c0 >= 0xE0) len = 3; else if (c0 >= 0xC0) len = 2;
+        // v1.5: 종 폴더의 icon_<번호>.png 가 있으면 그림으로, 없으면 이름 첫 글자로 그린다.
+        Bitmap* icon = sprites.get("skillicon_" + sp.key + "_" + std::to_string(skillIndex + 1));
+        if (icon) {
+            // 비율을 지켜 칸 안에 넣는다(아이콘은 정사각이지만 늘리지 않는다).
+            // 대기시간·테두리·번호는 아래에서 이 위에 덧그려진다.
+            float side = std::min(b.Width, b.Height) - 4.f;
+            g.DrawImage(icon, RectF(b.X + (b.Width - side) * 0.5f, b.Y + (b.Height - side) * 0.5f, side, side));
+        } else {
+            std::string first = s.name;
+            size_t len = 1;
+            if (!first.empty()) {
+                unsigned char c0 = static_cast<unsigned char>(first[0]);
+                if (c0 >= 0xF0) len = 4; else if (c0 >= 0xE0) len = 3; else if (c0 >= 0xC0) len = 2;
+            }
+            text(g, first.substr(0, len), b.X + b.Width * 0.5f, b.Y + b.Height * 0.5f - 12.f, 17.f, kText, 1, true);
         }
-        text(g, first.substr(0, len), b.X + b.Width * 0.5f, b.Y + b.Height * 0.5f - 12.f, 17.f, kText, 1, true);
     } else {
         text(g, "Lv." + std::to_string(s.unlockLevel), b.X + b.Width * 0.5f, b.Y + b.Height * 0.5f - 8.f, 12.f,
              0xFF8A8FA0, 1, true);
@@ -888,9 +902,7 @@ void Renderer::drawSkillBox(Graphics& g, const SpeciesDef& sp, const DragonActor
         text(g, cornerLabel, b.X + 3.f, b.Y + b.Height - 15.f, 11.f, 0xFFFFE9A8, 0, true, true);
 }
 
-// v1.4: 스킬 칸 아이콘을 drawSkillBox로 옮기면서 sprites를 쓰지 않게 됐다.
-// 인자는 남겨 둔다(호출하는 쪽과 다른 draw* 함수들의 모양을 맞추려고).
-void Renderer::drawStatusCard(Graphics& g, const Game& game, const Sprites& /*sprites*/, const RenderContext& ctx,
+void Renderer::drawStatusCard(Graphics& g, const Game& game, const Sprites& sprites, const RenderContext& ctx,
                               std::vector<UiButton>& out) {
     const DragonRecord& rec = game.dragonRecord();
     const DragonActor& d = game.world().dragon();
@@ -993,7 +1005,7 @@ void Renderer::drawStatusCard(Graphics& g, const Game& game, const Sprites& /*sp
     const float box = 40.f;
     for (int slot = 0; slot < kSkillSlots; ++slot) {
         RectF b(x + slot * (box + 6.f), y, box, box);
-        drawSkillBox(g, sp, d, game.skillSlots()[static_cast<size_t>(slot)], b, rec.level,
+        drawSkillBox(g, sprites, sp, d, game.skillSlots()[static_cast<size_t>(slot)], b, rec.level,
                      std::to_string(slot + 1));
     }
     // 관리창 열기. 쓰지 않고 남은 스킬이 있으면 눈에 띄게 한다.
@@ -1029,6 +1041,42 @@ void Renderer::slider(Graphics& g, std::vector<UiButton>& out, const RenderConte
     strokeRound(g, RectF(kx - 9.f, r.Y + r.Height * 0.5f - 9.f, 18.f, 18.f), 9.f, Color(160, 20, 24, 34), 1.f);
     out.push_back({r, action, 0, true});
     markRegion(r);
+}
+
+// 드래곤을 오른쪽 클릭하면 뜨는 모션 목록. 그림이 있는 모션만 보여 준다.
+void Renderer::drawMotionMenu(Graphics& g, const Game& game, const Sprites& sprites, const RenderContext& ctx,
+                              std::vector<UiButton>& out) {
+    if (!game.motionMenuOpen() || !game.hasDragon()) return;
+    const SpeciesDef& sp = speciesDef(game.dragonRecord().species);
+    struct Row { AnimState st; const char* label; };
+    const Row rows[] = {{AnimState::Idle, "대기"},   {AnimState::Move, "걷기"},  {AnimState::Fly, "날기"},
+                        {AnimState::Rest, "엎드리기"}, {AnimState::Attack, "공격"}};
+    // 시트가 있는 것만 고를 수 있게 한다(없으면 대체 그림이 나와 헷갈린다)
+    std::vector<Row> avail;
+    for (const Row& rw : rows) {
+        Sheet sh = sprites.sheet(sp.key, rw.st);
+        if (sh.bmp && sh.frames > 0) avail.push_back(rw);
+    }
+    if (avail.empty()) return;
+
+    const float rowH = 30.f, wdt = 150.f;
+    float hcount = static_cast<float>(avail.size()) + (game.motionForced() ? 1.f : 0.f);
+    RectF r(game.motionMenuAt().x, game.motionMenuAt().y, wdt, 34.f + rowH * hcount + 8.f);
+    r.X = std::clamp(r.X, 0.f, std::max(0.f, width_ - r.Width));
+    r.Y = std::clamp(r.Y, 0.f, std::max(0.f, height_ - r.Height));
+    panel(g, r, 242);
+    text(g, "모션 고르기", r.X + 12.f, r.Y + 9.f, 13.f, kSub, 0, true);
+    float y = r.Y + 30.f;
+    for (const Row& rw : avail) {
+        bool on = game.motionForced() && game.forcedMotion() == rw.st;
+        button(g, out, ctx, RectF(r.X + 8.f, y, r.Width - 16.f, rowH - 4.f), rw.label, UiAction::SetMotion,
+               static_cast<int>(rw.st), true, on);
+        y += rowH;
+    }
+    if (game.motionForced()) {
+        button(g, out, ctx, RectF(r.X + 8.f, y, r.Width - 16.f, rowH - 4.f), "자동으로 되돌리기",
+               UiAction::ClearMotion);
+    }
 }
 
 void Renderer::drawMenu(Graphics& g, const Game& game, const RenderContext& ctx, std::vector<UiButton>& out) {
@@ -1535,7 +1583,7 @@ void Renderer::drawSkills(Graphics& g, const Game& game, const RenderContext& ct
     for (int slot = 0; slot < kSkillSlots; ++slot) {
         RectF b(r.X + 24.f + slot * (box + 14.f), y, box, box);
         int idx = game.skillSlots()[static_cast<size_t>(slot)];
-        drawSkillBox(g, sp, d, idx, b, rec.level, std::to_string(slot + 1));
+        drawSkillBox(g, sprites, sp, d, idx, b, rec.level, std::to_string(slot + 1));
         if (slot == sel) strokeRound(g, b, 6.f, Color(255, 255, 220, 140), 2.5f);
         // 칸 전체가 "이 칸 고르기" 버튼이다(그림은 drawSkillBox가 이미 그렸다)
         out.push_back({b, UiAction::SelectSlot, slot, true});
@@ -1588,7 +1636,7 @@ void Renderer::drawSkills(Graphics& g, const Game& game, const RenderContext& ct
         strokeRound(g, row, 8.f, equipped ? Color(255, 120, 180, 255) : Color(110, 80, 88, 120), equipped ? 2.f : 1.f);
 
         RectF icon(row.X + 7.f, row.Y + 5.f, 32.f, 32.f);
-        drawSkillBox(g, sp, d, i, icon, rec.level, "");
+        drawSkillBox(g, sprites, sp, d, i, icon, rec.level, "");
 
         float tx = row.X + 48.f;
         // 이름 길이에 상관없이 겹치지 않도록, 오른쪽 글자는 버튼 왼쪽 끝에 맞춰 오른쪽 정렬한다.

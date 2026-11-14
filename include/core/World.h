@@ -127,6 +127,9 @@ struct DragonActor {
     AnimState anim = AnimState::Idle;
     float animTime = 0.f;  // 현재 상태로 바뀐 뒤 흐른 시간
     float animHold = 0.f;  // 1회 재생 상태를 유지할 남은 시간(0이면 상태 자유)
+    // v1.5: 사람이 고른 모션. 다음 입력까지 유지한다(끌어 옮겨도 풀리지 않는다).
+    bool animForced = false;
+    AnimState forcedAnim = AnimState::Idle;
     // v0.3 바탕화면 자동 행동(사냥하지 않을 때만 쓴다)
     IdleBehavior behavior = IdleBehavior::Rest;
     float behaviorLeft = 0.f;  // 이 행동을 이어 갈 남은 시간

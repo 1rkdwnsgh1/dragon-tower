@@ -211,6 +211,33 @@ const char* Game::switchBlockedReason() const {
     return nullptr;
 }
 
+void Game::openMotionMenu(Vec2 at) {
+    if (!save_.hasDragon || screen_ != Screen::Desktop) return;
+    motionMenuAt_ = at;
+    motionMenuOpen_ = true;
+}
+
+void Game::closeMotionMenu() { motionMenuOpen_ = false; }
+
+void Game::setForcedMotion(AnimState st) {
+    DragonActor& d = world_.dragon();
+    d.animForced = true;
+    d.forcedAnim = st;
+    // 고른 모션에 맞게 떠 있는지도 맞춘다(날기를 고르면 떠 있어야 자연스럽다)
+    d.flying = (st == AnimState::Fly);
+    d.landing = false;
+    d.moving = false;
+    d.behaviorLeft = 1e9f;  // 자동 행동이 모션을 덮어쓰지 않게 한다
+    motionMenuOpen_ = false;
+}
+
+void Game::clearForcedMotion() {
+    DragonActor& d = world_.dragon();
+    if (!d.animForced) return;
+    d.animForced = false;
+    d.behaviorLeft = 0.f;  // 다음 프레임에 자동 행동을 새로 고른다
+}
+
 void Game::openStable() {
     if (screen_ != Screen::Desktop && screen_ != Screen::Select) return;
     // 선택 화면에서 돌아올 때는 '추가 중' 상태를 푼다. 보유 목록이 비어 있으면 열 것이 없다.
@@ -396,8 +423,9 @@ void Game::setDragonHeld(bool on) {
         // 놓은 자리를 새 기준으로 삼는다. 공중에 놓았으면 날아서 내려온다.
         d.groundY = d.pos.y;
         d.wanderTarget = d.pos;
-        d.behaviorLeft = 0.f;
         d.restTime = 0.f;
+        // v1.5: 사람이 고른 모션은 끌어 옮겨도 그대로 둔다. 자동일 때만 새 행동을 고른다.
+        if (!d.animForced) d.behaviorLeft = 0.f;
     }
 }
 
@@ -761,17 +789,17 @@ void Game::update(float dt, const PlayerInput& in, bool hidden, bool inputEnable
     }
 
     switch (screen_) {
-        case Screen::Select:
         case Screen::Death:
         case Screen::FloorClear:
         case Screen::TowerVictory:
-        // 관리창이 떠 있는 동안은 전투·배회가 멈춘다. 효과와 글자만 마저 사라지게 둔다.
-        // (v1.3의 드래곤 관리창도 같은 동작이었다. v1.4에서 분기를 명시해 경고를 없앴다.)
-        case Screen::Stable:
-        case Screen::Skills:
             world_.updateFx(dt);
             break;
 
+        // v1.5: 드래곤 관리창·스킬창·선택창이 떠 있어도 바탕화면 전투는 멈추지 않는다.
+        // 창을 여는 동안 적이 멈춰 서 있으면 전투가 끊겨 보인다는 이야기가 있었다.
+        case Screen::Select:
+        case Screen::Stable:
+        case Screen::Skills:
         case Screen::Desktop:
         case Screen::AutoWarning:
         case Screen::TowerWarning:
@@ -786,9 +814,12 @@ void Game::update(float dt, const PlayerInput& in, bool hidden, bool inputEnable
             bool isAuto = save_.huntMode == CombatMode::Auto;
             if (!isAuto) {
                 // 직접 조작·스킬 수동은 플레이어가 볼 수 있고 입력할 수 있을 때만 진행한다.
+                // v1.5: **창이 열려 있다고 멈추지는 않는다**(관리창·스킬창·선택창). 창이 떠 있어도
+                // 키보드는 그대로 들어오므로 직접 조작도 이어진다.
+                // 보이지 않거나 키보드를 받지 못하는 경우에는 전처럼 멈춘다 — 손을 쓸 수 없는데
+                // 맞기만 하는 상황을 막기 위한 것이다.
                 if (hidden) { paused_ = true; pauseReason_ = "다른 앱이 전체화면이라 사냥을 잠시 멈췄습니다."; }
-                else if (!inputEnabled) { paused_ = true; pauseReason_ = "게임 입력이 꺼져 사냥을 멈췄습니다. 설정 버튼으로 켜세요."; }
-                else if (screen_ != Screen::Desktop) { paused_ = true; pauseReason_ = "창이 열려 있어 사냥을 멈췄습니다."; }
+                else if (!inputEnabled) { paused_ = true; pauseReason_ = "창이 활성화되지 않아 사냥을 멈췄습니다. 드래곤을 한 번 누르세요."; }
                 if (paused_) break;
             }
             // 자동 사냥은 숨겨진 동안에도 진행된다(숨김은 일시정지가 아니다).

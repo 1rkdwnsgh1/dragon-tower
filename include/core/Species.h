@@ -14,9 +14,11 @@ namespace dt {
 // 패시브는 이 칸을 쓰지 않는다(해제되면 항상 적용).
 constexpr int kSkillSlots = 4;
 
-// 내장 4종. 레지스트리에 종이 추가되면 4 이상의 값도 유효한 Species가 된다.
+// v1.5: 내장 4종(화염·대지·바람·물)을 지웠다. 이제 종은 전부 assets/dragons/<키>/ 폴더에서 온다.
+// 아래 이름은 "레지스트리의 몇 번째"라는 뜻의 번호일 뿐이며, 특정 종을 가리키지 않는다.
+// 기본값이 필요한 자리(Species{})와 테스트 외에는 쓰지 않는다.
 enum class Species { Fire = 0, Earth = 1, Wind = 2, Water = 3 };
-constexpr int kBuiltinSpeciesCount = 4;
+constexpr int kBuiltinSpeciesCount = 0;
 
 // 현재 레지스트리에 등록된 종의 수(내장 + 폴더에서 추가된 종)
 int speciesCount();

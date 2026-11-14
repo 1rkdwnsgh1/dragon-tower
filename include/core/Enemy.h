@@ -20,6 +20,9 @@ enum class EnemyRole {
 };
 
 struct EnemyDef {
+    // v1.5: 그림이 어느 쪽을 보고 그려졌는가. 지금 적 그림은 모두 왼쪽을 본다.
+    // 드래곤(오른쪽 기준)과 반대라 뒤집기 규칙이 반대로 적용돼 거꾸로 걸어 보였다.
+    bool artFacesRight = false;
     EnemyKind id{};
     std::string key;   // 폴더 이름. 저장 파일에 기록된다
     std::string name;  // 화면에 보이는 이름

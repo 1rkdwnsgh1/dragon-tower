@@ -73,6 +73,11 @@ void World::updateDragonAnim(float dt) {
     DragonActor& d = dragon_;
     d.animTime += dt;
     d.animHold = std::max(0.f, d.animHold - dt);
+    // v1.5: 사람이 고른 모션이 있으면 그대로 둔다. 죽음만 예외다.
+    if (d.animForced && d.alive) {
+        setDragonAnim(d.forcedAnim, 0.f);
+        return;
+    }
     if (!d.alive) {
         if (d.anim != AnimState::Death) {
             d.anim = AnimState::Death;
