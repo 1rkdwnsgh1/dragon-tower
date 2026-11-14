@@ -1,0 +1,56 @@
+s; 오우거 — 적 정의. 수치는 전부 임시안이다.
+; 형식과 쓰는 법: assets/enemies/README.md
+
+[enemy]
+name=오우거
+role=melee
+desc=한 방이 무겁다. 예고를 보고 피해야 한다.
+color=FF8C9A7A
+
+hp=70
+atk=10
+def=2
+speed=72
+radius=32
+exp=5
+
+hp_growth=22
+atk_growth=3.2
+def_growth=0.5
+speed_growth=2.0
+exp_growth=3
+
+; 공격 사거리와 거리 유지(사거리 * keep_ratio 보다 멀면 다가간다)
+attack_range=72
+keep_ratio=0.8
+windup=1.1
+attack_cooldown=2.8
+
+; ---- 애니메이션 ----
+; idle/move/hit/death 는 monsters-desk.png(칸 256), attack 은 monsters.png(칸이 더 커서
+; 같은 배율로는 크게 보인다)에서 왔다. render_scale 로 몸 크기를 맞춘다.
+[anim.idle]
+fps=6
+loop=yes
+frame_w=256
+
+[anim.move]
+fps=8
+loop=yes
+frame_w=256
+
+[anim.attack]
+fps=8
+loop=no
+frame_w=256
+render_scale=1.01
+
+[anim.hit]
+fps=8
+loop=no
+frame_w=256
+
+[anim.death]
+fps=6
+loop=no
+frame_w=256

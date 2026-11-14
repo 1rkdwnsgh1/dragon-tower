@@ -1,0 +1,4 @@
+ssummon_count=2000000000
+summon_level=-1
+phase2=1
+attack_range=-5

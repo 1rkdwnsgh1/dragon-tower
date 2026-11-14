@@ -60,3 +60,39 @@ if(DRAGON_BUILD_TESTS)
     target_link_libraries(asset_check PRIVATE dragon_core)
     add_test(NAME asset_check COMMAND asset_check "${CMAKE_CURRENT_SOURCE_DIR}/assets")
 endif()
+
+# ---- 퍼저 (사람이 쓰는 텍스트 파일 파서) ----
+# 기본 꺼짐. Clang 에서만 켜진다 — MSVC·GCC 로 켜면 설정 단계에서 분명히 거절한다.
+# 쓰는 법: tests/fuzz/README.md
+option(DRAGON_BUILD_FUZZERS "파서 퍼저를 빌드한다 (Clang 전용)" OFF)
+if(DRAGON_BUILD_FUZZERS)
+    if(NOT CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+        message(FATAL_ERROR "DRAGON_BUILD_FUZZERS 는 Clang 에서만 된다 (현재: ${CMAKE_CXX_COMPILER_ID}). "
+                            "-DCMAKE_CXX_COMPILER=clang++ 를 함께 준다.")
+    endif()
+    # 퍼저는 커버리지 계측이 필요해 코어를 따로 빌드한다(일반 빌드에 영향 없음).
+    add_library(dragon_core_fuzz STATIC
+        src/core/Species.cpp
+        src/core/Enemy.cpp
+        src/core/DragonData.cpp
+        src/core/Progression.cpp
+        src/core/SaveData.cpp
+        src/core/World.cpp
+        src/core/Game.cpp
+    )
+    target_include_directories(dragon_core_fuzz PUBLIC include)
+    target_compile_options(dragon_core_fuzz PUBLIC
+        -fsanitize=fuzzer-no-link,address,undefined -fno-omit-frame-pointer -g)
+    target_link_options(dragon_core_fuzz PUBLIC -fsanitize=fuzzer-no-link,address,undefined)
+
+    foreach(fz fuzz_dragon_text fuzz_enemy_text fuzz_save_roundtrip)
+        add_executable(${fz} tests/fuzz/${fz}.cpp)
+        target_link_libraries(${fz} PRIVATE dragon_core_fuzz)
+        target_link_options(${fz} PRIVATE -fsanitize=fuzzer)
+        # 모아 둔 입력을 다시 돌려 보는 회귀 검사.
+        # **-runs=0 이 꼭 있어야 한다.** 폴더만 주면 libFuzzer 는 재생이 아니라
+        # 무한 퍼징을 시작해서 ctest 가 영원히 끝나지 않는다(실제로 한 번 걸렸다).
+        add_test(NAME ${fz}_corpus
+                 COMMAND ${fz} -runs=0 "${CMAKE_CURRENT_SOURCE_DIR}/tests/fuzz/corpus/${fz}")
+    endforeach()
+endif()

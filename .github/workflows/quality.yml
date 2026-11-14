@@ -1,0 +1,129 @@
+# 품질·안정성 검사.
+#
+# build.yml 과 나누어 둔 이유: build.yml 은 "돌아가는가"를 보고, 이쪽은 "조용히 틀린 데가
+# 없는가"를 본다. 둘을 섞으면 실패 원인을 읽기 어렵다.
+#
+# **이 저장소는 비공개라 Actions 분이 유한하다.** 그래서 잡을 잘게 쪼개지 않고 하나로 묶었고
+# (잡마다 체크아웃·설치가 다시 돈다), 오래 걸리는 퍼징은 매 푸시가 아니라 주 1회와 수동으로만 돈다.
+# 전부 ubuntu 다 — windows 러너는 분이 2배로 계산된다.
+name: quality
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+  schedule:
+    # 토요일 19:17 UTC = 일요일 04:17 KST. 퍼징 잡만 여기서 돈다.
+    - cron: '17 19 * * 6'
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 도구 설치
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y mingw-w64 cppcheck clang clang-tidy \
+                                  libclang-rt-18-dev gcovr python3-pil
+
+      # --- 1. Windows 코드 문법 검사 (제일 먼저. 10초쯤이고, 여기서 걸리면 뒤를 볼 필요가 없다) ---
+      # build.yml 의 windows 잡은 몇 분이 걸리고 분도 2배다. 같은 실수를 여기서 먼저 잡는다.
+      - name: src/win 교차 컴파일
+        run: tools/check_win_build.sh --link
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dragon-tower-mingw-exe
+          path: dist/win-local/dragon_tower.exe
+          if-no-files-found: error
+
+      # --- 2. 새니타이저 (ASan + UBSan) ---
+      # 테스트가 "통과"해도 그 안에서 메모리를 잘못 건드리고 있을 수 있다.
+      # 실제로 이걸 켜서 보스 2페이즈 소환의 use-after-free 를 찾았다.
+      - name: 새니타이저로 코어 테스트
+        run: |
+          cmake -S . -B build-asan -DCMAKE_BUILD_TYPE=Debug \
+                -DCMAKE_CXX_COMPILER=clang++ \
+                -DCMAKE_CXX_FLAGS="-fsanitize=address,undefined -fno-omit-frame-pointer -g"
+          cmake --build build-asan -j
+          cd build-asan
+          ASAN_OPTIONS=detect_leaks=1 UBSAN_OPTIONS=print_stacktrace=1 \
+            ctest --output-on-failure
+          # 테스트가 밟지 않는 전투·탑 경로까지 훑는다
+          ASAN_OPTIONS=detect_leaks=1 UBSAN_OPTIONS=print_stacktrace=1 \
+            ./balance_sim floors --trials 20 --seed 1 > /dev/null
+
+      # --- 3. 정적 분석 (기준선과 비교. 새 지적만 막는다) ---
+      - name: cppcheck + clang-tidy
+        run: |
+          cmake -S . -B build-cc -DCMAKE_EXPORT_COMPILE_COMMANDS=ON > /dev/null
+          python3 tools/check_static.py --build-dir build-cc
+
+      # --- 4. 스프라이트 시트 (격자 나누기 + 크기) ---
+      - name: 시트 검사
+        run: python3 tools/check_sheets.py --out sheet-contact.png
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: sheet-contact-sheet
+          path: sheet-contact.png
+          if-no-files-found: warn
+
+      # --- 5. 커버리지 (막지는 않고 숫자만 남긴다) ---
+      - name: 커버리지
+        run: |
+          cmake -S . -B build-cov -DCMAKE_BUILD_TYPE=Debug \
+                -DCMAKE_CXX_FLAGS="--coverage -O0" -DCMAKE_EXE_LINKER_FLAGS="--coverage"
+          cmake --build build-cov -j
+          (cd build-cov && ctest > /dev/null 2>&1 || true; ./balance_sim > /dev/null 2>&1 || true)
+          gcovr --root . --filter 'src/core/' --filter 'include/core/' \
+                --txt --sort uncovered-number build-cov | tee coverage.txt
+          echo '### 코어 커버리지' >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          tail -4 coverage.txt >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+
+  # 퍼징은 비싸고 오래 걸린다. 매 푸시가 아니라 주 1회(일요일 새벽)와 수동으로만 돈다.
+  # 찾은 입력은 캐시에 쌓여 다음 회차가 그 지점에서 이어 간다.
+  fuzz:
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        target: [fuzz_dragon_text, fuzz_enemy_text, fuzz_save_roundtrip]
+    steps:
+      - uses: actions/checkout@v4
+      - run: |
+          sudo apt-get update
+          sudo apt-get install -y clang libclang-rt-18-dev
+
+      - name: 지난 회차 코퍼스 가져오기
+        uses: actions/cache@v4
+        with:
+          path: .fuzz-corpus/${{ matrix.target }}
+          key: fuzz-${{ matrix.target }}-${{ github.run_id }}
+          restore-keys: fuzz-${{ matrix.target }}-
+
+      - name: 빌드와 실행
+        run: |
+          cmake -S . -B build-fuzz -DCMAKE_BUILD_TYPE=Debug \
+                -DCMAKE_CXX_COMPILER=clang++ -DDRAGON_BUILD_FUZZERS=ON
+          cmake --build build-fuzz -j --target ${{ matrix.target }}
+          mkdir -p .fuzz-corpus/${{ matrix.target }} crashes
+          cp tests/fuzz/corpus/${{ matrix.target }}/* .fuzz-corpus/${{ matrix.target }}/ || true
+          ./build-fuzz/${{ matrix.target }} \
+              -max_total_time=600 -max_len=4096 \
+              -artifact_prefix=crashes/ \
+              .fuzz-corpus/${{ matrix.target }}
+
+      - name: 찾은 입력 올리기
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: fuzz-crash-${{ matrix.target }}
+          path: crashes/
+          if-no-files-found: ignore

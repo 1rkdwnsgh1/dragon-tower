@@ -1,0 +1,22 @@
+# 정적 분석 기준선. tools/check_static.py 가 읽는다.
+# 형식: <파일>:<도구>/<검사이름> <건수>
+#
+# 이 목록은 **줄어들기만 해야 한다.** 새 지적이 생기면 CI 가 막는다.
+# 고친 뒤에는 `python3 tools/check_static.py --build-dir build --update` 로 갱신한다.
+
+src/core/DragonData.cpp:clang-tidy/performance-inefficient-string-concatenation 5
+src/core/Species.cpp:cppcheck/constVariableReference 1
+src/core/World.cpp:clang-tidy/bugprone-incorrect-roundings 2
+src/core/World.cpp:clang-tidy/cert-err33-c 1
+src/core/World.cpp:clang-tidy/clang-analyzer-deadcode.DeadStores 1
+src/core/World.cpp:cppcheck/constVariablePointer 3
+src/core/World.cpp:cppcheck/constVariableReference 2
+src/core/World.cpp:cppcheck/redundantInitialization 1
+src/win/Renderer.cpp:cppcheck/constVariable 3
+src/win/Renderer.cpp:cppcheck/constVariableReference 1
+tests/balance_sim.cpp:clang-tidy/cert-err34-c 4
+tests/balance_sim.cpp:clang-tidy/performance-inefficient-vector-operation 1
+tests/core_tests.cpp:clang-tidy/cert-flp30-c 1
+tests/core_tests.cpp:clang-tidy/clang-analyzer-security.FloatLoopCounter 1
+tests/core_tests.cpp:clang-tidy/performance-inefficient-vector-operation 1
+tests/core_tests.cpp:cppcheck/constVariableReference 1

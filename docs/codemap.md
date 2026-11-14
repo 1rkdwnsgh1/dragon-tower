@@ -53,6 +53,11 @@ tests/                     코어 규칙 검증
 | 스킨 설정 물려받기 | `src/win/Sprites.cpp` | `loadUiSkins` 끝의 `hasCfg` 보정 (default 의 여백·fit 를 쓴다) |
 | 에셋 데이터 검사 | `tools/asset_check.cpp` | `ctest` 에 포함. dragon.txt·enemy.txt 오타를 잡는다 |
 | 스킬 파일 유무 표 | `tools/asset_check.cpp` | 스킬마다 아이콘·본체 모션·효과 시트. 표 정렬은 `displayWidth`·`pad` (한글 두 칸) |
+| Windows 코드를 리눅스에서 컴파일 | `tools/check_win_build.sh` | mingw-w64. 푸시 전에 9초. [설명](quality-tools.md) |
+| 정적 분석(기준선과 비교) | `tools/check_static.py` | cppcheck + clang-tidy. 기준선은 `tools/static-baseline.txt` |
+| 스프라이트 시트 격자·크기 검사 | `tools/check_sheets.py` | `--out` 으로 대조표 PNG. 격자 나누기와 그려지는 크기 |
+| 파서 퍼저 | `tests/fuzz/` | `-DDRAGON_BUILD_FUZZERS=ON` (Clang). dragon.txt·enemy.txt·저장 파일 |
+| 품질 CI | `.github/workflows/quality.yml` | 새니타이저·정적 분석·시트·커버리지. 퍼징은 주 1회 |
 | 수치 시뮬레이션 | `tests/balance_sim.cpp` | `main` 에서 에셋을 먼저 읽는다. 탑 층별은 `floorsMode`·`floorsRun`·`climb`, 자동 사냥 생존은 `autoMode`·`autoRun`·`autoPrint` |
 | 드래곤 보유·교체 | `src/core/Game.cpp` | `switchDragon`, `beginAddDragon`, `canSwitchDragon` |
 | 보관 중 체력 회복 | `src/core/Game.cpp` | `Game::update` 앞부분, `cfg::kStableRegenRatio` |
