@@ -1276,38 +1276,4 @@ void Renderer::drawCodex(Graphics& g, const Game& game, const RenderContext& ctx
 // 설정 버튼
 // ---------------------------------------------------------------------------
 
-void Renderer::drawSettingsButton(Graphics& g, float size, const Sprites& sprites, bool inputOn, bool attention,
-                                  bool hover, float time) {
-    float c = size * 0.5f;
-    float r = size * 0.5f - 4.f;
-    float pulse = attention ? 0.5f + 0.5f * std::sin(time * 6.f) : 0.f;
-    fillCircle(g, c, c + 2.f, r, Color(90, 0, 0, 0));
-    fillCircle(g, c, c, r, hover ? Color(240, 46, 50, 70) : Color(232, 30, 32, 46));
-    Color ring = attention ? Color(255, 255, static_cast<BYTE>(170 + 60 * pulse), 60)
-                 : inputOn ? Color(255, 90, 220, 120)
-                           : Color(255, 130, 136, 150);
-    strokeCircle(g, c, c, r - 1.f, ring, attention ? 3.f + 2.f * pulse : 3.f);
-
-    Bitmap* icon = sprites.get("button_settings");
-    if (icon) {
-        float s = r * 1.2f;
-        g.DrawImage(icon, RectF(c - s * 0.5f, c - s * 0.5f - 4.f, s, s));
-    } else {
-        // 톱니바퀴 모양
-        Color gear = inputOn ? Color(255, 200, 255, 210) : Color(255, 210, 214, 224);
-        SolidBrush gb(gear);
-        float gc = c - 4.f;
-        GraphicsState st = g.Save();
-        g.TranslateTransform(c, gc);
-        for (int i = 0; i < 8; ++i) {
-            g.FillRectangle(&gb, -3.5f, -r * 0.58f, 7.f, 8.f);
-            g.RotateTransform(45.f);
-        }
-        g.Restore(st);
-        fillCircle(g, c, gc, r * 0.42f, gear);
-        fillCircle(g, c, gc, r * 0.18f, Color(255, 30, 32, 46));
-    }
-    text(g, inputOn ? "ON" : "OFF", c, size - 22.f, 10.f, inputOn ? 0xFF8CFFA0 : 0xFFB0B4C0, 1, true);
-}
-
 }  // namespace dt::win

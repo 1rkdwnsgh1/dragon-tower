@@ -34,7 +34,8 @@ tests/                     코어 규칙 검증
 | 띠 높이·등장 위치·웨이브 증가 | `include/core/Config.h` | `kBandHeight`, `kSpawnOffsetX`, `kWaveLevelStep` |
 | 전투 토글 스위치·모드 버튼 | `src/win/Renderer.cpp` | `toggle`, `drawStatusCard` |
 | 클릭 통과 범위 판정 | `src/win/App.cpp` | `updateClickThrough`, `FrameRegions` (마우스는 항상 받는다) |
-| 키보드 조작 켜고 끄기 | `src/win/App.cpp` | `setInputEnabled` (활성화만 다룬다. 통과는 매 프레임 갱신) |
+| 키보드 받기(자동) | `src/win/App.cpp` | `syncKeyboard`, `Game::wantsKeyboard` (싸우는 중 + 자동 아님) |
+| 메뉴 탭·슬라이더·크기조절 | `src/win/Renderer.cpp` | `drawMenu`, `slider`, `UiAction::DragMenuSize` |
 | 메뉴 열고 닫기 | `src/core/Game.cpp` | `setMenuOpen`, 상태창의 `≡` 버튼 |
 | 띠로 날아 내려가기 | `src/core/World.cpp` | `beginConfine`, `confining_` |
 | 입력 받을 영역 수집 | `src/win/Renderer.cpp` | `markRegion`, `g_regions` |

@@ -29,8 +29,6 @@ constexpr int kMenuExit = 103;
 
 namespace {
 const wchar_t* kWindowClass = L"DragonTowerWindow";
-constexpr float kButtonLogical = 64.f;
-constexpr float kButtonMargin = 16.f;
 
 bool keyDown(int vk) { return (GetAsyncKeyState(vk) & 0x8000) != 0; }
 }  // namespace
@@ -186,10 +184,6 @@ void App::layout() {
     overlaySurf_.create(w, h);
     SetWindowPos(overlay_, HWND_TOPMOST, work_.left, work_.top, w, h, SWP_NOACTIVATE);
 
-    buttonPx_ = static_cast<int>(std::lround(kButtonLogical * scale_));  // 더 쓰지 않는다(설정 버튼 제거)
-    int margin = static_cast<int>(std::lround(kButtonMargin * scale_));
-    buttonX_ = work_.right - margin - buttonPx_;
-    buttonY_ = work_.bottom - margin - buttonPx_;
     game_.setDesktopBounds(RectF(0.f, 0.f, w / scale_, h / scale_));
 }
 
@@ -727,7 +721,7 @@ LRESULT App::handle(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
 
         case WM_DPICHANGED:
             // 화면 배율이 바뀌면 다시 재서 그린다(다시 켜지 않아도 되게).
-            if (!isButton) layout();
+            layout();
             return 0;
 
         case WM_SETTINGCHANGE:

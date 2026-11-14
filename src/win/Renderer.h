@@ -77,8 +77,6 @@ public:
                      std::vector<UiButton>& outButtons, FrameRegions* outRegions = nullptr);
 
     // 설정 버튼 창. attention이면 입력을 켜 달라는 의미로 깜빡인다.
-    void drawSettingsButton(Gdiplus::Graphics& g, float size, const Sprites& sprites, bool inputOn, bool attention,
-                            bool hover, float time);
 
 private:
     Gdiplus::Font* font(float size, bool bold);

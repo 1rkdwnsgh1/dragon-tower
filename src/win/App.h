@@ -63,14 +63,9 @@ private:
 
     HINSTANCE inst_ = nullptr;
     HWND overlay_ = nullptr;
-    HWND button_ = nullptr;
     Surface overlaySurf_;
-    Surface buttonSurf_;
     RECT work_{};
     float scale_ = 1.f;
-    int buttonPx_ = 64;
-    int buttonX_ = 0;
-    int buttonY_ = 0;
 
     bool running_ = false;
     bool inputEnabled_ = false;
