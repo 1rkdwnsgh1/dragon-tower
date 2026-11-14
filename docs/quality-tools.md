@@ -47,7 +47,7 @@ cd build-asan && ASAN_OPTIONS=detect_leaks=1 UBSAN_OPTIONS=print_stacktrace=1 ct
 테스트만으로는 좁으니 `balance_sim` 도 같이 돌린다(전투·탑 경로를 훑는다):
 
 ```bash
-./balance_sim floors --trials 20 --seed 1
+./balance_sim floors --trials=20 --seed=1
 ```
 
 ---

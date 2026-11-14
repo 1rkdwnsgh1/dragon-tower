@@ -1,0 +1,172 @@
+s; 망령룡 — 선택 화면에 띄우기 위한 임시 데이터입니다.
+; 수치는 전부 임시값이고, 기존 4종과의 관계(대체인지 추가인지)는 아직 정해지지 않았습니다.
+; 이 폴더를 dragon_tower.exe 옆 assets/dragons/ 안에 두고 게임을 다시 켜세요.
+
+[dragon]
+name=망령룡
+role=저주
+desc=풍화된 골격에 청록 영혼이 흐른다. 지속 피해로 적을 갉아낸다.
+color=FF3FBFA8
+
+hp=105
+atk=12
+def=4
+speed=175
+dodge=0.32
+regen=0
+
+hp_growth=14
+atk_growth=2.6
+def_growth=0.7
+dodge_growth=0
+regen_growth=0
+
+; 좌우 반전 허용(손상 날개 좌우는 유지하지 않기로 2026-11-13 결정)
+flip=yes
+
+; 그림: 작업 자료(references/revenant-dragon/work-2026-11-13)를 tools/make_sheet.py --mirror 로
+; 변환해 넣었다. 원본은 왼쪽 지향이라 뒤집었고, 손상 날개의 신체 기준 좌우는 유지하지 않는다.
+; idle: 동봉 타이밍 파일의 권장값(프레임당 800ms)을 따른다
+[anim.idle]
+fps=1.25
+loop=yes
+frame_w=256
+
+; move: 권장 타이밍이 없어 임시값이다. 실제로 보고 조정할 것
+; render_scale: 원본 그림이 대기보다 작게 그려져 있어 몸 크기를 맞춘다
+; (흉곽 발광부 높이 기준 대기 145px : 걷기 128px -> 1.13배)
+[anim.move]
+fps=8
+loop=yes
+frame_w=256
+render_scale=1.13
+
+; fly: 바탕화면에서 스스로 날 때 쓴다. 권장 타이밍이 없어 임시값이다.
+; fly: 날개를 펼쳐 칸을 꽉 채우느라 몸이 작게 들어갔다. 그리는 단계에서 키워 맞춘다
+; (흉곽 발광부 높이 기준 대기 145px : 비행 106px -> 1.37배)
+[anim.fly]
+fps=10
+loop=yes
+frame_w=256
+render_scale=1.37
+
+; rest: 바탕화면에서 오래 쉬면 엎드린다(v0.9). 원본에 동봉된 권장 타이밍 160ms/프레임을 따른다.
+; render_scale: 누운 자세는 가로로 길어 칸에 맞추느라 작게 들어갔다. 그리는 단계에서 키워 맞춘다.
+; (발광부가 가장 많은 열의 몸통 두께 기준 대기 163px : 쉬기 109px -> 1.50배. 눈으로도 확인함)
+[anim.rest]
+fps=6.25
+loop=yes
+frame_w=256
+; v1.5: 1.50은 너무 컸다. 대기(idle)와 같은 부위(청록 흉곽 발광부)의 **넓이**로 다시 재서
+; 맞췄다 — 대기 1537px, 쉬기 1185px 이므로 배수는 sqrt(1537/1185) = 1.14.
+; 전에는 "가장 많은 열의 두께"로 쟀는데, 엎드린 자세에서는 그 값이 과장된다.
+render_scale=1.14
+
+; attack: v1.4에서 추가했다(그 전에는 시트가 없어 idle 로 대신 그려졌다).
+; 원거리 긐본 공격(망령탄) 모션이다. 8프레임, 원본이 왼쪽 지향이라 --mirror 로 뒤집었다.
+; render_scale: 새 패키지의 몸이 대기보다 조금 작게 그려져 있다.
+; (흉부 영혼  새 시트 다섯 장(attack, skill_*)은 같은 패키지라 **같은 보정값**을 쓴다.
+[anim.attack]
+fps=10
+loop=no
+frame_w=256
+render_scale=1.04
+
+; hit / death 시트는 아직 없다. idle 로 대신 그려진다.
+
+; 스킬 본체 모션 다시 만�로 정확히 나뉘지 않는다 -> 낱장 프레임 폴더를 쓸 것.
+; 나머지 셋의 _atlas.png 는 1776x888 이라 격자로 잘라도 같은 결과가 나온다(확인함).
+
+; ---------------------------------------------------------------------------
+; 스킬 (v1.4)
+; level= 을 적지 않으면 "아직 비어 있는 가장 낮은 레벨"이 순서대로 배정된다.
+; 1~3번은 v0.2부터 있던 임시 스킬이라 레벨을 그대로 두었다(PR #6의 "기존 임시 스킬을
+; 새 V1로 개명·교체하지 않는다"를 따른다). 4번 이후가 이번에 더한 것이다.
+; 결과: Lv1 영혼 탄 / Lv2 망자의 발톱 / Lv3 저주의 안개 / Lv4 혼령 관통 /
+;       Lv5 망령의 침식 / Lv6 망령의 포효 / Lv7 영혼 수확(패시브)
+;
+; motion= 은 스킬을 쓸 때 재생할 전용 본체 모션이다. 파일은 skill_<motion>.png.
+; 적지 않으면 공용 attack 시트로 그려진다.
+; ---------------------------------------------------------------------------
+
+[skill.1]
+name=영혼 탄
+desc=가장 가까운 적에게 청록 영혼 덩어리를 날린다.
+kind=Projectile
+level=1
+cooldown=4
+power=2.0
+range=380
+; 원거리 기본 공격과 같은 동작이므로 전용 모션 없이 attack 시트를 쓴다
+
+[skill.2]
+name=저주의 안개
+desc=적 위치에 안개를 깔아 계속 피해를 준다.
+kind=Zone
+level=3
+cooldown=9
+power=1.0
+radius=100
+range=360
+duration=4
+
+[skill.3]
+name=망령의 포효
+desc=주변 적에게 피해를 주고 잠시 기절시킨다.
+kind=Burst
+level=6
+cooldown=10
+power=1.8
+radius=130
+extra=1.2
+
+; --- 여기부터 v1.4. 수치는 전부 임시값이고 플레이해 보고 조압���다 ---
+
+[skill.4]
+name=망자의 발톱
+desc=가까이 붙은 적을 발톱으로 휘두른다.
+kind=Line
+cooldown=3.5
+power=1.6
+range=140
+radius=36
+motion=melee
+motion_fps=11
+motion_frame_w=256
+motion_render_scale=1.04
+
+[skill.5]
+name=혼령 관통
+desc=영혼 창을 응축해 앞의 적을 꿰뚫는다.
+kind=Line
+cooldown=9
+power=3.0
+range=360
+radius=30
+motion=pierce
+motion_fps=12
+motion_frame_w=256
+motion_render_scale=1.04
+
+[skill.6]
+name=망령의 침식
+desc=저주의 안개를 넓게 흘려 적을 갉아낸다.
+kind=Zone
+cooldown=12
+power=1.3
+radius=140
+range=340
+duration=5
+motion=erosion
+motion_fps=8
+motion_frame_w=256
+motion_render_scale=1.04
+
+; 패시브 — 장착 칸을 쓰지 않는다. 해제되면 항상 적용된다.
+; 본체 모션(skill_harvest.png)은 변환해 두었지만 패시브는 발동 모션이 없어 아직 쓰이지 않는다.
+; 처치 연출(영혼이 흉부 코어로 빨려 들어가는 FX)을 넣을 때 함께 쓸 것.
+[skill.7]
+name=영혼 수확
+desc=적을 쓰러뜨릴 때 영혼을 거두어 최대 체력의 6%를 회복한다.
+kind=PassiveOnKill
+power=0.06

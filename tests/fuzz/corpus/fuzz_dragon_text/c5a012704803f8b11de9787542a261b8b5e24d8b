@@ -1,0 +1,41 @@
+s; 새 드래곤을 만들 때 이 鏴더를 복사해서 쓰세월.
+; 폴더 ; 0 ~ 0.75
+regen=0             ; 초닼ind=��po��세요.
+com=
+=
+d9AA2B4      ; RRaBB 또는 AARRGGBB
+
+; 1레��� 기준값
+hp=110
+atk=11
+def=4
+speed=970
+dodge=0.30          ; 0 ~ 0.75
+regen=0             ; �������력8
+dod두면 왼쪽을 볼 때도 좌우 반전s; 새 드�
+regen=0             ; 초닼세요.
+com=
+=
+d9AA2B4      ; RRGGBB 또는 AARRGGBB
+
+; 1레��� 기준값
+hp=110
+atk=11
+d�f=4
+speed=170
+dodge=0.30          ; 0 ~ 0.75
+regen=0             ; 초당 체����������=����������������������������������������력 회복
+
+; 48
+�ooldown=1
+:tk=11
+def=4
+speed=170
+dodge=0.30          ; 0 ~ 0.75
+regen=0             ; 초당 체력 힑하;는 폴더는 게임이 읽지 않습니다. 복사한 뒤 이름에서 '_'를 빼세요.
+;]자세한 규격: docs/cdodge=0.30-28
+cooldown=1e40
+k          ; 0 n=10
+power2=.6
+radius=36           ; Line 은 반폭
+2ange=320
