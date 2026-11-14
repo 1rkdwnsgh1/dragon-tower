@@ -14,10 +14,18 @@
 
 namespace dt::win {
 
-// UI 스킨 조각. margin은 9조각으로 늘릴 때 "늘리지 않을 테두리 두께"다(0이면 늘리지 않는다).
+// 조각을 목적지에 맞추는 방법. 그림 종류마다 다르다.
+//  Nine   — 9조각. 네 모서리를 지키고 가장자리·가운데만 늘린다. 큰 창틀용.
+//  Height — 높이를 목적지에 맞춰 통째로 줄이고 가로만 늘린다. 세로로 눌리지 않는다.
+//           버튼·막대처럼 "낮고 가로로 긴" 것에 쓴다.
+//  Contain— 비율을 지킨 채 목적지 안에 넣는다. 토글·체크처럼 모양이 정해진 것에 쓴다.
+enum class UiFit { Nine, Height, Contain };
+
+// UI 스킨 조각. margin은 "늘리지 않을 테두리 두께"(원본 px)다.
 struct UiPiece {
     Gdiplus::Bitmap* bmp = nullptr;
     int left = 0, top = 0, right = 0, bottom = 0;
+    UiFit fit = UiFit::Nine;
     bool valid() const { return bmp != nullptr; }
     bool stretch() const { return left || top || right || bottom; }
 };
@@ -64,6 +72,7 @@ private:
     struct UiData {
         std::unique_ptr<Gdiplus::Bitmap> bmp;
         int left = 0, top = 0, right = 0, bottom = 0;
+        UiFit fit = UiFit::Nine;
     };
     void loadUiSkins(const std::filesystem::path& uiDir);
 
