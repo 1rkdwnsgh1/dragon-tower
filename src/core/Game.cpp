@@ -24,12 +24,14 @@ void Game::init(const SaveData& save, const RectF& desktop) {
     desktop_ = desktop;
     world_.setBounds(desktop_);
     world_.setKeepRange(save_.keepRange);  // 저장해 둔 간격을 이어서 쓴다
+    addingDragon_ = false;
     if (save_.hasDragon) {
         const DragonRecord& d = save_.dragon;
         world_.setupDragon(d.species, d.level, d.hp, {desktop_.center().x, desktop_.bottom() - 120.f});
         screen_ = Screen::Desktop;
     } else {
-        screen_ = Screen::Select;
+        // 보유 목록은 있는데 띄운 개체가 없으면(사망 직후 등) 관리창에서 고르게 한다
+        screen_ = save_.stable.empty() ? Screen::Select : Screen::Stable;
     }
 }
 
@@ -176,6 +178,76 @@ SaveData Game::snapshotForSave() {
     return save_;
 }
 
+float Game::maxHpOf(const DragonRecord& d) const { return statsFor(d.species, d.level).maxHp; }
+
+bool Game::canSwitchDragon() const {
+    return save_.hasDragon ? (!hunting_ && !inTowerFlow() && !waveActive_) : !inTowerFlow();
+}
+
+const char* Game::switchBlockedReason() const {
+    if (inTowerFlow()) return "탑 안에서는 바꿀 수 없습니다.";
+    if (hunting_ || waveActive_) return "전투 중에는 바꿀 수 없습니다. 사냥을 멈추고 바꾸세요.";
+    return nullptr;
+}
+
+void Game::openStable() {
+    if (screen_ != Screen::Desktop && screen_ != Screen::Select) return;
+    // 선택 화면에서 돌아올 때는 '추가 중' 상태를 푼다. 보유 목록이 비어 있으면 열 것이 없다.
+    addingDragon_ = false;
+    if (save_.stable.empty() && !save_.hasDragon) return;
+    screen_ = Screen::Stable;
+}
+
+void Game::closeStable() {
+    if (screen_ != Screen::Stable) return;
+    // 띄운 개체가 없으면 선택 화면으로 돌아간다(드래곤 없이 바탕화면만 남지 않게)
+    screen_ = save_.hasDragon ? Screen::Desktop : Screen::Select;
+}
+
+void Game::beginAddDragon() {
+    if (screen_ != Screen::Stable || stableFull()) return;
+    addingDragon_ = true;
+    screen_ = Screen::Select;
+}
+
+bool Game::switchDragon(int index) {
+    if (index < 0 || index >= static_cast<int>(save_.stable.size())) return false;
+    if (!save_.stable[static_cast<size_t>(index)].alive) return false;
+    if (!canSwitchDragon()) {
+        const char* why = switchBlockedReason();
+        if (why) notify(why, kWarn, 3.f);
+        return false;
+    }
+    if (index == save_.activeIndex && save_.hasDragon) return true;  // 이미 띄워 둔 개체
+
+    // 지금 띄운 개체의 상태를 목록에 적어 둔다(체력·경험치가 저장되어야 한다)
+    if (save_.hasDragon && save_.activeIndex >= 0 &&
+        save_.activeIndex < static_cast<int>(save_.stable.size())) {
+        save_.dragon.hp = world_.dragon().hp;
+        save_.stable[static_cast<size_t>(save_.activeIndex)] = save_.dragon;
+    }
+
+    save_.activeIndex = index;
+    save_.dragon = save_.stable[static_cast<size_t>(index)];
+    save_.hasDragon = true;
+
+    // 바탕화면 설정(아래쪽에만)을 그대로 지키며 새 개체를 세운다
+    world_.clearEnemies(false);
+    world_.cancelConfine();
+    RectF b = save_.confineToBand ? battleBand() : desktop_;
+    world_.setBounds(b);
+    Vec2 at = b.clampPoint({desktop_.center().x, b.bottom() - cfg::kDragonRadius}, cfg::kDragonRadius);
+    world_.setupDragon(save_.dragon.species, save_.dragon.level, save_.dragon.hp, at);
+    world_.dragon().groundY = world_.dragon().pos.y;
+    world_.setKeepRange(save_.keepRange);
+    deathPlace_.clear();
+    screen_ = Screen::Desktop;
+    saveRequested_ = true;
+    notify(speciesDef(save_.dragon.species).name + " Lv." + std::to_string(save_.dragon.level) +
+               "(으)로 바꿨습니다.", kGood, 2.5f);
+    return true;
+}
+
 void Game::setKeepRange(int v) {
     int n = std::clamp(v, 0, cfg::kKeepRangeCount - 1);
     if (save_.keepRange == n) return;
@@ -217,6 +289,11 @@ void Game::placeDragonForDesktop() {
 
 void Game::chooseSpecies(Species s) {
     if (screen_ != Screen::Select) return;
+    if (stableFull()) {
+        notify("더 가질 수 없습니다. 최대 " + std::to_string(cfg::kMaxStable) + "마리입니다.", kWarn, 3.f);
+        screen_ = save_.hasDragon ? Screen::Stable : Screen::Select;
+        return;
+    }
     DragonRecord d;
     d.id = save_.nextDragonId++;
     d.species = s;
@@ -225,6 +302,23 @@ void Game::chooseSpecies(Species s) {
     d.exp = 0;
     d.autoExp = 0;
     d.hp = -1.f;
+    // v1.3: 목록에 더한다. 지금 플레이 중인 개체가 있으면 그대로 두고 목록에만 넣는다.
+    bool wasAdding = addingDragon_ && save_.hasDragon;
+    if (wasAdding) {
+        // 띄워 둔 개체의 현재 상태를 목록에 먼저 반영한다
+        if (save_.activeIndex >= 0 && save_.activeIndex < static_cast<int>(save_.stable.size()))
+            save_.stable[static_cast<size_t>(save_.activeIndex)] = save_.dragon;
+        save_.stable.push_back(d);
+        save_.markSeen(s);
+        addingDragon_ = false;
+        notify(speciesDef(s).name + "을(를) 데려왔습니다. 관리창에서 바탕화면에 띄울 수 있습니다.", kGood, 3.5f);
+        screen_ = Screen::Stable;
+        saveRequested_ = true;
+        return;
+    }
+    addingDragon_ = false;
+    save_.stable.push_back(d);
+    save_.activeIndex = static_cast<int>(save_.stable.size()) - 1;
     save_.dragon = d;
     save_.hasDragon = true;
     save_.markSeen(s);
@@ -451,7 +545,9 @@ void Game::acknowledgeDeath() {
     towerFloor_ = 0;
     deathPlace_.clear();
     world_.setBounds(desktop_);
-    screen_ = Screen::Select;
+    // 남은 드래곤이 있으면 관리창에서 고르게 한다. 자동으로 다음 개체를 띄우지는 않는다
+    // (죽음이 그냥 넘어가지 않도록 한 번은 사람이 고르게 한다).
+    screen_ = save_.stable.empty() ? Screen::Select : Screen::Stable;
 }
 
 void Game::onDragonDied() {
@@ -469,6 +565,11 @@ void Game::onDragonDied() {
     g.level = save_.dragon.level;
     g.place = place;
     save_.graves.push_back(g);
+    // v1.3: 보유 목록에서도 지운다. 남겨 두면 다시 켤 때 되살아난다(영구 사망 위반).
+    // 죽은 개체는 묘비(graves)로만 남는다.
+    if (save_.activeIndex >= 0 && save_.activeIndex < static_cast<int>(save_.stable.size()))
+        save_.stable.erase(save_.stable.begin() + save_.activeIndex);
+    save_.activeIndex = -1;
     save_.hasDragon = false;
     hunting_ = false;
     waveActive_ = false;
@@ -522,6 +623,18 @@ void Game::update(float dt, const PlayerInput& in, bool hidden, bool inputEnable
     paused_ = false;
     pauseReason_.clear();
     PlayerInput none;
+
+    // v1.3: 보관 중인(띄우지 않은) 개체는 쉬면서 체력만 회복한다. 경험치는 오르지 않는다.
+    // 한 번에 한 마리만 키우게 해서 영구 사망의 무게를 지킨다.
+    for (size_t i = 0; i < save_.stable.size(); ++i) {
+        if (static_cast<int>(i) == save_.activeIndex) continue;
+        DragonRecord& d = save_.stable[i];
+        if (!d.alive) continue;
+        float maxHp = maxHpOf(d);
+        if (d.hp < 0.f) d.hp = maxHp;  // 음수면 아직 꽉 찬 상태다
+        if (d.hp >= maxHp) continue;
+        d.hp = std::min(maxHp, d.hp + maxHp * cfg::kStableRegenRatio * dt);
+    }
 
     switch (screen_) {
         case Screen::Select:

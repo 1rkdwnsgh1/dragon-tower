@@ -4,6 +4,7 @@
 #include <string>
 #include <vector>
 
+#include "core/Config.h"
 #include "core/SaveData.h"
 #include "core/World.h"
 
@@ -19,6 +20,7 @@ enum class Screen {
     TowerVictory,  // 탑 정복
     Death,         // 영구 사망 안내
     Codex,         // 기록·도감
+    Stable,        // v1.3 드래곤 관리창(보유 목록·묘비)
 };
 
 struct Notice {
@@ -114,6 +116,24 @@ public:
         const std::string& s = speciesDef(save_.dragon.species).uiSkin;
         return s.empty() ? "default" : s;
     }
+    // ---- v1.3 드래곤 관리 ----
+    // 보유 목록. 죽은 개체는 들어 있지 않다(묘비로만 남는다).
+    const std::vector<DragonRecord>& stable() const { return save_.stable; }
+    int activeIndex() const { return save_.activeIndex; }
+    bool stableFull() const { return save_.stable.size() >= static_cast<size_t>(cfg::kMaxStable); }
+    // 전투·탑 밖에서만 바꿀 수 있다(불리할 때 바꿔 끼워 위험을 피하는 것을 막는다).
+    bool canSwitchDragon() const;
+    const char* switchBlockedReason() const;  // 못 바꾸는 이유. 바꿀 수 있으면 nullptr
+    // 그 자리의 드래곤을 바탕화면에 띄운다(= 플레이할 드래곤으로 삼는다).
+    bool switchDragon(int index);
+    void openStable();
+    void closeStable();
+    // 관리창에서 "새 드래곤"을 누르면 선택 화면을 띄운다. 고르면 목록에 더해진다.
+    void beginAddDragon();
+    bool addingDragon() const { return addingDragon_; }
+    // 보관 중인(띄우지 않은) 개체의 최대 체력. 체력바를 그리는 데 쓴다.
+    float maxHpOf(const DragonRecord& d) const;
+
     const RectF& desktopBounds() const { return desktop_; }
     const GraveEntry* lastGrave() const { return save_.graves.empty() ? nullptr : &save_.graves.back(); }
 
@@ -151,6 +171,7 @@ private:
     Screen screen_ = Screen::Select;
     Screen codexReturn_ = Screen::Desktop;
     bool hunting_ = false;
+    bool addingDragon_ = false;  // v1.3 선택 화면이 '추가'인지 '첫 선택'인지
     bool waveActive_ = false;
     float breakTimer_ = 0.f;
     bool pendingAutoStart_ = false;

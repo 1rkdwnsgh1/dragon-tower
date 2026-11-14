@@ -101,6 +101,11 @@ constexpr float kKeepMidRatio = 1.00f;    // 중간: 기본 공격이 겨우 닿
 constexpr float kKeepFarRatio = 0.80f;    // 바깥: 쓸 수 있는 가장 긴 스킬 사거리의 80%
 constexpr float kKeepSlack = 24.f;        // 이보다 가까워지면 물러난다(제자리걸음 방지)
 
+// v1.3 드래곤 보유(관리창). 동시에 가질 수 있는 마리 수와 보관 중 회복 속도.
+// 보관 중에는 경험치가 오르지 않는다(한 번에 한 마리만 키운다 = 영구 사망의 무게를 지킨다).
+constexpr int kMaxStable = 4;
+constexpr float kStableRegenRatio = 0.02f;  // 1초에 최대 체력의 이만큼 회복(0에서 꽉 차기까지 50초)
+
 // v0.9 체력 막대 그림이 바뀌는 지점. 남은 비율이 이 아래면 다음 그림을 쓴다.
 constexpr float kMidHpRatio = 0.55f;
 constexpr float kLowHpRatio = 0.25f;

@@ -846,9 +846,11 @@ void Renderer::drawStatusCard(Graphics& g, const Game& game, const Sprites& spri
     panel(g, r, 224);
 
     // 제목 줄은 끌기 손잡이다. 오른쪽 끝에 접기 버튼이 있다.
-    RectF handle(r.X, r.Y, r.Width - 64.f, 30.f);
+    RectF handle(r.X, r.Y, r.Width - 92.f, 30.f);
     out.push_back({handle, UiAction::DragPanel, 0, true});
     markRegion(handle);
+    // 드래곤 관리창 열기. 여러 마리를 가지고 있으면 여기서 바꾼다.
+    button(g, out, ctx, RectF(r.GetRight() - 88.f, r.Y + 4.f, 26.f, 22.f), "▦", UiAction::OpenStable);
     // 메뉴 열기/닫기. 설정(키보드 조작)과 따로 움직인다.
     button(g, out, ctx, RectF(r.GetRight() - 60.f, r.Y + 4.f, 26.f, 22.f), "≡", UiAction::ToggleMenu, 0, true,
            game.menuOpen());
@@ -969,7 +971,7 @@ void Renderer::drawMenu(Graphics& g, const Game& game, const RenderContext& ctx,
     // v0.8: 위치와 크기를 저장해 둔 값으로 그린다. 글자·버튼·여백을 모두 같은 배수로 키운다.
     const float s = game.menuScale();
     const float mw = 340.f * s;
-    const float mh = 532.f * s;
+    const float mh = 578.f * s;
     Vec2 saved = game.menuPos();
     float mx = saved.x >= 0.f ? saved.x : width_ - 96.f - mw;
     float my = saved.y >= 0.f ? saved.y : height_ - 16.f - 186.f - 12.f - mh;
@@ -1054,6 +1056,11 @@ void Renderer::drawMenu(Graphics& g, const Game& game, const RenderContext& ctx,
     }
 
     float hw = (w - 8.f * s) * 0.5f;
+    // v1.3 드래곤 관리. 여러 마리를 가지고 바꿔 가며 쓴다.
+    button(g, out, ctx, RectF(x, y, w, 38.f * s),
+           "드래곤 관리 (" + std::to_string(game.stable().size()) + "/" + std::to_string(cfg::kMaxStable) + ")",
+           UiAction::OpenStable);
+    y += 46.f * s;
     bool towerOk = !game.waveActive();
     button(g, out, ctx, RectF(x, y, hw, 40.f * s), "탑 도전", UiAction::OpenTower, 0, towerOk);
     button(g, out, ctx, RectF(x + hw + 8.f * s, y, hw, 40.f * s), "기록·도감", UiAction::OpenCodex);
@@ -1109,6 +1116,9 @@ void Renderer::drawModal(Graphics& g, const Game& game, const Sprites& sprites, 
             break;
         case Screen::Codex:
             drawCodex(g, game, ctx, out);
+            break;
+        case Screen::Stable:
+            drawStable(g, game, sprites, ctx, out);
             break;
         case Screen::AutoWarning: {
             RectF r(cx - 290.f, cy - 160.f, 580.f, 320.f);
@@ -1230,12 +1240,20 @@ void Renderer::drawSelect(Graphics& g, const Game& game, const Sprites& sprites,
     const float ph = 600.f;
     RectF r(width_ * 0.5f - pw * 0.5f, height_ * 0.5f - ph * 0.5f, pw, ph);
     panel(g, r, 242);
-    text(g, "드래곤 선택", r.X + 24.f, r.Y + 18.f, 22.f, kText, 0, true);
-    std::string sub = "함께 탑을 오를 드래곤 한 마리를 고르세요. 이름과 수치는 임시안입니다.";
+    // v1.3: 관리창에서 "새 드래곤"으로 들어왔으면 돌아갈 수 있어야 한다.
+    bool adding = game.addingDragon();
+    text(g, adding ? "새 드래곤 데려오기" : "드래곤 선택", r.X + 24.f, r.Y + 18.f, 22.f, kText, 0, true);
+    std::string sub = adding ? "보유 목록에 더합니다. 지금 띄워 둔 드래곤은 그대로 있습니다."
+                             : "함께 탑을 오를 드래곤 한 마리를 고르세요. 이름과 수치는 임시안입니다.";
     if (shown < total) sub += "  (" + std::to_string(total) + "종 중 " + std::to_string(shown) + "종 표시)";
     text(g, sub, r.X + 24.f, r.Y + 54.f, 14.f, kSub);
+    float hx = r.GetRight() - 24.f - 130.f;
+    if (adding) {
+        button(g, out, ctx, RectF(hx, r.Y + 18.f, 130.f, 34.f), "관리창으로", UiAction::OpenStable);
+        hx -= 138.f;
+    }
     if (!game.save().graves.empty() || game.save().bestFloor > 0) {
-        button(g, out, ctx, RectF(r.GetRight() - 24.f - 130.f, r.Y + 18.f, 130.f, 34.f), "기록·도감", UiAction::OpenCodex);
+        button(g, out, ctx, RectF(hx, r.Y + 18.f, 130.f, 34.f), "기록·도감", UiAction::OpenCodex);
     }
 
     float y0 = r.Y + 88.f;
@@ -1280,6 +1298,102 @@ void Renderer::drawSelect(Graphics& g, const Game& game, const Sprites& sprites,
     fillRound(g, warn, 8.f, Color(110, 120, 20, 24));
     text(g, "드래곤이 쓰러지면 그 개체는 되살릴 수 없습니다. 탑 최고 기록과 도감은 남습니다.", warn.X + warn.Width * 0.5f,
          warn.Y + 10.f, 14.f, 0xFFFFC2C2, 1, true);
+}
+
+void Renderer::drawStable(Graphics& g, const Game& game, const Sprites& sprites, const RenderContext& ctx,
+                          std::vector<UiButton>& out) {
+    const std::vector<DragonRecord>& list = game.stable();
+    const SaveData& s = game.save();
+    const int rows = cfg::kMaxStable;
+    RectF r(width_ * 0.5f - 350.f, height_ * 0.5f - 270.f, 700.f, 540.f);
+    panel(g, r, 244);
+    text(g, "드래곤 관리", r.X + 24.f, r.Y + 18.f, 22.f, kText, 0, true);
+    text(g, std::to_string(list.size()) + " / " + std::to_string(cfg::kMaxStable) + " 마리",
+         r.GetRight() - 24.f, r.Y + 24.f, 14.f, kSub, 2);
+
+    const char* why = game.switchBlockedReason();
+    text(g, why ? why : "바탕화면에 띄운 드래곤이 지금 플레이하는 드래곤입니다.", r.X + 24.f, r.Y + 48.f, 13.f,
+         why ? kWarnC : kSub);
+
+    float y = r.Y + 76.f;
+    const float rowH = 84.f;
+    for (int i = 0; i < rows; ++i) {
+        RectF row(r.X + 20.f, y, r.Width - 40.f, rowH - 8.f);
+        bool filled = i < static_cast<int>(list.size());
+        if (!filled) {
+            // 빈 자리: 새 드래곤을 데려온다
+            fillRound(g, row, 10.f, Color(90, 40, 44, 58));
+            strokeRound(g, row, 10.f, Color(120, 90, 100, 130), 1.f);
+            text(g, "비어 있음", row.X + 18.f, row.Y + 26.f, 14.f, 0xFF7C8090, 0, true);
+            button(g, out, ctx, RectF(row.GetRight() - 170.f, row.Y + 18.f, 150.f, 40.f), "새 드래곤",
+                   UiAction::AddDragon, 0, true);
+            y += rowH;
+            continue;
+        }
+        const DragonRecord& d = list[static_cast<size_t>(i)];
+        const SpeciesDef& sp = speciesDef(d.species);
+        bool active = i == game.activeIndex() && game.hasDragon();
+        fillRound(g, row, 10.f, active ? Color(235, 42, 60, 96) : Color(215, 32, 34, 46));
+        strokeRound(g, row, 10.f, active ? Color(255, 120, 180, 255) : Color(120, 80, 88, 120), active ? 2.f : 1.f);
+
+        // 작은 미리보기
+        DragonActor preview;
+        preview.species = d.species;
+        preview.alive = true;
+        preview.anim = AnimState::Idle;
+        drawDragon(g, preview, sprites, ctx.time + i * 0.7f, row.X + 48.f, row.Y + 40.f, 66.f, true);
+
+        float tx = row.X + 96.f;
+        fillCircle(g, tx + 6.f, row.Y + 18.f, 6.f, col(sp.color));
+        text(g, dragonName(d), tx + 18.f, row.Y + 9.f, 16.f, kText, 0, true);
+        text(g, "Lv." + std::to_string(d.level), tx + 18.f + 150.f, row.Y + 10.f, 15.f, 0xFFFFE9A8, 0, true);
+
+        float maxHp = game.maxHpOf(d);
+        float hp = active ? game.world().dragon().hp : (d.hp < 0.f ? maxHp : d.hp);
+        bar(g, RectF(tx + 18.f, row.Y + 34.f, 240.f, 14.f), hp / std::max(1.f, maxHp), kHpC,
+            "체력 " + fmtInt(hp) + " / " + fmtInt(maxHp));
+        if (!active) {
+            bool full = hp >= maxHp - 0.5f;
+            text(g, full ? "쉬는 중 · 체력 가득" : "쉬는 중 · 회복하고 있습니다", tx + 18.f, row.Y + 54.f, 12.f,
+                 full ? 0xFF8CFFA0 : kSub);
+        } else {
+            text(g, "바탕화면에 떠 있음 · 플레이 중", tx + 18.f, row.Y + 54.f, 12.f, 0xFFBFD4FF);
+        }
+
+        RectF btn(row.GetRight() - 170.f, row.Y + 18.f, 150.f, 40.f);
+        if (active) {
+            button(g, out, ctx, btn, "표시 중", UiAction::None, 0, false, true);
+        } else {
+            button(g, out, ctx, btn, "바탕화면에 표시", UiAction::ShowDragon, i, game.canSwitchDragon());
+        }
+        y += rowH;
+    }
+
+    // 묘비
+    y += 6.f;
+    text(g, "묘비 (" + std::to_string(s.graves.size()) + ")", r.X + 24.f, y, 14.f, kSub, 0, true);
+    y += 22.f;
+    if (s.graves.empty()) {
+        text(g, "아직 없습니다.", r.X + 24.f, y, 13.f, 0xFF7C8090);
+    } else {
+        // 최근 것부터 한 줄에 둘씩
+        int shown = 0;
+        for (auto it = s.graves.rbegin(); it != s.graves.rend() && shown < 4; ++it, ++shown) {
+            float bx = r.X + 24.f + (shown % 2) * 330.f;
+            float by = y + (shown / 2) * 20.f;
+            text(g, "✝ " + speciesDef(it->species).name + " Lv." + std::to_string(it->level) + " · " +
+                        placeLabel(it->place),
+                 bx, by, 13.f, 0xFFB9A8C8);
+        }
+        if (s.graves.size() > 4)
+            text(g, "그 밖 " + std::to_string(s.graves.size() - 4) + "마리는 기록·도감에서 볼 수 있습니다.",
+                 r.X + 24.f, y + 44.f, 12.f, 0xFF7C8090);
+    }
+
+    // 닫기 — 띄운 개체가 없으면 닫을 수 없다(드래곤 없이 바탕화면만 남지 않게)
+    bool canClose = game.hasDragon();
+    button(g, out, ctx, RectF(r.GetRight() - 150.f, r.GetBottom() - 54.f, 130.f, 40.f),
+           canClose ? "닫기" : "띄울 드래곤을 고르세요", UiAction::CloseStable, 0, canClose);
 }
 
 void Renderer::drawCodex(Graphics& g, const Game& game, const RenderContext& ctx, std::vector<UiButton>& out) {
