@@ -151,6 +151,20 @@ const char* skillKindName(SkillKind k) {
 
 const SpeciesDef& speciesDef(Species s) {
     auto& r = registry();
+    // v1.5에서 내장 4종을 지웠기 때문에 레지스트리가 **비어 있을 수 있다**
+    // (assets/dragons 폴더가 없거나, 모든 dragon.txt 읽기에 실패한 경우).
+    // 그때 아래 clamp 는 std::clamp(x, 0, -1) 이 되어 UB 였고 빈 deque 를 인덱싱해 죽었다.
+    // serializeSave 가 묘비·현재 개체마다 이 함수를 부르므로, 에셋이 사라지면
+    // 저장 파일을 읽는 순간 게임이 죽는 경로였다.
+    if (r.empty()) {
+        static const SpeciesDef fallback = [] {
+            SpeciesDef d;
+            d.key = "unknown";
+            d.name = "알 수 없는 종";
+            return d;
+        }();
+        return fallback;
+    }
     int i = std::clamp(static_cast<int>(s), 0, static_cast<int>(r.size()) - 1);
     return r[static_cast<size_t>(i)];
 }

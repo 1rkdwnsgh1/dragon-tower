@@ -742,9 +742,18 @@ void World::updateEnemies(float dt) {
             EnemyKind add;
             if (!e.spawnedAdds && ed.summonCount > 0 && enemyFromKey(ed.summonKey, add)) {
                 e.spawnedAdds = true;
-                for (int i = 0; i < ed.summonCount; ++i) {
-                    float dy = -80.f + 160.f * (ed.summonCount == 1 ? 0.5f : static_cast<float>(i) / (ed.summonCount - 1));
-                    spawnEnemy(add, ed.summonLevel, bounds_.clampPoint(e.pos + Vec2{-120.f, dy}, 40.f));
+                // spawnEnemy 가 enemies_ 를 재할당하면 e 는 그 자리에서 무효가 된다.
+                // 소환 좌표의 기준점은 반드시 먼저 복사해 둔다 (두 번째 소환이 해제된 메모리를 읽었다).
+                const Vec2 origin = e.pos;
+                const int count = ed.summonCount;
+                const int summonLevel = ed.summonLevel;
+                // 아래 spawnEnemy 는 enemies_ 를 재할당할 수 있다. 루프가 끝나면 바로 return
+                // 하므로 범위 for 의 반복자는 다시 쓰이지 않고, 좌표·횟수도 위에서 복사해 두었다.
+                // 이 셋이 동시에 성립해야 안전하다.
+                for (int i = 0; i < count; ++i) {
+                    float dy = -80.f + 160.f * (count == 1 ? 0.5f : static_cast<float>(i) / (count - 1));
+                    // cppcheck-suppress invalidContainerLoop
+                    spawnEnemy(add, summonLevel, bounds_.clampPoint(origin + Vec2{-120.f, dy}, 40.f));
                 }
                 return;  // 벡터가 재할당되었을 수 있으므로 이번 프레임은 여기서 멈춘다
             }
