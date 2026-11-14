@@ -57,6 +57,50 @@ render_scale=1.37
 
 눈대중하지 말고 상태마다 같은 신체 부위(예: 몸통 높이)를 재서 비율로 정하세요.
 
+## 2-2. 스킬 추가하기 (v1.4)
+
+`[skill.1]`부터 차례로 적은 만큼 스킬이 늘어납니다. 개수 제한은 없습니다(최고 레벨까지).
+
+```
+[skill.4]
+name=어둠의 숨결
+desc=앞쪽으로 어둠을 토해 지나가는 적을 모두 태운다.
+kind=Line
+power=2.4
+range=300
+radius=44
+cooldown=11
+motion=breath          ; skill_breath.png 를 재생한다. 없으면 공용 attack 으로 그려진다
+motion_fps=12
+motion_frame_w=256
+motion_render_scale=1.0
+```
+
+**해제 레벨(`level=`)은 적지 않아도 됩니다.** 적지 않으면 *아직 아무 스킬도 쓰지 않은 가장 낮은
+레벨*이 목록 순서대로 하나씩 배정됩니다 — **한 레벨에 한 스킬**입니다. 특정 스킬만 늦게 주고
+싶을 때만 `level=`을 적으세요. 섞어 써도 됩니다(적은 쪽이 먼저 자리를 잡습니다).
+
+`kind=`는 액티브 8종(`Projectile` `Burst` `Line` `Dash` `Heal` `Shield` `Haste` `Zone`)과
+패시브 2종입니다.
+
+| 패시브 | 하는 일 | 쓰는 값 |
+|---|---|---|
+| `PassiveStat` | 능력치를 상시 올린다 | `stat=` (hp/atk/def/speed/dodge/regen), `power=` |
+| `PassiveOnKill` | 적을 쓰러뜨릴 때 최대 체력의 `power` 비율만큼 회복 | `power=` |
+
+`PassiveStat`의 `power`는 hp/atk/def/speed에서는 **비율**(0.1 = +10%), dodge/regen에서는
+**더하는 값**입니다. 회피는 상한 0.75를 넘지 못합니다.
+
+**액티브는 스킬 관리창에서 4개를 골라 장착해야 쓸 수 있습니다**(조작키 1~4, 자동 전투도 같습니다).
+**패시브는 장착하지 않습니다** — 레벨로 해제되면 항상 적용됩니다.
+해제됐는데 빈 칸이 있으면 자동으로 들어갑니다. 쓰고 싶지 않은 스킬은 다른 스킬로 덮어쓰세요.
+
+제대로 들어갔는지는 `asset_check`로 확인할 수 있습니다. 스킬별 해제 레벨과 모션 파일 유무를 적어 줍니다.
+
+```
+./build/asset_check assets
+```
+
 ## 3. 새 드래곤 추가하기
 
 1. `_example` 폴더를 복사하고, 이름을 쓸 키로 바꿉니다(예: `revenant`). `_`로 시작하면 읽지 않습니다.

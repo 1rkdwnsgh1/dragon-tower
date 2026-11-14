@@ -3,10 +3,16 @@
 // assets/dragons/<키>/dragon.txt(DragonData.h)가 종을 덮어쓰거나 추가할 수 있다.
 #pragma once
 
+#include <array>
 #include <cstdint>
 #include <string>
+#include <vector>
 
 namespace dt {
+
+// v1.4 스킬 관리창에서 고를 수 있는 액티브 장착 칸 수. 조작키 1~4와 짝이다.
+// 패시브는 이 칸을 쓰지 않는다(해제되면 항상 적용).
+constexpr int kSkillSlots = 4;
 
 // 내장 4종. 레지스트리에 종이 추가되면 4 이상의 값도 유효한 Species가 된다.
 enum class Species { Fire = 0, Earth = 1, Wind = 2, Water = 3 };
@@ -16,6 +22,7 @@ constexpr int kBuiltinSpeciesCount = 4;
 int speciesCount();
 
 enum class SkillKind {
+    // ---- 액티브: 장착 칸(최대 kSkillSlots개)에 넣어야 쓸 수 있다 ----
     Projectile,  // 가장 가까운 적에게 유도탄
     Burst,       // 자기 주변 원형 피해(extra = 기절 시간)
     Line,        // 대상 방향 직선 피해
@@ -24,24 +31,24 @@ enum class SkillKind {
     Shield,      // 받는 피해 감소(power = 감소 비율)
     Haste,       // 이동 속도(power)·회피 확률(extra) 증가
     Zone,        // 대상 위치에 지속 피해 장판(power = 초당 공격력 배율)
+    // ---- 패시브(v1.4): 칸을 쓰지 않고 해제되면 항상 적용된다 ----
+    PassiveStat,    // 능력치 상시 보정(stat = 어떤 능력치, power = 보정량)
+    PassiveOnKill,  // 적을 쓰러뜨릴 때 최대 체력의 power 비율만큼 회복
 };
+
+// 액티브와 패시브를 가르는 유일한 기준. 스킬 종류를 새로 추가할 때 여기만 고치면
+// 장착창·입력·자동 전투가 모두 따라온다.
+bool skillIsPassive(SkillKind k);
 
 // dragon.txt의 kind= 값과 SkillKind를 서로 바꾼다. 모르는 이름이면 false.
 bool skillKindFromName(const std::string& name, SkillKind& out);
 const char* skillKindName(SkillKind k);
 
-struct SkillDef {
-    std::string name;
-    std::string desc;
-    int unlockLevel = 1;
-    float cooldown = 4.f;
-    SkillKind kind = SkillKind::Projectile;
-    float power = 1.5f;
-    float radius = 0.f;    // Burst/Zone 반경, Line 반폭
-    float range = 350.f;   // 사거리, Line/Dash 길이
-    float duration = 0.f;  // Shield/Haste/Zone 지속 시간
-    float extra = 0.f;
-};
+// PassiveStat이 올려 줄 능력치. dragon.txt의 stat= 값과 짝이다.
+enum class StatKind { Hp, Atk, Def, Speed, Dodge, Regen };
+bool statKindFromName(const std::string& name, StatKind& out);
+const char* statKindName(StatKind k);  // "hp", "atk", ...
+const char* statKindLabel(StatKind k);  // "최대 체력", "공격력", ...
 
 // 캐릭터 애니메이션 상태. assets/dragons/<키>/<상태 이름>.png 시트와 짝이다.
 // Fly는 바탕화면에서 스스로 날아다닐 때만 쓴다(전투에는 쓰지 않는다).
@@ -60,6 +67,27 @@ struct AnimDef {
     float renderScale = 1.f;
 };
 
+struct SkillDef {
+    std::string name;
+    std::string desc;
+    // 0이면 "자동" — 등록할 때 비어 있는 가장 낮은 레벨이 한 레벨에 하나씩 배정된다.
+    // 1 이상이면 그 레벨에서 해제된다. 등록이 끝난 뒤에는 항상 1 이상이다.
+    int unlockLevel = 0;
+    float cooldown = 4.f;
+    SkillKind kind = SkillKind::Projectile;
+    float power = 1.5f;
+    float radius = 0.f;    // Burst/Zone 반경, Line 반폭
+    float range = 350.f;   // 사거리, Line/Dash 길이
+    float duration = 0.f;  // Shield/Haste/Zone 지속 시간
+    float extra = 0.f;
+    // ---- 아래는 v1.4에서 더했다. 위 순서는 기존 코드가 그대로 쓰므로 바꾸지 않는다 ----
+    StatKind stat = StatKind::Atk;  // PassiveStat 전용
+    // 이 스킬을 쓸 때 재생할 전용 본체 모션. assets/dragons/<키>/skill_<motion>.png
+    // 비어 있으면 공용 attack 시트를 쓴다(예전과 같다).
+    std::string motion;
+    AnimDef motionAnim{12.f, false, 0, 1.f};
+};
+
 struct SpeciesDef {
     Species id = Species::Fire;
     std::string key;   // 저장 파일·폴더·이미지 이름에 쓰는 영문 키
@@ -69,7 +97,9 @@ struct SpeciesDef {
     uint32_t color = 0xFF9AA2B4;  // 0xAARRGGBB
     float baseHp = 110.f, baseAtk = 11.f, baseDef = 4.f, baseSpeed = 170.f, baseDodge = 0.30f, baseRegen = 0.f;
     float hpGrowth = 15.f, atkGrowth = 2.4f, defGrowth = 0.8f, dodgeGrowth = 0.f, regenGrowth = 0.f;
-    SkillDef skills[3];
+    // v1.4: 개수 제한을 없앴다. dragon.txt에 [skill.1] [skill.2] ... 를 적은 만큼 늘어난다.
+    // 해제 레벨은 registerOrUpdateSpecies에서 "한 레벨에 하나씩" 규칙으로 채워진다.
+    std::vector<SkillDef> skills;
     AnimDef anims[kAnimStateCount];  // 상태별 재생 정보(시트가 없으면 무시된다)
     bool flipAllowed = true;         // false면 왼쪽을 볼 때도 좌우 반전하지 않는다
     // v0.9: 이 드래곤을 고르면 쓰는 UI 스킨(assets/ui/<키>/). 비어 있으면 default.
@@ -92,7 +122,18 @@ const SpeciesDef& speciesDef(Species s);
 bool speciesFromKey(const std::string& key, Species& out);
 
 // 같은 키가 있으면 그 종을 덮어쓰고, 없으면 새 종으로 추가한다. 등록된 id를 돌려준다.
+// 등록할 때 해제 레벨이 비어 있는(unlockLevel == 0) 스킬에 레벨을 배정한다.
 Species registerOrUpdateSpecies(const SpeciesDef& def);
+
+// "레벨마다 하나씩" 규칙. level= 이 적힌 스킬은 그 값을 지키고, 비어 있는 스킬은
+// 아직 아무도 쓰지 않은 가장 낮은 레벨을 목록 순서대로 하나씩 가져간다.
+// registerOrUpdateSpecies가 항상 부르므로 보통은 직접 부를 일이 없다(테스트용으로 공개).
+void assignUnlockLevels(SpeciesDef& def);
+
+// 그 레벨에서 쓸 수 있는가. 범위 밖 번호는 false.
+bool skillUnlockedAt(const SpeciesDef& def, int skillIndex, int level);
+// 그 레벨에서 해제된 액티브 스킬 번호를 목록 순서대로 돌려준다(장착창·자동 채우기용).
+std::vector<int> unlockedActiveSkills(const SpeciesDef& def, int level);
 
 // 키가 레지스트리에 없으면 그 키의 자리 표시 종(이름=키, 기본 수치)을 등록한다.
 // 저장 파일에 폴더가 지워진 종의 개체가 남아 있어도 다른 종으로 바뀌지 않게 한다.

@@ -4,7 +4,9 @@
 #include <algorithm>
 #include <cmath>
 #include <fstream>
+#include <sstream>
 #include <string>
+#include <vector>
 
 #include "core/Config.h"
 #include "core/DragonData.h"
@@ -1324,6 +1326,273 @@ static void testTinyScreen() {
     CHECK(true);
 }
 
+
+// ---------------------------------------------------------------------------
+// v1.4 스킬 해제·장착
+// ---------------------------------------------------------------------------
+
+// 시험용 종을 하나 만든다. 레벨을 적은 스킬과 비워 둔 스킬을 섞는다.
+static SpeciesDef makeSkillTestSpecies(const std::string& key) {
+    SpeciesDef d;
+    d.key = key;
+    d.name = key;
+    d.role = "시험";
+    d.desc = "스킬 해제 시험용";
+    d.baseHp = 100.f; d.baseAtk = 10.f; d.baseDef = 0.f; d.baseSpeed = 170.f; d.baseDodge = 0.f;
+    d.hpGrowth = 0.f; d.atkGrowth = 0.f; d.defGrowth = 0.f;
+    d.skills = {
+        {"A", "", 1, 4.f, SkillKind::Projectile, 1.5f, 0.f, 380.f, 0.f, 0.f},   // level=1 (직접)
+        {"B", "", 0, 4.f, SkillKind::Burst, 1.5f, 120.f, 0.f, 0.f, 0.f},        // 자동
+        {"C", "", 5, 4.f, SkillKind::Line, 1.5f, 30.f, 300.f, 0.f, 0.f},        // level=5 (직접)
+        {"D", "", 0, 4.f, SkillKind::Zone, 1.0f, 90.f, 300.f, 3.f, 0.f},        // 자동
+        {"E", "", 0, 4.f, SkillKind::Dash, 1.5f, 30.f, 200.f, 0.f, 0.f},        // 자동
+        {"P", "", 0, 0.f, SkillKind::PassiveStat, 0.5f, 0.f, 0.f, 0.f, 0.f},    // 자동(패시브)
+    };
+    d.skills[5].stat = StatKind::Atk;
+    for (int i = 0; i < kAnimStateCount; ++i) d.anims[i] = {8.f, true, 0, 1.f};
+    return d;
+}
+
+static void testSkillUnlockLevels() {
+    std::printf("[skill-unlock]\n");
+    Species s = registerOrUpdateSpecies(makeSkillTestSpecies("testskills"));
+    const SpeciesDef& d = speciesDef(s);
+    // 적어 둔 값은 지킨다
+    CHECK(d.skills[0].unlockLevel == 1);
+    CHECK(d.skills[2].unlockLevel == 5);
+    // 빈 것은 아직 쓰이지 않은 가장 낮은 레벨을 목록 순서대로 가져간다 (2, 3, 4, 6)
+    CHECK(d.skills[1].unlockLevel == 2);
+    CHECK(d.skills[3].unlockLevel == 3);
+    CHECK(d.skills[4].unlockLevel == 4);
+    CHECK(d.skills[5].unlockLevel == 6);
+    // 한 레벨에 둘이 겹치지 않는다
+    std::vector<int> lv;
+    for (const SkillDef& sk : d.skills) lv.push_back(sk.unlockLevel);
+    std::sort(lv.begin(), lv.end());
+    CHECK(std::adjacent_find(lv.begin(), lv.end()) == lv.end());
+
+    // 해제된 액티브만 돌려준다(패시브 제외)
+    CHECK(unlockedActiveSkills(d, 1).size() == 1);
+    CHECK(unlockedActiveSkills(d, 4).size() == 4);
+    CHECK(unlockedActiveSkills(d, 6).size() == 5);  // P는 패시브라 빠진다
+
+    // 등록을 다시 해도 결과가 같다(두 번 돌려도 레벨이 밀리지 않는다)
+    registerOrUpdateSpecies(makeSkillTestSpecies("testskills"));
+    CHECK(speciesDef(s).skills[1].unlockLevel == 2);
+    CHECK(speciesDef(s).skills[5].unlockLevel == 6);
+}
+
+static void testSkillSlots() {
+    std::printf("[skill-slots]\n");
+    Species sp = registerOrUpdateSpecies(makeSkillTestSpecies("testslots"));
+    SaveData s;
+    Game g;
+    g.init(s, kDesk);
+    g.chooseSpecies(sp);
+
+    // Lv1에서는 A 하나만 해제돼 1번 칸에 자동으로 들어간다
+    CHECK(g.skillSlots()[0] == 0);
+    CHECK(g.skillSlots()[1] == -1);
+    CHECK(!g.hasUnequippedSkill());
+
+    // 레벨을 올리면 새로 열린 스킬이 빈 칸을 채운다
+    SaveData up = g.snapshotForSave();
+    up.dragon.level = 6;
+    up.stable[0].level = 6;
+    Game g2;
+    g2.init(up, kDesk);
+    // 액티브 5개(A~E) 중 앞의 4개가 칸을 채우고 하나가 남는다
+    int filled = 0;
+    for (int v : g2.skillSlots()) if (v >= 0) ++filled;
+    CHECK(filled == kSkillSlots);
+    CHECK(g2.hasUnequippedSkill());
+    // 패시브(5번)는 칸에 들어가지 않는다
+    for (int v : g2.skillSlots()) CHECK(v != 5);
+
+    // 남은 스킬을 2번 칸에 넣으면 거기 있던 것이 빠진다
+    int before = g2.skillSlots()[1];
+    CHECK(g2.equipSkill(1, 4));
+    CHECK(g2.skillSlots()[1] == 4);
+    CHECK(g2.skillSlots()[0] != before || before == g2.skillSlots()[0]);  // 다른 칸은 그대로
+    // 같은 스킬이 두 칸을 차지하지 않는다
+    int count = 0;
+    for (int v : g2.skillSlots()) if (v == 4) ++count;
+    CHECK(count == 1);
+
+    // 이미 1번에 있는 것을 3번으로 옮기면 두 칸이 맞바뀐다
+    int a = g2.skillSlots()[0], c = g2.skillSlots()[2];
+    CHECK(g2.equipSkill(2, a));
+    CHECK(g2.skillSlots()[2] == a && g2.skillSlots()[0] == c);
+
+    // 패시브와 미해제 스킬은 넣을 수 없다
+    CHECK(!g2.equipSkill(0, 5));             // 패시브
+    CHECK(!g2.equipSkill(0, 99));            // 없는 번호
+    g2.clearSlot(0);
+    CHECK(g2.skillSlots()[0] == -1);
+}
+
+static void testSkillSlotsSaved() {
+    std::printf("[skill-slots-save]\n");
+    Species sp = registerOrUpdateSpecies(makeSkillTestSpecies("testsave"));
+    SaveData s;
+    s.hasDragon = true;
+    s.dragon.species = sp;
+    s.dragon.level = 6;
+    s.dragon.id = 1;
+    s.stable.push_back(s.dragon);
+    s.activeIndex = 0;
+    Game g;
+    g.init(s, kDesk);
+    CHECK(g.equipSkill(0, 4));
+    SaveData out = g.snapshotForSave();
+
+    // 저장 -> 불러오기에서 장착이 그대로 남는다
+    SaveData back;
+    CHECK(deserializeSave(serializeSave(out), back));
+    CHECK(back.dragon.slots == out.dragon.slots);
+    CHECK(back.stable[0].slots == out.dragon.slots);
+
+    // v1.3 이전 저장 파일(장착 칸 없음)이면 해제된 액티브로 채워진다
+    std::string text = serializeSave(out);
+    std::string stripped;
+    std::istringstream in(text);
+    std::string line;
+    while (std::getline(in, line)) {
+        if (line.find("slots=") != std::string::npos) continue;
+        stripped += line + "\n";
+    }
+    SaveData old;
+    CHECK(deserializeSave(stripped, old));
+    int filled = 0;
+    for (int v : old.dragon.slots) if (v >= 0) ++filled;
+    CHECK(filled == kSkillSlots);
+    for (int v : old.dragon.slots) CHECK(v != 5);  // 패시브는 들어가지 않는다
+
+    // 저장 파일에 이상한 값이 들어 있어도 그대로 쓰지 않는다
+    std::string broken = stripped + "dragon.slots=99,-7,5,1\n";
+    SaveData fixed;
+    CHECK(deserializeSave(broken, fixed));
+    for (int v : fixed.dragon.slots) CHECK(v == -1 || (v >= 0 && v != 5));
+}
+
+static void testPassiveSkills() {
+    std::printf("[skill-passive]\n");
+    // PassiveStat 은 해제된 뒤에만 능력치에 반영된다
+    Species sp = registerOrUpdateSpecies(makeSkillTestSpecies("testpassive"));
+    DragonStats before = statsFor(sp, 5);   // 패시브는 Lv6 해제
+    DragonStats after = statsFor(sp, 6);
+    CHECK(std::fabs(before.atk - 10.f) < 0.01f);
+    CHECK(std::fabs(after.atk - 15.f) < 0.01f);  // power=0.5 -> +50%
+
+    // 회피 패시브는 상한(0.75)을 넘지 못한다
+    SpeciesDef dodgy = makeSkillTestSpecies("testdodge");
+    dodgy.baseDodge = 0.7f;
+    dodgy.skills[5].stat = StatKind::Dodge;
+    dodgy.skills[5].power = 0.5f;
+    Species dsp = registerOrUpdateSpecies(dodgy);
+    CHECK(statsFor(dsp, 6).dodge <= 0.75f + 0.001f);
+
+    // PassiveOnKill 은 적을 쓰러뜨릴 때 회복시킨다
+    SpeciesDef healer = makeSkillTestSpecies("testonkill");
+    healer.skills[5].kind = SkillKind::PassiveOnKill;
+    healer.skills[5].power = 0.2f;
+    healer.skills[5].unlockLevel = 1;
+    Species hsp = registerOrUpdateSpecies(healer);
+    World w;
+    w.setBounds({0.f, 0.f, 1600.f, 900.f});
+    w.setupDragon(hsp, 1, 50.f, {800.f, 450.f});
+    Enemy& e = w.spawnEnemy(defaultMelee(), 1, {830.f, 450.f});
+    float hpBefore = w.dragon().hp;
+    e.hp = 0.5f;  // 한 대면 죽는다
+    PlayerInput in;
+    for (int i = 0; i < 120 && w.aliveEnemyCount() > 0; ++i) w.updateCombat(1.f / 60.f, CombatMode::Auto, in);
+    CHECK(w.aliveEnemyCount() == 0);
+    CHECK(w.dragon().hp > hpBefore);  // 처치하면서 회복했다
+}
+
+static void testAutoUsesEquippedOnly() {
+    std::printf("[skill-auto-equipped]\n");
+    Species sp = registerOrUpdateSpecies(makeSkillTestSpecies("testauto"));
+    World w;
+    w.setBounds({0.f, 0.f, 1600.f, 900.f});
+    w.setupDragon(sp, 6, -1.f, {800.f, 450.f});
+    // 칸을 모두 비우면 자동 전투에서도 스킬이 나가지 않는다(기본 공격만 한다)
+    w.setSlots({-1, -1, -1, -1});
+    w.spawnEnemy(defaultMelee(), 6, {900.f, 450.f});
+    PlayerInput in;
+    for (int i = 0; i < 300; ++i) w.updateCombat(1.f / 60.f, CombatMode::Auto, in);
+    for (float cd : w.dragon().skillCd) CHECK(cd <= 0.f);  // 아무 스킬도 쓰지 않았다
+
+    // 한 칸만 채우면 그 스킬만 쓴다
+    World w2;
+    w2.setBounds({0.f, 0.f, 1600.f, 900.f});
+    w2.setupDragon(sp, 6, -1.f, {800.f, 450.f});
+    w2.setSlots({2, -1, -1, -1});  // C(Line)만
+    w2.spawnEnemy(defaultMelee(), 6, {880.f, 450.f});
+    for (int i = 0; i < 300; ++i) w2.updateCombat(1.f / 60.f, CombatMode::Auto, in);
+    CHECK(w2.dragon().skillCd[2] > 0.f || w2.aliveEnemyCount() == 0);
+    CHECK(w2.dragon().skillCd[0] <= 0.f);
+    CHECK(w2.dragon().skillCd[1] <= 0.f);
+
+    // 수동에서도 키(칸)와 스킬이 짝지어진다 — 2번 키는 2번 칸의 스킬을 쓴다
+    World w3;
+    w3.setBounds({0.f, 0.f, 1600.f, 900.f});
+    w3.setupDragon(sp, 6, -1.f, {800.f, 450.f});
+    w3.setSlots({4, 2, -1, -1});
+    w3.spawnEnemy(defaultMelee(), 6, {880.f, 450.f});
+    PlayerInput press;
+    press.skill[1] = true;
+    w3.updateCombat(1.f / 60.f, CombatMode::SkillManual, press);
+    CHECK(w3.dragon().skillCd[2] > 0.f);   // 2번 칸에 넣어 둔 C가 나갔다
+    CHECK(w3.dragon().skillCd[4] <= 0.f);  // 1번 칸의 E는 그대로다
+}
+
+// v1.3에서 빠져 있던 것: 다친 드래곤의 체력이 저장되지 않아 다시 켜면 가득 찬 채로 돌아왔다.
+static void testActiveDragonHpSaved() {
+    std::printf("[active hp saved]\n");
+    SaveData s;
+    Game g;
+    g.init(s, kDesk);
+    g.chooseSpecies(Species::Fire);
+    float maxHp = g.world().dragon().stats.maxHp;
+    g.world().dragon().hp = maxHp * 0.3f;
+    SaveData out = g.snapshotForSave();
+    CHECK(std::fabs(out.stable[0].hp - maxHp * 0.3f) < 0.01f);
+    SaveData back;
+    CHECK(deserializeSave(serializeSave(out), back));
+    CHECK(std::fabs(back.dragon.hp - maxHp * 0.3f) < 0.6f);  // 저장 파일은 소수점을 줄여 적는다
+    // 다시 켜도 가득 차 있지 않다
+    Game g2;
+    g2.init(back, kDesk);
+    CHECK(g2.world().dragon().hp < maxHp * 0.5f);
+}
+
+static void testSkillMotionParse() {
+    std::printf("[skill-motion]\n");
+    std::string text =
+        "[dragon]\nname=모션시험\n"
+        "[skill.1]\nname=하나\nkind=Line\nmotion=claw\nmotion_fps=14\nmotion_frame_w=256\n"
+        "[skill.2]\nname=둘\nkind=PassiveStat\nstat=dodge\npower=0.04\n"
+        "[skill.5]\nname=다섯\nkind=Burst\n";
+    DragonParseResult r = parseDragonText(text, "motiontest", nullptr);
+    CHECK(r.def.skills.size() == 5);
+    CHECK(r.def.skills[0].motion == "claw");
+    CHECK(std::fabs(r.def.skills[0].motionAnim.fps - 14.f) < 0.01f);
+    CHECK(r.def.skills[0].motionAnim.loop == false);  // 스킬 모션은 항상 1회 재생
+    CHECK(r.def.skills[1].kind == SkillKind::PassiveStat);
+    CHECK(r.def.skills[1].stat == StatKind::Dodge);
+    CHECK(skillIsPassive(r.def.skills[1].kind));
+    // 번호를 건너뛰면 경고한다(사이는 기본값 스킬로 채워진다)
+    bool warnedGap = false;
+    for (const std::string& w : r.warnings)
+        if (w.find("건너뛰") != std::string::npos) warnedGap = true;
+    CHECK(warnedGap);
+
+    // 모르는 stat 과 kind 는 경고로 알린다
+    DragonParseResult bad = parseDragonText("[dragon]\nname=x\n[skill.1]\nkind=Nope\nstat=luck\n", "badtest", nullptr);
+    CHECK(bad.warnings.size() >= 2);
+}
+
 int main() {
     testExpCurve();
     testNoAutoCap();
@@ -1362,6 +1631,13 @@ int main() {
     testStablePermadeath();
     testKeepRange();
     testTinyScreen();
+    testSkillUnlockLevels();
+    testSkillSlots();
+    testSkillSlotsSaved();
+    testPassiveSkills();
+    testAutoUsesEquippedOnly();
+    testSkillMotionParse();
+    testActiveDragonHpSaved();
     std::printf("\n%d passed, %d failed\n", g_passed, g_failed);
     return g_failed == 0 ? 0 : 1;
 }

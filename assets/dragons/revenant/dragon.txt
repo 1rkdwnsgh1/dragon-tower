@@ -59,7 +59,43 @@ loop=yes
 frame_w=256
 render_scale=1.50
 
-; attack / hit / death 시트는 아직 없다. idle 로 대신 그려진다.
+; attack: v1.4에서 추가했다(그 전에는 시트가 없어 idle 로 대신 그려졌다).
+; 원거리 기본 공격(망령탄) 모션이다. 8프레임, 원본이 왼쪽 지향이라 --mirror 로 뒤집었다.
+; render_scale: 새 패키지의 몸이 대기보다 조금 작게 그려져 있다.
+; (흉부 영혼 코어 높이 기준 대기 136px : 새 패키지 130px -> 1.04배. 눈으로도 확인함)
+; 새 시트 다섯 장(attack, skill_*)은 같은 패키지라 **같은 보정값**을 쓴다.
+[anim.attack]
+fps=10
+loop=no
+frame_w=256
+render_scale=1.04
+
+; hit / death 시트는 아직 없다. idle 로 대신 그려진다.
+
+; 스킬 본체 모션 다시 만들 때 쓴 명령(assets/references/revenant-dragon/work-2026-11-14 기준):
+;   python tools/make_sheet.py \
+;     --set attack=basic_attack/ranged \
+;     --set skill_melee=basic_attack/melee \
+;     --set skill_pierce=spirit_pierce_atlas.png@2x4:*,1-4 \
+;     --set skill_erosion=spectral_erosion_atlas.png@2x4:*,1-4 \
+;     --set skill_harvest=soul_harvest_atlas.png@2x4:*,1-4 \
+;     --ref attack --mirror --cell 256 --ratio 0.70 -o assets/dragons/revenant
+;
+; 다섯 상태를 한 번에 변환해 공통 배율을 쓴다. 기본 공격은 동봉된 _sheet.png 가
+; 1774x887 이라 444 칸으로 정확히 나뉘지 않는다 -> 낱장 프레임 폴더를 쓸 것.
+; 나머지 셋의 _atlas.png 는 1776x888 이라 격자로 잘라도 같은 결과가 나온다(확인함).
+
+; ---------------------------------------------------------------------------
+; 스킬 (v1.4)
+; level= 을 적지 않으면 "아직 비어 있는 가장 낮은 레벨"이 순서대로 배정된다.
+; 1~3번은 v0.2부터 있던 임시 스킬이라 레벨을 그대로 두었다(PR #6의 "기존 임시 스킬을
+; 새 V1로 개명·교체하지 않는다"를 따른다). 4번 이후가 이번에 더한 것이다.
+; 결과: Lv1 영혼 탄 / Lv2 망자의 발톱 / Lv3 저주의 안개 / Lv4 혼령 관통 /
+;       Lv5 망령의 침식 / Lv6 망령의 포효 / Lv7 영혼 수확(패시브)
+;
+; motion= 은 스킬을 쓸 때 재생할 전용 본체 모션이다. 파일은 skill_<motion>.png.
+; 적지 않으면 공용 attack 시트로 그려진다.
+; ---------------------------------------------------------------------------
 
 [skill.1]
 name=영혼 탄
@@ -69,6 +105,7 @@ level=1
 cooldown=4
 power=2.0
 range=380
+; 원거리 기본 공격과 같은 동작이므로 전용 모션 없이 attack 시트를 쓴다
 
 [skill.2]
 name=저주의 안개
@@ -90,3 +127,54 @@ cooldown=10
 power=1.8
 radius=130
 extra=1.2
+
+; --- 여기부터 v1.4. 수치는 전부 임시값이고 플레이해 보고 조정한다 ---
+
+[skill.4]
+name=망자의 발톱
+desc=가까이 붙은 적을 발톱으로 휘두른다.
+kind=Line
+cooldown=3.5
+power=1.6
+range=140
+radius=36
+motion=melee
+motion_fps=11
+motion_frame_w=256
+motion_render_scale=1.04
+
+[skill.5]
+name=혼령 관통
+desc=영혼 창을 응축해 앞의 적을 꿰뚫는다.
+kind=Line
+cooldown=9
+power=3.0
+range=360
+radius=30
+motion=pierce
+motion_fps=12
+motion_frame_w=256
+motion_render_scale=1.04
+
+[skill.6]
+name=망령의 침식
+desc=저주의 안개를 넓게 흘려 적을 갉아낸다.
+kind=Zone
+cooldown=12
+power=1.3
+radius=140
+range=340
+duration=5
+motion=erosion
+motion_fps=8
+motion_frame_w=256
+motion_render_scale=1.04
+
+; 패시브 — 장착 칸을 쓰지 않는다. 해제되면 항상 적용된다.
+; 본체 모션(skill_harvest.png)은 변환해 두었지만 패시브는 발동 모션이 없어 아직 쓰이지 않는다.
+; 처치 연출(영혼이 흉부 코어로 빨려 들어가는 FX)을 넣을 때 함께 쓸 것.
+[skill.7]
+name=영혼 수확
+desc=적을 쓰러뜨릴 때 영혼을 거두어 최대 체력의 6%를 회복한다.
+kind=PassiveOnKill
+power=0.06

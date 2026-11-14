@@ -67,6 +67,16 @@ tests/                     코어 규칙 검증
 | `dragon.txt` 읽는 규칙 | `src/core/DragonData.cpp` | `parseDragonText` |
 | 폴더 스캔 | `src/core/DragonData.cpp` | `loadDragonFolders` |
 | 전투 진행(피해, 회피, 스킬 발동) | `src/core/World.cpp` | `updateCombat`, `castSkill`, `damageDragon` |
+| 스킬 해제 레벨 배정(레벨당 하나) | `src/core/Species.cpp` | `assignUnlockLevels` (`registerOrUpdateSpecies`가 항상 부른다) |
+| 액티브·패시브 구분 | `include/core/Species.h`, `src/core/Species.cpp` | `SkillKind`, `skillIsPassive` |
+| 패시브 능력치 보정 | `src/core/Species.cpp` | `statsFor` 뒤쪽의 `PassiveStat` |
+| 처치 패시브(회복) | `src/core/World.cpp` | `onEnemyKilled` (`damageEnemy`에서 부른다) |
+| 장착 4칸(저장되는 값) | `include/core/Progression.h` | `DragonRecord::slots`, `fillEmptySkillSlots` |
+| 장착 바꾸기·관리창 열기 | `src/core/Game.cpp` | `equipSkill`, `clearSlot`, `syncSkillSlots`, `openSkills` |
+| 키 1~4와 자동 전투의 스킬 선택 | `src/core/World.cpp` | `slotSkill`, `slotReady`, `dragonAi`의 `castSkills` |
+| 스킬 관리창 그리기 | `src/win/Renderer.cpp` | `drawSkills`, `drawSkillBox` |
+| 스킬별 본체 모션 | `src/win/Sprites.cpp`, `src/win/Renderer.cpp` | `loadSkillSheets`/`skillSheet`, `drawDragon`의 `skillMotion` |
+| 스킬 칸 수·모션 유지 시간 | `include/core/Species.h`, `include/core/Config.h` | `kSkillSlots`, `cfg::kSkillMotionHold` |
 | 적 행동과 공격 예고 | `src/core/World.cpp` | `updateEnemies`, `resolveZone` |
 | 애니메이션 상태 전환 | `src/core/World.cpp` | `updateDragonAnim`, `setDragonAnim` |
 | 바탕화면 자동 행동(쉬기·걷기·날기·착지) | `src/core/World.cpp` | `pickBehavior`, `wander`, `randomRoamTarget` |
@@ -83,16 +93,16 @@ tests/                     코어 규칙 검증
 | 창 만들기, 입력 전환, 메인 루프 | `src/win/App.cpp` | `App::init`, `setInputEnabled`, `tick` |
 | 전체화면 감지, 저장 경로, DPI | `src/win/Platform.cpp` | `isOtherAppFullscreen`, `saveFilePath` |
 
-## 파일 크기 (2026-11-13)
+## 파일 크기 (2026-11-14, v1.4)
 
 큰 파일은 통째로 읽지 말고 위 표의 이름으로 찾아 들어간다.
 
 | 파일 | 줄 수 |
 |---|---|
-| `src/win/Renderer.cpp` | ~1060 |
-| `src/core/World.cpp` | ~680 |
+| `src/win/Renderer.cpp` | ~1300 |
+| `src/core/World.cpp` | ~720 |
 | `src/win/App.cpp` | ~480 |
-| `src/core/Game.cpp` | ~420 |
+| `src/core/Game.cpp` | ~540 |
 | `src/core/DragonData.cpp` | ~290 |
 | 나머지 | 200줄 이하 |
 
@@ -102,5 +112,5 @@ tests/                     코어 규칙 검증
 cmake -S . -B build && cmake --build build -j && ctest --test-dir build --output-on-failure
 ```
 
-Linux에서도 코어 규칙은 전부 빌드·테스트된다(`tests/core_tests.cpp`, 147건).
+Linux에서도 코어 규칙은 전부 빌드·테스트된다(`tests/core_tests.cpp`).
 Windows 실행 파일은 GitHub Actions의 `build`가 만든다. 실제 창 동작은 사람이 직접 확인한다.
