@@ -53,12 +53,18 @@ void Game::setConfineToBand(bool on) {
     if (save_.confineToBand == on) return;
     save_.confineToBand = on;
     saveRequested_ = true;
+    // 사냥 중에는 이미 띠 안에서 싸우고 있으므로 설정만 저장한다.
+    // 사냥을 멈출 때 이 설정에 따라 띠에 남을지 화면 전체로 돌아갈지 정해진다.
     if (!hunting_ && !inTowerFlow() && save_.hasDragon) {
-        RectF b = on ? battleBand() : desktop_;
-        world_.setBounds(b);
-        world_.dragon().pos = b.clampPoint(world_.dragon().pos, cfg::kDragonRadius);
-        world_.dragon().groundY = world_.dragon().pos.y;
-        world_.dragon().behaviorLeft = 0.f;
+        if (on) {
+            // v1.0: 순간이동시키지 않고 날아서 내려간다.
+            world_.beginConfine(battleBand());
+        } else {
+            world_.cancelConfine();
+            world_.setBounds(desktop_);
+            world_.dragon().groundY = world_.dragon().pos.y;
+            world_.dragon().behaviorLeft = 0.f;
+        }
     }
     notify(on ? "드래곤이 화면 아래쪽에만 머뭅니다." : "드래곤이 바탕화면 전체를 돌아다닙니다.", kGood, 2.5f);
 }
@@ -103,6 +109,12 @@ void Game::setCharScale(float s) {
     float v = std::clamp(s, cfg::kCharScaleMin, cfg::kCharScaleMax);
     if (save_.charScale == v) return;
     save_.charScale = v;
+    saveRequested_ = true;
+}
+
+void Game::setMenuOpen(bool on) {
+    if (save_.menuOpen == on) return;
+    save_.menuOpen = on;
     saveRequested_ = true;
 }
 
@@ -269,6 +281,7 @@ void Game::startHunt() {
     waveActive_ = false;
     waveNumber_ = 0;
     // 전투는 맨 아래 띠에서만 일어난다. 드래곤을 띠 안으로 내려 세운다.
+    world_.cancelConfine();
     world_.setBounds(battleBand());
     world_.dragon().pos = battleBand().clampPoint(world_.dragon().pos, cfg::kDragonRadius);
     world_.dragon().groundY = world_.dragon().pos.y;
@@ -299,6 +312,7 @@ void Game::stopHunt(const std::string& reason) {
     if (!inTowerFlow()) {
         // 설정에 따라 띠에 머물거나 바탕화면 전체로 돌아간다
         world_.setBounds(save_.confineToBand ? battleBand() : desktop_);
+        world_.cancelConfine();
         world_.dragon().behaviorLeft = 0.f;  // 다음 프레임에 새 행동을 고른다
     }
     world_.clearEnemies(true);

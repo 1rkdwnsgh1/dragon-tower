@@ -45,8 +45,7 @@ private:
     void tick(float dt);
     void render();
     PlayerInput pollKeys();
-    // onlyAlways면 입력이 꺼진 상태에서도 누를 수 있는 버튼만 처리한다.
-    void onClick(float lx, float ly, bool onlyAlways);
+    void onClick(float lx, float ly);
     void doAction(const UiButton& b);
     void saveNow();
     void requestExit();
@@ -59,10 +58,7 @@ private:
     void refreshTrayTip();
     void showBalloon(const std::string& title, const std::string& body, bool warning);
     void pumpAlerts();
-    // 상태창·메뉴·드래곤 끌기 시작. onlyAlways면 입력이 꺼진 상태에서도 되는 것만 받는다.
-    bool startDrag(float lx, float ly, bool onlyAlways);
-    // 커서가 "입력이 꺼져 있어도 받는 영역" 위에 있는가
-    bool cursorOnAlways() const;
+    bool startDrag(float lx, float ly);  // 상태창·메뉴·드래곤 끌기 시작
 
     HINSTANCE inst_ = nullptr;
     HWND overlay_ = nullptr;

@@ -936,10 +936,14 @@ static void testConfineToBand() {
 
     g.setConfineToBand(true);
     CHECK(g.confineToBand());
-    CHECK(g.world().bounds().h <= cfg::kBandHeight + 0.01f);
-    // 오래 두어도 띠를 벗어나지 않는다
+    // v1.0: 순간이동이 아니라 날아서 내려간다. 도착할 때까지는 경계가 아직 화면 전체다.
     RectF band = g.battleBand();
     PlayerInput in;
+    CHECK(g.world().confining());
+    for (int i = 0; i < 30 * 30 && g.world().confining(); ++i) g.update(1.f / 30.f, in, false, false);
+    CHECK(!g.world().confining());  // 30초 안에는 도착한다
+    CHECK(g.world().bounds().h <= cfg::kBandHeight + 0.01f);
+    // 그 뒤로는 오래 두어도 띠를 벗어나지 않는다
     for (int i = 0; i < 30 * 120; ++i) {
         g.update(1.f / 30.f, in, false, false);
         CHECK_SILENT(g.world().dragon().pos.y >= band.y - 1.f &&
@@ -1109,11 +1113,13 @@ static void testThinBandStanding() {
     RectF band = g.battleBand();
     float floorY = band.bottom() - cfg::kDragonRadius;
 
-    // 띠에만 머물게 하면 바닥 줄에 선다
+    // 띠에만 머물게 하면 날아서 내려가 바닥 줄에 선다
     g.setConfineToBand(true);
+    for (int i = 0; i < 30 * 30 && g.world().confining(); ++i) stepGame(g, 1.f / 30.f, false, true);
+    CHECK(!g.world().confining());
     CHECK(std::fabs(g.world().dragon().pos.y - floorY) < 0.001f);
 
-    // 위쪽으로 끌어다 놓아도 바닥 줄로 돌아온다
+    // 도착한 뒤에는 위쪽으로 끌어다 놓아도 바닥 줄로 맞춰진다(경계가 이미 띠다)
     g.placeDragon({band.x + 200.f, band.y - 300.f});
     CHECK(std::fabs(g.world().dragon().pos.y - floorY) < 0.001f);
 

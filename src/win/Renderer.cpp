@@ -163,23 +163,11 @@ void Renderer::paragraph(Graphics& g, const std::string& s, const RectF& r, floa
 
 // 이번 프레임에 모은 영역. drawOverlay 동안만 유효하다.
 static FrameRegions* g_regions = nullptr;
-// 이 플래그가 켜진 동안 그린 것은 "게임 입력이 꺼져 있어도 누를 수 있는 것"으로 표시된다.
-// 상태창을 그리는 동안에만 켠다(AlwaysGuard).
-static bool g_always = false;
 static void markRegion(const RectF& r, float pad = 6.f) {
     if (!g_regions) return;
     RectF padded(r.X - pad, r.Y - pad, r.Width + pad * 2.f, r.Height + pad * 2.f);
     g_regions->add(padded);
-    if (g_always) g_regions->addAlways(padded);
 }
-
-// 상태창을 그리는 동안만 g_always를 켠다. 예외로 빠져나가도 반드시 꺼진다.
-namespace {
-struct AlwaysGuard {
-    AlwaysGuard() { g_always = true; }
-    ~AlwaysGuard() { g_always = false; }
-};
-}  // namespace
 
 // 9조각으로 늘려 그린다. 네 모서리는 원래 크기 그대로 두고 가장자리와 가운데만 늘린다.
 // 여백이 0이면 통째로 늘린다(막대 채움처럼 장식이 없는 그림).
@@ -259,7 +247,6 @@ void Renderer::button(Graphics& g, std::vector<UiButton>& out, const RenderConte
     b.action = action;
     b.arg = arg;
     b.enabled = enabled;
-    b.always = g_always;
     out.push_back(b);
     markRegion(r);
 }
@@ -310,7 +297,7 @@ void Renderer::drawOverlay(Graphics& g, const Game& game, const Sprites& sprites
     Screen sc = game.screen();
 
     if (ctx.inputEnabled) {
-        // 게임 입력이 켜졌다는 표시로 화면을 아주 살짝 어둡게 한다(클릭도 게임이 받는다).
+        // 키보드 조작이 켜졌다는 표시로 화면을 아주 살짝 어둡게 한다(키보드가 게임으로 간다).
         SolidBrush tint(Color(30, 0, 0, 0));
         g.FillRectangle(&tint, 0.f, 0.f, width_, height_);
     }
@@ -328,7 +315,8 @@ void Renderer::drawOverlay(Graphics& g, const Game& game, const Sprites& sprites
     if (game.hasDragon() || sc == Screen::Death) drawWorld(g, game, sprites, ctx);
     if (game.hasDragon()) drawStatusCard(g, game, sprites, ctx, out);
     if (sc == Screen::Tower) drawTowerHud(g, game);
-    if (sc == Screen::Desktop && ctx.inputEnabled && game.hasDragon()) drawMenu(g, game, ctx, out);
+    // v1.0: 메뉴는 키보드 조작과 상관없이 열려 있으면 그린다. 마우스로 언제든 쓸 수 있다.
+    if (sc == Screen::Desktop && game.menuOpen() && game.hasDragon()) drawMenu(g, game, ctx, out);
 
     drawNotices(g, game);
 
@@ -345,7 +333,7 @@ void Renderer::drawOverlay(Graphics& g, const Game& game, const Sprites& sprites
     if (!ctx.inputEnabled && game.needsInput()) {
         RectF r(width_ * 0.5f - 280.f, 70.f, 560.f, 40.f);
         panel(g, r, 230);
-        text(g, "오른쪽 아래 설정 버튼을 눌러 게임 입력을 켜 주세요.", r.X + r.Width * 0.5f, r.Y + 10.f, 15.f, kWarnC, 1,
+        text(g, "오른쪽 아래 설정 버튼을 눌러 키보드 조작을 켜 주세요.", r.X + r.Width * 0.5f, r.Y + 10.f, 15.f, kWarnC, 1,
              true);
     }
 }
@@ -775,15 +763,12 @@ void Renderer::toggle(Graphics& g, std::vector<UiButton>& out, const RenderConte
     text(g, label, r.X, r.Y + (r.Height - 16.f) * 0.5f, 14.f, enabled ? kText : 0xFF7C8090, 0, true);
     text(g, on ? "ON" : "OFF", knobArea.X - 8.f, r.Y + (r.Height - 14.f) * 0.5f + 1.f, 12.f,
          on ? 0xFF8CFFA0 : 0xFF9AA2B4, 2);
-    if (enabled) out.push_back({r, action, arg, true, g_always});
+    if (enabled) out.push_back({r, action, arg, true});
     markRegion(r);
 }
 
 void Renderer::drawStatusCard(Graphics& g, const Game& game, const Sprites& sprites, const RenderContext& ctx,
                               std::vector<UiButton>& out) {
-    // 상태창은 게임 입력이 꺼져 있어도 만질 수 있어야 한다(v0.8). 여기서 그리는 버튼·영역은
-    // 모두 "항상 받는 것"으로 표시된다.
-    AlwaysGuard alwaysGuard;
     const DragonRecord& rec = game.dragonRecord();
     const DragonActor& d = game.world().dragon();
     const SpeciesDef& sp = speciesDef(rec.species);
@@ -799,9 +784,12 @@ void Renderer::drawStatusCard(Graphics& g, const Game& game, const Sprites& spri
     panel(g, r, 224);
 
     // 제목 줄은 끌기 손잡이다. 오른쪽 끝에 접기 버튼이 있다.
-    RectF handle(r.X, r.Y, r.Width - 34.f, 30.f);
-    out.push_back({handle, UiAction::DragPanel, 0, true, true});
+    RectF handle(r.X, r.Y, r.Width - 64.f, 30.f);
+    out.push_back({handle, UiAction::DragPanel, 0, true});
     markRegion(handle);
+    // 메뉴 열기/닫기. 설정(키보드 조작)과 따로 움직인다.
+    button(g, out, ctx, RectF(r.GetRight() - 60.f, r.Y + 4.f, 26.f, 22.f), "≡", UiAction::ToggleMenu, 0, true,
+           game.menuOpen());
     {
         bool hov = handle.Contains(PointF(ctx.mouseX, ctx.mouseY));
         for (int i = 0; i < 3; ++i)
@@ -907,7 +895,7 @@ void Renderer::drawStatusCard(Graphics& g, const Game& game, const Sprites& spri
     }
     float hx = x + 3 * (box + 8.f) + 4.f;
     if (!ctx.inputEnabled) {
-        paragraph(g, "설정 버튼으로\n게임 입력 켜기", RectF(hx, y + 2.f, r.GetRight() - hx - 8.f, box), 11.f, kSub);
+        paragraph(g, "설정 버튼으로\n키보드 조작 켜기", RectF(hx, y + 2.f, r.GetRight() - hx - 8.f, box), 11.f, kSub);
     } else if ((game.screen() == Screen::Tower ? game.towerMode() : game.huntMode()) == CombatMode::Direct) {
         paragraph(g, "WASD 이동\nSpace 회피 · 1~3 스킬", RectF(hx, y + 2.f, r.GetRight() - hx - 8.f, box), 11.f, kSub);
     } else if ((game.screen() == Screen::Tower ? game.towerMode() : game.huntMode()) == CombatMode::SkillManual) {
@@ -936,7 +924,7 @@ void Renderer::drawMenu(Graphics& g, const Game& game, const RenderContext& ctx,
     {
         float btn = 26.f * s;
         RectF handle(r.X, r.Y, r.Width - (btn * 2.f + 14.f * s), 30.f * s);
-        out.push_back({handle, UiAction::DragMenu, 0, true, false});
+        out.push_back({handle, UiAction::DragMenu, 0, true});
         markRegion(handle);
         bool hov = handle.Contains(PointF(ctx.mouseX, ctx.mouseY));
         for (int i = 0; i < 3; ++i)
@@ -1010,7 +998,7 @@ void Renderer::drawMenu(Graphics& g, const Game& game, const RenderContext& ctx,
     y += 48.f * s;
     button(g, out, ctx, RectF(x, y, w, 36.f * s), "저장하고 게임 종료", UiAction::ExitGame);
     y += 44.f * s;
-    paragraph(g, "설정 버튼을 다시 누르면 게임 입력이 꺼지고 마우스·키보드가 다른 프로그램으로 돌아갑니다. 상태창은 입력이 꺼져 있어도 만질 수 있습니다.",
+    paragraph(g, "창과 버튼은 언제나 마우스로 쓸 수 있습니다. 설정 버튼은 키보드 조작(이동·회피·스킬)을 켜고 끕니다.",
               RectF(x, y, w, 44.f * s), 11.f * s, kSub);
 }
 

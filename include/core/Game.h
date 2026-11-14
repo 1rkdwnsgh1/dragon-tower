@@ -101,6 +101,9 @@ public:
     void setCharScale(float s);
     bool powerSave() const { return save_.powerSave; }
     void setPowerSave(bool on);
+    // v1.0: 메뉴 창은 키보드 조작과 상관없이 마우스로 열고 닫는다.
+    bool menuOpen() const { return save_.menuOpen; }
+    void setMenuOpen(bool on);
     // v0.9: 싸울 때 유지할 간격(0 근접 / 1 중간 / 2 바깥). 스킬 수동·자동에 적용된다.
     int keepRange() const { return save_.keepRange; }
     void setKeepRange(int v);

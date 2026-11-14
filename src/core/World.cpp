@@ -62,7 +62,10 @@ void World::updateDragonAnim(float dt) {
     }
     if (d.animHold > 0.f) return;  // 1회 재생이 끝나지 않았다
     // 날고 있으면 잠시 멈춰 있어도 공중이므로 Fly를 유지한다.
-    AnimState want = d.flying ? AnimState::Fly : (d.moving ? AnimState::Move : AnimState::Idle);
+    // v1.0: 대쉬(회피)는 짧게 날아오르는 동작으로 본다. 나는 시트가 없으면 move -> idle 로 대체된다.
+    AnimState want = (d.flying || d.dashTime > 0.f) ? AnimState::Fly
+                     : d.moving                     ? AnimState::Move
+                                                    : AnimState::Idle;
     // v0.9: 바탕화면에서 한동안 가만히 쉬면 엎드린다(쉬는 모션). 시트가 없으면 idle로 대체된다.
     // 바로 엎드리지 않고 조금 기다리는 이유는, 잠깐 멈출 때마다 누웠다 일어나면 부산해 보이기 때문이다.
     if (want == AnimState::Idle && !d.held && d.behavior == IdleBehavior::Rest &&
@@ -479,8 +482,52 @@ void World::pickBehavior() {
     d.flying = d.behavior == IdleBehavior::Fly;
 }
 
+// v1.0: "아래쪽에만" 을 켜면 순간이동시키지 않고 날아서 내려간다.
+// 경계는 도착한 뒤에 띠로 바꾼다. 미리 바꾸면 moveDragon 이 매 프레임 끌어내려 순간이동이 된다.
+void World::beginConfine(const RectF& band) {
+    confineBand_ = band;
+    DragonActor& d = dragon_;
+    float targetY = band.bottom() - cfg::kDragonRadius;
+    if (d.pos.y >= targetY - cfg::kGroundEpsilon) {
+        // 이미 띠 높이에 있으면 바로 경계만 바꾼다
+        bounds_ = band;
+        confining_ = false;
+        d.pos = bounds_.clampPoint(d.pos, cfg::kDragonRadius);
+        d.groundY = d.pos.y;
+        return;
+    }
+    confining_ = true;
+    d.behavior = IdleBehavior::Fly;
+    d.flying = true;
+    d.landing = true;
+    d.moving = true;
+    d.restTime = 0.f;
+    d.wanderTarget = {d.pos.x, targetY};
+    d.behaviorLeft = cfg::kIdleLandMax;
+}
+
 void World::wander(float dt) {
     DragonActor& d = dragon_;
+    // 띠로 내려가는 중에는 다른 행동을 고르지 않는다. 닿으면 경계를 띠로 바꾼다.
+    if (confining_) {
+        float targetY = confineBand_.bottom() - cfg::kDragonRadius;
+        d.wanderTarget = {d.pos.x, targetY};
+        if (d.pos.y >= targetY - cfg::kGroundEpsilon) {
+            bounds_ = confineBand_;
+            confining_ = false;
+            d.flying = false;
+            d.landing = false;
+            d.moving = false;
+            d.pos = bounds_.clampPoint(d.pos, cfg::kDragonRadius);
+            d.groundY = d.pos.y;
+            d.behaviorLeft = 0.f;
+            return;
+        }
+        moveDragon(dt, (d.wanderTarget - d.pos).normalized(), cfg::kIdleFlySpeed);
+        d.flying = true;
+        d.moving = true;
+        return;
+    }
     // v0.9: 사람이 잡고 있는 동안에는 스스로 움직이지 않는다. 그렇지 않으면 끌어다 놓는 사이에
     // 자동 행동이 위치를 덮어써서 손에서 빠져나가는 것처럼 보였다.
     if (d.held) {

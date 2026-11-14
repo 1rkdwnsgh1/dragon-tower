@@ -144,6 +144,10 @@ public:
     World();
 
     void setBounds(const RectF& r) { bounds_ = r; }
+    // v1.0: 띠로 내려가는 중. 순간이동 대신 날아서 내려가고, 닿으면 경계를 띠로 바꾼다.
+    void beginConfine(const RectF& band);
+    void cancelConfine() { confining_ = false; }
+    bool confining() const { return confining_; }
     const RectF& bounds() const { return bounds_; }
     void seed(uint32_t s) { rng_.seed(s); }
 
@@ -223,6 +227,8 @@ private:
     float dragonDodgeChance() const;
 
     RectF bounds_{0.f, 0.f, 1280.f, 720.f};
+    bool confining_ = false;   // 띠로 내려가는 중
+    RectF confineBand_{};
     Rng rng_;
     DragonActor dragon_;
     std::vector<Enemy> enemies_;
