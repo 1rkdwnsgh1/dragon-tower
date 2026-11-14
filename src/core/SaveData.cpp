@@ -229,7 +229,10 @@ bool deserializeSave(const std::string& text, SaveData& out) {
         // 폴더가 사라진 종이라도 다른 종으로 바뀌지 않도록 자리 표시 종을 등록한다.
         else if (key == "dragon.species") { if (!val.empty()) s.dragon.species = ensureSpecies(val); }
         else if (key == "dragon.alive") s.dragon.alive = toInt(val, 0) != 0;
-        else if (key == "dragon.level") s.dragon.level = std::max(1, toInt(val, 1));
+        // 보유 목록의 stable.N.level 과 **같은 규칙**을 쓴다. 예전에는 여기만 상한이 없어
+        // 손으로 고친 저장 파일이 레벨 34로 읽혔고, 그 값이 다시 저장됐다가 다음에 켤 때
+        // 30으로 잘렸다 — 켤 때마다 값이 달라지는 상태였다. (퍼저가 찾았다.)
+        else if (key == "dragon.level") s.dragon.level = std::clamp(toInt(val, 1), 1, cfg::kMaxLevel);
         else if (key == "dragon.exp") s.dragon.exp = std::max(0, toInt(val, 0));
         else if (key == "dragon.autoExp") s.dragon.autoExp = std::max(0, toInt(val, 0));
         else if (key == "dragon.hp") s.dragon.hp = toFloat(val, -1.f);

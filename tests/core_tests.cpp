@@ -1417,10 +1417,17 @@ static void testSkillSlots() {
     for (int v : g2.skillSlots()) CHECK(v != 5);
 
     // 남은 스킬을 2번 칸에 넣으면 거기 있던 것이 빠진다
-    int before = g2.skillSlots()[1];
+    const int replaced = g2.skillSlots()[1];      // 2번 칸에 있던 것
+    const int slot0Before = g2.skillSlots()[0];
+    const int slot2Before = g2.skillSlots()[2];
+    CHECK(replaced != 4);  // 넣으려는 것이 이미 거기 있으면 이 검사 전체가 의미가 없다
     CHECK(g2.equipSkill(1, 4));
     CHECK(g2.skillSlots()[1] == 4);
-    CHECK(g2.skillSlots()[0] != before || before == g2.skillSlots()[0]);  // 다른 칸은 그대로
+    // 다른 칸은 그대로다.
+    // 예전에는 `slots[0] != before || before == slots[0]` 으로 적혀 있어 **무엇을 넣어도 통과**했고
+    // 게다가 before 가 비교 대상이 아닌 2번 칸의 값이었다. 두 칸을 각각 따로 붙든다.
+    CHECK(g2.skillSlots()[0] == slot0Before);
+    CHECK(g2.skillSlots()[2] == slot2Before);
     // 같은 스킬이 두 칸을 차지하지 않는다
     int count = 0;
     for (int v : g2.skillSlots()) if (v == 4) ++count;
@@ -1609,7 +1616,54 @@ static void registerTestSpecies() {
     CHECK(speciesCount() >= 4);
 }
 
+// 레지스트리가 비어 있을 때 죽지 않는가.
+// v1.5에서 내장 4종을 지운 뒤로 "종이 하나도 없는 상태"가 실제로 생길 수 있다
+// (assets/dragons 가 없거나 전부 읽기에 실패). 예전에는 speciesDef 가 빈 deque 를
+// 인덱싱해 UB 로 죽었고, serializeSave 가 묘비마다 이 함수를 불러서
+// **저장 파일을 읽는 순간 죽는** 경로였다.
+// 이 테스트는 종을 등록하기 **전에** 돌아야 하므로 main 의 맨 앞에 둔다.
+static void testEmptySpeciesRegistry() {
+    CHECK(speciesCount() == 0);  // 여기서 0이 아니면 이 테스트는 의미가 없다(순서를 확인할 것)
+    const SpeciesDef& d = speciesDef(Species::Fire);
+    CHECK(!d.key.empty());
+    CHECK(!d.name.empty());
+    // 저장 직렬화가 종을 참조하는 두 자리(현재 개체·묘비)를 빈 레지스트리에서 지난다.
+    SaveData s{};
+    s.hasDragon = true;
+    s.dragon.level = 3;
+    s.graves.push_back({1, Species::Water, 2, "tower1"});
+    const std::string text = serializeSave(s);
+    CHECK(!text.empty());
+    SaveData back{};
+    CHECK(deserializeSave(text, back));
+    CHECK(back.graves.size() == 1);
+}
+
+// 저장 파일의 레벨 상한. dragon.level 과 stable.N.level 이 같은 규칙을 써야 한다.
+// 퍼저(fuzz_save_roundtrip)가 찾았다: dragon.level 에만 상한이 없어서
+// "읽기 -> 쓰기 -> 읽기" 가 같은 글을 내놓지 않았다(34 -> 34 -> 30).
+static void testSaveLevelClamp() {
+    const std::string text =
+        "# Dragon Tower save\n"
+        "version=1\n"
+        "hasDragon=1\n"
+        "dragon.level=34\n"
+        "stable.count=1\n"
+        "stable.0.level=34\n"
+        "activeIndex=0\n";
+    SaveData a{};
+    CHECK(deserializeSave(text, a));
+    CHECK(a.dragon.level == cfg::kMaxLevel);
+    // 왕복이 안정적인가 — 한 번 쓴 글을 다시 읽어 쓰면 같아야 한다.
+    const std::string once = serializeSave(a);
+    SaveData b{};
+    CHECK(deserializeSave(once, b));
+    CHECK(serializeSave(b) == once);
+}
+
 int main() {
+    testEmptySpeciesRegistry();
+    testSaveLevelClamp();
     registerTestSpecies();
     testExpCurve();
     testNoAutoCap();

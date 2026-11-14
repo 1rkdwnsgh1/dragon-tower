@@ -139,7 +139,7 @@ void Sprites::loadUiSkins(const std::filesystem::path& uiDir) {
         while (std::getline(f, line)) {
             // 주석과 공백 제거
             size_t c = line.find_first_of(";#");
-            if (c != std::string::npos) line = line.substr(0, c);
+            if (c != std::string::npos) line.erase(c);  // substr 로 임시 문자열을 만들지 않는다
             size_t b = line.find_first_not_of(" \t\r\n");
             if (b == std::string::npos) continue;
             size_t e = line.find_last_not_of(" \t\r\n");
