@@ -7,6 +7,16 @@ AI 도구로 개발할 때 드는 비용(토큰)을 줄이기 위한 기록이�
 
 - **Git LFS 업로드가 막혀 있다.** `git lfs pull`(받기)은 되지만 push는 S3(`github-cloud.s3.amazonaws.com`)로 가는데 프록시가 막는다. LFS로 묶인 경로(`assets/references/revenant-dragon/**`)에 새 파일을 넣으면 **푸시 자체가 실패한다.** 커밋에서 빼고 사람에게 올려 달라고 해야 한다.
 - 브랜치 삭제도 여전히 막혀 있다(git refs 쓰기 금지).
+- **`gh` 의 GraphQL 경로가 막혀 있다.** `gh pr list` 같은 명령이 `HTTP 403`으로 죽는다.
+  REST로 쓴다 — `gh api "repos/1rkdwnsgh1/dragon-tower/pulls?state=open"`. CI 로그는 전처럼
+  `gh run view <id> --log-failed`.
+- **PR 본문·커밋 메시지를 셸 인자로 넘기지 않는다.** 백틱(`` ` ``)이 명령 치환으로 실행돼
+  `command not found` 가 나고 그 단어들이 본문에서 빠진다. heredoc으로 파일에 쓴 뒤 파일을 넘긴다
+  (`git commit -F 파일`, `gh api ... -F body=@파일`).
+- **`main` 이 작업 중에 움직인다.** 팀원 3명이 같은 저장소를 쓴다. 실제로 한 세션이 상태를
+  확인하는 동안 `main` 이 v1.4 → v1.5로 올라갔다. **긴 작업은 시작할 때와 푸시 직전에 각각 받는다.**
+  에셋 폴더도 같다 — 파일 목록을 쓰기 직전에 한 번 더 확인한다(v1.4에서 없는 파일을
+  스테이징하려다 실패했다).
 
 ## 2026-11-13 · v0.3~v0.7 (측정값 없음)
 
