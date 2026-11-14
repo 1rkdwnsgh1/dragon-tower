@@ -35,6 +35,27 @@ void World::setupDragon(Species s, int level, float hp, Vec2 pos) {
     dragon_.wanderTarget = pos;
     dragon_.groundY = pos.y;  // 처음 선 자리를 걷는 높이로 삼는다
     dragon_.alive = true;
+    // v1.4: 재사용 대기시간은 스킬 수만큼 둔다. 종마다 개수가 다르다.
+    const SpeciesDef& sp = speciesDef(s);
+    dragon_.skillCd.assign(sp.skills.size(), 0.f);
+    dragon_.skillMotion = -1;
+    // 장착 칸은 해제된 액티브로 앞에서부터 채워 둔다. Game은 저장해 둔 칸으로 곧바로
+    // 덮어쓰지만, World만 따로 쓰는 곳(테스트·밸런스 시뮬레이션)에서도 스킬이 나가야 한다.
+    slots_.fill(-1);
+    autoFillSlots();
+}
+
+// 빈 칸을 해제된 액티브로 채운다. 이미 들어 있는 칸은 건드리지 않는다.
+void World::autoFillSlots() {
+    const SpeciesDef& sp = speciesDef(dragon_.species);
+    for (int idx : unlockedActiveSkills(sp, dragon_.level)) {
+        bool already = false;
+        for (int v : slots_) if (v == idx) { already = true; break; }
+        if (already) continue;
+        for (int& v : slots_) {
+            if (v < 0) { v = idx; break; }
+        }
+    }
 }
 
 void World::setDragonAnim(AnimState s, float hold) {
@@ -61,6 +82,7 @@ void World::updateDragonAnim(float dt) {
         return;
     }
     if (d.animHold > 0.f) return;  // 1회 재생이 끝나지 않았다
+    d.skillMotion = -1;            // v1.4 스킬 전용 모션은 1회 재생이 끝나면 내려놓는다
     // 날고 있으면 잠시 멈춰 있어도 공중이므로 Fly를 유지한다.
     // v1.0: 대쉬(회피)는 짧게 날아오르는 동작으로 본다. 나는 시트가 없으면 move -> idle 로 대체된다.
     AnimState want = (d.flying || d.dashTime > 0.f) ? AnimState::Fly
@@ -83,11 +105,21 @@ void World::setDragonLevel(int level) {
     dragon_.level = level;
     dragon_.stats = statsFor(dragon_.species, level);
     dragon_.hp = std::min(dragon_.stats.maxHp, dragon_.hp + (dragon_.stats.maxHp - oldMax));
+    // 레벨이 올라 새로 열린 스킬을 빈 칸에 넣는다. Game은 곧바로 저장 기록으로 덮어쓴다.
+    autoFillSlots();
 }
 
 bool World::skillUnlocked(int i) const {
-    if (i < 0 || i > 2) return false;
-    return dragon_.level >= speciesDef(dragon_.species).skills[i].unlockLevel;
+    const SpeciesDef& sp = speciesDef(dragon_.species);
+    if (!skillUnlockedAt(sp, i, dragon_.level)) return false;
+    // 패시브는 "쓰는" 스킬이 아니다. 해제됐더라도 발동 대상이 아니다.
+    return !skillIsPassive(sp.skills[static_cast<size_t>(i)].kind);
+}
+
+bool World::skillReady(int i) const {
+    if (!skillUnlocked(i)) return false;
+    if (i >= static_cast<int>(dragon_.skillCd.size())) return false;
+    return dragon_.skillCd[static_cast<size_t>(i)] <= 0.f;
 }
 
 Enemy& World::spawnEnemy(EnemyKind kind, int level, Vec2 pos) {
@@ -241,12 +273,14 @@ void World::basicAttack() {
 bool World::castSkill(int i, bool aiChoice) {
     DragonActor& d = dragon_;
     const SpeciesDef& sp = speciesDef(d.species);
-    const SkillDef& s = sp.skills[i];
+    if (i < 0 || i >= static_cast<int>(sp.skills.size())) return false;
+    const SkillDef& s = sp.skills[static_cast<size_t>(i)];
     if (!skillUnlocked(i)) {
         if (!aiChoice) addText("Lv." + std::to_string(s.unlockLevel) + " 필요", d.pos - Vec2{0.f, 60.f}, 0xFFCCCCCC, 14.f, 0.8f);
         return false;
     }
-    if (d.skillCd[i] > 0.f) return false;
+    if (i >= static_cast<int>(d.skillCd.size())) return false;
+    if (d.skillCd[static_cast<size_t>(i)] > 0.f) return false;
 
     Vec2 facingDir = d.facing.length() > 0.01f ? d.facing : Vec2{1.f, 0.f};
     switch (s.kind) {
@@ -348,11 +382,44 @@ bool World::castSkill(int i, bool aiChoice) {
             dots_.push_back(z);
             break;
         }
+        case SkillKind::PassiveStat:
+        case SkillKind::PassiveOnKill:
+            // 패시브는 발동하는 스킬이 아니다. skillUnlocked에서 이미 걸러지지만,
+            // 새 패시브 종류를 더했을 때 조용히 액티브처럼 동작하지 않도록 여기서도 막는다.
+            return false;
     }
-    d.skillCd[i] = s.cooldown;
-    setDragonAnim(AnimState::Attack, cfg::kAnimAttackHold);
+    d.skillCd[static_cast<size_t>(i)] = s.cooldown;
+    // v1.4: 스킬 전용 본체 모션이 있으면 그것으로 재생한다. 없으면 예전처럼 공용 attack.
+    float hold = cfg::kAnimAttackHold;
+    if (!s.motion.empty()) {
+        d.skillMotion = i;
+        // 1회 재생이 끝날 만큼 유지한다(프레임 수는 그리는 쪽이 알고 있으므로 넉넉히 잡는다).
+        hold = std::max(hold, cfg::kSkillMotionHold);
+    } else {
+        d.skillMotion = -1;
+    }
+    setDragonAnim(AnimState::Attack, hold);
     addText(s.name, d.pos - Vec2{0.f, 78.f}, sp.color | 0xFF000000, 15.f, 0.9f);
     return true;
+}
+
+// 패시브 PassiveOnKill. 적을 쓰러뜨릴 때마다 해제된 것을 모두 적용한다.
+void World::onEnemyKilled(Vec2 at) {
+    DragonActor& d = dragon_;
+    if (!d.alive) return;
+    const SpeciesDef& sp = speciesDef(d.species);
+    for (const SkillDef& s : sp.skills) {
+        if (s.kind != SkillKind::PassiveOnKill) continue;
+        if (d.level < s.unlockLevel) continue;
+        if (s.power <= 0.f) continue;
+        float before = d.hp;
+        d.hp = std::min(d.stats.maxHp, d.hp + d.stats.maxHp * s.power);
+        float healed = d.hp - before;
+        if (healed >= 1.f) {
+            addFx(FxType::Heal, at, d.pos, 44.f, 0.5f, sp.color | 0xFF000000);
+            addText("+" + intText(healed), d.pos - Vec2{0.f, 64.f}, kColorHeal, 14.f, 0.7f);
+        }
+    }
 }
 
 // v0.9: 싸울 때 유지할 간격. 설정에 따라 붙거나 떨어져서 싸운다.
@@ -364,9 +431,11 @@ float World::desiredRange() const {
         case 2: {
             const SpeciesDef& sp = speciesDef(dragon_.species);
             float best = 0.f;
-            for (int i = 0; i < 3; ++i) {
+            // v1.4: 장착한 칸만 본다. 해제만 되고 빼 둔 스킬 때문에 멀찍이 서 있으면 안 된다.
+            for (int slot = 0; slot < kSkillSlots; ++slot) {
+                int i = slotSkill(slot);
                 if (!skillUnlocked(i)) continue;
-                best = std::max(best, sp.skills[i].range);
+                best = std::max(best, sp.skills[static_cast<size_t>(i)].range);
             }
             // 쓸 수 있는 스킬이 없으면 붙어서 기본 공격으로 싸우는 수밖에 없다
             if (best <= 0.f) return cfg::kBasicAttackRange * cfg::kKeepNearRatio;
@@ -401,8 +470,10 @@ void World::dragonAi(float dt, bool castSkills, const PlayerInput& in, bool allo
     // 물러나는 중에도 적을 바라본다(뒷걸음질). 그래야 스킬이 적 쪽으로 나간다.
     if (std::fabs(t->pos.x - d.pos.x) > 4.f) d.facing = Vec2{t->pos.x > d.pos.x ? 1.f : -1.f, 0.f};
     if (castSkills) {
-        for (int i = 0; i < 3; ++i) {
-            if (skillReady(i) && castSkill(i, true)) break;
+        // v1.4: 자동 전투도 장착한 칸만 쓴다. 칸 순서가 곧 우선순위다.
+        for (int slot = 0; slot < kSkillSlots; ++slot) {
+            int i = slotSkill(slot);
+            if (slotReady(slot) && castSkill(i, true)) break;
         }
     }
 }
@@ -720,6 +791,7 @@ void World::damageEnemy(Enemy& e, float raw, bool showNumber) {
         events_.push_back({WorldEventType::EnemyKilled, e.kind, e.expReward});
         addFx(FxType::Death, e.pos, e.pos, e.radius * 1.6f, 0.5f, 0xFFFFFFFF);
         addText("+" + std::to_string(e.expReward) + " EXP", e.pos - Vec2{0.f, e.radius + 34.f}, 0xFFB6E3FF, 14.f, 1.1f);
+        onEnemyKilled(e.pos);  // v1.4 처치 패시브
     }
 }
 
@@ -801,8 +873,16 @@ void World::updateCombat(float dt, CombatMode mode, const PlayerInput& in) {
         if (d.dashTime > 0.f) d.dashTime -= dt;
 
         if (mode != CombatMode::Auto) {
-            for (int i = 0; i < 3; ++i)
-                if (in.skill[i]) castSkill(i, false);
+            // v1.4: 키 1~4는 장착 칸이다. 빈 칸을 누르면 아무 일도 일어나지 않는다.
+            for (int slot = 0; slot < kSkillSlots; ++slot) {
+                if (!in.skill[slot]) continue;
+                int i = slotSkill(slot);
+                if (i < 0) {
+                    addText("빈 칸", d.pos - Vec2{0.f, 60.f}, 0xFFCCCCCC, 14.f, 0.6f);
+                    continue;
+                }
+                castSkill(i, false);
+            }
         }
         basicAttack();
     }

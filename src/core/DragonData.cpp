@@ -1,5 +1,6 @@
 #include "core/DragonData.h"
 
+#include "core/Config.h"
 #include "core/EnemyData.h"
 
 #include <algorithm>
@@ -93,9 +94,11 @@ SpeciesDef newSpeciesTemplate(const std::string& key) {
     d.name = key;
     d.role = "미정";
     d.desc = "설명이 아직 없습니다.";
-    d.skills[0] = {"스킬 1", "가장 가까운 적을 공격한다.", 1, 4.f, SkillKind::Projectile, 1.9f, 0.f, 370.f, 0.f, 0.f};
-    d.skills[1] = {"스킬 2", "주변에 피해를 준다.", 3, 8.f, SkillKind::Burst, 1.6f, 110.f, 0.f, 0.f, 0.f};
-    d.skills[2] = {"스킬 3", "일직선으로 피해를 준다.", 6, 10.f, SkillKind::Line, 2.6f, 36.f, 320.f, 0.f, 0.f};
+    d.skills = {
+        {"스킬 1", "가장 가까운 적을 공격한다.", 1, 4.f, SkillKind::Projectile, 1.9f, 0.f, 370.f, 0.f, 0.f},
+        {"스킬 2", "주변에 피해를 준다.", 3, 8.f, SkillKind::Burst, 1.6f, 110.f, 0.f, 0.f, 0.f},
+        {"스킬 3", "일직선으로 피해를 준다.", 6, 10.f, SkillKind::Line, 2.6f, 36.f, 320.f, 0.f, 0.f},
+    };
     d.anims[static_cast<int>(AnimState::Idle)] = {8.f, true, 0};
     d.anims[static_cast<int>(AnimState::Move)] = {10.f, true, 0};
     d.anims[static_cast<int>(AnimState::Attack)] = {12.f, false, 0};
@@ -152,9 +155,22 @@ DragonParseResult parseDragonText(const std::string& text, const std::string& fo
                 if (animStateFromName(name.substr(5), st)) { section = "anim"; animSec = st; }
                 else { warn("모르는 애니메이션 상태 [" + name + "] (idle/move/attack/hit/death/fly)"); sectionValid = false; }
             } else if (name.rfind("skill.", 0) == 0) {
+                // v1.4: 개수 제한을 없앴다. [skill.1] 부터 차례로 적으면 그만큼 늘어난다.
+                // 번호를 건너뛰면(1, 3) 사이가 기본값 스킬로 채워지므로 경고한다.
                 int n;
-                if (parseInt(name.substr(6), n) && n >= 1 && n <= 3) { section = "skill"; skillSec = n - 1; }
-                else { warn("스킬 번호는 1~3입니다: [" + name + "]"); sectionValid = false; }
+                if (parseInt(name.substr(6), n) && n >= 1 && n <= cfg::kMaxSkillsPerDragon) {
+                    section = "skill";
+                    skillSec = n - 1;
+                    if (skillSec >= static_cast<int>(r.def.skills.size())) {
+                        if (skillSec > static_cast<int>(r.def.skills.size()))
+                            warn("스킬 번호가 건너뛰었습니다: [" + name + "]. 1부터 차례로 적어 주세요");
+                        r.def.skills.resize(static_cast<size_t>(skillSec) + 1);
+                        // 새로 생긴 칸은 해제 레벨 '자동'(0)으로 둔다. level= 을 적으면 그 값을 쓴다.
+                    }
+                } else {
+                    warn("스킬 번호는 1~" + std::to_string(cfg::kMaxSkillsPerDragon) + "입니다: [" + name + "]");
+                    sectionValid = false;
+                }
             } else {
                 warn("모르는 구역 [" + name + "]");
                 sectionValid = false;
@@ -205,14 +221,26 @@ DragonParseResult parseDragonText(const std::string& text, const std::string& fo
             }
             else warn("모르는 키 " + key + " ([anim])");
         } else if (section == "skill" && skillSec >= 0) {
-            SkillDef& s = r.def.skills[skillSec];
+            SkillDef& s = r.def.skills[static_cast<size_t>(skillSec)];
             if (key == "name") s.name = val;
             else if (key == "desc") s.desc = val;
             else if (key == "kind") {
                 SkillKind k;
                 if (skillKindFromName(val, k)) s.kind = k;
-                else warn("모르는 kind=" + val + " (Projectile/Burst/Line/Dash/Heal/Shield/Haste/Zone)");
+                else warn("모르는 kind=" + val +
+                          " (Projectile/Burst/Line/Dash/Heal/Shield/Haste/Zone/PassiveStat/PassiveOnKill)");
             }
+            else if (key == "stat") {
+                StatKind sk;
+                if (statKindFromName(val, sk)) s.stat = sk;
+                else warn("모르는 stat=" + val + " (hp/atk/def/speed/dodge/regen)");
+            }
+            // v1.4 스킬 전용 본체 모션. 파일은 skill_<motion>.png 이다.
+            else if (key == "motion") s.motion = val;
+            else if (key == "motion_fps") ok = parseFloat(val, s.motionAnim.fps);
+            else if (key == "motion_frame_w") ok = parseInt(val, s.motionAnim.frameW);
+            else if (key == "motion_render_scale") ok = parseFloat(val, s.motionAnim.renderScale);
+            // level= 을 적지 않으면 0(자동)으로 남아 "한 레벨에 하나씩" 규칙이 채운다.
             else if (key == "level") ok = parseInt(val, s.unlockLevel);
             else if (key == "cooldown") ok = parseFloat(val, s.cooldown);
             else if (key == "power") ok = parseFloat(val, s.power);
@@ -240,9 +268,21 @@ DragonParseResult parseDragonText(const std::string& text, const std::string& fo
     clampWarn(d.baseSpeed, 10.f, 2000.f, "speed");
     clampWarn(d.baseDodge, 0.f, 0.75f, "dodge");
     for (SkillDef& s : d.skills) {
-        if (s.unlockLevel < 1) s.unlockLevel = 1;
+        // 0은 "자동"이라는 뜻이므로 그대로 둔다. 음수만 자동으로 되돌린다.
+        if (s.unlockLevel < 0) s.unlockLevel = 0;
+        if (s.unlockLevel > cfg::kMaxLevel) {
+            r.warnings.push_back(folderKey + ": " + s.name + "의 level=" + std::to_string(s.unlockLevel) +
+                                 "은 최고 레벨(" + std::to_string(cfg::kMaxLevel) + ")보다 높아 영영 해제되지 않습니다");
+        }
         if (s.cooldown < 0.5f) s.cooldown = 0.5f;
+        if (!(s.motionAnim.fps >= 1.f && s.motionAnim.fps <= 60.f)) s.motionAnim.fps = 12.f;
+        if (s.motionAnim.frameW < 0) s.motionAnim.frameW = 0;
+        if (!(s.motionAnim.renderScale > 0.f)) s.motionAnim.renderScale = 1.f;
+        s.motionAnim.renderScale = std::clamp(s.motionAnim.renderScale, 0.25f, 4.f);
+        s.motionAnim.loop = false;  // 스킬 모션은 항상 1회 재생이다
     }
+    if (d.skills.size() > static_cast<size_t>(cfg::kMaxSkillsPerDragon))
+        d.skills.resize(static_cast<size_t>(cfg::kMaxSkillsPerDragon));
     for (AnimDef& a : d.anims) {
         if (a.fps < 1.f || a.fps > 60.f) a.fps = 8.f;
         if (a.frameW < 0) a.frameW = 0;

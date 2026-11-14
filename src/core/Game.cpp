@@ -28,6 +28,7 @@ void Game::init(const SaveData& save, const RectF& desktop) {
     if (save_.hasDragon) {
         const DragonRecord& d = save_.dragon;
         world_.setupDragon(d.species, d.level, d.hp, {desktop_.center().x, desktop_.bottom() - 120.f});
+        syncSkillSlots();  // v1.4 옛 저장 파일이면 여기서 빈 칸이 채워진다
         screen_ = Screen::Desktop;
     } else {
         // 보유 목록은 있는데 띄운 개체가 없으면(사망 직후 등) 관리창에서 고르게 한다
@@ -175,6 +176,13 @@ bool Game::consumeSaveRequest() {
 
 SaveData Game::snapshotForSave() {
     if (save_.hasDragon && world_.dragon().alive) save_.dragon.hp = world_.dragon().hp;
+    // 불러올 때 dragon 은 stable[activeIndex] 에서 복원되므로(SaveData.cpp 참고),
+    // 목록 쪽에도 지금 상태를 적어 두어야 한다. v1.3에서 빠져 있어 다친 드래곤이
+    // 다시 켜면 체력이 가득 찬 채로 돌아왔다.
+    if (save_.hasDragon && save_.activeIndex >= 0 &&
+        save_.activeIndex < static_cast<int>(save_.stable.size())) {
+        save_.stable[static_cast<size_t>(save_.activeIndex)] = save_.dragon;
+    }
     return save_;
 }
 
@@ -202,6 +210,106 @@ void Game::closeStable() {
     if (screen_ != Screen::Stable) return;
     // 띄운 개체가 없으면 선택 화면으로 돌아간다(드래곤 없이 바탕화면만 남지 않게)
     screen_ = save_.hasDragon ? Screen::Desktop : Screen::Select;
+}
+
+// ---------------- v1.4 스킬 장착 ----------------
+
+// 기준은 언제나 저장 기록(save_.dragon.slots)이다. World와 보유 목록은 여기서 맞춘다.
+void Game::syncSkillSlots() {
+    if (!save_.hasDragon) {
+        world_.setSlots({-1, -1, -1, -1});
+        return;
+    }
+    fillEmptySkillSlots(save_.dragon);  // 빈 칸은 새로 해제된 스킬로 채운다
+    if (save_.activeIndex >= 0 && save_.activeIndex < static_cast<int>(save_.stable.size())) {
+        save_.stable[static_cast<size_t>(save_.activeIndex)].slots = save_.dragon.slots;
+        save_.stable[static_cast<size_t>(save_.activeIndex)].level = save_.dragon.level;
+    }
+    world_.setSlots(save_.dragon.slots);
+}
+
+void Game::selectSlot(int slot) {
+    if (slot < 0 || slot >= kSkillSlots) return;
+    selectedSlot_ = slot;
+}
+
+bool Game::equipSkill(int slot, int skillIndex) {
+    if (!save_.hasDragon) return false;
+    if (slot < 0 || slot >= kSkillSlots) return false;
+    // 드래곤 교체와 같은 규칙을 쓴다 — 불리할 때 바꿔 끼워 위험을 피하지 못하게 한다.
+    if (!canSwitchDragon()) {
+        const char* why = switchBlockedReason();
+        if (why) notify(why, kWarn, 3.f);
+        return false;
+    }
+    DragonRecord& d = save_.dragon;
+    const SpeciesDef& sp = speciesDef(d.species);
+    if (skillIndex < 0 || skillIndex >= static_cast<int>(sp.skills.size())) return false;
+    const SkillDef& s = sp.skills[static_cast<size_t>(skillIndex)];
+    if (skillIsPassive(s.kind)) {
+        notify("패시브는 칸에 넣지 않습니다. 해제되면 항상 적용됩니다.", kWarn, 2.5f);
+        return false;
+    }
+    if (d.level < s.unlockLevel) {
+        notify(s.name + "은(는) Lv." + std::to_string(s.unlockLevel) + "에 해제됩니다.", kWarn, 2.5f);
+        return false;
+    }
+    // 이미 다른 칸에 있으면 두 칸을 맞바꾼다(같은 스킬이 두 칸을 차지하지 않게)
+    for (int i = 0; i < kSkillSlots; ++i) {
+        if (i != slot && d.slots[static_cast<size_t>(i)] == skillIndex) {
+            d.slots[static_cast<size_t>(i)] = d.slots[static_cast<size_t>(slot)];
+            break;
+        }
+    }
+    d.slots[static_cast<size_t>(slot)] = skillIndex;
+    // 여기서는 fillEmptySkillSlots를 부르지 않는다. 사람이 일부러 비운 칸을
+    // 다시 채워 버리면 "빼 두기"가 불가능해진다.
+    if (save_.activeIndex >= 0 && save_.activeIndex < static_cast<int>(save_.stable.size()))
+        save_.stable[static_cast<size_t>(save_.activeIndex)].slots = d.slots;
+    world_.setSlots(d.slots);
+    saveRequested_ = true;
+    return true;
+}
+
+void Game::clearSlot(int slot) {
+    if (!save_.hasDragon || slot < 0 || slot >= kSkillSlots) return;
+    if (!canSwitchDragon()) {
+        const char* why = switchBlockedReason();
+        if (why) notify(why, kWarn, 3.f);
+        return;
+    }
+    if (save_.dragon.slots[static_cast<size_t>(slot)] < 0) return;
+    save_.dragon.slots[static_cast<size_t>(slot)] = -1;
+    if (save_.activeIndex >= 0 && save_.activeIndex < static_cast<int>(save_.stable.size()))
+        save_.stable[static_cast<size_t>(save_.activeIndex)].slots = save_.dragon.slots;
+    world_.setSlots(save_.dragon.slots);
+    saveRequested_ = true;
+}
+
+bool Game::hasUnequippedSkill() const {
+    if (!save_.hasDragon) return false;
+    const SpeciesDef& sp = speciesDef(save_.dragon.species);
+    for (int idx : unlockedActiveSkills(sp, save_.dragon.level)) {
+        bool found = false;
+        for (int v : save_.dragon.slots) if (v == idx) { found = true; break; }
+        if (!found) return true;
+    }
+    return false;
+}
+
+void Game::openSkills() {
+    if (!save_.hasDragon) return;
+    skillPage_ = 0;
+    // 탑에서는 열 수 없다. 창이 떠 있는 동안 전투가 멈추므로, 위험할 때 창을 열어
+    // 시간을 버는 것이 가능해진다. 드래곤 교체를 탑에서 막는 것과 같은 이유다.
+    if (screen_ != Screen::Desktop && screen_ != Screen::Stable) return;
+    skillsReturn_ = Screen::Desktop;
+    screen_ = Screen::Skills;
+}
+
+void Game::closeSkills() {
+    if (screen_ != Screen::Skills) return;
+    screen_ = save_.hasDragon ? skillsReturn_ : Screen::Select;
 }
 
 void Game::beginAddDragon() {
@@ -238,6 +346,7 @@ bool Game::switchDragon(int index) {
     world_.setBounds(b);
     Vec2 at = b.clampPoint({desktop_.center().x, b.bottom() - cfg::kDragonRadius}, cfg::kDragonRadius);
     world_.setupDragon(save_.dragon.species, save_.dragon.level, save_.dragon.hp, at);
+    syncSkillSlots();
     world_.dragon().groundY = world_.dragon().pos.y;
     world_.setKeepRange(save_.keepRange);
     deathPlace_.clear();
@@ -325,6 +434,7 @@ void Game::chooseSpecies(Species s) {
     world_.clearEnemies(false);
     world_.setBounds(desktop_);
     world_.setupDragon(s, 1, -1.f, {desktop_.center().x, desktop_.bottom() - 120.f});
+    syncSkillSlots();
     deathPlace_.clear();
     screen_ = Screen::Desktop;
     saveRequested_ = true;
@@ -592,6 +702,7 @@ void Game::processEvents(bool autoExp) {
             ExpResult r = grantExp(save_.dragon, ev.exp, autoExp);
             if (r.levelsGained > 0) {
                 world_.setDragonLevel(save_.dragon.level);
+                syncSkillSlots();  // 새로 해제된 스킬을 빈 칸에 넣는다
                 world_.addFx(FxType::LevelUp, world_.dragon().pos, world_.dragon().pos, 70.f, 1.0f, 0xFFFFE066);
                 notify("레벨 업! Lv." + std::to_string(save_.dragon.level), kGood);
                 const SpeciesDef& sp = speciesDef(save_.dragon.species);
@@ -641,6 +752,10 @@ void Game::update(float dt, const PlayerInput& in, bool hidden, bool inputEnable
         case Screen::Death:
         case Screen::FloorClear:
         case Screen::TowerVictory:
+        // 관리창이 떠 있는 동안은 전투·배회가 멈춘다. 효과와 글자만 마저 사라지게 둔다.
+        // (v1.3의 드래곤 관리창도 같은 동작이었다. v1.4에서 분기를 명시해 경고를 없앴다.)
+        case Screen::Stable:
+        case Screen::Skills:
             world_.updateFx(dt);
             break;
 
@@ -693,7 +808,7 @@ void Game::update(float dt, const PlayerInput& in, bool hidden, bool inputEnable
                 if (towerFloor_ >= kTowerFloors) {
                     save_.towerClears++;
                     ExpResult r = grantExp(save_.dragon, cfg::kTowerClearExp, false);
-                    if (r.levelsGained > 0) world_.setDragonLevel(save_.dragon.level);
+                    if (r.levelsGained > 0) { world_.setDragonLevel(save_.dragon.level); syncSkillSlots(); }
                     alert("탑 정복", speciesDef(save_.dragon.species).name + "이(가) 탑을 모두 올랐습니다.");
                     screen_ = Screen::TowerVictory;
                 } else {

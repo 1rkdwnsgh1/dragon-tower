@@ -21,6 +21,7 @@ enum class Screen {
     Death,         // 영구 사망 안내
     Codex,         // 기록·도감
     Stable,        // v1.3 드래곤 관리창(보유 목록·묘비)
+    Skills,        // v1.4 스킬 관리창(해제된 스킬 목록과 장착 4칸)
 };
 
 struct Notice {
@@ -128,6 +129,25 @@ public:
     bool switchDragon(int index);
     void openStable();
     void closeStable();
+
+    // ---- v1.4 스킬 관리 ----
+    // 지금 플레이 중인 개체의 장착 칸. 값은 그 종의 스킬 목록 번호, -1은 빈 칸.
+    const std::array<int, kSkillSlots>& skillSlots() const { return save_.dragon.slots; }
+    // 관리창에서 고른 칸(0~3). 스킬을 누르면 이 칸에 들어간다. 저장하지 않는다.
+    int selectedSlot() const { return selectedSlot_; }
+    void selectSlot(int slot);
+    // 스킬 목록이 한 화면에 다 들어가지 않을 때의 쪽 번호(0부터). 저장하지 않는다.
+    // 한 쪽에 몇 줄이 들어가는지는 그리는 쪽이 정하므로, 쪽 수 제한도 그리는 쪽이 알려 준다.
+    int skillPage() const { return skillPage_; }
+    void setSkillPage(int page) { skillPage_ = page < 0 ? 0 : page; }
+    // 그 칸에 스킬을 넣는다. 다른 칸에 이미 있으면 두 칸을 맞바꾼다.
+    // 해제되지 않았거나 패시브면 아무 일도 하지 않고 false.
+    bool equipSkill(int slot, int skillIndex);
+    void clearSlot(int slot);
+    // 해제됐지만 어느 칸에도 없는 액티브가 있는가(관리창을 열어 보라고 표시할 때 쓴다)
+    bool hasUnequippedSkill() const;
+    void openSkills();
+    void closeSkills();
     // 관리창에서 "새 드래곤"을 누르면 선택 화면을 띄운다. 고르면 목록에 더해진다.
     void beginAddDragon();
     bool addingDragon() const { return addingDragon_; }
@@ -172,6 +192,11 @@ private:
     Screen codexReturn_ = Screen::Desktop;
     bool hunting_ = false;
     bool addingDragon_ = false;  // v1.3 선택 화면이 '추가'인지 '첫 선택'인지
+    int selectedSlot_ = 0;       // v1.4 스킬 관리창에서 고른 칸
+    int skillPage_ = 0;          // v1.4 스킬 목록 쪽 번호
+    Screen skillsReturn_ = Screen::Desktop;  // 스킬 관리창을 닫으면 돌아갈 화면
+    // 장착이 바뀌면 World에 알린다. 저장 기록(save_.dragon.slots)이 언제나 기준이다.
+    void syncSkillSlots();
     bool waveActive_ = false;
     float breakTimer_ = 0.f;
     bool pendingAutoStart_ = false;
