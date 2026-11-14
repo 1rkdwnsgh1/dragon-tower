@@ -52,6 +52,7 @@ tests/                     코어 규칙 검증
 | 드래곤별 스킨 선택 | `include/core/Game.h` | `Game::uiSkin`, `dragon.txt`의 `ui_skin` |
 | 스킨 설정 물려받기 | `src/win/Sprites.cpp` | `loadUiSkins` 끝의 `hasCfg` 보정 (default 의 여백·fit 를 쓴다) |
 | 에셋 데이터 검사 | `tools/asset_check.cpp` | `ctest` 에 포함. dragon.txt·enemy.txt 오타를 잡는다 |
+| 스킬 파일 유무 표 | `tools/asset_check.cpp` | 스킬마다 아이콘·본체 모션·효과 시트. 표 정렬은 `displayWidth`·`pad` (한글 두 칸) |
 | 수치 시뮬레이션 | `tests/balance_sim.cpp` | `main` 에서 에셋을 먼저 읽는다. 탑 층별은 `floorsMode`·`floorsRun`·`climb`, 자동 사냥 생존은 `autoMode`·`autoRun`·`autoPrint` |
 | 드래곤 보유·교체 | `src/core/Game.cpp` | `switchDragon`, `beginAddDragon`, `canSwitchDragon` |
 | 보관 중 체력 회복 | `src/core/Game.cpp` | `Game::update` 앞부분, `cfg::kStableRegenRatio` |
