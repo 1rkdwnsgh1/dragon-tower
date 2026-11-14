@@ -49,6 +49,16 @@ constexpr float kGuardianMeteorRadius = 62.f;
 constexpr float kGuardianPatternCooldown = 2.6f;
 constexpr float kGuardianPhase2Speedup = 0.8f;  // 2페이즈 예고·대기 시간 배율
 
+// 스킬 효과(FX)의 세 단계 기본 길이. dragon.txt 의 fx_windup/fx_hold/fx_tail 로 스킬마다 덮어쓴다.
+// fx= 를 적은 스킬에만 쓰인다. 적지 않은 스킬은 전처럼 도형이 그 자리의 duration 만큼 보인다.
+constexpr float kFxWindup = 0.12f;  // 발동 — 터지기 직전의 짧은 예고
+constexpr float kFxHold = 0.25f;    // 지속 — 효과가 온전히 보이는 동안
+constexpr float kFxTail = 0.18f;    // 잔류 — 옅어지며 사라진다
+constexpr int kMaxFx = 48;          // 쌓이는 효과의 상한. 넘으면 오래된 것부터 버린다
+// fx= 가 없는 효과의 단계 나눔 비율(합이 1). 전체 길이는 그대로 두고 단계만 나눈다.
+constexpr float kFxShapeWindupRatio = 0.22f;
+constexpr float kFxShapeHoldRatio = 0.45f;
+
 // 탑
 constexpr float kTowerFloorHeal = 0.30f;   // 층 돌파 시 회복 비율
 constexpr int kTowerClearExp = 120;
