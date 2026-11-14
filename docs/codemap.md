@@ -43,6 +43,12 @@ tests/                     코어 규칙 검증
 | 탐색기 재시작 대응 | `src/win/App.cpp` | `taskbarCreatedMsg_` |
 | 전역 단축키 | `src/win/App.cpp` | `RegisterHotKey`, `WM_HOTKEY` |
 | 상태창·메뉴·드래곤 끌기 | `src/win/App.cpp` | `startDrag`, `WM_MOUSEMOVE` |
+| 끄는 동안 자동 행동 멈춤 | `src/core/World.cpp` | `wander`의 `d.held`, `Game::setDragonHeld` |
+| UI 스킨 읽기 | `src/win/Sprites.cpp` | `loadUiSkins`, `Sprites::ui` (스킨에 없으면 default) |
+| UI 스킨 그리기(9조각) | `src/win/Renderer.cpp` | `drawNineSlice`, `Renderer::piece` |
+| 드래곤별 스킨 선택 | `include/core/Game.h` | `Game::uiSkin`, `dragon.txt`의 `ui_skin` |
+| 싸울 때 유지할 간격 | `src/core/World.cpp` | `desiredRange`, `Game::setKeepRange` |
+| 쉴 때 엎드리기 | `src/core/World.cpp` | `updateDragonAnim`의 `restTime`, `cfg::kRestLieDelay` |
 | 메뉴 창 위치·크기 | `src/win/Renderer.cpp` | `drawMenu`의 `menuScale`, `menuPos` |
 | 캐릭터 보기 크기 | `src/win/Renderer.cpp` | `drawWorld`의 `cs`, `drawEnemy(charScale)` (그림만, 판정은 그대로) |
 | 드래곤을 띠에 가두기 | `src/core/Game.cpp` | `setConfineToBand`, `placeDragon` |

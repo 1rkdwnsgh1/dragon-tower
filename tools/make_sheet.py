@@ -38,6 +38,52 @@ except ImportError:
 ALPHA_MIN = 8  # 이 값 이하의 알파는 빈 공간으로 본다 (희미한 잔티 무시)
 
 
+def drop_background(img: Image.Image, spec: str, tol: int) -> Image.Image:
+    """단색 배경을 지운다. 테두리에서 번져 들어가며 지우므로 몸통 안쪽의
+    비슷한 색은 남는다(단순 색 비교로 지우면 뼈·회색 부분에 구멍이 난다).
+
+    spec: 'none'(지우지 않음), 'auto'(네 모서리에서 추정), '#RRGGBB'
+    """
+    if spec == "none":
+        return img
+    px = img.load()
+    w, h = img.size
+    if spec == "auto":
+        corners = [px[0, 0], px[w - 1, 0], px[0, h - 1], px[w - 1, h - 1]]
+        corners = [c[:3] for c in corners]
+        bg = max(set(corners), key=corners.count)
+    else:
+        s = spec.lstrip("#")
+        if len(s) != 6:
+            sys.exit(f"--bg 값이 이상합니다: {spec} (none / auto / #RRGGBB)")
+        bg = tuple(int(s[i:i + 2], 16) for i in (0, 2, 4))
+
+    def near(c):
+        return abs(c[0] - bg[0]) <= tol and abs(c[1] - bg[1]) <= tol and abs(c[2] - bg[2]) <= tol
+
+    # 테두리에서 시작해 배경색이 이어지는 곳만 따라간다
+    seen = bytearray(w * h)
+    stack = []
+    for x in range(w):
+        for y in (0, h - 1):
+            if near(px[x, y]):
+                stack.append((x, y))
+                seen[y * w + x] = 1
+    for y in range(h):
+        for x in (0, w - 1):
+            if not seen[y * w + x] and near(px[x, y]):
+                stack.append((x, y))
+                seen[y * w + x] = 1
+    while stack:
+        x, y = stack.pop()
+        px[x, y] = (0, 0, 0, 0)
+        for nx, ny in ((x - 1, y), (x + 1, y), (x, y - 1), (x, y + 1)):
+            if 0 <= nx < w and 0 <= ny < h and not seen[ny * w + nx] and near(px[nx, ny]):
+                seen[ny * w + nx] = 1
+                stack.append((nx, ny))
+    return img
+
+
 def content_bbox(img: Image.Image):
     """알파가 ALPHA_MIN을 넘는 영역의 윤곽 상자. 완전히 비면 None."""
     alpha = img.getchannel("A").point(lambda a: 255 if a > ALPHA_MIN else 0)
@@ -83,7 +129,7 @@ def parse_grid(spec):
     return Path(path), nrows, ncols, row, cols
 
 
-def load_grid(path: Path, nrows: int, ncols: int, row: int, cols, mirror):
+def load_grid(path: Path, nrows: int, ncols: int, row: int, cols, mirror, bg="none", bg_tol=24):
     """격자 시트에서 지정한 행·열의 칸만 꺼내 프레임 목록으로 만든다."""
     img = Image.open(path).convert("RGBA")
     w, h = img.size
@@ -95,14 +141,14 @@ def load_grid(path: Path, nrows: int, ncols: int, row: int, cols, mirror):
         if c < 1 or c > ncols:
             sys.exit(f"{path}: {ncols}열 격자인데 {c}열을 요청했습니다.")
         box = (round((c - 1) * cw), round((row - 1) * ch), round(c * cw), round(row * ch))
-        f = img.crop(box)
+        f = drop_background(img.crop(box), bg, bg_tol)
         if mirror:
             f = f.transpose(Image.FLIP_LEFT_RIGHT)
         frames.append((f"{path.name}[{row},{c}]", f))
     return frames
 
 
-def load_frames(src: Path, cols, mirror):
+def load_frames(src: Path, cols, mirror, bg="none", bg_tol=24):
     """원본(폴더 또는 시트 1장)에서 프레임 목록 [(이름, 이미지)]를 만든다."""
     frames = []
     if src.is_dir():
@@ -111,9 +157,9 @@ def load_frames(src: Path, cols, mirror):
         if not paths:
             sys.exit(f"{src} 에 PNG가 없습니다.")
         for q in paths:
-            frames.append((q.name, Image.open(q).convert("RGBA")))
+            frames.append((q.name, drop_background(Image.open(q).convert("RGBA"), bg, bg_tol)))
     elif src.is_file():
-        img = Image.open(src).convert("RGBA")
+        img = drop_background(Image.open(src).convert("RGBA"), bg, bg_tol)
         w, h = img.size
         if cols is None:
             # 칸이 정사각형(폭이 높이의 배수)이면 프레임 수를 추정한다
@@ -159,9 +205,9 @@ def multi(args, cell, anchor_x, anchor_y):
     for state, path in sets.items():
         grid = parse_grid(path)
         if grid:
-            frames = load_grid(*grid, args.mirror)
+            frames = load_grid(*grid, args.mirror, args.bg, args.bg_tol)
         else:
-            frames = load_frames(Path(path), args.cols, args.mirror)
+            frames = load_frames(Path(path), args.cols, args.mirror, args.bg, args.bg_tol)
         boxes = []
         for name, img in frames:
             b = content_bbox(img)
@@ -263,6 +309,10 @@ def main():
                    help="칸 높이 대비 캐릭터 높이 비율 (기본 0.70)")
     p.add_argument("--anchor-y", type=int, default=None,
                    help="바닥(발) y 좌표 (기본: 칸 256 기준 240, 칸 크기에 비례)")
+    p.add_argument("--bg", default="none", metavar="none|auto|#RRGGBB",
+                   help="단색 배경을 지운다. auto는 네 모서리에서 추정 (기본 none)")
+    p.add_argument("--bg-tol", type=int, default=24,
+                   help="배경색으로 볼 색 차이 허용치 (기본 24)")
     p.add_argument("--mirror", action="store_true",
                    help="좌우 반전 (왼쪽 지향 원본을 오른쪽 지향으로)")
     p.add_argument("--align", choices=["union", "each"], default="union",
@@ -281,7 +331,7 @@ def main():
     print("[알림] 상태를 하나씩 따로 변환하면 상태마다 캐릭터 크기가 달라질 수 있습니다.\n"
           "       한 드래곤의 여러 상태는 --set 으로 한 번에 변환하세요.")
 
-    frames = load_frames(Path(args.src), args.cols, args.mirror)
+    frames = load_frames(Path(args.src), args.cols, args.mirror, args.bg, args.bg_tol)
 
     boxes = []
     for name, img in frames:

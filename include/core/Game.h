@@ -81,6 +81,9 @@ public:
     void setConfineToBand(bool on);
     // v0.6: 드래곤을 마우스로 끌어다 놓는다(경계 안으로 맞춘다).
     void placeDragon(Vec2 pos);
+    // v0.9: 잡고 있는 동안에는 자동 행동을 멈춘다. 놓으면 그 자리에서 다시 시작한다.
+    void setDragonHeld(bool on);
+    bool dragonHeld() const { return world_.dragon().held; }
     // v0.6: 상태창 위치·접힘. 화면 밖으로 나가지 않게 맞춘다.
     Vec2 panelPos() const { return {save_.panelX, save_.panelY}; }
     void setPanelPos(Vec2 p);
@@ -98,6 +101,16 @@ public:
     void setCharScale(float s);
     bool powerSave() const { return save_.powerSave; }
     void setPowerSave(bool on);
+    // v0.9: 싸울 때 유지할 간격(0 근접 / 1 중간 / 2 바깥). 스킬 수동·자동에 적용된다.
+    int keepRange() const { return save_.keepRange; }
+    void setKeepRange(int v);
+    const char* keepRangeName(int v) const;
+    // v0.9: 지금 쓸 UI 스킨 키. 드래곤이 없으면(선택 화면) default.
+    std::string uiSkin() const {
+        if (!save_.hasDragon) return "default";
+        const std::string& s = speciesDef(save_.dragon.species).uiSkin;
+        return s.empty() ? "default" : s;
+    }
     const RectF& desktopBounds() const { return desktop_; }
     const GraveEntry* lastGrave() const { return save_.graves.empty() ? nullptr : &save_.graves.back(); }
 

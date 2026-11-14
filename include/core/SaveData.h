@@ -28,6 +28,8 @@ struct SaveData {
     bool hasDragon = false;   // 살아 있는 현재 개체가 있는가
     DragonRecord dragon;
     CombatMode huntMode = CombatMode::SkillManual;
+    // v0.9 싸울 때 유지할 간격. 0 근접 / 1 중간 / 2 바깥. 스킬 수동·자동에서 쓰인다.
+    int keepRange = 0;
     // v0.6 바탕화면 UI 설정. 모르는 키는 읽을 때 무시되므로 이전 저장 파일과 호환된다.
     float panelX = -1.f;          // 상태창 왼쪽 위 좌표(논리 픽셀). -1이면 기본 위치
     float panelY = -1.f;

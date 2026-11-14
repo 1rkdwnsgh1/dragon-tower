@@ -22,6 +22,7 @@ enum class UiAction {
     MenuScale,        // 메뉴 창 크기. arg = -1 작게 / +1 크게
     CharScale,        // 캐릭터 보기 크기. arg = -1 작게 / +1 크게
     TogglePowerSave,  // 조용할 때 프레임 줄이기
+    SetKeepRange,     // 싸울 때 유지할 간격. arg = 0 근접 / 1 중간 / 2 바깥
     ChooseSpecies,  // arg = 종류
     StartHunt,
     StopHunt,
@@ -83,6 +84,9 @@ private:
               int align = 0, bool bold = false, bool strongShadow = false);
     void paragraph(Gdiplus::Graphics& g, const std::string& s, const Gdiplus::RectF& r, float size, uint32_t color,
                    int align = 0, bool bold = false);
+    // v0.9 UI 스킨. 조각이 있으면 그림으로, 없으면 예전처럼 도형으로 그린다.
+    // piece()는 그렸으면 true. 9조각으로 늘릴 여백이 0이면 통째로 늘린다.
+    bool piece(Gdiplus::Graphics& g, const char* name, const Gdiplus::RectF& r, float alpha = 1.f);
     void panel(Gdiplus::Graphics& g, const Gdiplus::RectF& r, uint8_t alpha = 236);
     void button(Gdiplus::Graphics& g, std::vector<UiButton>& out, const RenderContext& ctx, const Gdiplus::RectF& r,
                 const std::string& label, UiAction action, int arg = 0, bool enabled = true, bool selected = false,
@@ -119,6 +123,9 @@ private:
     std::map<int, std::unique_ptr<Gdiplus::Font>> fonts_;
     float width_ = 0.f;
     float height_ = 0.f;
+    // 한 프레임 동안 쓸 스킨. drawOverlay 시작에서 정한다.
+    const Sprites* sprites_ = nullptr;
+    std::string skin_ = "default";
 };
 
 }  // namespace dt::win

@@ -45,8 +45,9 @@ struct SkillDef {
 
 // 캐릭터 애니메이션 상태. assets/dragons/<키>/<상태 이름>.png 시트와 짝이다.
 // Fly는 바탕화면에서 스스로 날아다닐 때만 쓴다(전투에는 쓰지 않는다).
-enum class AnimState { Idle = 0, Move = 1, Attack = 2, Hit = 3, Death = 4, Fly = 5 };
-constexpr int kAnimStateCount = 6;
+// Rest는 오래 쉴 때만 쓰는 모션(엎드리기 등)이다. 시트가 없으면 idle로 대체된다.
+enum class AnimState { Idle = 0, Move = 1, Attack = 2, Hit = 3, Death = 4, Fly = 5, Rest = 6 };
+constexpr int kAnimStateCount = 7;
 const char* animStateName(AnimState s);  // "idle", "move", ...
 
 struct AnimDef {
@@ -71,6 +72,9 @@ struct SpeciesDef {
     SkillDef skills[3];
     AnimDef anims[kAnimStateCount];  // 상태별 재생 정보(시트가 없으면 무시된다)
     bool flipAllowed = true;         // false면 왼쪽을 볼 때도 좌우 반전하지 않는다
+    // v0.9: 이 드래곤을 고르면 쓰는 UI 스킨(assets/ui/<키>/). 비어 있으면 default.
+    // 스킨에 없는 조각은 default 에서 가져오므로, 바꾸고 싶은 조각만 넣으면 된다.
+    std::string uiSkin;
 };
 
 struct DragonStats {

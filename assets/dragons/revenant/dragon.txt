@@ -50,6 +50,15 @@ loop=yes
 frame_w=256
 render_scale=1.37
 
+; rest: 바탕화면에서 오래 쉬면 엎드린다(v0.9). 원본에 동봉된 권장 타이밍 160ms/프레임을 따른다.
+; render_scale: 누운 자세는 가로로 길어 칸에 맞추느라 작게 들어갔다. 그리는 단계에서 키워 맞춘다.
+; (발광부가 가장 많은 열의 몸통 두께 기준 대기 163px : 쉬기 109px -> 1.50배. 눈으로도 확인함)
+[anim.rest]
+fps=6.25
+loop=yes
+frame_w=256
+render_scale=1.50
+
 ; attack / hit / death 시트는 아직 없다. idle 로 대신 그려진다.
 
 [skill.1]

@@ -1141,6 +1141,51 @@ static void testThinBandStanding() {
     }
 }
 
+static void testKeepRange() {
+    std::printf("[keep range]\n");
+    SaveData s;
+    CHECK(s.keepRange == 0);
+    // 레벨을 올려 사거리가 긴 스킬을 연다(바깥 간격이 의미를 갖게)
+    s.hasDragon = true;
+    s.dragon.species = Species::Fire;
+    s.dragon.level = 8;
+    Game g;
+    g.init(s, kDesk);
+    g.setHuntMode(CombatMode::SkillManual);
+    g.startHunt();
+
+    auto settleDistance = [&](int keep) {
+        g.setKeepRange(keep);
+        float last = 0.f;
+        for (int i = 0; i < 600; ++i) {
+            stepGame(g, 0.03f, false, true);
+            if (!g.world().dragon().alive) break;
+            if (g.world().enemies().empty()) continue;
+            const Enemy& e = g.world().enemies().front();
+            last = distance(g.world().dragon().pos, e.pos) - e.radius;
+        }
+        return last;
+    };
+
+    float nearD = settleDistance(0);
+    float farD = settleDistance(2);
+    // 바깥 간격이 근접보다 확실히 멀어야 한다. 이게 이번 기능의 전부다.
+    CHECK(farD > nearD);
+
+    // 설정은 저장되고 범위를 넘지 않는다
+    g.setKeepRange(99);
+    CHECK(g.keepRange() == cfg::kKeepRangeCount - 1);
+    g.setKeepRange(-5);
+    CHECK(g.keepRange() == 0);
+    g.setKeepRange(1);
+    SaveData l;
+    CHECK(deserializeSave(serializeSave(g.snapshotForSave()), l));
+    CHECK(l.keepRange == 1);
+    SaveData old;
+    CHECK(deserializeSave("version=1\nnextDragonId=2\n", old));
+    CHECK(old.keepRange == 0);
+}
+
 static void testTinyScreen() {
     std::printf("[tiny screen]\n");
     // 작업 영역이 아주 작아도 좌표가 뒤집히거나 밖으로 나가지 않는다
@@ -1202,6 +1247,7 @@ int main() {
     testViewSettings();
     testBattleBandHeight();
     testThinBandStanding();
+    testKeepRange();
     testTinyScreen();
     std::printf("\n%d passed, %d failed\n", g_passed, g_failed);
     return g_failed == 0 ? 0 : 1;

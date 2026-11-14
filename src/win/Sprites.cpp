@@ -1,5 +1,9 @@
 #include "Sprites.h"
 
+#include <algorithm>
+#include <array>
+#include <fstream>
+
 namespace dt::win {
 
 namespace {
@@ -41,6 +45,9 @@ void Sprites::load(const std::filesystem::path& assetDir) {
         loadSheetsFor(dir, def.anims, def.key, "dragons/" + def.key);
     }
 
+    // UI 스킨 폴더 (v0.9)
+    loadUiSkins(assetDir / "ui");
+
     // 적 폴더 (v0.4)
     for (int i = 0; i < enemyCount(); ++i) {
         const EnemyDef& def = enemyDef(static_cast<EnemyKind>(i));
@@ -76,6 +83,99 @@ void Sprites::loadSheetsFor(const std::filesystem::path& dir, const AnimDef* ani
         s.bmp = std::move(bmp);
         sheets_[prefix + "/" + name] = std::move(s);
     }
+}
+
+// ui.txt 의 9조각 여백을 읽는다. 형식은 dragon.txt 와 같은 `[구역]` + `키=값` 이다.
+// 파일이 없거나 줄이 이상해도 그냥 넘어간다. 여백이 없으면 늘리지 않고 그대로 그린다.
+void Sprites::loadUiSkins(const std::filesystem::path& uiDir) {
+    std::error_code ec;
+    if (!std::filesystem::is_directory(uiDir, ec)) return;
+    for (const auto& entry : std::filesystem::directory_iterator(uiDir, ec)) {
+        if (!entry.is_directory()) continue;
+        std::string skin = entry.path().filename().string();
+
+        // 먼저 여백 표를 읽는다(조각 이름 -> 네 변)
+        std::map<std::string, std::array<int, 4>> margins;
+        std::ifstream f(entry.path() / "ui.txt");
+        std::string line, section;
+        while (std::getline(f, line)) {
+            // 주석과 공백 제거
+            size_t c = line.find_first_of(";#");
+            if (c != std::string::npos) line = line.substr(0, c);
+            size_t b = line.find_first_not_of(" \t\r\n");
+            if (b == std::string::npos) continue;
+            size_t e = line.find_last_not_of(" \t\r\n");
+            line = line.substr(b, e - b + 1);
+            if (line.empty()) continue;
+            if (line.front() == '[' && line.back() == ']') {
+                section = line.substr(1, line.size() - 2);
+                margins[section];  // 구역만 있어도 자리를 만든다
+                continue;
+            }
+            size_t eq = line.find('=');
+            if (eq == std::string::npos || section.empty()) continue;
+            std::string key = line.substr(0, eq);
+            int val = 0;
+            try {
+                val = std::stoi(line.substr(eq + 1));
+            } catch (...) {
+                continue;
+            }
+            if (val < 0) val = 0;
+            auto& m = margins[section];
+            if (key == "left") m[0] = val;
+            else if (key == "top") m[1] = val;
+            else if (key == "right") m[2] = val;
+            else if (key == "bottom") m[3] = val;
+        }
+
+        // PNG를 읽는다. ui.txt 에 없는 조각도 그대로 쓴다(늘리지 않음).
+        for (const auto& png : std::filesystem::directory_iterator(entry.path(), ec)) {
+            if (png.path().extension() != ".png") continue;
+            std::string name = png.path().stem().string();
+            auto bmp = loadPng(png.path());
+            if (!bmp) {
+                warnings_.push_back("ui/" + skin + "/" + name + ".png: 그림을 읽지 못했습니다");
+                continue;
+            }
+            UiData u;
+            auto it = margins.find(name);
+            if (it != margins.end()) {
+                int w = static_cast<int>(bmp->GetWidth());
+                int h = static_cast<int>(bmp->GetHeight());
+                // 여백이 그림보다 크면 9조각 계산이 뒤집힌다. 줄여서 쓰고 알린다.
+                if (it->second[0] + it->second[2] >= w || it->second[1] + it->second[3] >= h) {
+                    warnings_.push_back("ui/" + skin + "/" + name + ": 여백이 그림보다 큽니다. 줄여서 씁니다");
+                    it->second[0] = std::min(it->second[0], (w - 1) / 2);
+                    it->second[2] = std::min(it->second[2], (w - 1) / 2);
+                    it->second[1] = std::min(it->second[1], (h - 1) / 2);
+                    it->second[3] = std::min(it->second[3], (h - 1) / 2);
+                }
+                u.left = it->second[0];
+                u.top = it->second[1];
+                u.right = it->second[2];
+                u.bottom = it->second[3];
+            }
+            u.bmp = std::move(bmp);
+            ui_[skin + "/" + name] = std::move(u);
+        }
+    }
+}
+
+UiPiece Sprites::ui(const std::string& skinKey, const std::string& name) const {
+    // 고른 스킨에 없으면 default 에서 찾는다. 둘 다 없으면 빈 조각(도형으로 그린다).
+    for (const std::string& skin : {skinKey, std::string("default")}) {
+        auto it = ui_.find(skin + "/" + name);
+        if (it == ui_.end()) continue;
+        UiPiece p;
+        p.bmp = it->second.bmp.get();
+        p.left = it->second.left;
+        p.top = it->second.top;
+        p.right = it->second.right;
+        p.bottom = it->second.bottom;
+        return p;
+    }
+    return UiPiece{};
 }
 
 Gdiplus::Bitmap* Sprites::get(const std::string& key) const {
