@@ -72,7 +72,7 @@
 | 10 | `Renderer.cpp` 쪼개기 | win | 완료 (PR #34) — 병합 안 함, 사람 검토 대기 |
 | 11 | 그린 부분만 갱신 (1단계: 측정) | win | 완료 (PR #35) — 병합 안 함, 사람 측정 대기 |
 | 12 | 그린 부분만 갱신 (2단계: 적용) | win | 대기 |
-| 13 | Zone 스킬 중복 정리안 | 문서 | 완료 (PR #PRNUM) |
+| 13 | Zone 스킬 중복 정리안 | 문서 | 완료 (PR #36) |
 | 14 | 탑 층별 보상·난이도 곡선 | 데이터 | 대기 |
 | 15 | 스킬 피해 판정 프레임 옮기기 | 코어 | **사람 승인 대기** (아래 15번) |
 | 16 | 깊이감 A축: 사망 계승(해금) 설계안 | 문서 | 대기 |
@@ -329,7 +329,7 @@
 작동 방식으로 바꾸기 (나) 둘을 합치고 빈 레벨에 다른 스킬 넣기 (다) 그대로 두기 — 각각의 잃는 것을
 적는다. `docs/characters/` 아래 문서로.
 
-**한 것** (PR #PRNUM): [`docs/characters/revenant-dragon-zone-skills.md`](characters/revenant-dragon-zone-skills.md).
+**한 것** (PR #36): [`docs/characters/revenant-dragon-zone-skills.md`](characters/revenant-dragon-zone-skills.md).
 수치·코드·시뮬레이션 셋으로 재고 선택지 (가)·(나)·(다)와 각각 잃는 것을 적었다. **데이터·코드는
 고치지 않았다.**
 - 침식이 **재사용 대기시간과 사거리만 빼고 전부 안개보다 위**에 있고, 작동 분기와 그리기 코드가
