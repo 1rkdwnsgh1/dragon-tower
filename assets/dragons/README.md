@@ -73,3 +73,13 @@ render_scale=1.37
 
 게임을 켤 때 화면 알림으로 어느 파일 몇 행이 잘못됐는지 알려 줍니다(모르는 키, 읽을 수 없는 값,
 칸 수가 맞지 않는 시트 등). 잘못된 값은 기본값이나 허용 범위로 맞춰 게임은 계속 실행됩니다.
+
+## 이 드래곤만 다른 UI 쓰기
+
+`[dragon]` 구역에 한 줄 적는다. 자세한 내용은 [UI 스킨 사용법](../ui/README.md)에 있다.
+
+```
+ui_skin=shadow
+```
+
+실제 예: `assets/dragons/shadow/dragon.txt` (그림자룡 → `assets/ui/shadow/`).

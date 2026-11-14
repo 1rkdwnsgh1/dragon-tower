@@ -19,7 +19,8 @@ assets/ui/
 ui_skin=revenant
 ```
 
-**없는 조각은 자동으로 `default` 에서 가져온다.** 그래서 바꾸고 싶은 조각만 넣으면 된다.
+**없는 조각은 자동으로 `default` 에서 가져온다.** 그림뿐 아니라 **`ui.txt` 의 여백·`fit` 설정도 물려받는다.**
+그래서 색만 바꾼 스킨은 PNG만 넣으면 되고 `ui.txt` 를 다시 쓸 필요가 없다. 그래서 바꾸고 싶은 조각만 넣으면 된다.
 예를 들어 체력 막대만 바꾸려면 `assets/ui/revenant/bar_fill_hp.png` 하나만 두면 된다.
 `ui_skin` 을 적지 않으면 `default` 를 쓴다.
 
@@ -94,6 +95,20 @@ v0.9에서 1109×1382짜리 큰 창틀을 270px 상태창에 넣었더니 테두
 ```
 python tools/slice_ui.py --out assets/ui/default --panels 버튼시트.png --bars 막대시트.png
 ```
+
+## 색만 바꾼 스킨 만들기
+
+[tools/tint_ui.py](../../tools/tint_ui.py) 로 기본 스킨의 색상만 돌려 새 스킨을 만든다.
+모양·명암·발광은 그대로 두고 **색상(hue)만** 돌리며, 회색(금속 테두리)은 건드리지 않는다.
+
+```
+python tools/tint_ui.py --out assets/ui/shadow --hue -75
+```
+
+체력 초록·경험치 파랑처럼 **색이 의미를 가지는 조각은 기본으로 제외**한다. 색을 바꾸면
+"체력이 적다"는 신호가 흐려지기 때문이다. 넣고 싶으면 `--pieces` 에 직접 적는다.
+
+실제 예: `assets/ui/shadow/` (그림자룡 전용, 청록 → 보라).
 
 ## 한 파일에 여러 요소가 들어 있으면 안 된다
 

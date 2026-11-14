@@ -49,6 +49,8 @@ tests/                     코어 규칙 검증
 | UI 스킨 그리기(맞춤) | `src/win/Renderer.cpp` | `drawPiece`(nine/height/contain), `Renderer::piece` |
 | 그림이 너무 클 때 포기 | `src/win/Renderer.cpp` | `kBorderShare`, `kMinArtScale` → 도형으로 그린다 |
 | 드래곤별 스킨 선택 | `include/core/Game.h` | `Game::uiSkin`, `dragon.txt`의 `ui_skin` |
+| 스킨 설정 물려받기 | `src/win/Sprites.cpp` | `loadUiSkins` 끝의 `hasCfg` 보정 (default 의 여백·fit 를 쓴다) |
+| 에셋 데이터 검사 | `tools/asset_check.cpp` | `ctest` 에 포함. dragon.txt·enemy.txt 오타를 잡는다 |
 | 싸울 때 유지할 간격 | `src/core/World.cpp` | `desiredRange`, `Game::setKeepRange` |
 | 쉴 때 엎드리기 | `src/core/World.cpp` | `updateDragonAnim`의 `restTime`, `cfg::kRestLieDelay` |
 | 대쉬할 때 나는 모션 | `src/core/World.cpp` | `updateDragonAnim`의 `dashTime` |
