@@ -73,6 +73,7 @@ private:
         std::unique_ptr<Gdiplus::Bitmap> bmp;
         int left = 0, top = 0, right = 0, bottom = 0;
         UiFit fit = UiFit::Nine;
+        bool hasCfg = false;  // 이 스킨의 ui.txt 에 설정이 적혀 있었는가
     };
     void loadUiSkins(const std::filesystem::path& uiDir);
 

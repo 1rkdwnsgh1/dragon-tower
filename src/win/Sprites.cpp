@@ -166,10 +166,30 @@ void Sprites::loadUiSkins(const std::filesystem::path& uiDir) {
                 u.bottom = it->second[3];
             }
             auto fi = fits.find(name);
-            if (fi != fits.end()) u.fit = fi->second;
+            if (fi != fits.end()) {
+                u.fit = fi->second;
+                u.hasCfg = true;
+            }
+            if (it != margins.end()) u.hasCfg = true;
             u.bmp = std::move(bmp);
             ui_[skin + "/" + name] = std::move(u);
         }
+    }
+
+    // 스킨에 ui.txt 가 없거나 그 조각이 안 적혀 있으면 default 의 설정을 물려받는다.
+    // 그림만 바꾼 스킨(색만 다른 것)이 여백·맞춤 방식을 잃고 통째로 늘어나는 것을 막는다.
+    for (auto& [key, data] : ui_) {
+        if (data.hasCfg) continue;
+        size_t slash = key.find('/');
+        if (slash == std::string::npos) continue;
+        if (key.compare(0, slash, "default") == 0) continue;
+        auto base = ui_.find("default/" + key.substr(slash + 1));
+        if (base == ui_.end() || !base->second.hasCfg) continue;
+        data.left = base->second.left;
+        data.top = base->second.top;
+        data.right = base->second.right;
+        data.bottom = base->second.bottom;
+        data.fit = base->second.fit;
     }
 }
 
