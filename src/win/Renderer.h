@@ -24,6 +24,10 @@ enum class UiAction {
     TogglePowerSave,  // 조용할 때 프레임 줄이기
     SetKeepRange,     // 싸울 때 유지할 간격. arg = 0 근접 / 1 중간 / 2 바깥
     ToggleMenu,       // 메뉴 창 열고 닫기(키보드 조작과 무관)
+    OpenStable,       // 드래곤 관리창 열기
+    CloseStable,      // 관리창 닫기
+    ShowDragon,       // arg = 보유 목록 자리. 바탕화면에 띄운다(= 플레이할 드래곤)
+    AddDragon,        // 새 드래곤 데려오기(선택 화면으로)
     ChooseSpecies,  // arg = 종류
     StartHunt,
     StopHunt,
@@ -115,6 +119,9 @@ private:
     void drawSelect(Gdiplus::Graphics& g, const Game& game, const Sprites& sprites, const RenderContext& ctx,
                     std::vector<UiButton>& out);
     void drawCodex(Gdiplus::Graphics& g, const Game& game, const RenderContext& ctx, std::vector<UiButton>& out);
+    // v1.3 드래곤 관리창: 보유 목록, 바탕화면에 띄울 개체 고르기, 묘비
+    void drawStable(Gdiplus::Graphics& g, const Game& game, const Sprites& sprites, const RenderContext& ctx,
+                    std::vector<UiButton>& out);
 
     std::unique_ptr<Gdiplus::FontFamily> family_;
     std::map<int, std::unique_ptr<Gdiplus::Font>> fonts_;

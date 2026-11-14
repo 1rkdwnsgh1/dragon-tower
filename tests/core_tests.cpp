@@ -1192,6 +1192,111 @@ static void testKeepRange() {
     CHECK(old.keepRange == 0);
 }
 
+static void testStable() {
+    std::printf("[stable]\n");
+    SaveData s;
+    Game g;
+    g.init(s, kDesk);
+    CHECK(g.screen() == Screen::Select);
+    g.chooseSpecies(Species::Fire);
+    CHECK(g.stable().size() == 1 && g.activeIndex() == 0);
+
+    // 관리창에서 한 마리 더 데려온다. 띄운 개체는 그대로다.
+    g.openStable();
+    CHECK(g.screen() == Screen::Stable);
+    g.beginAddDragon();
+    CHECK(g.screen() == Screen::Select && g.addingDragon());
+    g.chooseSpecies(Species::Water);
+    CHECK(g.stable().size() == 2);
+    CHECK(g.dragonRecord().species == Species::Fire);  // 띄운 개체는 바뀌지 않는다
+    CHECK(g.activeIndex() == 0);
+
+    // 최대 마리 수를 넘지 않는다
+    for (int i = 0; i < 5; ++i) {
+        g.openStable();
+        g.beginAddDragon();
+        g.chooseSpecies(Species::Earth);
+    }
+    CHECK(static_cast<int>(g.stable().size()) == cfg::kMaxStable);
+    CHECK(g.stableFull());
+
+    // 보관 중인 개체는 쉬면서 회복한다(경험치는 오르지 않는다)
+    SaveData hurt = g.snapshotForSave();
+    hurt.stable[1].hp = 1.f;
+    int expBefore = hurt.stable[1].exp;
+    Game g2;
+    g2.init(hurt, kDesk);
+    PlayerInput none;
+    for (int i = 0; i < 30 * 30; ++i) g2.update(1.f / 30.f, none, false, false);
+    SaveData after = g2.snapshotForSave();
+    CHECK(after.stable[1].hp > 1.f);
+    CHECK(after.stable[1].exp == expBefore);
+
+    // 전투 중에는 바꿀 수 없다
+    g2.setHuntMode(CombatMode::Direct);
+    g2.startHunt();
+    CHECK(g2.hunting());
+    CHECK(!g2.canSwitchDragon());
+    CHECK(!g2.switchDragon(1));
+    CHECK(g2.activeIndex() == 0);
+
+    // 멈추면 바꿀 수 있고, 띄운 개체의 상태가 목록에 저장된다
+    g2.stopHunt();
+    CHECK(g2.canSwitchDragon());
+    CHECK(g2.switchDragon(1));
+    CHECK(g2.activeIndex() == 1);
+    CHECK(g2.dragonRecord().id == after.stable[1].id);
+}
+
+static void testStablePermadeath() {
+    std::printf("[stable permadeath]\n");
+    // 여러 마리를 가지고 있어도 죽은 개체는 되살아나지 않는다.
+    SaveData s;
+    Game g;
+    g.init(s, kDesk);
+    g.chooseSpecies(Species::Fire);
+    g.openStable();
+    g.beginAddDragon();
+    g.chooseSpecies(Species::Water);
+    CHECK(g.stable().size() == 2);
+    int deadId = g.dragonRecord().id;
+
+    // 띄워 둔 개체를 죽인다. 관리창이 떠 있으면 사냥이 시작되지 않으므로 먼저 닫는다.
+    g.closeStable();
+    CHECK(g.screen() == Screen::Desktop);
+    g.setHuntMode(CombatMode::Direct);
+    g.startHunt();
+    CHECK(g.hunting());
+    Vec2 dp = g.world().dragon().pos;
+    for (int i = 0; i < 3; ++i) g.world().spawnEnemy(defaultMelee(), 15, dp + Vec2{40.f, -40.f + 40.f * i});
+    g.world().dragon().hp = 1.f;
+    stepGame(g, 20.f, false, true);
+    CHECK(!g.hasDragon());
+    CHECK(g.screen() == Screen::Death);
+
+    // 죽은 개체는 목록에서 빠지고 묘비로만 남는다
+    CHECK(g.stable().size() == 1);
+    for (const DragonRecord& d : g.stable()) CHECK(d.id != deadId);
+    CHECK(g.lastGrave() != nullptr && g.lastGrave()->id == deadId);
+
+    // 남은 개체가 있으므로 관리창으로 간다(자동으로 띄우지는 않는다)
+    g.acknowledgeDeath();
+    CHECK(g.screen() == Screen::Stable);
+    CHECK(!g.hasDragon());
+
+    // 다시 켜도 죽은 개체는 없다
+    SaveData saved = g.snapshotForSave();
+    SaveData reloaded;
+    CHECK(deserializeSave(serializeSave(saved), reloaded));
+    CHECK(reloaded.stable.size() == 1);
+    for (const DragonRecord& d : reloaded.stable) CHECK(d.id != deadId);
+    Game g3;
+    g3.init(reloaded, kDesk);
+    CHECK(g3.screen() == Screen::Stable);
+    CHECK(g3.switchDragon(0));
+    CHECK(g3.dragonRecord().id != deadId);
+}
+
 static void testTinyScreen() {
     std::printf("[tiny screen]\n");
     // 작업 영역이 아주 작아도 좌표가 뒤집히거나 밖으로 나가지 않는다
@@ -1253,6 +1358,8 @@ int main() {
     testViewSettings();
     testBattleBandHeight();
     testThinBandStanding();
+    testStable();
+    testStablePermadeath();
     testKeepRange();
     testTinyScreen();
     std::printf("\n%d passed, %d failed\n", g_passed, g_failed);

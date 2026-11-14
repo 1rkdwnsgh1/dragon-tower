@@ -259,6 +259,7 @@ PlayerInput App::pollKeys() {
     if (edge(VK_ESCAPE)) {
         Screen sc = game_.screen();
         if (sc == Screen::AutoWarning || sc == Screen::TowerWarning || sc == Screen::Codex) game_.closeModal();
+        else if (sc == Screen::Stable) game_.closeStable();  // 띄운 개체가 없으면 닫히지 않는다
         else if (sc == Screen::Desktop) setInputEnabled(false);
     }
     return in;
@@ -443,6 +444,10 @@ void App::doAction(const UiButton& b) {
             break;
         case UiAction::TogglePowerSave: game_.setPowerSave(!game_.powerSave()); break;
         case UiAction::ToggleMenu: game_.setMenuOpen(!game_.menuOpen()); break;
+        case UiAction::OpenStable: game_.openStable(); break;
+        case UiAction::CloseStable: game_.closeStable(); break;
+        case UiAction::ShowDragon: game_.switchDragon(b.arg); break;
+        case UiAction::AddDragon: game_.beginAddDragon(); break;
         case UiAction::SetKeepRange: game_.setKeepRange(b.arg); break;
         case UiAction::DragPanel:   // 끌기는 WM_LBUTTONDOWN에서 시작한다
         case UiAction::DragMenu:

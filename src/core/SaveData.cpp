@@ -95,6 +95,21 @@ std::string serializeSave(const SaveData& s) {
         o << "dragon.autoExp=" << d.autoExp << "\n";
         o << "dragon.hp=" << d.hp << "\n";
     }
+    // v1.3 보유 목록. 위의 dragon.* 는 지금 플레이 중인 개체를 가리키며 그대로 둔다
+    // (옛 빌드에서도 저장 파일을 읽을 수 있게 하기 위해서다).
+    o << "stable.count=" << s.stable.size() << "\n";
+    o << "stable.active=" << s.activeIndex << "\n";
+    for (size_t i = 0; i < s.stable.size(); ++i) {
+        const DragonRecord& d = s.stable[i];
+        std::string pre = "stable." + std::to_string(i) + ".";
+        o << pre << "id=" << d.id << "\n";
+        o << pre << "species=" << speciesDef(d.species).key << "\n";
+        o << pre << "alive=" << (d.alive ? 1 : 0) << "\n";
+        o << pre << "level=" << d.level << "\n";
+        o << pre << "exp=" << d.exp << "\n";
+        o << pre << "autoExp=" << d.autoExp << "\n";
+        o << pre << "hp=" << d.hp << "\n";
+    }
     o << "codex.species=";
     bool first = true;
     for (const std::string& k : s.speciesSeen) {  // set이라 저장 순서가 항상 같다
@@ -157,6 +172,29 @@ bool deserializeSave(const std::string& text, SaveData& out) {
         else if (key == "bestFloor") s.bestFloor = std::max(0, toInt(val, 0));
         else if (key == "towerClears") s.towerClears = std::max(0, toInt(val, 0));
         else if (key == "dragon.present") dragonPresent = toInt(val, 0) != 0;
+        else if (key == "stable.count") {
+            int n = std::clamp(toInt(val, 0), 0, cfg::kMaxStable);
+            s.stable.assign(static_cast<size_t>(n), DragonRecord{});
+        }
+        else if (key == "stable.active") s.activeIndex = toInt(val, -1);
+        else if (key.rfind("stable.", 0) == 0) {
+            // stable.<번호>.<항목>
+            size_t dot = key.find('.', 7);
+            if (dot != std::string::npos) {
+                int idx = toInt(key.substr(7, dot - 7), -1);
+                std::string f = key.substr(dot + 1);
+                if (idx >= 0 && idx < static_cast<int>(s.stable.size())) {
+                    DragonRecord& d = s.stable[static_cast<size_t>(idx)];
+                    if (f == "id") d.id = toInt(val, 0);
+                    else if (f == "species") { Species sp; if (speciesFromKey(val, sp)) d.species = sp; }
+                    else if (f == "alive") d.alive = toInt(val, 1) != 0;
+                    else if (f == "level") d.level = std::clamp(toInt(val, 1), 1, cfg::kMaxLevel);
+                    else if (f == "exp") d.exp = std::max(0, toInt(val, 0));
+                    else if (f == "autoExp") d.autoExp = std::max(0, toInt(val, 0));
+                    else if (f == "hp") d.hp = toFloat(val, -1.f);
+                }
+            }
+        }
         else if (key == "dragon.id") s.dragon.id = toInt(val, 0);
         // 폴더가 사라진 종이라도 다른 종으로 바뀌지 않도록 자리 표시 종을 등록한다.
         else if (key == "dragon.species") { if (!val.empty()) s.dragon.species = ensureSpecies(val); }
@@ -194,6 +232,35 @@ bool deserializeSave(const std::string& text, SaveData& out) {
     if (!sawVersion) return false;
     // 죽은 개체는 현재 개체로 불러오지 않는다(재실행으로 부활 방지).
     s.hasDragon = dragonPresent && s.dragon.alive;
+
+    // v1.3: 보유 목록이 없는(v1.2 이전) 저장 파일이면 지금 개체 하나로 목록을 만든다.
+    if (s.stable.empty()) {
+        if (s.hasDragon) {
+            s.stable.push_back(s.dragon);
+            s.activeIndex = 0;
+        } else {
+            s.activeIndex = -1;
+        }
+    } else {
+        // 죽은 개체는 목록에 남기지 않는다(묘비로만 남는다).
+        std::vector<DragonRecord> alive;
+        int newActive = -1;
+        for (size_t i = 0; i < s.stable.size(); ++i) {
+            if (!s.stable[i].alive) continue;
+            if (static_cast<int>(i) == s.activeIndex) newActive = static_cast<int>(alive.size());
+            alive.push_back(s.stable[i]);
+        }
+        s.stable = std::move(alive);
+        s.activeIndex = newActive;
+        if (s.activeIndex >= 0) {
+            s.dragon = s.stable[static_cast<size_t>(s.activeIndex)];
+            s.hasDragon = true;
+        } else {
+            s.hasDragon = false;
+        }
+    }
+    for (const DragonRecord& d : s.stable)
+        if (d.id >= s.nextDragonId) s.nextDragonId = d.id + 1;
     if (s.hasDragon && s.dragon.id >= s.nextDragonId) s.nextDragonId = s.dragon.id + 1;
     out = s;
     return true;

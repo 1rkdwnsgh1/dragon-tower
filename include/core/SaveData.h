@@ -25,8 +25,14 @@ struct GraveEntry {
 struct SaveData {
     int version = 1;
     int nextDragonId = 1;
+    // hasDragon / dragon 은 **지금 플레이 중인(바탕화면에 띄운)** 개체다.
+    // v1.3부터 보유 목록(stable)이 생겼고, dragon 은 stable[activeIndex] 의 사본으로 유지된다.
+    // 기존 코드가 save_.dragon 을 그대로 쓰도록 남겨 두었다.
     bool hasDragon = false;   // 살아 있는 현재 개체가 있는가
     DragonRecord dragon;
+    // v1.3 보유 목록. 최대 cfg::kMaxStable 마리. 죽으면 여기서 빠지고 graves 로 간다.
+    std::vector<DragonRecord> stable;
+    int activeIndex = -1;     // stable 에서 지금 플레이 중인 자리. 없으면 -1
     CombatMode huntMode = CombatMode::SkillManual;
     // v0.9 싸울 때 유지할 간격. 0 근접 / 1 중간 / 2 바깥. 스킬 수동·자동에서 쓰인다.
     int keepRange = 0;
