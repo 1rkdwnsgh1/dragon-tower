@@ -28,7 +28,12 @@ tests/                     코어 규칙 검증
 | 내장 적 4종의 기본값 | `src/core/Enemy.cpp` | `makeSlime`, `makeGoblin`, `makeOgre`, `makeLich` |
 | 적 추가·조회 방식 | `src/core/Enemy.cpp` | `registerOrUpdateEnemy`, `defaultMelee`, `defaultBoss` |
 | `enemy.txt` 읽는 규칙 | `src/core/DragonData.cpp` | `parseEnemyText`, `loadEnemyFolders` |
-| 바탕화면·탑에 나오는 적 구성 | `src/core/Game.cpp` | `randomMelee`, `spawnTowerFloor` |
+| 바탕화면 사냥에 나오는 적 | `src/core/Game.cpp` | `randomMelee` |
+| 탑 층 구성(몇 층, 층마다 무슨 적) | `assets/tower/floors.txt` | (코드 아님. [사용법](../assets/tower/README.md)) |
+| 탑 층의 내장 기본값(파일이 없을 때) | `src/core/Tower.cpp` | `builtinTowerFloors` |
+| `floors.txt` 읽는 규칙 | `src/core/DragonData.cpp` | `parseTowerText`, `loadTowerFloors` |
+| 층의 적을 실제로 세우는 곳 | `src/core/Game.cpp` | `spawnTowerFloor`, `towerFloorDef` |
+| 층 수·층 이름을 화면에 쓰기 | `src/core/Game.cpp` | `towerFloorCount`, `towerFloorLabel` |
 | 디펜스 전투 띠(맨 아래 영역) | `src/core/Game.cpp` | `battleBand` |
 | 왼쪽에서 들어오는 웨이브 | `src/core/Game.cpp` | `spawnWave`, `waveNumber_` |
 | 띠 높이·등장 위치·웨이브 증가 | `include/core/Config.h` | `kBandHeight`, `kSpawnOffsetX`, `kWaveLevelStep` |
