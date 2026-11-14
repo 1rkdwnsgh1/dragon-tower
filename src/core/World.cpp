@@ -385,20 +385,24 @@ float World::randomRoamX() {
     return rng_.uniform(bounds_.x + m, bounds_.right() - m);
 }
 
+// 서 있을 수 있는 가장 아래 줄. 영역이 얇아도 발이 바닥 밖으로 나가지 않는다.
+float World::groundLine() const { return bounds_.bottom() - cfg::kDragonRadius; }
+
 Vec2 World::randomRoamTarget(bool fly) {
     const float m = 80.f;
     // 걷기는 아래쪽 바닥을 따라, 날기는 화면 위쪽까지 올라간다.
     float topRatio = fly ? cfg::kIdleFlyTopRatio : cfg::kIdleWalkTopRatio;
     float top = bounds_.y + bounds_.h * topRatio;
-    float bottom = bounds_.bottom() - m;
-    if (top > bottom) top = bottom;  // 화면이 아주 낮을 때를 대비
-    return {rng_.uniform(bounds_.x + m, bounds_.right() - m), rng_.uniform(top, bottom)};
+    float bottom = groundLine();
+    if (top > bottom) top = bottom;  // 영역이 드래곤보다 얇을 때(얇은 전투 띠)를 대비
+    float lx = bounds_.x + m, rx = bounds_.right() - m;
+    if (lx > rx) { lx = rx = (bounds_.x + bounds_.right()) * 0.5f; }
+    return {rng_.uniform(lx, rx), rng_.uniform(top, bottom)};
 }
 
 float World::randomGroundY() {
-    const float m = 80.f;
     float top = bounds_.y + bounds_.h * cfg::kIdleWalkTopRatio;
-    float bottom = bounds_.bottom() - m;
+    float bottom = groundLine();
     if (top > bottom) top = bottom;
     return rng_.uniform(top, bottom);
 }

@@ -45,7 +45,8 @@ private:
     void tick(float dt);
     void render();
     PlayerInput pollKeys();
-    void onClick(float lx, float ly);
+    // onlyAlways면 입력이 꺼진 상태에서도 누를 수 있는 버튼만 처리한다.
+    void onClick(float lx, float ly, bool onlyAlways);
     void doAction(const UiButton& b);
     void saveNow();
     void requestExit();
@@ -58,7 +59,10 @@ private:
     void refreshTrayTip();
     void showBalloon(const std::string& title, const std::string& body, bool warning);
     void pumpAlerts();
-    bool startDrag(float lx, float ly);  // 상태창·드래곤 끌기 시작
+    // 상태창·메뉴·드래곤 끌기 시작. onlyAlways면 입력이 꺼진 상태에서도 되는 것만 받는다.
+    bool startDrag(float lx, float ly, bool onlyAlways);
+    // 커서가 "입력이 꺼져 있어도 받는 영역" 위에 있는가
+    bool cursorOnAlways() const;
 
     HINSTANCE inst_ = nullptr;
     HWND overlay_ = nullptr;
@@ -87,7 +91,7 @@ private:
     FrameRegions regions_;
     bool cursorOnUi_ = false;
     // v0.6 끌기
-    enum class Drag { None, Panel, Dragon };
+    enum class Drag { None, Panel, Menu, Dragon };
     Drag drag_ = Drag::None;
     float dragDX_ = 0.f, dragDY_ = 0.f;
     // v0.6 트레이 아이콘

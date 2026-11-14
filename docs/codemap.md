@@ -34,15 +34,20 @@ tests/                     코어 규칙 검증
 | 띠 높이·등장 위치·웨이브 증가 | `include/core/Config.h` | `kBandHeight`, `kSpawnOffsetX`, `kWaveLevelStep` |
 | 전투 토글 스위치·모드 버튼 | `src/win/Renderer.cpp` | `toggle`, `drawStatusCard` |
 | 클릭 통과 범위 판정 | `src/win/App.cpp` | `updateClickThrough`, `FrameRegions` |
+| 입력이 꺼져도 받는 영역 | `src/win/App.cpp` | `cursorOnAlways`, `UiButton::always` |
+| 상시 입력 영역 표시 | `src/win/Renderer.cpp` | `g_always`, `AlwaysGuard` (상태창을 그리는 동안만 켠다) |
 | 입력 받을 영역 수집 | `src/win/Renderer.cpp` | `markRegion`, `g_regions` |
 | 트레이 아이콘·메뉴 | `src/win/App.cpp` | `createTray`, `showTrayMenu` |
 | 트레이 풍선 알림 | `src/win/App.cpp` | `showBalloon`, `pumpAlerts` |
 | 중요한 일 알림 모으기 | `src/core/Game.cpp` | `alert`, `takeAlert` |
 | 탐색기 재시작 대응 | `src/win/App.cpp` | `taskbarCreatedMsg_` |
 | 전역 단축키 | `src/win/App.cpp` | `RegisterHotKey`, `WM_HOTKEY` |
-| 상태창·드래곤 끌기 | `src/win/App.cpp` | `startDrag`, `WM_MOUSEMOVE` |
+| 상태창·메뉴·드래곤 끌기 | `src/win/App.cpp` | `startDrag`, `WM_MOUSEMOVE` |
+| 메뉴 창 위치·크기 | `src/win/Renderer.cpp` | `drawMenu`의 `menuScale`, `menuPos` |
+| 캐릭터 보기 크기 | `src/win/Renderer.cpp` | `drawWorld`의 `cs`, `drawEnemy(charScale)` (그림만, 판정은 그대로) |
 | 드래곤을 띠에 가두기 | `src/core/Game.cpp` | `setConfineToBand`, `placeDragon` |
-| 조용할 때 프레임 줄이기 | `src/win/App.cpp` | `App::tick`의 `busy`, `cfg::kIdleFrameInterval` |
+| 조용할 때 프레임 줄이기 | `src/win/App.cpp` | `App::tick`의 `powerSave`·`busy`, `cfg::kIdleFrameInterval` |
+| 얇은 영역에서 서는 자리 | `include/core/MathUtil.h`, `src/core/World.cpp` | `RectF::clampPoint`, `World::groundLine` |
 | 자동 경험치 상한 켜고 끄기 | `include/core/Config.h` | `kAutoExpCapEnabled` |
 | `dragon.txt` 읽는 규칙 | `src/core/DragonData.cpp` | `parseDragonText` |
 | 폴더 스캔 | `src/core/DragonData.cpp` | `loadDragonFolders` |

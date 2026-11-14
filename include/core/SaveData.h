@@ -34,6 +34,12 @@ struct SaveData {
     bool panelCollapsed = false;  // 상태창을 접어 두었는가
     bool confineToBand = false;   // 드래곤을 화면 맨 아래 띠에만 두는가
     bool hintShown = false;       // 첫 실행 안내(단축키·트레이)를 보여 줬는가
+    // v0.8 메뉴 창과 보기 설정. 역시 모르는 키는 무시되므로 이전 저장 파일과 호환된다.
+    float menuX = -1.f;           // 메뉴 창 왼쪽 위 좌표. -1이면 기본 위치
+    float menuY = -1.f;
+    float menuScale = 1.f;        // 메뉴 창 크기 배수
+    float charScale = 1.f;        // 화면에 보이는 드래곤·적 크기 배수(보기 전용, 판정은 그대로)
+    bool powerSave = false;       // 조용할 때 다시 그리는 횟수를 줄인다(노트북 절전)
     int bestFloor = 0;        // 탑 최고 도달 층(기록, 개체가 죽어도 유지)
     int towerClears = 0;
     // v0.2: 종이 폴더로 추가될 수 있어 고정 배열 대신 키 집합으로 저장한다.

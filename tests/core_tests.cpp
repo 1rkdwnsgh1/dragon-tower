@@ -1037,6 +1037,110 @@ static void testFirstRunHint() {
     CHECK(!old.hintShown);
 }
 
+static void testViewSettings() {
+    std::printf("[view settings]\n");
+    SaveData s;
+    CHECK(s.menuScale == 1.f);
+    CHECK(s.charScale == 1.f);
+    CHECK(!s.powerSave);
+    CHECK(s.menuX < 0.f);
+    Game g;
+    g.init(s, kDesk);
+
+    // 메뉴 위치는 그대로 저장된다
+    g.setMenuPos({120.f, 240.f});
+    CHECK(g.menuPos().x == 120.f && g.menuPos().y == 240.f);
+
+    // 배수는 허용 범위를 넘지 않는다
+    g.setMenuScale(99.f);
+    CHECK(g.menuScale() == cfg::kMenuScaleMax);
+    g.setMenuScale(-5.f);
+    CHECK(g.menuScale() == cfg::kMenuScaleMin);
+    g.setCharScale(99.f);
+    CHECK(g.charScale() == cfg::kCharScaleMax);
+    g.setCharScale(0.f);
+    CHECK(g.charScale() == cfg::kCharScaleMin);
+
+    g.setCharScale(1.4f);
+    g.setPowerSave(true);
+    CHECK(g.powerSave());
+
+    // 저장하고 다시 읽어도 유지된다
+    SaveData l;
+    CHECK(deserializeSave(serializeSave(g.snapshotForSave()), l));
+    CHECK(l.menuX == 120.f && l.menuY == 240.f);
+    CHECK(std::fabs(l.charScale - 1.4f) < 0.001f);
+    CHECK(l.powerSave);
+
+    // 이전 저장 파일에는 없는 키라 기본값이 쓰인다
+    SaveData old;
+    CHECK(deserializeSave("version=1\nnextDragonId=2\n", old));
+    CHECK(old.menuScale == 1.f && old.charScale == 1.f && !old.powerSave);
+
+    // 손으로 고친 저장 파일의 범위 밖 값도 읽을 때 맞춘다
+    SaveData bad;
+    CHECK(deserializeSave("version=1\nui.charScale=50\nui.menuScale=0.01\n", bad));
+    CHECK(bad.charScale == cfg::kCharScaleMax);
+    CHECK(bad.menuScale == cfg::kMenuScaleMin);
+}
+
+static void testBattleBandHeight() {
+    std::printf("[battle band]\n");
+    // 띠는 작업 표시줄 바로 위에 붙어 있어야 한다. 높이를 바꿔도 이 관계는 유지된다.
+    SaveData s;
+    Game g;
+    g.init(s, kDesk);
+    g.chooseSpecies(Species::Fire);
+    RectF band = g.battleBand();
+    CHECK(std::fabs(band.h - cfg::kBandHeight) < 0.001f);
+    CHECK(std::fabs((band.y + band.h) - (kDesk.y + kDesk.h - cfg::kBandBottomMargin)) < 0.001f);
+    CHECK(band.w > 0.f);
+}
+
+static void testThinBandStanding() {
+    std::printf("[thin band standing]\n");
+    // v0.8: 전투 띠(50)가 드래곤 지름(68)보다 얇다. 이때 드래곤이 위로 떠오르거나
+    // 띠 밖으로 나가면 안 된다. 예전 clampPoint는 범위가 뒤집혀 위쪽에 붙였다.
+    CHECK(cfg::kBandHeight < cfg::kDragonRadius * 2.f);
+    SaveData s;
+    Game g;
+    g.init(s, kDesk);
+    g.chooseSpecies(Species::Fire);
+    RectF band = g.battleBand();
+    float floorY = band.bottom() - cfg::kDragonRadius;
+
+    // 띠에만 머물게 하면 바닥 줄에 선다
+    g.setConfineToBand(true);
+    CHECK(std::fabs(g.world().dragon().pos.y - floorY) < 0.001f);
+
+    // 위쪽으로 끌어다 놓아도 바닥 줄로 돌아온다
+    g.placeDragon({band.x + 200.f, band.y - 300.f});
+    CHECK(std::fabs(g.world().dragon().pos.y - floorY) < 0.001f);
+
+    // 한참 돌아다녀도 띠 안에 머문다
+    for (int i = 0; i < 400; ++i) {
+        stepGame(g, 0.05f, false, true);
+        const DragonActor& d = g.world().dragon();
+        CHECK(d.pos.y <= floorY + 0.5f);
+        CHECK(d.pos.y >= band.y - 0.5f);
+    }
+
+    // 사냥을 시작해도(띠로 제한) 마찬가지, 적도 띠 안에 들어온다
+    g.setConfineToBand(false);
+    g.setHuntMode(CombatMode::Auto);
+    g.confirmAutoWarning();
+    g.startHunt();
+    for (int i = 0; i < 200; ++i) {
+        stepGame(g, 0.05f, false, true);
+        if (!g.world().dragon().alive) break;
+        CHECK(g.world().dragon().pos.y <= floorY + 0.5f);
+        for (const Enemy& e : g.world().enemies()) {
+            CHECK(e.pos.y >= band.y - 0.5f);
+            CHECK(e.pos.y <= band.bottom() + 0.5f);
+        }
+    }
+}
+
 static void testTinyScreen() {
     std::printf("[tiny screen]\n");
     // 작업 영역이 아주 작아도 좌표가 뒤집히거나 밖으로 나가지 않는다
@@ -1095,6 +1199,9 @@ int main() {
     testPlaceAndPanel();
     testAlerts();
     testFirstRunHint();
+    testViewSettings();
+    testBattleBandHeight();
+    testThinBandStanding();
     testTinyScreen();
     std::printf("\n%d passed, %d failed\n", g_passed, g_failed);
     return g_failed == 0 ? 0 : 1;
