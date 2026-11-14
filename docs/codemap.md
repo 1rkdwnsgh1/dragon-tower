@@ -14,6 +14,7 @@ src/win/                   Windows 전용. 창, 그리기, 입력. (진입점: s
   RendererHud.cpp            상태창·스킬 칸·알림·탑 표시
   RendererModal.cpp          메뉴·확인창·종 선택·관리창·스킬창·도감
   RendererInternal.h         위 네 파일만 쓰는 내부 헤더(색 계산·둥근 사각형·숫자 서식)
+  FrameProfiler.*            프레임 시간을 단계별로 재는 디버그 도구(기본 꺼짐, 트레이 메뉴)
 assets/dragons/<키>/       드래곤 데이터와 그림. 코드가 아니라 여기서 바꾼다.
 tools/                     에셋 변환 스크립트
 tests/                     코어 규칙 검증
@@ -79,6 +80,10 @@ tests/                     코어 규칙 검증
 | 캐릭터 보기 크기 | `src/win/RendererWorld.cpp` | `drawWorld`의 `cs`, `drawEnemy(charScale)` (그림만, 판정은 그대로) |
 | 드래곤을 띠에 가두기 | `src/core/Game.cpp` | `setConfineToBand`, `placeDragon` |
 | 조용할 때 프레임 줄이기 | `src/win/App.cpp` | `App::tick`의 `powerSave`·`busy`, `cfg::kIdleFrameInterval` |
+| 프레임 시간 재기(단계별) | `src/win/FrameProfiler.h/.cpp` | `frameProfiler()`, `FrameProfiler::mark` (시계만. 트레이 메뉴 `kMenuFrameStats`) |
+| 프레임 측정의 누적·평균 규칙 | `include/core/FrameStats.h` | `FrameStats`, `FrameStage` (순수 계산 — `core_tests` 의 `testFrameStats`) |
+| 측정 단계 경계 | `src/win/Renderer.cpp` | `drawOverlay` 안의 `stage(...)` 호출 (지우기/스프라이트/UI/측정 표시/ULW) |
+| 측정 표시 그리기 | `src/win/RendererHud.cpp` | `drawFrameStats` |
 | 얇은 영역에서 서는 자리 | `include/core/MathUtil.h`, `src/core/World.cpp` | `RectF::clampPoint`, `World::groundLine` |
 | 자동 경험치 상한 켜고 끄기 | `include/core/Config.h` | `kAutoExpCapEnabled` |
 | `dragon.txt` 읽는 규칙 | `src/core/DragonData.cpp` | `parseDragonText` |
@@ -119,8 +124,8 @@ tests/                     코어 규칙 검증
 | `src/win/RendererModal.cpp` | ~680 |
 | `src/win/RendererWorld.cpp` | ~370 |
 | `src/win/RendererCommon.cpp` | ~310 |
-| `src/win/RendererHud.cpp` | ~210 |
-| `src/win/Renderer.cpp` | ~100 |
+| `src/win/RendererHud.cpp` | ~275 |
+| `src/win/Renderer.cpp` | ~115 |
 | `src/core/World.cpp` | ~720 |
 | `src/win/App.cpp` | ~480 |
 | `src/core/Game.cpp` | ~540 |

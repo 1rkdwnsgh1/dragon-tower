@@ -33,6 +33,7 @@ if(WIN32)
         src/win/main.cpp
         src/win/App.cpp
         src/win/Renderer.cpp
+        src/win/FrameProfiler.cpp
         src/win/RendererCommon.cpp
         src/win/RendererWorld.cpp
         src/win/RendererHud.cpp

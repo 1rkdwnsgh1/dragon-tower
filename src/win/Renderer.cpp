@@ -6,6 +6,8 @@
 // 이미지가 없으면 임시 도형으로 대신한다.
 #include "RendererInternal.h"
 
+#include "FrameProfiler.h"
+
 namespace dt::win {
 
 bool Renderer::init() {
@@ -48,6 +50,14 @@ void Renderer::drawOverlay(Graphics& g, const Game& game, const Sprites& sprites
         ~RegionGuard() { g_regions = nullptr; }
     } guard;
     out.clear();
+    // 큐 11번: 프레임 측정. 꺼져 있으면 아래 stage() 는 분기 하나로 끝난다.
+    // 켜져 있을 때만 단계마다 Flush 한다 — GDI+ 가 모아서 처리하면 단계별 숫자가 섞인다.
+    FrameProfiler& prof = frameProfiler();
+    auto stage = [&](FrameStage s) {
+        if (!prof.enabled()) return;
+        g.Flush(FlushIntentionSync);
+        prof.mark(s);
+    };
     width_ = game.desktopBounds().w;
     height_ = game.desktopBounds().h;
     Screen sc = game.screen();
@@ -69,6 +79,8 @@ void Renderer::drawOverlay(Graphics& g, const Game& game, const Sprites& sprites
     }
 
     if (game.hasDragon() || sc == Screen::Death) drawWorld(g, game, sprites, ctx);
+    stage(FrameStage::World);  // 여기까지가 스프라이트(배경 띠·드래곤·적·효과)
+
     if (game.hasDragon()) drawStatusCard(g, game, sprites, ctx, out);
     if (sc == Screen::Tower) drawTowerHud(g, game);
     // v1.0: 메뉴는 키보드 조작과 상관없이 열려 있으면 그린다. 마우스로 언제든 쓸 수 있다.
@@ -92,6 +104,13 @@ void Renderer::drawOverlay(Graphics& g, const Game& game, const Sprites& sprites
         panel(g, r, 230);
         text(g, "창 안을 눌러 고르세요.", r.X + r.Width * 0.5f, r.Y + 10.f, 15.f, kWarnC, 1,
              true);
+    }
+    stage(FrameStage::Ui);  // 여기까지가 UI(상태창·알림·메뉴·모달)
+
+    // 측정 표시는 맨 마지막에, 자기 비용을 따로 떼어 센다.
+    if (prof.enabled()) {
+        drawFrameStats(g, prof.stats());
+        stage(FrameStage::Debug);
     }
 }
 

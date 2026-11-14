@@ -7,6 +7,7 @@
 #include <ctime>
 #include <string>
 
+#include "FrameProfiler.h"
 #include "Platform.h"
 #include "core/Config.h"
 #include "core/DragonData.h"
@@ -24,6 +25,7 @@ constexpr int kMenuToggleInput = 100;
 constexpr int kMenuShowHide = 101;
 constexpr int kMenuResetPanel = 102;
 constexpr int kMenuExit = 103;
+constexpr int kMenuFrameStats = 104;  // 큐 11번: 프레임 측정 표시 켜고 끄기
 }  // namespace
 
 
@@ -343,7 +345,9 @@ void App::tick(float dt) {
 
     // v0.6에서는 조용할 때 항상 프레임을 줄였는데, 입력을 끄면 드래곤 움직임이 끊겨 보였다.
     // v0.8부터는 절전 설정을 켠 경우에만 줄이고, 드래곤이 걷거나 나는 동안에는 줄이지 않는다.
-    if (!game_.powerSave()) {
+    // 큐 11번: 측정 중에는 프레임을 줄이지 않는다. 띄워 놓고 재는 동안 프레임이 드문드문
+    // 들어오면 평균·fps 를 읽을 수 없다. (측정을 끄면 예전과 똑같이 동작한다.)
+    if (!game_.powerSave() || frameProfiler().enabled()) {
         idleAccum_ = 0.f;
         render();
         return;
@@ -369,6 +373,9 @@ void App::tick(float dt) {
 
 void App::render() {
     if (overlaySurf_.gbmp) {
+        // 큐 11번: 프레임 측정. 꺼져 있으면 아래 호출들은 분기 하나로 끝난다.
+        FrameProfiler& prof = frameProfiler();
+        prof.beginFrame();
         Graphics g(overlaySurf_.gbmp.get());
         g.SetCompositingMode(CompositingModeSourceCopy);
         g.Clear(Color(0, 0, 0, 0));
@@ -379,14 +386,18 @@ void App::render() {
         // 노트북에서 프레임이 떨어지던 가장 큰 원인이라 양선형으로 낮췄다. 눈으로는 거의 같다.
         g.SetInterpolationMode(InterpolationModeBilinear);
         g.ScaleTransform(scale_, scale_);
+        prof.mark(FrameStage::Clear);
         RenderContext ctx;
         ctx.inputEnabled = inputEnabled_;
         ctx.time = time_;
         ctx.mouseX = mouseX_;
         ctx.mouseY = mouseY_;
+        // 안에서 스프라이트·UI·측정 표시 단계를 따로 찍는다.
         renderer_.drawOverlay(g, game_, sprites_, ctx, buttons_, &regions_);
         g.Flush(FlushIntentionSync);
         overlaySurf_.present(overlay_, work_.left, work_.top);
+        prof.mark(FrameStage::Present);  // Flush + UpdateLayeredWindow
+        prof.endFrame();
     }
 }
 
@@ -587,6 +598,9 @@ void App::showTrayMenu() {
     AppendMenuW(m, MF_STRING, kMenuShowHide, hidden_ ? L"드래곤 보이기" : L"드래곤 숨기기");
     AppendMenuW(m, MF_SEPARATOR, 0, nullptr);
     AppendMenuW(m, MF_STRING, kMenuResetPanel, L"상태창 위치 되돌리기");
+    // 큐 11번: 프레임 측정. 기본 꺼짐이고 켜 둔 동안만 왼쪽 위에 표가 뜬다.
+    AppendMenuW(m, MF_STRING, kMenuFrameStats,
+                frameProfiler().enabled() ? L"프레임 측정 끄기" : L"프레임 측정 켜기 (디버그)");
     AppendMenuW(m, MF_SEPARATOR, 0, nullptr);
     AppendMenuW(m, MF_STRING, kMenuExit, L"종료");
     POINT p{};
@@ -753,6 +767,10 @@ LRESULT App::handle(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
                     game_.setPanelPos({-1.f, -1.f});
                     game_.setPanelCollapsed(false);
                     saveNow();
+                    return 0;
+                case kMenuFrameStats:
+                    // 저장하지 않는다 — 디버그 표시이므로 다시 켜면 꺼진 상태로 시작한다.
+                    frameProfiler().setEnabled(!frameProfiler().enabled());
                     return 0;
                 case kMenuExit: requestExit(); return 0;
                 default: break;

@@ -8,6 +8,7 @@
 
 #include "Sprites.h"
 #include "WinCommon.h"
+#include "core/FrameStats.h"
 #include "core/Game.h"
 
 namespace dt::win {
@@ -127,6 +128,8 @@ private:
                         const RenderContext& ctx, std::vector<UiButton>& out);
     void drawMenu(Gdiplus::Graphics& g, const Game& game, const RenderContext& ctx, std::vector<UiButton>& out);
     void drawNotices(Gdiplus::Graphics& g, const Game& game);
+    // 큐 11번: 프레임 측정 표시. 트레이 메뉴로 켜야 그려진다.
+    void drawFrameStats(Gdiplus::Graphics& g, const FrameStats& st);
     void drawTowerHud(Gdiplus::Graphics& g, const Game& game);
     void drawModal(Gdiplus::Graphics& g, const Game& game, const Sprites& sprites, const RenderContext& ctx,
                    std::vector<UiButton>& out);
