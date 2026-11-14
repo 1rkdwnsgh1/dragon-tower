@@ -1,6 +1,7 @@
 // 전투 시뮬레이션. 바탕화면 사냥과 탑이 같은 규칙(체력·피해·스킬)을 쓴다.
 #pragma once
 
+#include <array>
 #include <string>
 #include <vector>
 
@@ -11,11 +12,12 @@
 namespace dt {
 
 // 한 프레임의 플레이어 입력. dodge/skill은 이번 프레임에 눌렸을 때만 true.
+// v1.4: skill의 번호는 **장착 칸**(키 1~4)이지 스킬 목록 번호가 아니다.
 struct PlayerInput {
     float moveX = 0.f;
     float moveY = 0.f;
     bool dodge = false;
-    bool skill[3] = {false, false, false};
+    bool skill[kSkillSlots] = {false, false, false, false};
 };
 
 struct Enemy {
@@ -104,7 +106,11 @@ struct DragonActor {
     Vec2 facing{1.f, 0.f};
     float hp = 1.f;
     float basicCd = 0.f;
-    float skillCd[3] = {0.f, 0.f, 0.f};
+    // v1.4: 재사용 대기시간은 **스킬마다** 센다(칸이 아니라). 칸을 바꿔 끼워도 대기시간은 그대로다.
+    // 크기는 setupDragon에서 그 종의 스킬 수에 맞춘다.
+    std::vector<float> skillCd;
+    // 지금 재생 중인 스킬 전용 본체 모션의 스킬 번호. -1이면 공용 attack 시트를 쓴다.
+    int skillMotion = -1;
     float dodgeCd = 0.f;
     float dashTime = 0.f;
     Vec2 dashVel;
@@ -176,8 +182,19 @@ public:
     // 1회 재생 상태로 바꾼다(공격·피격·사망). hold 동안 다른 상태로 덮이지 않는다.
     void setDragonAnim(AnimState s, float hold);
 
+    // 아래 둘은 **스킬 목록 번호**를 받는다(장착 칸이 아니다).
     bool skillUnlocked(int i) const;
-    bool skillReady(int i) const { return skillUnlocked(i) && dragon_.skillCd[i] <= 0.f; }
+    bool skillReady(int i) const;
+
+    // v1.4 장착 칸. Game이 개체 기록(DragonRecord::slots)에서 넣어 준다.
+    // 입력(키 1~4)과 자동 전투는 여기 들어 있는 스킬만 쓴다.
+    void setSlots(const std::array<int, kSkillSlots>& s) { slots_ = s; }
+    const std::array<int, kSkillSlots>& slots() const { return slots_; }
+    // 칸 번호 -> 스킬 목록 번호. 빈 칸이면 -1.
+    int slotSkill(int slot) const {
+        return (slot < 0 || slot >= kSkillSlots) ? -1 : slots_[static_cast<size_t>(slot)];
+    }
+    bool slotReady(int slot) const { return skillReady(slotSkill(slot)); }
 
     std::vector<WorldEvent> takeEvents();
 
@@ -217,7 +234,11 @@ private:
     void moveDragon(float dt, Vec2 dir, float speedMul);
     void dragonAi(float dt, bool castSkills, const PlayerInput& in, bool allowManual);
     int keepRange_ = 0;
-    bool castSkill(int i, bool aiChoice);
+    std::array<int, kSkillSlots> slots_{-1, -1, -1, -1};
+    void autoFillSlots();  // 빈 칸을 해제된 액티브로 채운다(이미 든 칸은 그대로)
+    bool castSkill(int i, bool aiChoice);  // i = 스킬 목록 번호
+    // v1.4 패시브 PassiveOnKill. 적을 쓰러뜨렸을 때 damageEnemy가 부른다.
+    void onEnemyKilled(Vec2 at);
     void basicAttack();
     void updateEnemies(float dt);
     void enemyAttack(Enemy& e);

@@ -1,5 +1,6 @@
 #include "Renderer.h"
 
+#include <algorithm>
 #include <cmath>
 #include <cstdio>
 
@@ -458,6 +459,17 @@ void Renderer::drawDragon(Graphics& g, const DragonActor& d, const Sprites& spri
     // 시트 애니메이션이 있으면 그것으로 그린다(v0.2). 미리보기는 항상 대기 동작.
     AnimState state = preview ? AnimState::Idle : d.anim;
     Sheet sh = sprites.sheet(sp.key, state);
+    // v1.4: 스킬 전용 본체 모션이 재생 중이고 그 시트가 있으면 공용 attack 대신 그것을 쓴다.
+    // 시트가 없으면 아래에서 공용 attack(sh)으로 그려진다 — 데이터만 있고 그림이 없어도 괜찮다.
+    const AnimDef* skillAnim = nullptr;
+    if (!preview && d.skillMotion >= 0 && d.skillMotion < static_cast<int>(sp.skills.size())) {
+        const SkillDef& sk = sp.skills[static_cast<size_t>(d.skillMotion)];
+        Sheet ms = sprites.skillSheet(sp.key, sk.motion);
+        if (ms.bmp) {
+            sh = ms;
+            skillAnim = &sk.motionAnim;
+        }
+    }
     bool animated = sh.bmp != nullptr && sh.frames > 1;
 
     // 시트가 여러 칸이면 그림 자체가 움직이므로 위아래 흔들기를 하지 않는다.
@@ -474,7 +486,7 @@ void Renderer::drawDragon(Graphics& g, const DragonActor& d, const Sprites& spri
     }
 
     if (sh.bmp) {
-        const AnimDef& ad = sp.anims[static_cast<int>(state)];
+        const AnimDef& ad = skillAnim ? *skillAnim : sp.anims[static_cast<int>(state)];
         float t = preview ? time : d.animTime;
         // render_scale 로 이 상태만 크게/작게 그린다. 칸 안의 바닥 기준선(240/256)이
         // 제자리에 남도록 그만큼 위로 올려 그려, 발 위치가 흔들리지 않게 한다.
@@ -829,7 +841,56 @@ void Renderer::toggle(Graphics& g, std::vector<UiButton>& out, const RenderConte
     markRegion(r);
 }
 
-void Renderer::drawStatusCard(Graphics& g, const Game& game, const Sprites& sprites, const RenderContext& ctx,
+// 스킬 한 칸. 상태창(장착 4칸)과 스킬 관리창(목록)이 함께 쓴다.
+// skillIndex < 0 이면 빈 칸, 해제 전이면 필요한 레벨을 보여 준다.
+void Renderer::drawSkillBox(Graphics& g, const SpeciesDef& sp, const DragonActor& d, int skillIndex,
+                            const RectF& b, int level, const std::string& cornerLabel) {
+    const bool empty = skillIndex < 0 || skillIndex >= static_cast<int>(sp.skills.size());
+    if (empty) {
+        fillRound(g, b, 6.f, Color(150, 30, 32, 40));
+        strokeRound(g, b, 6.f, Color(120, 90, 96, 120), 1.f);
+        text(g, "＋", b.X + b.Width * 0.5f, b.Y + b.Height * 0.5f - 11.f, 15.f, 0xFF6E7380, 1, true);
+        if (!cornerLabel.empty())
+            text(g, cornerLabel, b.X + 3.f, b.Y + b.Height - 15.f, 11.f, 0xFF8A8FA0, 0, true, true);
+        return;
+    }
+    const SkillDef& s = sp.skills[static_cast<size_t>(skillIndex)];
+    const bool unlocked = level >= s.unlockLevel;
+    const bool passive = skillIsPassive(s.kind);
+    fillRound(g, b, 6.f, unlocked ? col(darken(sp.color, passive ? 0.60f : 0.45f)) : Color(255, 40, 42, 52));
+    if (unlocked) {
+        // 첫 글자(UTF-8 한 글자)로 표시한다. 스킬 아이콘 그림은 아직 없다
+        // (v1.3까지 있던 skill_<종>_<번호> 읽기는 쓰는 그림이 하나도 없어 지웠다).
+        std::string first = s.name;
+        size_t len = 1;
+        if (!first.empty()) {
+            unsigned char c0 = static_cast<unsigned char>(first[0]);
+            if (c0 >= 0xF0) len = 4; else if (c0 >= 0xE0) len = 3; else if (c0 >= 0xC0) len = 2;
+        }
+        text(g, first.substr(0, len), b.X + b.Width * 0.5f, b.Y + b.Height * 0.5f - 12.f, 17.f, kText, 1, true);
+    } else {
+        text(g, "Lv." + std::to_string(s.unlockLevel), b.X + b.Width * 0.5f, b.Y + b.Height * 0.5f - 8.f, 12.f,
+             0xFF8A8FA0, 1, true);
+    }
+    // 패시브는 대기시간이 없다. 액티브만 남은 시간을 덮어 그린다.
+    if (unlocked && !passive && skillIndex < static_cast<int>(d.skillCd.size())) {
+        float cd = d.skillCd[static_cast<size_t>(skillIndex)];
+        if (cd > 0.f && s.cooldown > 0.f) {
+            float ratio = std::min(1.f, cd / s.cooldown);
+            fillRound(g, RectF(b.X, b.Y + b.Height * (1.f - ratio), b.Width, b.Height * ratio), 6.f,
+                      Color(170, 0, 0, 0));
+            text(g, fmtInt(cd), b.X + b.Width * 0.5f, b.Y + b.Height * 0.5f - 9.f, 14.f, kText, 1, true, true);
+        }
+    }
+    strokeRound(g, b, 6.f, Color(200, 120, 130, 170), 1.f);
+    if (passive) text(g, "P", b.GetRight() - 11.f, b.Y + 2.f, 11.f, 0xFF9CE8C0, 0, true, true);
+    if (!cornerLabel.empty())
+        text(g, cornerLabel, b.X + 3.f, b.Y + b.Height - 15.f, 11.f, 0xFFFFE9A8, 0, true, true);
+}
+
+// v1.4: 스킬 칸 아이콘을 drawSkillBox로 옮기면서 sprites를 쓰지 않게 됐다.
+// 인자는 남겨 둔다(호출하는 쪽과 다른 draw* 함수들의 모양을 맞추려고).
+void Renderer::drawStatusCard(Graphics& g, const Game& game, const Sprites& /*sprites*/, const RenderContext& ctx,
                               std::vector<UiButton>& out) {
     const DragonRecord& rec = game.dragonRecord();
     const DragonActor& d = game.world().dragon();
@@ -928,41 +989,28 @@ void Renderer::drawStatusCard(Graphics& g, const Game& game, const Sprites& spri
     toggle(g, out, ctx, RectF(x, y, w, 24.f), "아래쪽에만", game.confineToBand(), UiAction::ToggleConfine, 0, true);
     y += 28.f;
 
-    // 스킬 칸
-    float box = 40.f;
-    for (int i = 0; i < 3; ++i) {
-        const SkillDef& s = sp.skills[i];
-        RectF b(x + i * (box + 8.f), y, box, box);
-        bool unlocked = rec.level >= s.unlockLevel;
-        fillRound(g, b, 6.f, unlocked ? col(darken(sp.color, 0.45f)) : Color(255, 40, 42, 52));
-        Bitmap* icon = sprites.get(std::string("skill_") + sp.key + "_" + std::to_string(i + 1));
-        if (icon && unlocked) {
-            g.DrawImage(icon, RectF(b.X + 3.f, b.Y + 3.f, b.Width - 6.f, b.Height - 6.f));
-        } else if (unlocked) {
-            std::string first = s.name;
-            // 첫 글자(UTF-8 한 글자)를 표시
-            size_t len = 1;
-            unsigned char c0 = static_cast<unsigned char>(first[0]);
-            if (c0 >= 0xF0) len = 4; else if (c0 >= 0xE0) len = 3; else if (c0 >= 0xC0) len = 2;
-            text(g, first.substr(0, len), b.X + box * 0.5f, b.Y + 8.f, 17.f, kText, 1, true);
-        }
-        if (!unlocked) {
-            text(g, "Lv." + std::to_string(s.unlockLevel), b.X + box * 0.5f, b.Y + 12.f, 12.f, 0xFF8A8FA0, 1, true);
-        } else if (d.skillCd[i] > 0.f) {
-            float ratio = d.skillCd[i] / s.cooldown;
-            fillRound(g, RectF(b.X, b.Y + box * (1.f - ratio), box, box * ratio), 6.f, Color(170, 0, 0, 0));
-            text(g, fmtInt(d.skillCd[i]), b.X + box * 0.5f, b.Y + 11.f, 14.f, kText, 1, true, true);
-        }
-        strokeRound(g, b, 6.f, Color(200, 120, 130, 170), 1.f);
-        text(g, std::to_string(i + 1), b.X + 3.f, b.Y + box - 15.f, 11.f, 0xFFFFE9A8, 0, true, true);
+    // 스킬 칸 (v1.4: 장착한 4칸. 키 1~4와 짝이다)
+    const float box = 40.f;
+    for (int slot = 0; slot < kSkillSlots; ++slot) {
+        RectF b(x + slot * (box + 6.f), y, box, box);
+        drawSkillBox(g, sp, d, game.skillSlots()[static_cast<size_t>(slot)], b, rec.level,
+                     std::to_string(slot + 1));
     }
-    float hx = x + 3 * (box + 8.f) + 4.f;
-    if (!ctx.inputEnabled) {
-        paragraph(g, "싸우기 시작하면\n키보드를 받습니다", RectF(hx, y + 2.f, r.GetRight() - hx - 8.f, box), 11.f, kSub);
-    } else if ((game.screen() == Screen::Tower ? game.towerMode() : game.huntMode()) == CombatMode::Direct) {
-        paragraph(g, "WASD 이동\nSpace 회피 · 1~3 스킬", RectF(hx, y + 2.f, r.GetRight() - hx - 8.f, box), 11.f, kSub);
-    } else if ((game.screen() == Screen::Tower ? game.towerMode() : game.huntMode()) == CombatMode::SkillManual) {
-        paragraph(g, "1~3 스킬\n이동·회피는 자동", RectF(hx, y + 2.f, r.GetRight() - hx - 8.f, box), 11.f, kSub);
+    // 관리창 열기. 쓰지 않고 남은 스킬이 있으면 눈에 띄게 한다.
+    // v1.4: 전에는 "스킬 ●" 였는데 ● 가 폰트에 없어 깨져 보였다(토글 스위치처럼 보인다는 제보).
+    float hx = x + kSkillSlots * (box + 6.f) + 2.f;
+    float hw = r.GetRight() - hx - 8.f;
+    if (hw > 40.f) {
+        // 탑에서는 열 수 없다(Game::openSkills 참고). 눌리지 않는다는 것을 보이게 둔다.
+        button(g, out, ctx, RectF(hx, y, hw, 20.f), game.hasUnequippedSkill() ? "스킬 새것" : "스킬",
+               UiAction::OpenSkills, 0, game.screen() == Screen::Desktop);
+        const char* hint = nullptr;
+        if (!ctx.inputEnabled) hint = "싸우기 시작하면 키보드를 받습니다";
+        else if ((game.screen() == Screen::Tower ? game.towerMode() : game.huntMode()) == CombatMode::Direct)
+            hint = "WASD 이동 · Space 회피 · 1~4 스킬";
+        else if ((game.screen() == Screen::Tower ? game.towerMode() : game.huntMode()) == CombatMode::SkillManual)
+            hint = "1~4 스킬 · 이동·회피는 자동";
+        if (hint) paragraph(g, hint, RectF(hx, y + 22.f, hw, box - 20.f), 10.f, kSub);
     }
 }
 
@@ -987,7 +1035,7 @@ void Renderer::drawMenu(Graphics& g, const Game& game, const RenderContext& ctx,
     // 위치와 크기는 저장해 둔 값으로 그린다. 글자·버튼·여백을 모두 같은 배수로 키운다.
     const float s = game.menuScale();
     const float mw = 340.f * s;
-    const float mh = 470.f * s;
+    const float mh = 510.f * s;
     Vec2 saved = game.menuPos();
     float mx = saved.x >= 0.f ? saved.x : width_ - 96.f - mw;
     float my = saved.y >= 0.f ? saved.y : height_ - 16.f - 186.f - 12.f - mh;
@@ -1065,8 +1113,13 @@ void Renderer::drawMenu(Graphics& g, const Game& game, const RenderContext& ctx,
 
         float hw = (w - 8.f * s) * 0.5f;
         bool towerOk = !game.waveActive();
-        button(g, out, ctx, RectF(x, y, hw, 38.f * s), "탑 도전", UiAction::OpenTower, 0, towerOk);
-        button(g, out, ctx, RectF(x + hw + 8.f * s, y, hw, 38.f * s), "기록·도감", UiAction::OpenCodex);
+        // 스킬 관리는 전투에 속하므로 이 탭에 둔다. 남은 스킬이 있으면 글자로 알린다
+        // (전에는 ● 를 찍었는데 폰트에 없어 깨져 보였다).
+        button(g, out, ctx, RectF(x, y, hw, 38.f * s), game.hasUnequippedSkill() ? "스킬 관리 (새것)" : "스킬 관리",
+               UiAction::OpenSkills, 0, game.hasDragon() && game.screen() == Screen::Desktop);
+        button(g, out, ctx, RectF(x + hw + 8.f * s, y, hw, 38.f * s), "탑 도전", UiAction::OpenTower, 0, towerOk);
+        y += 46.f * s;
+        button(g, out, ctx, RectF(x, y, w, 38.f * s), "기록·도감", UiAction::OpenCodex);
     } else {
         // ---------------- 환경 설정 ----------------
         text(g, "캐릭터 크기", x, y, 13.f * s, kSub, 0, true);
@@ -1159,6 +1212,9 @@ void Renderer::drawModal(Graphics& g, const Game& game, const Sprites& sprites, 
             break;
         case Screen::Stable:
             drawStable(g, game, sprites, ctx, out);
+            break;
+        case Screen::Skills:
+            drawSkills(g, game, ctx, out);
             break;
         case Screen::AutoWarning: {
             RectF r(cx - 290.f, cy - 160.f, 580.f, 320.f);
@@ -1435,6 +1491,146 @@ void Renderer::drawStable(Graphics& g, const Game& game, const Sprites& sprites,
     button(g, out, ctx, RectF(r.GetRight() - 150.f, r.GetBottom() - 54.f, 130.f, 40.f),
            canClose ? "닫기" : "띄울 드래곤을 고르세요", UiAction::CloseStable, 0, canClose);
 }
+// ---------------------------------------------------------------------------
+// v1.4 스킬 관리창
+// ---------------------------------------------------------------------------
+// 위쪽에 장착 4칸, 아래에 그 종의 스킬 전부. 칸을 고르고 스킬을 누르면 그 칸에 들어간다.
+// 패시브는 칸을 쓰지 않으므로 목록에서 "항상 적용"으로만 보여 준다.
+void Renderer::drawSkills(Graphics& g, const Game& game, const RenderContext& ctx,
+                          std::vector<UiButton>& out) {
+    const DragonRecord& rec = game.dragonRecord();
+    const SpeciesDef& sp = speciesDef(rec.species);
+    const DragonActor& d = game.world().dragon();
+    const int sel = game.selectedSlot();
+
+    // 창 높이는 스킬 수에 맞춘다. 화면이 작으면 들어가는 만큼만 보여 주고 쪽으로 넘긴다.
+    const int total = static_cast<int>(sp.skills.size());
+    const float rowH = 48.f;
+    const float headTop = 76.f;    // 제목·안내
+    const float slotsH = 56.f + 44.f;  // 장착 칸 + 이름 줄
+    const float listHeadH = 28.f;
+    const float footerH = 66.f;
+    const float chromeH = headTop + slotsH + listHeadH + footerH;
+    float maxH = std::max(320.f, height_ - 60.f);
+    float ph = std::min(chromeH + rowH * static_cast<float>(std::max(1, total)), maxH);
+    int rowsPerPage = static_cast<int>((ph - chromeH) / rowH);
+    if (rowsPerPage < 1) rowsPerPage = 1;
+    const int pages = (total + rowsPerPage - 1) / rowsPerPage;
+    const int page = std::clamp(game.skillPage(), 0, std::max(0, pages - 1));
+
+    const float pw = std::min(760.f, std::max(560.f, width_ - 60.f));
+    RectF r(width_ * 0.5f - pw * 0.5f, std::max(10.f, height_ * 0.5f - ph * 0.5f), pw, ph);
+    panel(g, r, 244);
+    text(g, "스킬 관리", r.X + 24.f, r.Y + 18.f, 22.f, kText, 0, true);
+    text(g, std::string(sp.name) + " Lv." + std::to_string(rec.level), r.GetRight() - 24.f, r.Y + 24.f, 14.f, kSub, 2);
+
+    const char* why = game.switchBlockedReason();
+    text(g, why ? why : "칸을 고른 뒤 아래 스킬을 누르면 그 칸에 들어갑니다. 레벨이 오를 때마다 하나씩 해제됩니다.",
+         r.X + 24.f, r.Y + 48.f, 13.f, why ? kWarnC : kSub);
+    const bool canEdit = game.canSwitchDragon();
+
+    // ---- 장착 4칸 ----
+    float y = r.Y + headTop;
+    const float box = 56.f;
+    for (int slot = 0; slot < kSkillSlots; ++slot) {
+        RectF b(r.X + 24.f + slot * (box + 14.f), y, box, box);
+        int idx = game.skillSlots()[static_cast<size_t>(slot)];
+        drawSkillBox(g, sp, d, idx, b, rec.level, std::to_string(slot + 1));
+        if (slot == sel) strokeRound(g, b, 6.f, Color(255, 255, 220, 140), 2.5f);
+        // 칸 전체가 "이 칸 고르기" 버튼이다(그림은 drawSkillBox가 이미 그렸다)
+        out.push_back({b, UiAction::SelectSlot, slot, true});
+        markRegion(b);
+        // 이름과 비우기
+        float tx = b.X;
+        if (idx >= 0 && idx < static_cast<int>(sp.skills.size())) {
+            text(g, sp.skills[static_cast<size_t>(idx)].name, tx + box * 0.5f, b.GetBottom() + 4.f, 11.f, kSub, 1);
+        } else {
+            text(g, "비어 있음", tx + box * 0.5f, b.GetBottom() + 4.f, 11.f, 0xFF7C8090, 1);
+        }
+    }
+    {
+        float bx = r.X + 24.f + kSkillSlots * (box + 14.f) + 6.f;
+        int cur = game.skillSlots()[static_cast<size_t>(sel)];
+        button(g, out, ctx, RectF(bx, y + 8.f, 110.f, 36.f), std::to_string(sel + 1) + "번 비우기",
+               UiAction::ClearSlot, sel, canEdit && cur >= 0);
+        text(g, "키 1~4가 이 칸입니다.", bx, y + 50.f, 11.f, kSub);
+    }
+
+    // ---- 스킬 목록 ----
+    y = r.Y + headTop + slotsH;
+    {
+        std::string head = "이 드래곤의 스킬 " + std::to_string(total) + "개";
+        if (pages > 1) head += "  (" + std::to_string(page + 1) + "/" + std::to_string(pages) + " 쪽)";
+        text(g, head, r.X + 24.f, y, 14.f, kSub, 0, true);
+        if (pages > 1) {
+            button(g, out, ctx, RectF(r.GetRight() - 92.f, y - 6.f, 32.f, 24.f), "◀", UiAction::SkillPage,
+                   page - 1, page > 0);
+            button(g, out, ctx, RectF(r.GetRight() - 56.f, y - 6.f, 32.f, 24.f), "▶", UiAction::SkillPage,
+                   page + 1, page < pages - 1);
+        }
+    }
+    y += listHeadH;
+
+    const int first = page * rowsPerPage;
+    const int last = std::min(total, first + rowsPerPage);
+    for (int i = first; i < last; ++i) {
+        const SkillDef& s = sp.skills[static_cast<size_t>(i)];
+        const bool unlocked = rec.level >= s.unlockLevel;
+        const bool passive = skillIsPassive(s.kind);
+        bool equipped = false;
+        int inSlot = -1;
+        for (int k = 0; k < kSkillSlots; ++k)
+            if (game.skillSlots()[static_cast<size_t>(k)] == i) { equipped = true; inSlot = k; }
+
+        RectF row(r.X + 24.f, y, r.Width - 48.f, rowH - 6.f);
+        const float rx = row.GetRight();
+        fillRound(g, row, 8.f, equipped ? Color(225, 42, 60, 96) : Color(200, 32, 34, 46));
+        strokeRound(g, row, 8.f, equipped ? Color(255, 120, 180, 255) : Color(110, 80, 88, 120), equipped ? 2.f : 1.f);
+
+        RectF icon(row.X + 7.f, row.Y + 5.f, 32.f, 32.f);
+        drawSkillBox(g, sp, d, i, icon, rec.level, "");
+
+        float tx = row.X + 48.f;
+        // 이름 길이에 상관없이 겹치지 않도록, 오른쪽 글자는 버튼 왼쪽 끝에 맞춰 오른쪽 정렬한다.
+        const float labelRight = rx - 136.f;
+        uint32_t nameColor = unlocked ? kText : 0xFF8A8FA0;
+        text(g, s.name, tx, row.Y + 5.f, 15.f, nameColor, 0, true);
+        text(g, "Lv." + std::to_string(s.unlockLevel), labelRight, row.Y + 6.f, 13.f,
+             unlocked ? 0xFFFFE9A8 : 0xFF8A8FA0, 2, true);
+        if (passive) text(g, "패시브 · 항상 적용", labelRight, row.Y + 25.f, 12.f, 0xFF9CE8C0, 2, true);
+        else if (inSlot >= 0)
+            text(g, std::to_string(inSlot + 1) + "번 칸", labelRight, row.Y + 25.f, 12.f, 0xFFBFD4FF, 2, true);
+
+        std::string desc = s.desc;
+        if (passive && s.kind == SkillKind::PassiveStat) {
+            // hp/atk/def/speed 는 비율, dodge/regen 은 더하기다(Species.cpp statsFor 참고).
+            bool ratio = s.stat != StatKind::Dodge && s.stat != StatKind::Regen;
+            std::string amount = ratio ? "+" + fmtPct(s.power)
+                                 : s.stat == StatKind::Dodge ? "+" + fmtPct(s.power) + "p"
+                                                             : "+" + fmtInt(s.power);
+            desc += "  (" + std::string(statKindLabel(s.stat)) + " " + amount + ")";
+        } else if (!passive) {
+            desc += "  (재사용 " + fmtInt(s.cooldown) + "초)";
+        }
+        text(g, desc, tx, row.Y + 24.f, 12.f, kSub);
+
+        RectF btn(rx - 126.f, row.Y + 6.f, 116.f, 30.f);
+        if (passive) {
+            button(g, out, ctx, btn, unlocked ? "적용 중" : "잠김", UiAction::None, 0, false, unlocked);
+        } else if (!unlocked) {
+            button(g, out, ctx, btn, "Lv." + std::to_string(s.unlockLevel) + " 필요", UiAction::None, 0, false);
+        } else {
+            button(g, out, ctx, btn, equipped ? (inSlot == sel ? "장착됨" : "이 칸으로") : std::to_string(sel + 1) + "번에 장착",
+                   UiAction::EquipSkill, i, canEdit && inSlot != sel, equipped);
+        }
+        y += rowH;
+    }
+    if (total == 0) text(g, "이 드래곤에게는 아직 스킬이 없습니다.", r.X + 24.f, y, 13.f, 0xFF7C8090);
+
+    button(g, out, ctx, RectF(r.GetRight() - 150.f, r.GetBottom() - 52.f, 130.f, 38.f), "닫기",
+           UiAction::CloseSkills);
+}
+
 
 void Renderer::drawCodex(Graphics& g, const Game& game, const RenderContext& ctx, std::vector<UiButton>& out) {
     const SaveData& s = game.save();

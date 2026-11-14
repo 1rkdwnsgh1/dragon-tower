@@ -238,20 +238,20 @@ PlayerInput App::pollKeys() {
     in.moveX = right - left;
     in.moveY = down - up;
     in.dodge = edge(VK_SPACE);
-    bool s1 = edge('1');
-    bool s2 = edge('2');
-    bool s3 = edge('3');
-    bool n1 = edge(VK_NUMPAD1);
-    bool n2 = edge(VK_NUMPAD2);
-    bool n3 = edge(VK_NUMPAD3);
-    in.skill[0] = s1 || n1;
-    in.skill[1] = s2 || n2;
-    in.skill[2] = s3 || n3;
+    // v1.4: 키 1~4는 **장착 칸**이다(스킬 목록 번호가 아니다).
+    // edge()는 상태를 남기므로 모든 키를 매 프레임 한 번씩 꼭 읽어야 한다. 조건부로 건너뛰면
+    // 눌림이 쌓여 다음에 엉뚱하게 발동한다.
+    for (int i = 0; i < kSkillSlots; ++i) {
+        bool num = edge('1' + i);
+        bool pad = edge(VK_NUMPAD1 + i);
+        in.skill[i] = num || pad;
+    }
 
     if (edge(VK_ESCAPE)) {
         Screen sc = game_.screen();
         if (sc == Screen::AutoWarning || sc == Screen::TowerWarning || sc == Screen::Codex) game_.closeModal();
         else if (sc == Screen::Stable) game_.closeStable();  // 띄운 개체가 없으면 닫히지 않는다
+        else if (sc == Screen::Skills) game_.closeSkills();
         else if (sc == Screen::Desktop) setInputEnabled(false);
     }
     return in;
@@ -422,6 +422,12 @@ void App::doAction(const UiButton& b) {
         case UiAction::ToggleMenu: game_.setMenuOpen(!game_.menuOpen()); break;
         case UiAction::OpenStable: game_.openStable(); break;
         case UiAction::CloseStable: game_.closeStable(); break;
+        case UiAction::OpenSkills: game_.openSkills(); break;
+        case UiAction::CloseSkills: game_.closeSkills(); break;
+        case UiAction::SelectSlot: game_.selectSlot(b.arg); break;
+        case UiAction::EquipSkill: game_.equipSkill(game_.selectedSlot(), b.arg); break;
+        case UiAction::ClearSlot: game_.clearSlot(b.arg); break;
+        case UiAction::SkillPage: game_.setSkillPage(b.arg); break;
         case UiAction::ShowDragon: game_.switchDragon(b.arg); break;
         case UiAction::AddDragon: game_.beginAddDragon(); break;
         case UiAction::SetKeepRange: game_.setKeepRange(b.arg); break;

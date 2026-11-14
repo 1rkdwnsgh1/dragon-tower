@@ -64,6 +64,31 @@ std::vector<std::string> split(const std::string& s, char sep) {
 
 }  // namespace
 
+namespace {
+// v1.4 장착 칸을 "0,2,-1,5" 처럼 한 줄로 적는다. 칸 수가 바뀌어도 읽을 수 있게
+// 쉼표로 나눠 읽고, 모자라면 -1(빈 칸)로 둔다.
+std::string slotsText(const std::array<int, kSkillSlots>& slots) {
+    std::string out;
+    for (int i = 0; i < kSkillSlots; ++i) {
+        if (i) out += ',';
+        out += std::to_string(slots[static_cast<size_t>(i)]);
+    }
+    return out;
+}
+
+void parseSlots(const std::string& val, std::array<int, kSkillSlots>& out) {
+    out.fill(-1);
+    size_t pos = 0;
+    for (int i = 0; i < kSkillSlots && pos <= val.size(); ++i) {
+        size_t comma = val.find(',', pos);
+        std::string part = val.substr(pos, comma == std::string::npos ? std::string::npos : comma - pos);
+        out[static_cast<size_t>(i)] = part.empty() ? -1 : toInt(part, -1);
+        if (comma == std::string::npos) break;
+        pos = comma + 1;
+    }
+}
+}  // namespace
+
 std::string serializeSave(const SaveData& s) {
     std::ostringstream o;
     o << "# Dragon Tower save\n";
@@ -95,6 +120,7 @@ std::string serializeSave(const SaveData& s) {
         o << "dragon.exp=" << d.exp << "\n";
         o << "dragon.autoExp=" << d.autoExp << "\n";
         o << "dragon.hp=" << d.hp << "\n";
+        o << "dragon.slots=" << slotsText(d.slots) << "\n";
     }
     // v1.3 보유 목록. 위의 dragon.* 는 지금 플레이 중인 개체를 가리키며 그대로 둔다
     // (옛 빌드에서도 저장 파일을 읽을 수 있게 하기 위해서다).
@@ -110,6 +136,7 @@ std::string serializeSave(const SaveData& s) {
         o << pre << "exp=" << d.exp << "\n";
         o << pre << "autoExp=" << d.autoExp << "\n";
         o << pre << "hp=" << d.hp << "\n";
+        o << pre << "slots=" << slotsText(d.slots) << "\n";
     }
     o << "codex.species=";
     bool first = true;
@@ -194,6 +221,7 @@ bool deserializeSave(const std::string& text, SaveData& out) {
                     else if (f == "exp") d.exp = std::max(0, toInt(val, 0));
                     else if (f == "autoExp") d.autoExp = std::max(0, toInt(val, 0));
                     else if (f == "hp") d.hp = toFloat(val, -1.f);
+                    else if (f == "slots") parseSlots(val, d.slots);
                 }
             }
         }
@@ -205,6 +233,7 @@ bool deserializeSave(const std::string& text, SaveData& out) {
         else if (key == "dragon.exp") s.dragon.exp = std::max(0, toInt(val, 0));
         else if (key == "dragon.autoExp") s.dragon.autoExp = std::max(0, toInt(val, 0));
         else if (key == "dragon.hp") s.dragon.hp = toFloat(val, -1.f);
+        else if (key == "dragon.slots") parseSlots(val, s.dragon.slots);
         else if (key == "codex.species") {
             // 모르는 키도 그대로 보관한다(폴더를 다시 넣으면 도감이 되살아난다).
             for (const std::string& k : split(val, ',')) {
@@ -260,6 +289,14 @@ bool deserializeSave(const std::string& text, SaveData& out) {
         } else {
             s.hasDragon = false;
         }
+    }
+    // v1.4: 장착 칸이 없는(v1.3 이전) 저장 파일이면 여기서 채워진다. 값이 있어도
+    // 종의 스킬 목록이 바뀌었을 수 있으므로 한 번 검사하고 빈 칸을 메운다.
+    for (DragonRecord& d : s.stable) fillEmptySkillSlots(d);
+    if (s.hasDragon) {
+        fillEmptySkillSlots(s.dragon);
+        if (s.activeIndex >= 0 && s.activeIndex < static_cast<int>(s.stable.size()))
+            s.stable[static_cast<size_t>(s.activeIndex)].slots = s.dragon.slots;
     }
     for (const DragonRecord& d : s.stable)
         if (d.id >= s.nextDragonId) s.nextDragonId = d.id + 1;

@@ -43,6 +43,7 @@ void Sprites::load(const std::filesystem::path& assetDir) {
         if (!std::filesystem::is_directory(dir, ec)) continue;
         if (auto bmp = loadPng(dir / "dragon.png")) images_["dragon_" + def.key] = std::move(bmp);
         loadSheetsFor(dir, def.anims, def.key, "dragons/" + def.key);
+        loadSkillSheets(dir, def, "dragons/" + def.key);  // v1.4 스킬 전용 모션
     }
 
     // UI 스킨 폴더 (v0.9)
@@ -58,31 +59,61 @@ void Sprites::load(const std::filesystem::path& assetDir) {
     }
 }
 
+bool Sprites::loadSheetFile(const std::filesystem::path& file, const AnimDef& anim, const std::string& key,
+                            const std::string& label) {
+    auto bmp = loadPng(file);
+    if (!bmp) return false;
+
+    int w = static_cast<int>(bmp->GetWidth());
+    int h = static_cast<int>(bmp->GetHeight());
+    int frameW = anim.frameW;
+    if (frameW <= 0) frameW = h;  // frame_w가 없으면 정사각형 칸으로 본다
+    if (frameW > w) frameW = w;
+    if (frameW <= 0 || w % frameW != 0) {
+        warnings_.push_back(label + ": 너비 " + std::to_string(w) + "가 칸 너비 " + std::to_string(frameW) +
+                            "로 나누어떨어지지 않습니다");
+        return false;
+    }
+    SheetData s;
+    s.frames = w / frameW;
+    s.frameW = frameW;
+    s.frameH = h;
+    s.bmp = std::move(bmp);
+    sheets_[key] = std::move(s);
+    return true;
+}
+
 void Sprites::loadSheetsFor(const std::filesystem::path& dir, const AnimDef* anims, const std::string& prefix,
                             const std::string& label) {
     for (int i = 0; i < kAnimStateCount; ++i) {
         AnimState st = static_cast<AnimState>(i);
         std::string name = animStateName(st);
-        auto bmp = loadPng(dir / (name + ".png"));
-        if (!bmp) continue;
-
-        int w = static_cast<int>(bmp->GetWidth());
-        int h = static_cast<int>(bmp->GetHeight());
-        int frameW = anims[i].frameW;
-        if (frameW <= 0) frameW = h;  // frame_w가 없으면 정사각형 칸으로 본다
-        if (frameW > w) frameW = w;
-        if (w % frameW != 0) {
-            warnings_.push_back(label + "/" + name + ".png: 너비 " + std::to_string(w) +
-                                "가 칸 너비 " + std::to_string(frameW) + "로 나누어떨어지지 않습니다");
-            continue;
-        }
-        SheetData s;
-        s.frames = w / frameW;
-        s.frameW = frameW;
-        s.frameH = h;
-        s.bmp = std::move(bmp);
-        sheets_[prefix + "/" + name] = std::move(s);
+        loadSheetFile(dir / (name + ".png"), anims[i], prefix + "/" + name, label + "/" + name + ".png");
     }
+}
+
+// v1.4: 스킬마다 motion= 으로 적어 둔 이름의 시트를 읽는다. 같은 이름을 여러 스킬이
+// 함께 써도 되고(한 번만 읽는다), 파일이 없으면 조용히 넘어가 공용 attack 으로 그려진다.
+void Sprites::loadSkillSheets(const std::filesystem::path& dir, const SpeciesDef& def, const std::string& label) {
+    for (const SkillDef& sk : def.skills) {
+        if (sk.motion.empty()) continue;
+        std::string key = def.key + "/skill_" + sk.motion;
+        if (sheets_.count(key) != 0) continue;  // 다른 스킬이 이미 읽었다
+        std::string file = "skill_" + sk.motion + ".png";
+        loadSheetFile(dir / file, sk.motionAnim, key, label + "/" + file);
+    }
+}
+
+Sheet Sprites::skillSheet(const std::string& speciesKey, const std::string& motion) const {
+    Sheet out;
+    if (motion.empty()) return out;
+    auto it = sheets_.find(speciesKey + "/skill_" + motion);
+    if (it == sheets_.end()) return out;
+    out.bmp = it->second.bmp.get();
+    out.frames = it->second.frames;
+    out.frameW = it->second.frameW;
+    out.frameH = it->second.frameH;
+    return out;
 }
 
 // ui.txt 의 9조각 여백을 읽는다. 형식은 dragon.txt 와 같은 `[구역]` + `키=값` 이다.

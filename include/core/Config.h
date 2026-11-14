@@ -106,6 +106,10 @@ constexpr float kKeepSlack = 24.f;        // 이보다 가까워지면 물러난
 // v1.3 드래곤 보유(관리창). 동시에 가질 수 있는 마리 수와 보관 중 회복 속도.
 // 보관 중에는 경험치가 오르지 않는다(한 번에 한 마리만 키운다 = 영구 사망의 무게를 지킨다).
 constexpr int kMaxStable = 4;
+// v1.4 드래곤 하나가 가질 수 있는 스킬 수의 상한. 제한이 필요해서가 아니라
+// dragon.txt에 [skill.9999] 같은 오타가 들어왔을 때 메모리를 그만큼 잡지 않으려는 안전장치다.
+// 레벨마다 하나씩 해제되므로 최고 레벨보다 많아 봐야 열리지 않는다.
+constexpr int kMaxSkillsPerDragon = kMaxLevel;
 constexpr float kStableRegenRatio = 0.02f;  // 1초에 최대 체력의 이만큼 회복(0에서 꽉 차기까지 50초)
 
 // v0.9 체력 막대 그림이 바뀌는 지점. 남은 비율이 이 아래면 다음 그림을 쓴다.
@@ -123,5 +127,8 @@ constexpr float kIdleFrameInterval = 0.1f;
 constexpr float kAnimAttackHold = 0.35f;
 constexpr float kAnimHitHold = 0.22f;
 constexpr float kAnimDeathHold = 3.0f;
+// v1.4 스킬 전용 본체 모션(skill_*.png)을 유지하는 시간. 공용 attack(0.35초)보다 길다 —
+// 스킬 모션은 충전·발동·복귀가 들어 있어 더 길게 그려져 있다. 시트가 짧으면 마지막 칸에서 멈춘다.
+constexpr float kSkillMotionHold = 0.9f;
 
 }  // namespace dt::cfg
