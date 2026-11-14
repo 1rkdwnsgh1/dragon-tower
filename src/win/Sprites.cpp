@@ -42,6 +42,12 @@ void Sprites::load(const std::filesystem::path& assetDir) {
         std::error_code ec;
         if (!std::filesystem::is_directory(dir, ec)) continue;
         if (auto bmp = loadPng(dir / "dragon.png")) images_["dragon_" + def.key] = std::move(bmp);
+        // v1.5 스킬 아이콘: 종 폴더의 icon_1.png ~ icon_N.png. 없으면 글자로 그린다.
+        for (size_t n = 0; n < def.skills.size(); ++n) {
+            std::string file = "icon_" + std::to_string(n + 1) + ".png";
+            if (auto bmp = loadPng(dir / file))
+                images_["skillicon_" + def.key + "_" + std::to_string(n + 1)] = std::move(bmp);
+        }
         loadSheetsFor(dir, def.anims, def.key, "dragons/" + def.key);
         loadSkillSheets(dir, def, "dragons/" + def.key);  // v1.4 스킬 전용 모션
     }

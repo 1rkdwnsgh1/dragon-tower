@@ -443,12 +443,13 @@ static void testSpeciesRegistry() {
     CHECK(speciesCount() == before + 1);
     CHECK(speciesDef(added).name == "시험 드래곤 2");
 
-    // 등록이 더 일어나도 내장 종 참조가 깨지지 않는다(deque)
-    const SpeciesDef& fireRef = speciesDef(Species::Fire);
+    // 등록이 더 일어나도 앞서 얻은 참조가 깨지지 않는다(deque)
+    const SpeciesDef& firstRef = speciesDef(static_cast<Species>(0));
+    std::string firstKey = firstRef.key;
     SpeciesDef e;
     e.key = "another";
     registerOrUpdateSpecies(e);
-    CHECK(fireRef.key == "fire");
+    CHECK(firstRef.key == firstKey);
 
     Species found;
     CHECK(speciesFromKey("testdragon", found) && found == added);
@@ -639,7 +640,7 @@ static void testLoadDragonFolders() {
     fs::remove_all(root, ec);
     fs::create_directories(root / "_skipme", ec);
     fs::create_directories(root / "mossling", ec);
-    fs::create_directories(root / "fire", ec);
+    fs::create_directories(root / "testa", ec);
     fs::create_directories(root / "noTxtHere", ec);  // 대문자: 키 규칙 위반
     {
         std::ofstream f(root / "_skipme" / "dragon.txt");
@@ -650,7 +651,8 @@ static void testLoadDragonFolders() {
         f << "[dragon]\nname=이끼 드래곤\nhp=133\n";
     }
     {
-        std::ofstream f(root / "fire" / "dragon.txt");
+        // 이미 등록된 종의 폴더는 새 종이 아니라 덮어쓰기가 된다(여기서는 testa)
+        std::ofstream f(root / "testa" / "dragon.txt");
         f << "[dragon]\nrole=덮어쓴 역할\n";
     }
 
@@ -664,7 +666,12 @@ static void testLoadDragonFolders() {
     CHECK(speciesFromKey("mossling", sp));
     CHECK(speciesDef(sp).name == "이끼 드래곤");
     CHECK(statsFor(sp, 1).maxHp == 133.f);
-    CHECK(speciesDef(Species::Fire).role == "덮어쓴 역할");
+    {
+        // 이미 있던 종의 폴더는 덮어쓰기가 된다(새 종이 아니다)
+        Species over;
+        CHECK(speciesFromKey("testa", over));
+        CHECK(speciesDef(over).role == "덮어쓴 역할");
+    }
     CHECK(!speciesFromKey("_skipme", sp));
 
     // 없는 폴더를 가리켜도 안전하다
@@ -1593,7 +1600,17 @@ static void testSkillMotionParse() {
     CHECK(bad.warnings.size() >= 2);
 }
 
+// v1.5: 내장 종을 없앴으므로(이제 전부 assets/dragons/ 폴더에서 온다) 테스트가 쓸 종을
+// 여기서 네 개 등록한다. 등록 순서가 곧 Species::Fire(0) ~ Species::Water(3) 번호다.
+// 게임 실제 종과는 무관한 시험용이다.
+static void registerTestSpecies() {
+    const char* keys[4] = {"testa", "testb", "testc", "testd"};
+    for (const char* k : keys) ensureSpecies(k);
+    CHECK(speciesCount() >= 4);
+}
+
 int main() {
+    registerTestSpecies();
     testExpCurve();
     testNoAutoCap();
     testAutoCapClamp();

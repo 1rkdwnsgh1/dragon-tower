@@ -59,6 +59,9 @@ tests/                     코어 규칙 검증
 | 싸울 때 유지할 간격 | `src/core/World.cpp` | `desiredRange`, `Game::setKeepRange` |
 | 쉴 때 엎드리기 | `src/core/World.cpp` | `updateDragonAnim`의 `restTime`, `cfg::kRestLieDelay` |
 | 대쉬할 때 나는 모션 | `src/core/World.cpp` | `updateDragonAnim`의 `dashTime` |
+| 모션 고르기(우클릭) | `src/core/Game.cpp`, `src/win/Renderer.cpp` | `setForcedMotion`, `drawMotionMenu` |
+| 적 좌우 뒤집기 | `src/win/Renderer.cpp` | `drawEnemy`의 `artFacesRight` (`enemy.txt`의 `art_facing`) |
+| 스킬 아이콘 | `src/win/Sprites.cpp` | `skillicon_<종>_<번호>` ← `assets/dragons/<키>/icon_N.png` |
 | 메뉴 창 위치·크기 | `src/win/Renderer.cpp` | `drawMenu`의 `menuScale`, `menuPos` |
 | 캐릭터 보기 크기 | `src/win/Renderer.cpp` | `drawWorld`의 `cs`, `drawEnemy(charScale)` (그림만, 판정은 그대로) |
 | 드래곤을 띠에 가두기 | `src/core/Game.cpp` | `setConfineToBand`, `placeDragon` |

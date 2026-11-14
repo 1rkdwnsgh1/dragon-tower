@@ -23,6 +23,8 @@ enum class UiAction {
     CloseMenu,        // 메뉴 닫기(X)
     SetMenuTab,       // arg = 0 전투 설정 / 1 환경 설정
     DragCharSlider,   // 캐릭터 크기 슬라이더 끌기
+    SetMotion,        // arg = AnimState. 고른 모션을 다음 입력까지 유지
+    ClearMotion,      // 모션 고정 풀기
     TogglePowerSave,  // 조용할 때 프레임 줄이기
     SetKeepRange,     // 싸울 때 유지할 간격. arg = 0 근접 / 1 중간 / 2 바깥
     ToggleMenu,       // 메뉴 창 열고 닫기(키보드 조작과 무관)
@@ -120,6 +122,9 @@ private:
     // v1.4 값을 끌어서 고르는 막대
     void slider(Gdiplus::Graphics& g, std::vector<UiButton>& out, const RenderContext& ctx,
                 const Gdiplus::RectF& r, float value, float lo, float hi, UiAction action);
+    // v1.5 드래곤을 오른쪽 클릭하면 뜨는 모션 목록
+    void drawMotionMenu(Gdiplus::Graphics& g, const Game& game, const Sprites& sprites,
+                        const RenderContext& ctx, std::vector<UiButton>& out);
     void drawMenu(Gdiplus::Graphics& g, const Game& game, const RenderContext& ctx, std::vector<UiButton>& out);
     void drawNotices(Gdiplus::Graphics& g, const Game& game);
     void drawTowerHud(Gdiplus::Graphics& g, const Game& game);
@@ -132,11 +137,13 @@ private:
     void drawStable(Gdiplus::Graphics& g, const Game& game, const Sprites& sprites, const RenderContext& ctx,
                     std::vector<UiButton>& out);
     // v1.4 스킬 관리창: 장착 4칸과 그 종의 스킬 목록(해제 레벨·패시브 표시)
-    void drawSkills(Gdiplus::Graphics& g, const Game& game, const RenderContext& ctx,
+    void drawSkills(Gdiplus::Graphics& g, const Game& game, const Sprites& sprites,
+                    const RenderContext& ctx,
                     std::vector<UiButton>& out);
     // 스킬 한 칸(아이콘·대기시간·잠금)을 그린다. 상태창과 관리창이 함께 쓴다.
     // skillIndex < 0 이면 빈 칸으로 그린다.
-    void drawSkillBox(Gdiplus::Graphics& g, const SpeciesDef& sp, const DragonActor& d, int skillIndex,
+    void drawSkillBox(Gdiplus::Graphics& g, const Sprites& sprites, const SpeciesDef& sp,
+                      const DragonActor& d, int skillIndex,
                       const Gdiplus::RectF& b, int level, const std::string& cornerLabel);
 
     std::unique_ptr<Gdiplus::FontFamily> family_;

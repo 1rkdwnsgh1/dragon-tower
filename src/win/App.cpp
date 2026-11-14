@@ -324,6 +324,12 @@ void App::tick(float dt) {
     if (drag_ != Drag::Dragon && game_.dragonHeld()) game_.setDragonHeld(false);
 
     PlayerInput in = pollKeys();
+    // v1.5: 키를 누르면 고른 모션을 푼다("다음 입력까지 유지").
+    if (game_.motionForced()) {
+        bool pressed = std::fabs(in.moveX) > 0.01f || std::fabs(in.moveY) > 0.01f || in.dodge;
+        for (bool s : in.skill) pressed = pressed || s;
+        if (pressed) game_.clearForcedMotion();
+    }
     game_.update(dt, in, hidden_, inputEnabled_);
     if (game_.consumeSaveRequest()) saveNow();
 
@@ -415,6 +421,11 @@ void App::doAction(const UiButton& b) {
         case UiAction::TogglePanel: game_.setPanelCollapsed(!game_.panelCollapsed()); break;
         case UiAction::ToggleConfine: game_.setConfineToBand(!game_.confineToBand()); break;
         case UiAction::CloseMenu: game_.setMenuOpen(false); break;
+        case UiAction::SetMotion: game_.setForcedMotion(static_cast<AnimState>(b.arg)); break;
+        case UiAction::ClearMotion:
+            game_.clearForcedMotion();
+            game_.closeMotionMenu();
+            break;
         case UiAction::SetMenuTab: game_.setMenuTab(b.arg); break;
         case UiAction::DragMenuSize:   // 끌기는 WM_LBUTTONDOWN 에서 시작한다
         case UiAction::DragCharSlider: break;
@@ -672,7 +683,22 @@ LRESULT App::handle(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
             float y = static_cast<float>(static_cast<short>(HIWORD(lp)));
             float lx = x / scale_, ly = y / scale_;
             SetCapture(hwnd);
-            if (!startDrag(lx, ly)) onClick(lx, ly);
+            // v1.5: 모션 목록 밖을 누르면 목록을 닫는다. 고른 모션은 "다음 입력까지" 유지되므로
+            // 드래곤을 끌어 옮기는 것(=모션 유지)을 뺀 나머지 입력에서 푼다.
+            bool onMotionMenu = false;
+            for (const UiButton& b : buttons_) {
+                if ((b.action == UiAction::SetMotion || b.action == UiAction::ClearMotion) &&
+                    b.rect.Contains(Gdiplus::PointF(lx, ly))) {
+                    onMotionMenu = true;
+                    break;
+                }
+            }
+            if (!onMotionMenu && game_.motionMenuOpen()) game_.closeMotionMenu();
+            bool dragging = startDrag(lx, ly);
+            if (!dragging) {
+                if (!onMotionMenu) game_.clearForcedMotion();
+                onClick(lx, ly);
+            }
             return 0;
         }
 
@@ -685,9 +711,25 @@ LRESULT App::handle(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
             if (GetCapture() == hwnd) ReleaseCapture();
             return 0;
 
-        case WM_RBUTTONDOWN:
-            showTrayMenu();  // 오버레이에서 오른쪽 클릭하면 트레이와 같은 메뉴
+        case WM_RBUTTONDOWN: {
+            // v1.5: 드래곤 위에서 오른쪽 클릭하면 모션 목록을 연다. 그 밖은 트레이와 같은 메뉴.
+            float lx = static_cast<float>(static_cast<short>(LOWORD(lp))) / scale_;
+            float ly = static_cast<float>(static_cast<short>(HIWORD(lp))) / scale_;
+            if (game_.motionMenuOpen()) {
+                game_.closeMotionMenu();
+                return 0;
+            }
+            if (game_.hasDragon() && game_.screen() == Screen::Desktop) {
+                const DragonActor& d = game_.world().dragon();
+                float reach = cfg::kDragonRadius * 1.6f * game_.charScale();
+                if (std::fabs(lx - d.pos.x) <= reach && std::fabs(ly - d.pos.y) <= reach) {
+                    game_.openMotionMenu({lx + 12.f, ly - 20.f});
+                    return 0;
+                }
+            }
+            showTrayMenu();
             return 0;
+        }
 
         case WM_HOTKEY:
             // v1.4: 키보드 받기는 게임이 알아서 하므로, 단축키는 메뉴를 열고 닫는다.

@@ -133,6 +133,17 @@ public:
     const char* switchBlockedReason() const;  // 못 바꾸는 이유. 바꿀 수 있으면 nullptr
     // 그 자리의 드래곤을 바탕화면에 띄운다(= 플레이할 드래곤으로 삼는다).
     bool switchDragon(int index);
+    // ---- v1.5 모션 고르기 ----
+    // 드래곤을 오른쪽 클릭하면 목록이 열리고, 고르면 다음 입력까지 그 모션을 유지한다.
+    bool motionMenuOpen() const { return motionMenuOpen_; }
+    Vec2 motionMenuAt() const { return motionMenuAt_; }
+    void openMotionMenu(Vec2 at);
+    void closeMotionMenu();
+    void setForcedMotion(AnimState st);
+    void clearForcedMotion();     // 다음 입력이 들어오면 부른다
+    bool motionForced() const { return world_.dragon().animForced; }
+    AnimState forcedMotion() const { return world_.dragon().forcedAnim; }
+
     void openStable();
     void closeStable();
 
@@ -197,7 +208,9 @@ private:
     Screen screen_ = Screen::Select;
     Screen codexReturn_ = Screen::Desktop;
     bool hunting_ = false;
-    bool addingDragon_ = false;  // v1.3 선택 화면이 '추가'인지 '첫 선택'인지
+    bool addingDragon_ = false;
+    bool motionMenuOpen_ = false;
+    Vec2 motionMenuAt_{};  // v1.3 선택 화면이 '추가'인지 '첫 선택'인지
     int selectedSlot_ = 0;       // v1.4 스킬 관리창에서 고른 칸
     int skillPage_ = 0;          // v1.4 스킬 목록 쪽 번호
     Screen skillsReturn_ = Screen::Desktop;  // 스킬 관리창을 닫으면 돌아갈 화면
