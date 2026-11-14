@@ -36,9 +36,18 @@
 
 같은 결정은 한 곳에만 쓰고 나머지에서는 링크한다. 두 곳에 있으면 한쪽이 반드시 낡는다.
 
-### 3. Windows 코드는 CI에서만 빌드된다
+### 3. Windows 코드는 푸시 전에 교차 컴파일한다
 
-`src/win`은 Windows에서만 컴파일된다. 리눅스·맥에서는 `src/core`와 테스트만 빌드된다. 아래 세 가지를 CI 실패로 알게 된 적이 있다 — **푸시 전에 훑어본다. CI 왕복 한 번이 비싸다.**
+**리눅스에서도 `src/win` 을 컴파일할 수 있다** (2026-11-14에 확인. 그 전에는 "안 된다"고
+잘못 적혀 있었다):
+
+```bash
+sudo apt-get update && sudo apt-get install -y mingw-w64   # 한 번만
+tools/check_win_build.sh          # 9초. 푸시 전에 이것부터
+```
+
+아래 세 가지를 CI 실패로 알게 된 적이 있는데, **이 스크립트가 셋 다 잡는다.** 그래도 GCC 는
+MSVC 가 아니므로 CI 를 대신하지는 않는다 — 왕복 횟수를 줄이는 것이다.
 
 1. **헤더에 쓰는 타입은 헤더에서 포함한다.** `App.h`에 `shellapi.h`가 없어 `NOTIFYICONDATAW`를 인식하지 못했다
 2. **`RectF` 모호성**: `App.cpp`에서 그냥 `RectF`는 우리 타입 `dt::RectF`로 해석된다. GDI+ 타입이 필요하면 `Gdiplus::RectF`로 명시한다

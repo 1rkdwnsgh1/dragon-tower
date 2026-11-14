@@ -1,0 +1,3 @@
+sï»¿name=ÿþ broken utf8
+base_hp=nan
+base_atk=inf

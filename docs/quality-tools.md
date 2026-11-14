@@ -1,0 +1,162 @@
+# 품질·안정성 도구
+
+"돌아가는가"는 `build.yml` 이 본다. 이 문서는 **조용히 틀린 데를 찾는 도구들**을 적는다.
+전부 무료이고 이 환경과 CI 에서 돈다.
+
+작업 전에 알아야 할 한 줄: **`src/win` 은 이제 이 환경에서 컴파일된다.** 아래 1번을 먼저 본다.
+
+---
+
+## 1. `tools/check_win_build.sh` — Windows 코드를 푸시 전에 컴파일한다
+
+```bash
+sudo apt-get update && sudo apt-get install -y mingw-w64   # 한 번만
+
+tools/check_win_build.sh          # 문법 검사 (9초쯤)
+tools/check_win_build.sh --link   # 링크까지. dist/win-local/dragon_tower.exe
+```
+
+**이게 가장 크게 바뀐 점이다.** `docs/ai-workflow-notes.md` 에 "이 환경에서는 Windows 코드를
+컴파일할 수 없고 mingw 크로스 컴파일러도 설치되지 않는다"고 적혀 있었는데 **사실이 아니었다.**
+`apt-get update` 를 먼저 하지 않아 패키지를 못 찾은 것이었다. GDI+ 까지 포함해 링크가 되고
+20초쯤에 실행 파일이 나온다.
+
+v0.6 의 CI 실패 셋(헤더 누락 / `RectF` 모호성 / 정의 순서)을 **전부 9초에 잡는다.**
+(실제로 `App.h` 의 `#include <shellapi.h>` 를 지워 확인했다 — 같은 오류가 그대로 나온다.)
+
+**한계**: GCC 지 MSVC 가 아니다. GCC 가 더 엄격한 곳(이름 해석, 정의 순서)은 여기서 잡히지만
+MSVC 전용 pragma 같은 것은 못 잡는다. **CI 를 대신하지 않고 왕복 횟수를 줄인다.**
+여기서 나온 `.exe` 도 mingw 산물이라 배포본이 아니다 — 사람이 볼 때는 CI 의 `DragonTower-windows` 를 쓴다.
+
+---
+
+## 2. 새니타이저 — 테스트가 "통과"해도 메모리를 잘못 건드리는 것을 잡는다
+
+```bash
+cmake -S . -B build-asan -DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_COMPILER=clang++ \
+      -DCMAKE_CXX_FLAGS="-fsanitize=address,undefined -fno-omit-frame-pointer -g"
+cmake --build build-asan -j
+cd build-asan && ASAN_OPTIONS=detect_leaks=1 UBSAN_OPTIONS=print_stacktrace=1 ctest --output-on-failure
+```
+
+필요하면 `sudo apt-get install -y libclang-rt-18-dev` (없으면 clang 이 asan 런타임을 못 찾는다).
+
+이걸 켜서 **보스 2페이즈 소환의 use-after-free** 를 찾았다. 1417건의 테스트가 전부 통과하는
+상태였는데도 그랬다 — 잘못된 메모리를 읽고 "그럴듯한" 값이 나오면 테스트는 아무것도 모른다.
+
+테스트만으로는 좁으니 `balance_sim` 도 같이 돌린다(전투·탑 경로를 훑는다):
+
+```bash
+./balance_sim floors --trials=20 --seed=1
+```
+
+---
+
+## 3. 퍼저 — 사람이 손으로 쓰는 파일의 파서를 때린다
+
+대상은 셋. 전부 사람이 손으로 쓰거나 손으로 고치는 파일이다.
+
+| 퍼저 | 무엇을 | 왜 |
+|---|---|---|
+| `fuzz_dragon_text` | `dragon.txt` 파서 | 오타·반쪽 줄·깨진 UTF-8 이 실제로 들어온다 |
+| `fuzz_enemy_text` | `enemy.txt` 파서 | `summon_count` 처럼 나중에 루프 횟수가 되는 값이 있다 |
+| `fuzz_save_roundtrip` | 저장 파일 + **왕복 불변식** | 깨지면 영구 사망 게임에서 기른 개체가 사라진다 |
+
+```bash
+cmake -S . -B build-fuzz -DCMAKE_BUILD_TYPE=Debug \
+      -DCMAKE_CXX_COMPILER=clang++ -DDRAGON_BUILD_FUZZERS=ON
+cmake --build build-fuzz -j
+./build-fuzz/fuzz_save_roundtrip -max_total_time=300 tests/fuzz/corpus/fuzz_save_roundtrip
+```
+
+`fuzz_save_roundtrip` 은 죽는 것만 보지 않는다. **한 번 읽어 쓴 글을 또 읽어 쓰면 같아야 한다**는
+것까지 본다. 이 검사가 `dragon.level` 의 상한 누락을 찾았다 — `stable.N.level` 은 30으로
+자르는데 `dragon.level` 만 자르지 않아서, 손으로 고친 저장 파일이 레벨 34로 읽히고 그대로
+저장됐다가 다음에 켤 때 30으로 잘렸다.
+
+**찾은 입력은 `tests/fuzz/corpus/<퍼저>/` 에 넣는다.** `ctest` 가 그 폴더를 매번 다시 돌린다
+(새 입력을 찾지 않고 끝나므로 빠르다). 코퍼스는 작게 유지한다 — 큰 파일을 저장소에 넣지 않고,
+CI 가 Actions 캐시에 따로 쌓는다.
+
+---
+
+## 4. `tools/check_static.py` — cppcheck + clang-tidy, 기준선과 비교
+
+```bash
+cmake -S . -B build -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
+python3 tools/check_static.py --build-dir build            # 검사
+python3 tools/check_static.py --build-dir build --update   # 기준선 갱신
+```
+
+**왜 기준선인가**: 처음 돌리면 지적이 수십 개다. 전부 고치지 않으면 CI 가 영원히 빨간색이고,
+빨간 CI 는 아무도 보지 않는다. 그래서 지금 것을 `tools/static-baseline.txt` 에 적어 두고
+**새로 생긴 것만** 막는다. 그 목록은 줄어들기만 해야 한다.
+
+지적을 `파일:도구/검사이름` 으로만 적는다 — 줄 번호를 빼서 코드를 조금 옮겨도 기준선이 안 깨진다.
+
+**cppcheck 의 `style` 검사는 일부러 켜지 않았다.** 버전이 조금만 달라도 결과가 달라져서
+기준선이 깨진다(이 환경의 2.13 과 CI 러너의 버전이 달라 4건이 어긋나 CI 가 한 번 실패했다).
+게다가 `style` 지적은 전부 "const 를 붙여라" 류라 버그가 아니다.
+**기준선 방식의 약점이 여기다** — 도구 버전이 올라가면 기준선이 흔들릴 수 있다.
+그때는 `--update` 로 갱신하고, 늘어난 것이 진짜 지적인지 한 번 보면 된다.
+
+이 검사가 **항상 통과하던 테스트**를 찾았다(`core_tests.cpp` 의
+`slots[0] != before || before == slots[0]` — 무엇을 넣어도 참이다).
+
+지금 기준선에 남은 것은 전부 "버그는 아니지만 더 좋게 쓸 수 있는 것"이다. 고치면 `--update` 한다.
+
+---
+
+## 5. `tools/check_sheets.py` — 스프라이트 시트를 숫자로 재고 그림으로 본다
+
+```bash
+python3 tools/check_sheets.py                        # 표
+python3 tools/check_sheets.py --out /tmp/sheets.png  # 대조표 PNG
+```
+
+이 저장소에서 가장 많이 되돌아간 작업이 시트 변환이다(v0.3 배율, v0.4 격자, v1.4 칸 나누기).
+기록이 매번 같은 말로 끝난다: **성공 메시지만으로는 모른다. 숫자로 재고 눈으로 확인해야 한다.**
+
+- `너비 % 칸너비 == 0` 을 확인한다. 게임도 이 조건을 거부하므로 객관적 기준이다.
+- 상태별 내용 높이와 `render_scale` 을 곱한 **그려지는 크기**를 표로 낸다.
+- `--out` 으로 **대조표 PNG** 를 만든다. 칸 경계와 바닥선을 그려 넣어 어긋난 것이 눈에 보인다.
+  PR 본문에 붙이면 사람이 Windows 를 켜지 않고도 확인할 수 있다.
+
+**자동으로 판정하지 않는 것**: 누운 자세(`rest`·`death`)·날개 펼침(`fly`)·`hit`·`attack` 의
+크기 차이. `docs/character-pipeline.md` 와 v0.3 기록이 "윤곽 전체로 재면 날개 펼침에
+휘둘린다 — 같은 신체 부위로 재야 한다"로 끝나 있다. 이 도구는 알파 윤곽만 보므로
+그 둘을 비교하면 **그 교훈을 그대로 다시 밟는다.** 서 있는 자세(`idle`·`move`)끼리만
+자동 비교하고, 나머지는 숫자와 대조표로 사람에게 넘긴다.
+
+**쓰이지 않는 스킬 시트·아이콘은 이 도구가 보지 않는다** — `tools/asset_check.cpp` 가
+v1.6(PR #29)부터 표로 적는다. 같은 것을 두 도구가 말하면 한쪽만 고치고 지나가게 된다.
+
+---
+
+## 6. 커버리지
+
+```bash
+pip install gcovr
+cmake -S . -B build-cov -DCMAKE_BUILD_TYPE=Debug \
+      -DCMAKE_CXX_FLAGS="--coverage -O0" -DCMAKE_EXE_LINKER_FLAGS="--coverage"
+cmake --build build-cov -j && (cd build-cov && ctest; ./balance_sim)
+gcovr --root . --filter 'src/core/' --txt --sort uncovered-number build-cov
+```
+
+2026-11-14 기준 코어 **89%**(2421줄 중 2176줄). 막는 기준으로 쓰지 않고 숫자만 남긴다 —
+커버리지를 목표로 삼으면 의미 없는 테스트가 늘어난다. 어디가 비었는지 볼 때만 쓴다.
+
+---
+
+## CI (`.github/workflows/quality.yml`)
+
+**이 저장소는 비공개라 Actions 분이 유한하다.** 그래서:
+
+- 잡을 쪼개지 않고 `quality` 하나로 묶었다(잡마다 체크아웃·설치가 다시 돈다).
+- 전부 `ubuntu` 다 — `windows` 러너는 분이 **2배**로 계산된다.
+- **`src/win` 교차 컴파일을 맨 앞에 둔다.** 10초만에 실패하면 뒤를 볼 필요가 없고,
+  `build.yml` 의 느리고 비싼 windows 잡이 같은 이유로 실패하는 것을 미리 막는다.
+- **퍼징은 매 푸시가 아니라** 주 1회(일요일 04:17 KST)와 수동(`workflow_dispatch`)으로만 돈다.
+  찾은 입력은 Actions 캐시에 쌓여 다음 회차가 이어 간다.
+
+분이 모자라면 `on: push` 를 `on: pull_request` 로 줄이는 것이 첫 번째 조정이다.

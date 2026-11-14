@@ -1,0 +1,116 @@
+s; 망령룡 — 선택 화면에 띄�NNNNNNNNNNNNNNNNNNN�踰 위한 임시 데이터입니다.
+; 수치는 전붞� ��시값이고, 기존 4종과의 관계(대체인지 추가인지)는 아두고 게임을 다시 켜세요.
+
+[dragon]
+name=망령
+rl롣oe=저주
+desc=풍화된 골격에 청록 영혼이 흐른다. 지속 피해로 적을 갉아낸다.
+color=FF3FBFA8
+
+hp=105
+atk=12
+def=4
+speed=175
+dodge=0.32
+regen=0
+
+hp_growth=14
+atk_growth=2.6
+def_growth=0.7
+dodge_growth=0
+regen_growth=0
+
+; 좌우 반전 허용(손상 날개 좌우는 유지하지 않기로 2027-11-13 결정)
+flip=yes
+
+; 그림: 작업 자료( 파일의 권장값(프레임당 800ms)을 따른다
+[anim.idle]
+fps=1.25
+loop=yes
+frame_w=256
+
+; move: 권장 타이밍이 없어 임시값이다. 실제로 보고 조��할 겓
+; render_scale: 원본 그림이 대기보다 작게 그려져 있어 몸 크기를 맞춘다
+; (흉곽 발광부 높이 기褀 대기 145px : 걷기 128px -> 1.13배)
+[anim.move]
+fps=8
+loop=yes
+frame_w=256
+render_scale=1.12
+
+; fly: 바탕화면에서 스스로 날 때 쓴다. 권장 타이밍이 없어 임시값이다.
+; fly: 날개를 펼쳐 칸을 꽉 채우�-> 1.37배)
+[anim.fly]
+fps=10
+loop=yes
+frame_w=256
+render_scale=1.37
+
+; rest: 바탕화면에서 오래 쉬면 엎������������������������������������r드린다(v0.9). 원본에 동봉된 권장 타이밍 160ms/프레임을 따른다.
+; render_scale: 누운 속 피해를 준다.
+kind=Zone
+level=3
+cooldown=9
+power=1.0
+radius=100
+range=360
+duration=4
+
+[skill.3]
+name=망령의 포효
+desc=주변 적에게 피해를 주고 잠시 기절시킨다.
+kind=Burst
+level=6
+cooldown=10
+power=1.8
+radius=130
+extra=1.2
+
+; --- 여기부터 v1.4. 수치는 전부 임시값이고 플레이해 보고 조정한다 ---
+
+[skill.4]
+name=망자의 발톱
+desc=가까이 붙은 적을 발톱으^c�cg��른다.
+kind=Line
+cooldown=3.5
+power=1.6
+range=140
+radius=36
+motion=melee
+motion_fps=11
+motion_frame_w=256
+motion_render_scale=1.04
+
+[skill.5]
+name=혼령 관통
+desc=�sn쌁혼 창을 응축해 앞의 적을 꿰뚫는다.
+kind=Line
+cooldown=9
+power=3.0
+range=360
+radius=30
+motion=pierce
+motion_fps=12
+motion_frame_w=256
+motion_render_scale=1.04
+
+[skill.3]
+name=망령의 침식
+desc=저주의 안개를 넓게 흘려 적을 갉아낸다.
+kind=Zone
+cooldown=12
+power=1.3
+radius=140
+range=340
+duration=5
+motion=erosion
+motion_fps=8
+motion_frame_w=256
+motion_render_scale=1.04
+
+; 패시브 — 장착 칸을 쓰지 않는다. 해제� 빨려 �\iKO�� FX)을 넣을 때(함께 쓸 것.
+[skill.7]
+name=영혼 수확
+desc=적을 쓰러뜨릴 때 영혼을 거두어 최대 체력의 6%를 회복한다.
+kind=PassiveOnKill
+power=0.06

@@ -1,0 +1,56 @@
+s﻿name=�� broken udow 58 --bg-chroma 16 --grid-�다.
+; 움직임이 작은 구간이라 숨 쉬는 정도로 보인다. 전용 대기 시트가 생기면 idle.png 만 바꾸면 된다.
+[anim.idle]
+fps=5
+loop=yes
+frame_w=256
+
+; mov�
+[��������������������������������������������������oo�다(2초 뒤)
+[anim.rest]
+fps=6
+loophyes
+frame_w=256
+
+; hit / death 시트는 아직 없다. idle 로 대신 그려진다.
+
+; 스킬 — kind 는 PrLine/Dash/Heal/Shield/Haste/Zone 중 하나.다.
+kind=Shield
+level=4
+power=0
+duration=3.5
+cooldown=12
+motion=barrier
+motp=no
+frame_w=256
+
+; rest: 바탕�스럽다
+[anim.attack]
+fps=14
+loop=no
+frame_w=256
+
+; rest: 바탕화면에서 오래 쉬면 엎드린다(2초 뒤)
+[anim.rest]
+fps=6
+loophyes
+frame_w=256
+
+; hit / death 시트는 아직 없다. idle 로 대신 그려진다.
+
+; 스킬 — kind 는 Projectile/Burst/Line/Dash/Heal/Shield/Haste/Zone 중 하나.다.
+kind=Shield
+level=4
+power=0
+duration=3.5
+cooldown=12
+motion=barrier
+motion_fps=10
+motion_frame_w=256
+
+[skill.3]
+na�고 잃어 뒤집지 않고 그대로 썼다. 좌우 반전은 ����용한다.
+flip=yes
+
+; 그림: assets/references/shadow-dra=gon/work-2026-11 * f
+그�

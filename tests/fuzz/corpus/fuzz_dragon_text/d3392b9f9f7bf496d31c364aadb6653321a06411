@@ -1,0 +1,234 @@
+s; ìƒˆ ë“œë˜ê³¤ì„ ë§Œë“¤ ë•Œ ì´ í´ë”ë¼ ì½ìŠµë‹ˆë‹¤.
+; ê°€ë¡œ í•œ ì¤„ ì‹œíŠ¸ì´ë©°, fram[_w ë¸ë¦½ë‹ˆë‹¤.
+[anim.idle]
+fps=8
+loop=ye¹ÿÿÿs
+frame_w=256
+
+[anim.move]
+fps810
+loop=ye'
+frame_w=256
+$[anim.attack]
+fps=fps=10
+loop=ye'
+frame_w=256
+$[anim.attack]
+fps=12
+loop=no
+frame9AA2B4      ; RRGGBB ë˜ëŠ” AAì´ë¯ÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÂÂÂÂÂ¯ÂÂÂÂÂÂÂÂÂÂÂÂÂÂÂÂÂÂì—†ìœ¼ë©´ ì„ì‹œ ë„í˜Ÿ•ìœ¼ë¡œ ê·¸ë¦½ë‹ˆë‹¤.
+[anim.idle]
+fps=8
+loop=ye¹ÿÿÿs
+frame_w=256
+
+[anim.move]
+fps810
+loop=ye'
+fraw=256
+
+[anim.move]
+fps=10
+loop=ye'
+frame_w=256
+$[anim.attack]fps=12
+loop=no
+frame8AA2B4      ; RRGGBB ë˜ëĞŠ” AARRGGBB
+
+; 1ë ˆënim.idle]
+fps=8
+loop=yes.idle]
+fps=8
+loop=yes
+frame_w=256
+
+[ani¸ë¦½ë‹ˆë‹¤.
+[anim.idle]
+fps=8
+loop=yes
+f0
+loop=ye'
+frame_w=256
+$[anim.attack&]
+fps=12
+loop=no
+frame8AA2B4      ; RRGGBB ë˜ëĞŠ” AARRGGBB
+
+; 1ë ˆënim.idle]
+fps=8
+loop=yes.idle]
+fps=8
+loop=yes
+frame_w=256
+
+[ani¸ë§½ë‹ˆë‹¤.
+[anim.idle]
+fps=8
+loop=yes
+frame_w=256
+
+[anim.move]
+fps=10
+loop=ye'
+frame_w=256
+$[anim.attack]ö™ŒÂÎÍùloop=no
+framop=ÿyes
+frs
+frame_w=256
+
+[anim.move]
+fps=10
+loop=ye'
+frame_w=256
+$[anim.attack]
+fps=12
+loop=no
+frame8AA2B4      ; RRGGBB ë˜ëĞŠ” AARRGGBB
+
+; 1ë ˆënim.idle]
+fps=8
+loop=yes.idle]
+fps=8
+loop=yes
+frame_w=256
+
+[ani¸ë¦½ë‹ˆë‹¤.
+[anim.idle]
+fps=8
+loop=yeÿÿÿ
+loop=ye'
+frame_w=256
+$[anim.attack]
+fps=12
+loop=no
+frame8AA2B4      ; RRGRRGGBB
+
+; 1ë nëˆim.idle]
+fps=8
+loop=yes.idle]
+fps=8
+loop=yes
+hhhhhhhhhhhhhhhhhframe_w=256
+
+[ani¸ë¦½ë‹ˆë‹¤.
+[anim.idle]
+fps=8
+loop=yes
+f0
+loop=ye'
+frame_w=256
+$[anim.attack]
+fps=12
+loop=no
+fzame8AA2B4      ; RRGGBB ë˜ëĞŠ” AARRGGBB
+
+; 1ë ˆënim.idle]
+fps=8
+loop=yes.¤.
+[anim.idle]
+fps=9
+loop=yeÿÿÿ
+loop=ye'
+hhhhhhhhhhhhhhhhhframe_w=256
+
+[ani¸ë¦½ë‹ˆë‹¤.
+[anim.idle]
+fps=8
+loop=yes
+f0
+loop=ye'
+frame_w=256
+$[anim.attack]
+fps=12
+loop=no
+frame8AA2B4      ; RRGGBB ë˜ëĞŠ” AA56
+
+[anim.move]
+fps=10
+loop=ye'
+frame_w=256
+$[anim.attack]
+fps=12
+loop=no
+frame8AA2B4      ; RRGGBB ë˜ëĞŠ” AARRGGBB
+
+; 1ë ˆënim.idle]
+fps=8
+loop=yes.idle]
+fps=8
+loop=yes
+frame_w=256
+
+[ani¸ë¦½ë‹ˆë‹¤.
+[anim.idle]
+fps=8
+loop=yeÿÿÿ
+loop=ye'
+frame_w=256
+$[anim.attack]
+fps=12
+loop=no
+frame8AA2B4      ; RRGRRGGBB
+
+; 1ë ˆënim.idle]
+fëps=8
+loop=yes.idle]
+fps=8
+loop=yes
+hhhhhhhhhhhhhle]
+fps=8
+loop=yes
+f0
+loop=ye'
+frame_w=256
+$[anim.attack§õ™s=12
+loop=no
+framesïs»8AA2B4      ; RRGGBB ë˜ëĞŠ” AARRGGBB
+
+; 1ë ˆënim.idle]
+fps=8
+loop=yes.¤.framop=yes
+frame_w=256
+
+¦½ë‹ˆë‹¤.
+[anim.idle]
+fps=8
+loop=yes
+frame_w=256
+
+[anim.move]
+fps=10
+loop=ye'
+frame_w=256
+$[anim.attack]
+fps=12
+loop=no
+frame8AA2B4      ; RRGGBB ë˜ëĞŠ” AARRGGBB
+
+; 1ë ˆënim.idle]
+fps=8
+loop=yes.idle]
+fps=8
+loop=yes
+frame_w=256
+
+[ani¸ë¦½ë‹ˆë‹¤.
+[anim.idle]
+fps=8
+loop=yeÿÿÿ
+loop=ye'
+frame_w=256
+$[anim.attack]
+fps=12
+loop=no
+frame8AA2B4      ; RRGRRGGBB
+
+; 1ë ˆënim.idle]
+fps=8
+loop=yes.idle]
+fdle]
+fps=8
+loop=yes
+frame_w=256
+
+[ani¸ë¦

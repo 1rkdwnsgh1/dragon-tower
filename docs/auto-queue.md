@@ -23,9 +23,10 @@
    ```
    cmake -S . -B build && cmake --build build -j && ctest --test-dir build --output-on-failure
    ```
-   `src/win`을 고쳤으면 **푸시 전에** [`docs/team-ai-prompt.md` 3절](team-ai-prompt.md)의 세 가지
-   (헤더 포함 / `RectF` 모호성 / 정의 순서)를 훑는다. 이 환경에서는 Windows 코드를 컴파일할 수 없고
-   CI 왕복 한 번이 비싸다.
+   `src/win`을 고쳤으면 **푸시 전에** `tools/check_win_build.sh` 를 돌린다(9초).
+   2026-11-14 밤에 확인했다 — 이 환경에서 Windows 코드가 **컴파일된다.** 그 전에 이 자리에
+   "컴파일할 수 없다"고 적혀 있던 것은 틀린 기록이었다
+   ([`docs/ai-workflow-notes.md`](ai-workflow-notes.md) 맨 위 참고).
 6. **올리기.** 브랜치를 만들어 PR. 분류에 따라:
    - **`데이터` · `문서` · `도구` · `테스트`** → CI(Windows·Linux 둘 다)가 통과하면 **바로 병합**한다.
    - **`코어` · `win`** → PR만 올리고 **병합하지 않는다.** 사람이 일요일에 함께 검토한다.

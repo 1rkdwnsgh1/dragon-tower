@@ -1,0 +1,24 @@
+# Dragon Tower save
+version=1
+nextDragonId=1
+huntMode=1
+ui.panelX=-1
+ui.panelY=-1
+ui.panelCollapsed=0
+ui.confineToBand=0
+ui.hintShown=0
+keepRange=0
+ui.menuX=-1
+ui.menuY=-1
+ui.menuScale=1
+ui.charScale=1
+ui.powerSave=0
+ui.menuOpen=0
+ui.menuTab=0
+bestFloor=0
+towerClears=0
+dragon.present=0
+stable.count=0
+stable.active=-1
+codex.species=
+codex.enemies=

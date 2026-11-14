@@ -1,0 +1,38 @@
+# clang-tidy 설정.
+#
+# 고른 기준: **실제로 버그가 되는 것만 켠다.** 이름 규칙·현대화 권고처럼
+# 사람이 보고 판단해야 하는 항목은 끈다 — 경고가 수백 줄이면 아무도 읽지 않고,
+# 읽지 않는 경고는 없는 것과 같다. 켜 둔 묶음은 전부 "이게 걸리면 거의 항상 버그"다.
+#
+# 한 줄만 예외로 두고 싶으면 그 줄 위에 // NOLINTNEXTLINE(검사이름) 과 **왜인지**를 적는다.
+Checks: >
+  -*,
+  bugprone-*,
+  clang-analyzer-*,
+  cert-*,
+  misc-*,
+  performance-*,
+  -bugprone-easily-swappable-parameters,
+  -bugprone-narrowing-conversions,
+  -cert-dcl21-cpp,
+  -cert-err58-cpp,
+  -misc-non-private-member-variables-in-classes,
+  -misc-no-recursion,
+  -misc-use-anonymous-namespace,
+  -misc-include-cleaner,
+  -misc-const-correctness,
+  -performance-enum-size,
+  -performance-avoid-endl
+
+# 꺼 둔 것의 이유
+#  const-correctness            : 지역 변수마다 const 를 붙이라는 지적이 수백 줄 나온다. 버그가 아니다.
+#  easily-swappable-parameters : Vec2{x, y} 류가 전부 걸린다. 이 코드에서는 잡음이다.
+#  narrowing-conversions       : float/int 섞어 쓰는 게임 코드라 수백 줄 나온다.
+#                                실제 문제는 -Wall -Wextra 와 UBSan 이 잡는다.
+#  misc-non-private-member...  : SpeciesDef·EnemyDef 처럼 일부러 평범한 struct 로 둔 데이터형.
+#  misc-include-cleaner        : 헤더 정리는 사람이 할 일이고, 이 설정의 목적이 아니다.
+#  performance-enum-size       : enum 을 작게 바꾸면 저장 파일 호환이 흔들린다.
+
+WarningsAsErrors: ''
+HeaderFilterRegex: '(include/core|src/win)/.*\.h$'
+FormatStyle: none
