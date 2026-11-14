@@ -5,6 +5,13 @@
 // 모드
 //   (없음)   자동 사냥 · 수동 사냥 · 탑 전체 돌파 (기존 출력)
 //   floors   탑 **층별** 표 — 층마다 승률·남은 체력·사망률 (v1.6, 큐 5번)
+//   auto     자동 사냥 **생존** 표 — 사망률·생존 시간·최저 체력 (v1.6, 큐 6번)
+//
+// auto 모드 옵션
+//   --species=<키>      그 종만 돈다 (기본: 등록된 종 전부)
+//   --levels=1,5        시작 레벨 목록 (기본: 1)
+//   --minutes=180       한 번의 한도 (기본: 180분 — 1시간으로는 사망이 안 나와 차이가 안 보인다)
+//   --seed=100 --trials=20
 //
 // floors 모드 옵션
 //   --species=<키>      그 종만 돈다 (기본: 등록된 종 전부)
@@ -309,6 +316,129 @@ static bool parseIntList(const std::string& v, std::vector<int>& out) {
     return !out.empty();
 }
 
+// ---------------- 자동 사냥: 생존 재기 (v1.6, 큐 6번) ----------------
+//
+// 임시 수치(패시브)의 영향을 보려면 **한 시간으로는 모자란다** — 기본 출력의
+// `[auto hunt from Lv1]` 은 두 종 모두 1시간 20회에서 사망 0이라 차이가 보이지 않는다.
+// 그래서 한도를 길게 주고, 사망 말고도 "체력이 얼마나 얇아졌는가"를 함께 센다.
+//
+// 수치를 끄고/켜고 비교하는 방법: 이 도구는 **첫 인수로 assets 폴더를 받는다.**
+// 폴더를 복사해 `dragon.txt` 의 값만 바꾼 뒤 그 폴더로 돌리면 코드를 고치지 않고 비교된다.
+struct AutoStat {
+    int trials = 0;
+    int deaths = 0;
+    float deathTime = 0.f;  // 죽은 경우의 생존 시간 합
+    float liveTime = 0.f;   // 모든 경우의 생존 시간 합(한도에서 끊긴 것 포함)
+    float level = 0.f;      // 끝났을 때 레벨의 합
+    float minHp = 0.f;      // 한 번이라도 떨어진 최저 체력 비율의 합
+    int thin = 0;           // 한 번이라도 체력 20% 아래로 떨어진 횟수
+    // 사망이 나오지 않을 때도 수치의 영향을 보려면 **체력이 오르내린 양**을 세야 한다.
+    // 그때그때의 최대 체력으로 나눈 비율로 더한다(레벨업으로 최대 체력이 바뀐다).
+    float taken = 0.f;      // 받은 피해의 합 (최대 체력 배수)
+    float healed = 0.f;     // 회복량의 합 (최대 체력 배수)
+    float autoExp = 0.f;    // 자동 사냥 누적 경험치의 합
+};
+
+static AutoStat autoRun(Species sp, int level, float limitSec, uint32_t seed, int trials) {
+    AutoStat st;
+    st.trials = trials;
+    for (int t = 0; t < trials; ++t) {
+        SaveData base;
+        base.hasDragon = true;
+        base.nextDragonId = 2;
+        base.dragon.id = 1;
+        base.dragon.species = sp;
+        base.dragon.level = level;
+
+        Game g;
+        g.seed(seed + static_cast<uint32_t>(t));
+        g.init(base, kDesk);
+        g.setHuntMode(CombatMode::Auto);
+        g.startHunt();
+        g.confirmAutoWarning();
+
+        float time = 0.f;
+        float low = 1.f;
+        float prev = g.world().dragon().hp;
+        while (time < limitSec && g.hunting()) {
+            const DragonActor& d = g.world().dragon();
+            float maxHp = std::max(1.f, d.stats.maxHp);
+            low = std::min(low, d.hp / maxHp);
+            if (d.hp < prev) st.taken += (prev - d.hp) / maxHp;
+            else if (d.hp > prev) st.healed += (d.hp - prev) / maxHp;
+            prev = d.hp;
+            g.update(kDt, {}, true, false);
+            time += kDt;
+        }
+        bool died = !g.hasDragon() || g.screen() == Screen::Death;
+        if (died) {
+            st.deaths++;
+            st.deathTime += time;
+        }
+        st.liveTime += time;
+        st.level += static_cast<float>(g.dragonRecord().level);
+        st.autoExp += static_cast<float>(g.dragonRecord().autoExp);
+        st.minHp += low;
+        if (low < 0.20f) st.thin++;
+    }
+    return st;
+}
+
+static void autoPrint(Species sp, const AutoStat& st) {
+    const SpeciesDef& def = speciesDef(sp);
+    float n = static_cast<float>(std::max(1, st.trials));
+    std::printf("  %-10s 사망 %2d/%d (%5.1f%%)", def.name.c_str(), st.deaths, st.trials, 100.f * st.deaths / n);
+    if (st.deaths) std::printf(" · 죽은 경우 평균 %5.1f분", st.deathTime / st.deaths / 60.f);
+    std::printf(" · 전체 평균 생존 %5.1f분(한도 포함)\n", st.liveTime / n / 60.f);
+    std::printf("             도달 레벨 평균 %4.1f · 최저 체력 평균 %4.0f%% · 체력 20%% 밑으로 떨어진 경우 %2d/%d\n",
+                st.level / n, 100.f * st.minHp / n, st.thin, st.trials);
+    std::printf("             받은 피해 %6.2f배 · 회복 %6.2f배 (최대 체력 기준) · 자동 경험치 %7.0f\n", st.taken / n,
+                st.healed / n, st.autoExp / n);
+}
+
+static int autoMode(int argc, char** argv, int firstOpt) {
+    std::string speciesKey;
+    std::vector<int> levels{1};
+    uint32_t seed = 100;
+    int trials = 20;
+    float minutes = 180.f;
+    for (int i = firstOpt; i < argc; ++i) {
+        std::string a = argv[i];
+        auto val = [&a](const char* k) -> const char* {
+            size_t n = std::string(k).size();
+            return a.compare(0, n, k) == 0 ? a.c_str() + n : nullptr;
+        };
+        if (const char* v = val("--species=")) speciesKey = v;
+        else if (const char* v = val("--levels=")) parseIntList(v, levels);
+        else if (const char* v = val("--seed=")) seed = static_cast<uint32_t>(std::strtoul(v, nullptr, 10));
+        else if (const char* v = val("--trials=")) trials = std::max(1, std::atoi(v));
+        else if (const char* v = val("--minutes=")) minutes = std::max(1.f, static_cast<float>(std::atof(v)));
+        else { std::printf("모르는 옵션: %s\n", a.c_str()); return 2; }
+    }
+
+    std::vector<Species> list;
+    if (speciesKey.empty()) {
+        for (int i = 0; i < speciesCount(); ++i) list.push_back(static_cast<Species>(i));
+    } else {
+        Species s{};
+        if (!speciesFromKey(speciesKey, s)) { std::printf("그런 종이 없습니다: %s\n", speciesKey.c_str()); return 2; }
+        list.push_back(s);
+    }
+
+    std::printf("[자동 사냥 생존]  시드 %u · 레벨마다 %d회 · 한도 %.0f분\n", seed, trials, minutes);
+    std::printf("                  자동 경험치 상한 스위치는 건드리지 않는다(지금 %s)\n\n",
+                cfg::kAutoExpCapEnabled ? "켜짐" : "꺼짐");
+    for (Species sp : list) {
+        std::printf("%s (%s)\n", speciesDef(sp).name.c_str(), speciesDef(sp).key.c_str());
+        for (int lv : levels) {
+            std::printf("  Lv%d 시작\n", lv);
+            autoPrint(sp, autoRun(sp, lv, minutes * 60.f, seed, trials));
+        }
+        std::printf("\n");
+    }
+    return 0;
+}
+
 static int floorsMode(int argc, char** argv, int firstOpt) {
     std::string speciesKey;
     std::vector<int> levels{6, 8, 10};
@@ -382,7 +512,10 @@ int main(int argc, char** argv) {
         "assets";
 #endif
     int firstOpt = 1;
-    if (argc > 1 && argv[1][0] != '-' && std::string(argv[1]) != "floors") { assets = argv[1]; firstOpt = 2; }
+    if (argc > 1 && argv[1][0] != '-' && std::string(argv[1]) != "floors" && std::string(argv[1]) != "auto") {
+        assets = argv[1];
+        firstOpt = 2;
+    }
     DragonScanResult d = loadDragonFolders(assets / "dragons");
     EnemyScanResult e = loadEnemyFolders(assets / "enemies");
     std::printf("에셋: %s — 종 %d개, 적 %d개", assets.string().c_str(), speciesCount(), enemyCount());
@@ -395,6 +528,7 @@ int main(int argc, char** argv) {
     }
 
     if (firstOpt < argc && std::string(argv[firstOpt]) == "floors") return floorsMode(argc, argv, firstOpt + 1);
+    if (firstOpt < argc && std::string(argv[firstOpt]) == "auto") return autoMode(argc, argv, firstOpt + 1);
 
     std::printf("Auto-exp cap = %d (Lv%d)\n\n[auto hunt from Lv1]\n", autoExpCap(), cfg::kAutoExpCapLevel);
     for (int i = 0; i < speciesCount(); ++i) autoHunt(static_cast<Species>(i));
