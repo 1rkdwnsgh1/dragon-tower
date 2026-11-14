@@ -52,6 +52,7 @@ if(DRAGON_BUILD_TESTS)
     add_test(NAME core_tests COMMAND core_tests)
 
     add_executable(balance_sim tests/balance_sim.cpp)
+    target_compile_definitions(balance_sim PRIVATE DT_ASSETS_DIR="${CMAKE_CURRENT_SOURCE_DIR}/assets")
     target_link_libraries(balance_sim PRIVATE dragon_core)
 
     # 에셋 데이터가 제대로 읽히는지 확인한다(게임을 켜지 않고 오타·범위 오류를 잡는다)
