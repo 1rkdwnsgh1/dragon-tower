@@ -16,7 +16,8 @@
 - `assets/dragons/README.md`: 드래곤 추가·그림 넣기 사용법
 - `assets/enemies/README.md`: 적 추가·그림 넣기 사용법
 - `assets/ui/README.md`: UI 스킨(창틀·버튼·막대 그림) 사용법
-- `docs/ai-workflow-notes.md`: AI 작업 비용 기록과 개선
+- `docs/ai-workflow-notes.md`: AI 작업 비용 기록과 개선, 이 환경에서 안 되는 것
+- `docs/auto-queue.md`: 예약된 AI 세션이 집어 가는 작업 큐와 진행 상태 (2026-11-15 20:00 종료)
 - `docs/team-ai-prompt.md`: 팀원이 쓰는 AI 도구의 프로젝트 지침에 붙여넣을 요약 (이 문서와 `CLAUDE.md`의 요약이므로, 어긋나면 이쪽 둘이 기준)
 - `docs/characters/revenant-dragon-skills-v1.md`: 망령룡 스킬 V1 후보, 현행 구조와의 차이, 기술 설계·순서 승인 대기 사항
 
