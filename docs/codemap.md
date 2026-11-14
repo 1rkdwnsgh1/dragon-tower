@@ -24,9 +24,63 @@ tests/                     코어 규칙 검증
 | 전투 공통 수치(사거리, 회피, 회복 등) | `include/core/Config.h` | `cfg::k...` |
 | 레벨 곡선, 자동 경험치 상한 | `src/core/Progression.cpp` | `expToNext`, `autoExpCap` |
 | 종 추가·조회 방식 | `src/core/Species.cpp` | `registry`, `registerOrUpdateSpecies` |
+| 적 종류·능력치·행동 | `assets/enemies/<키>/enemy.txt` | (코드 아님) |
+| 내장 적 4종의 기본값 | `src/core/Enemy.cpp` | `makeSlime`, `makeGoblin`, `makeOgre`, `makeLich` |
+| 적 추가·조회 방식 | `src/core/Enemy.cpp` | `registerOrUpdateEnemy`, `defaultMelee`, `defaultBoss` |
+| `enemy.txt` 읽는 규칙 | `src/core/DragonData.cpp` | `parseEnemyText`, `loadEnemyFolders` |
+| 바탕화면·탑에 나오는 적 구성 | `src/core/Game.cpp` | `randomMelee`, `spawnTowerFloor` |
+| 디펜스 전투 띠(맨 아래 영역) | `src/core/Game.cpp` | `battleBand` |
+| 왼쪽에서 들어오는 웨이브 | `src/core/Game.cpp` | `spawnWave`, `waveNumber_` |
+| 띠 높이·등장 위치·웨이브 증가 | `include/core/Config.h` | `kBandHeight`, `kSpawnOffsetX`, `kWaveLevelStep` |
+| 전투 토글 스위치·모드 버튼 | `src/win/Renderer.cpp` | `toggle`, `drawStatusCard` |
+| 클릭 통과 범위 판정 | `src/win/App.cpp` | `updateClickThrough`, `FrameRegions` (마우스는 항상 받는다) |
+| 키보드 받기(자동) | `src/win/App.cpp` | `syncKeyboard`, `Game::wantsKeyboard` (싸우는 중 + 자동 아님) |
+| 메뉴 탭·슬라이더·크기조절 | `src/win/Renderer.cpp` | `drawMenu`, `slider`, `UiAction::DragMenuSize` |
+| 메뉴 열고 닫기 | `src/core/Game.cpp` | `setMenuOpen`, 상태창의 `≡` 버튼 |
+| 띠로 날아 내려가기 | `src/core/World.cpp` | `beginConfine`, `confining_` |
+| 입력 받을 영역 수집 | `src/win/Renderer.cpp` | `markRegion`, `g_regions` |
+| 트레이 아이콘·메뉴 | `src/win/App.cpp` | `createTray`, `showTrayMenu` |
+| 트레이 풍선 알림 | `src/win/App.cpp` | `showBalloon`, `pumpAlerts` |
+| 중요한 일 알림 모으기 | `src/core/Game.cpp` | `alert`, `takeAlert` |
+| 탐색기 재시작 대응 | `src/win/App.cpp` | `taskbarCreatedMsg_` |
+| 전역 단축키 | `src/win/App.cpp` | `RegisterHotKey`, `WM_HOTKEY` |
+| 상태창·메뉴·드래곤 끌기 | `src/win/App.cpp` | `startDrag`, `WM_MOUSEMOVE` |
+| 끄는 동안 자동 행동 멈춤 | `src/core/World.cpp` | `wander`의 `d.held`, `Game::setDragonHeld` |
+| UI 스킨 읽기 | `src/win/Sprites.cpp` | `loadUiSkins`, `Sprites::ui` (스킨에 없으면 default) |
+| UI 스킨 그리기(맞춤) | `src/win/Renderer.cpp` | `drawPiece`(nine/height/contain), `Renderer::piece` |
+| 그림이 너무 클 때 포기 | `src/win/Renderer.cpp` | `kBorderShare`, `kMinArtScale` → 도형으로 그린다 |
+| 드래곤별 스킨 선택 | `include/core/Game.h` | `Game::uiSkin`, `dragon.txt`의 `ui_skin` |
+| 스킨 설정 물려받기 | `src/win/Sprites.cpp` | `loadUiSkins` 끝의 `hasCfg` 보정 (default 의 여백·fit 를 쓴다) |
+| 에셋 데이터 검사 | `tools/asset_check.cpp` | `ctest` 에 포함. dragon.txt·enemy.txt 오타를 잡는다 |
+| 드래곤 보유·교체 | `src/core/Game.cpp` | `switchDragon`, `beginAddDragon`, `canSwitchDragon` |
+| 보관 중 체력 회복 | `src/core/Game.cpp` | `Game::update` 앞부분, `cfg::kStableRegenRatio` |
+| 보유 목록 저장 | `src/core/SaveData.cpp` | `stable.*` 키와 옛 저장 파일 변환 |
+| 관리창 그리기 | `src/win/Renderer.cpp` | `drawStable` |
+| 싸울 때 유지할 간격 | `src/core/World.cpp` | `desiredRange`, `Game::setKeepRange` |
+| 쉴 때 엎드리기 | `src/core/World.cpp` | `updateDragonAnim`의 `restTime`, `cfg::kRestLieDelay` |
+| 대쉬할 때 나는 모션 | `src/core/World.cpp` | `updateDragonAnim`의 `dashTime` |
+| 모션 고르기(우클릭) | `src/core/Game.cpp`, `src/win/Renderer.cpp` | `setForcedMotion`, `drawMotionMenu` |
+| 적 좌우 뒤집기 | `src/win/Renderer.cpp` | `drawEnemy`의 `artFacesRight` (`enemy.txt`의 `art_facing`) |
+| 스킬 아이콘 | `src/win/Sprites.cpp` | `skillicon_<종>_<번호>` ← `assets/dragons/<키>/icon_N.png` |
+| 메뉴 창 위치·크기 | `src/win/Renderer.cpp` | `drawMenu`의 `menuScale`, `menuPos` |
+| 캐릭터 보기 크기 | `src/win/Renderer.cpp` | `drawWorld`의 `cs`, `drawEnemy(charScale)` (그림만, 판정은 그대로) |
+| 드래곤을 띠에 가두기 | `src/core/Game.cpp` | `setConfineToBand`, `placeDragon` |
+| 조용할 때 프레임 줄이기 | `src/win/App.cpp` | `App::tick`의 `powerSave`·`busy`, `cfg::kIdleFrameInterval` |
+| 얇은 영역에서 서는 자리 | `include/core/MathUtil.h`, `src/core/World.cpp` | `RectF::clampPoint`, `World::groundLine` |
+| 자동 경험치 상한 켜고 끄기 | `include/core/Config.h` | `kAutoExpCapEnabled` |
 | `dragon.txt` 읽는 규칙 | `src/core/DragonData.cpp` | `parseDragonText` |
 | 폴더 스캔 | `src/core/DragonData.cpp` | `loadDragonFolders` |
 | 전투 진행(피해, 회피, 스킬 발동) | `src/core/World.cpp` | `updateCombat`, `castSkill`, `damageDragon` |
+| 스킬 해제 레벨 배정(레벨당 하나) | `src/core/Species.cpp` | `assignUnlockLevels` (`registerOrUpdateSpecies`가 항상 부른다) |
+| 액티브·패시브 구분 | `include/core/Species.h`, `src/core/Species.cpp` | `SkillKind`, `skillIsPassive` |
+| 패시브 능력치 보정 | `src/core/Species.cpp` | `statsFor` 뒤쪽의 `PassiveStat` |
+| 처치 패시브(회복) | `src/core/World.cpp` | `onEnemyKilled` (`damageEnemy`에서 부른다) |
+| 장착 4칸(저장되는 값) | `include/core/Progression.h` | `DragonRecord::slots`, `fillEmptySkillSlots` |
+| 장착 바꾸기·관리창 열기 | `src/core/Game.cpp` | `equipSkill`, `clearSlot`, `syncSkillSlots`, `openSkills` |
+| 키 1~4와 자동 전투의 스킬 선택 | `src/core/World.cpp` | `slotSkill`, `slotReady`, `dragonAi`의 `castSkills` |
+| 스킬 관리창 그리기 | `src/win/Renderer.cpp` | `drawSkills`, `drawSkillBox` |
+| 스킬별 본체 모션 | `src/win/Sprites.cpp`, `src/win/Renderer.cpp` | `loadSkillSheets`/`skillSheet`, `drawDragon`의 `skillMotion` |
+| 스킬 칸 수·모션 유지 시간 | `include/core/Species.h`, `include/core/Config.h` | `kSkillSlots`, `cfg::kSkillMotionHold` |
 | 적 행동과 공격 예고 | `src/core/World.cpp` | `updateEnemies`, `resolveZone` |
 | 애니메이션 상태 전환 | `src/core/World.cpp` | `updateDragonAnim`, `setDragonAnim` |
 | 바탕화면 자동 행동(쉬기·걷기·날기·착지) | `src/core/World.cpp` | `pickBehavior`, `wander`, `randomRoamTarget` |
@@ -43,16 +97,16 @@ tests/                     코어 규칙 검증
 | 창 만들기, 입력 전환, 메인 루프 | `src/win/App.cpp` | `App::init`, `setInputEnabled`, `tick` |
 | 전체화면 감지, 저장 경로, DPI | `src/win/Platform.cpp` | `isOtherAppFullscreen`, `saveFilePath` |
 
-## 파일 크기 (2026-11-13)
+## 파일 크기 (2026-11-14, v1.4)
 
 큰 파일은 통째로 읽지 말고 위 표의 이름으로 찾아 들어간다.
 
 | 파일 | 줄 수 |
 |---|---|
-| `src/win/Renderer.cpp` | ~1060 |
-| `src/core/World.cpp` | ~680 |
+| `src/win/Renderer.cpp` | ~1300 |
+| `src/core/World.cpp` | ~720 |
 | `src/win/App.cpp` | ~480 |
-| `src/core/Game.cpp` | ~420 |
+| `src/core/Game.cpp` | ~540 |
 | `src/core/DragonData.cpp` | ~290 |
 | 나머지 | 200줄 이하 |
 
@@ -62,5 +116,5 @@ tests/                     코어 규칙 검증
 cmake -S . -B build && cmake --build build -j && ctest --test-dir build --output-on-failure
 ```
 
-Linux에서도 코어 규칙은 전부 빌드·테스트된다(`tests/core_tests.cpp`, 147건).
+Linux에서도 코어 규칙은 전부 빌드·테스트된다(`tests/core_tests.cpp`).
 Windows 실행 파일은 GitHub Actions의 `build`가 만든다. 실제 창 동작은 사람이 직접 확인한다.

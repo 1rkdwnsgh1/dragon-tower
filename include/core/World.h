@@ -1,6 +1,7 @@
 // 전투 시뮬레이션. 바탕화면 사냥과 탑이 같은 규칙(체력·피해·스킬)을 쓴다.
 #pragma once
 
+#include <array>
 #include <string>
 #include <vector>
 
@@ -11,18 +12,17 @@
 namespace dt {
 
 // 한 프레임의 플레이어 입력. dodge/skill은 이번 프레임에 눌렸을 때만 true.
+// v1.4: skill의 번호는 **장착 칸**(키 1~4)이지 스킬 목록 번호가 아니다.
 struct PlayerInput {
     float moveX = 0.f;
     float moveY = 0.f;
     bool dodge = false;
-    bool skill[3] = {false, false, false};
+    bool skill[kSkillSlots] = {false, false, false, false};
 };
-
-enum class EnemyKind { Imp, Guardian };
 
 struct Enemy {
     int id = 0;
-    EnemyKind kind = EnemyKind::Imp;
+    EnemyKind kind{};
     int level = 1;
     Vec2 pos;
     float radius = 24.f;
@@ -35,6 +35,8 @@ struct Enemy {
     float hitFlash = 0.f;
     float facing = 1.f;      // 1 오른쪽, -1 왼쪽
     bool alive = true;
+    // 화면 밖에서 들어오는 중이면 경계에 가두지 않는다(디펜스 전투의 등장 연출)
+    bool entering = false;
     // 보스 전용
     bool phase2 = false;
     bool spawnedAdds = false;
@@ -104,7 +106,11 @@ struct DragonActor {
     Vec2 facing{1.f, 0.f};
     float hp = 1.f;
     float basicCd = 0.f;
-    float skillCd[3] = {0.f, 0.f, 0.f};
+    // v1.4: 재사용 대기시간은 **스킬마다** 센다(칸이 아니라). 칸을 바꿔 끼워도 대기시간은 그대로다.
+    // 크기는 setupDragon에서 그 종의 스킬 수에 맞춘다.
+    std::vector<float> skillCd;
+    // 지금 재생 중인 스킬 전용 본체 모션의 스킬 번호. -1이면 공용 attack 시트를 쓴다.
+    int skillMotion = -1;
     float dodgeCd = 0.f;
     float dashTime = 0.f;
     Vec2 dashVel;
@@ -121,19 +127,24 @@ struct DragonActor {
     AnimState anim = AnimState::Idle;
     float animTime = 0.f;  // 현재 상태로 바뀐 뒤 흐른 시간
     float animHold = 0.f;  // 1회 재생 상태를 유지할 남은 시간(0이면 상태 자유)
+    // v1.5: 사람이 고른 모션. 다음 입력까지 유지한다(끌어 옮겨도 풀리지 않는다).
+    bool animForced = false;
+    AnimState forcedAnim = AnimState::Idle;
     // v0.3 바탕화면 자동 행동(사냥하지 않을 때만 쓴다)
     IdleBehavior behavior = IdleBehavior::Rest;
     float behaviorLeft = 0.f;  // 이 행동을 이어 갈 남은 시간
     bool flying = false;       // 날고 있는가(걷기와 그리는 상태가 다르다)
     bool landing = false;      // 날다가 지면으로 내려오는 중
     float groundY = 0.f;       // 걷는 높이. 걷기는 이 높이에서 수평으로만 움직인다
+    float restTime = 0.f;      // v0.9 쉬는 행동을 이어 온 시간. 길어지면 엎드린다
+    bool held = false;         // v0.9 사람이 마우스로 잡고 있는 중(자동 행동을 멈춘다)
 };
 
 enum class WorldEventType { EnemyKilled, DragonDied, EnemySpawned };
 
 struct WorldEvent {
     WorldEventType type;
-    EnemyKind enemyKind = EnemyKind::Imp;
+    EnemyKind enemyKind{};
     int exp = 0;
 };
 
@@ -142,6 +153,10 @@ public:
     World();
 
     void setBounds(const RectF& r) { bounds_ = r; }
+    // v1.0: 띠로 내려가는 중. 순간이동 대신 날아서 내려가고, 닿으면 경계를 띠로 바꾼다.
+    void beginConfine(const RectF& band);
+    void cancelConfine() { confining_ = false; }
+    bool confining() const { return confining_; }
     const RectF& bounds() const { return bounds_; }
     void seed(uint32_t s) { rng_.seed(s); }
 
@@ -170,12 +185,26 @@ public:
     // 1회 재생 상태로 바꾼다(공격·피격·사망). hold 동안 다른 상태로 덮이지 않는다.
     void setDragonAnim(AnimState s, float hold);
 
+    // 아래 둘은 **스킬 목록 번호**를 받는다(장착 칸이 아니다).
     bool skillUnlocked(int i) const;
-    bool skillReady(int i) const { return skillUnlocked(i) && dragon_.skillCd[i] <= 0.f; }
+    bool skillReady(int i) const;
+
+    // v1.4 장착 칸. Game이 개체 기록(DragonRecord::slots)에서 넣어 준다.
+    // 입력(키 1~4)과 자동 전투는 여기 들어 있는 스킬만 쓴다.
+    void setSlots(const std::array<int, kSkillSlots>& s) { slots_ = s; }
+    const std::array<int, kSkillSlots>& slots() const { return slots_; }
+    // 칸 번호 -> 스킬 목록 번호. 빈 칸이면 -1.
+    int slotSkill(int slot) const {
+        return (slot < 0 || slot >= kSkillSlots) ? -1 : slots_[static_cast<size_t>(slot)];
+    }
+    bool slotReady(int slot) const { return skillReady(slotSkill(slot)); }
 
     std::vector<WorldEvent> takeEvents();
 
     const std::vector<Enemy>& enemies() const { return enemies_; }
+    // 화면에 아직 움직이는 효과·글자가 남아 있는가(조용할 때 그리기를 줄이는 판단에 쓴다)
+    bool hasActiveFx() const { return !fx_.empty() || !texts_.empty(); }
+    std::vector<Enemy>& enemiesMutable() { return enemies_; }
     const std::vector<AttackZone>& zones() const { return zones_; }
     const std::vector<Projectile>& projectiles() const { return projectiles_; }
     const std::vector<DotZone>& dots() const { return dots_; }
@@ -189,17 +218,30 @@ public:
     int statDodges = 0;
     int statHitsTaken = 0;
 
+    // v0.9 싸울 때 유지할 간격(0 근접 / 1 중간 / 2 바깥). 스킬 수동·자동에서 AI가 지킨다.
+    void setKeepRange(int v) { keepRange_ = v; }
+    int keepRange() const { return keepRange_; }
+    // 지금 설정과 해금된 스킬로 계산한 유지 거리
+    float desiredRange() const;
+
 private:
     void wander(float dt);     // 애니메이션 진행을 포함하지 않는 배회(내부용)
     void pickBehavior();       // 다음 행동을 확률로 고르고 목적지를 정한다
     Vec2 randomRoamTarget(bool fly);
     float randomRoamX();
     float randomGroundY();
+    // 발이 영역 바닥에 닿는 세로 좌표. 영역이 얇으면 여기에 붙는다.
+    float groundLine() const;
     Enemy* nearestEnemy(Vec2 from, float maxDist);
     Enemy* findEnemy(int id);
     void moveDragon(float dt, Vec2 dir, float speedMul);
-    void dragonAi(float dt, bool castSkills);
-    bool castSkill(int i, bool aiChoice);
+    void dragonAi(float dt, bool castSkills, const PlayerInput& in, bool allowManual);
+    int keepRange_ = 0;
+    std::array<int, kSkillSlots> slots_{-1, -1, -1, -1};
+    void autoFillSlots();  // 빈 칸을 해제된 액티브로 채운다(이미 든 칸은 그대로)
+    bool castSkill(int i, bool aiChoice);  // i = 스킬 목록 번호
+    // v1.4 패시브 PassiveOnKill. 적을 쓰러뜨렸을 때 damageEnemy가 부른다.
+    void onEnemyKilled(Vec2 at);
     void basicAttack();
     void updateEnemies(float dt);
     void enemyAttack(Enemy& e);
@@ -209,6 +251,8 @@ private:
     float dragonDodgeChance() const;
 
     RectF bounds_{0.f, 0.f, 1280.f, 720.f};
+    bool confining_ = false;   // 띠로 내려가는 중
+    RectF confineBand_{};
     Rng rng_;
     DragonActor dragon_;
     std::vector<Enemy> enemies_;

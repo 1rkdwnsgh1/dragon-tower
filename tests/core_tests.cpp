@@ -4,10 +4,13 @@
 #include <algorithm>
 #include <cmath>
 #include <fstream>
+#include <sstream>
 #include <string>
+#include <vector>
 
 #include "core/Config.h"
 #include "core/DragonData.h"
+#include "core/EnemyData.h"
 #include "core/Game.h"
 #include "core/Progression.h"
 #include "core/SaveData.h"
@@ -53,11 +56,29 @@ static void testExpCurve() {
     CHECK(expToNext(4) == 280);
     CHECK(totalExpToReach(1) == 0);
     CHECK(totalExpToReach(5) == 40 + 100 + 180 + 280);
+    // v0.5: 자동 전투 경험치 상한은 꺼져 있다(기획서 10장). 켜면 아래 값이 된다.
+    CHECK(!cfg::kAutoExpCapEnabled);
+    CHECK(autoExpCap() == kNoAutoExpCap);
+    setAutoExpCapOverride(totalExpToReach(cfg::kAutoExpCapLevel));
     CHECK(autoExpCap() == totalExpToReach(cfg::kAutoExpCapLevel));
+    setAutoExpCapOverride(-1);
 }
 
+// 상한을 끈 지금도 자동 전투는 제한 없이 경험치를 준다
+static void testNoAutoCap() {
+    std::printf("[auto exp uncapped]\n");
+    DragonRecord d;
+    d.level = 1;
+    ExpResult r = grantExp(d, 100000, true);
+    CHECK(r.granted == 100000);
+    CHECK(!r.capReached);
+    CHECK(d.level > 5);  // 상한이 없으니 레벨 5를 넘어간다
+}
+
+// 상한을 다시 켤 때를 대비해 자르는 계산 자체는 계속 검증한다
 static void testAutoCapClamp() {
-    std::printf("[auto exp cap]\n");
+    std::printf("[auto exp cap (켠 상태)]\n");
+    setAutoExpCapOverride(totalExpToReach(cfg::kAutoExpCapLevel));
     DragonRecord d;
     d.autoExp = autoExpCap() - 10;
     d.level = 4;
@@ -76,8 +97,8 @@ static void testAutoCapClamp() {
     CHECK(r3.granted == 30);
     CHECK(d.autoExp == autoExpCap());
     CHECK(d.exp == 30);
+    setAutoExpCapOverride(-1);
 }
-
 static void testMultiLevelUp() {
     std::printf("[multi level up]\n");
     DragonRecord d;
@@ -106,7 +127,7 @@ static void testSaveRoundTrip() {
     s.towerClears = 1;
     s.markSeen(Species::Fire);
     s.markSeen(Species::Water);
-    s.impSeen = true;
+    s.enemiesSeen.insert(enemyDef(defaultMelee()).key);
     s.graves.push_back({1, Species::Fire, 4, "tower2"});
     s.graves.push_back({2, Species::Wind, 3, "auto"});
 
@@ -123,7 +144,7 @@ static void testSaveRoundTrip() {
     CHECK(l.bestFloor == 2);
     CHECK(l.towerClears == 1);
     CHECK(l.sawSpecies(Species::Fire) && !l.sawSpecies(Species::Earth) && l.sawSpecies(Species::Water));
-    CHECK(l.impSeen && !l.guardianSeen);
+    CHECK(l.sawEnemy(defaultMelee()) && !l.sawEnemy(defaultBoss()));
     CHECK(l.graves.size() == 2);
     CHECK(l.graves[0].place == "tower2");
     CHECK(placeLabel("tower2") == "탑 2층");
@@ -164,7 +185,7 @@ static void testSelectAndDeath() {
     g.startHunt();
     CHECK(g.hunting());
     Vec2 p = g.world().dragon().pos;
-    for (int i = 0; i < 3; ++i) g.world().spawnEnemy(EnemyKind::Imp, 15, p + Vec2{40.f, -40.f + 40.f * i});
+    for (int i = 0; i < 3; ++i) g.world().spawnEnemy(defaultMelee(), 15, p + Vec2{40.f, -40.f + 40.f * i});
     g.world().dragon().hp = 1.f;
     stepGame(g, 20.f, false, true);
     CHECK(g.screen() == Screen::Death);
@@ -256,6 +277,7 @@ static void testAutoStopsAtCap() {
     s.dragon.species = Species::Earth;
     s.dragon.level = 4;
     s.dragon.exp = 0;
+    setAutoExpCapOverride(totalExpToReach(cfg::kAutoExpCapLevel));
     s.dragon.autoExp = autoExpCap() - 5;
     s.huntMode = CombatMode::Auto;
     Game g;
@@ -276,6 +298,7 @@ static void testAutoStopsAtCap() {
     CHECK(g.setHuntMode(CombatMode::SkillManual));
     CHECK(!g.setHuntMode(CombatMode::Auto));
     CHECK(g.huntMode() == CombatMode::SkillManual);
+    setAutoExpCapOverride(-1);
 }
 
 static void testTowerFlow() {
@@ -306,7 +329,7 @@ static void testTowerFlow() {
     CHECK(g.screen() == Screen::TowerVictory);
     CHECK(g.save().bestFloor == 3);
     CHECK(g.save().towerClears == 1);
-    CHECK(g.save().guardianSeen);
+    CHECK(g.save().sawEnemy(defaultBoss()));
     g.leaveTower();
     CHECK(g.screen() == Screen::Desktop);
 
@@ -323,7 +346,7 @@ static void testDirectDodge() {
     w.seed(7);
     w.setBounds(kDesk);
     w.setupDragon(Species::Fire, 1, -1.f, {800.f, 450.f});
-    Enemy& e = w.spawnEnemy(EnemyKind::Imp, 3, {850.f, 450.f});
+    Enemy& e = w.spawnEnemy(defaultMelee(), 3, {850.f, 450.f});
     e.attackCd = 0.f;
     PlayerInput none;
     w.updateCombat(0.01f, CombatMode::Direct, none);  // 임프가 공격 예고
@@ -420,12 +443,13 @@ static void testSpeciesRegistry() {
     CHECK(speciesCount() == before + 1);
     CHECK(speciesDef(added).name == "시험 드래곤 2");
 
-    // 등록이 더 일어나도 내장 종 참조가 깨지지 않는다(deque)
-    const SpeciesDef& fireRef = speciesDef(Species::Fire);
+    // 등록이 더 일어나도 앞서 얻은 참조가 깨지지 않는다(deque)
+    const SpeciesDef& firstRef = speciesDef(static_cast<Species>(0));
+    std::string firstKey = firstRef.key;
     SpeciesDef e;
     e.key = "another";
     registerOrUpdateSpecies(e);
-    CHECK(fireRef.key == "fire");
+    CHECK(firstRef.key == firstKey);
 
     Species found;
     CHECK(speciesFromKey("testdragon", found) && found == added);
@@ -463,7 +487,7 @@ static void testAnimStates() {
     CHECK(w.dragon().anim == AnimState::Idle);
 
     // 사거리 안의 적을 치면 공격 상태로 바뀐다(기본 공격은 첫 프레임에 나간다)
-    w.spawnEnemy(EnemyKind::Imp, 1, {430.f, 300.f});
+    w.spawnEnemy(defaultMelee(), 1, {430.f, 300.f});
     PlayerInput in;
     w.updateCombat(1.f / 30.f, CombatMode::SkillManual, in);
     CHECK(w.dragon().anim == AnimState::Attack);
@@ -549,7 +573,7 @@ static void testIdleBehavior() {
     CHECK(w2.dragon().pos.y < before.y);  // 위로 올라갔다
 
     // 전투가 시작되면 날기를 멈춘다(전투에는 Fly를 쓰지 않는다)
-    w2.spawnEnemy(EnemyKind::Imp, 1, {820.f, 700.f});
+    w2.spawnEnemy(defaultMelee(), 1, {820.f, 700.f});
     PlayerInput in;
     w2.updateCombat(1.f / 30.f, CombatMode::SkillManual, in);
     CHECK(!w2.dragon().flying);
@@ -616,7 +640,7 @@ static void testLoadDragonFolders() {
     fs::remove_all(root, ec);
     fs::create_directories(root / "_skipme", ec);
     fs::create_directories(root / "mossling", ec);
-    fs::create_directories(root / "fire", ec);
+    fs::create_directories(root / "testa", ec);
     fs::create_directories(root / "noTxtHere", ec);  // 대문자: 키 규칙 위반
     {
         std::ofstream f(root / "_skipme" / "dragon.txt");
@@ -627,7 +651,8 @@ static void testLoadDragonFolders() {
         f << "[dragon]\nname=이끼 드래곤\nhp=133\n";
     }
     {
-        std::ofstream f(root / "fire" / "dragon.txt");
+        // 이미 등록된 종의 폴더는 새 종이 아니라 덮어쓰기가 된다(여기서는 testa)
+        std::ofstream f(root / "testa" / "dragon.txt");
         f << "[dragon]\nrole=덮어쓴 역할\n";
     }
 
@@ -641,7 +666,12 @@ static void testLoadDragonFolders() {
     CHECK(speciesFromKey("mossling", sp));
     CHECK(speciesDef(sp).name == "이끼 드래곤");
     CHECK(statsFor(sp, 1).maxHp == 133.f);
-    CHECK(speciesDef(Species::Fire).role == "덮어쓴 역할");
+    {
+        // 이미 있던 종의 폴더는 덮어쓰기가 된다(새 종이 아니다)
+        Species over;
+        CHECK(speciesFromKey("testa", over));
+        CHECK(speciesDef(over).role == "덮어쓴 역할");
+    }
     CHECK(!speciesFromKey("_skipme", sp));
 
     // 없는 폴더를 가리켜도 안전하다
@@ -650,8 +680,939 @@ static void testLoadDragonFolders() {
     fs::remove_all(root, ec);
 }
 
+
+// ---------------------------------------------------------------------------
+// v0.4: 적 등록부와 enemy.txt
+// ---------------------------------------------------------------------------
+
+static void testEnemyRegistry() {
+    std::printf("[enemy registry]\n");
+    CHECK(enemyCount() >= kBuiltinEnemyCount);
+    EnemyKind k;
+    CHECK(enemyFromKey("slime", k));
+    CHECK(enemyDef(k).role == EnemyRole::Melee);
+    CHECK(enemyFromKey("lich", k));
+    CHECK(enemyDef(k).role == EnemyRole::Boss);
+    CHECK(enemyDef(defaultBoss()).role == EnemyRole::Boss);
+    CHECK(enemyDef(defaultMelee()).role == EnemyRole::Melee);
+
+    // 레벨이 오르면 수치가 오른다
+    EnemyStats a = enemyStatsFor(defaultMelee(), 1);
+    EnemyStats b = enemyStatsFor(defaultMelee(), 5);
+    CHECK(b.maxHp > a.maxHp && b.atk > a.atk && b.expReward > a.expReward);
+
+    // 같은 키로 다시 등록하면 덮어쓰고 id는 유지된다
+    int before = enemyCount();
+    EnemyDef d = enemyDef(defaultMelee());
+    d.name = "바뀐 이름";
+    EnemyKind again = registerOrUpdateEnemy(d);
+    CHECK(again == defaultMelee());
+    CHECK(enemyCount() == before);
+    CHECK(enemyDef(again).name == "바뀐 이름");
+    d.name = enemyDef(defaultMelee()).key == "slime" ? "슬라임" : d.name;
+    registerOrUpdateEnemy(d);
+
+    // 모르는 키는 자리 표시로 등록된다
+    EnemyKind ghost = ensureEnemy("nosuchenemy");
+    CHECK(enemyDef(ghost).key == "nosuchenemy");
+    CHECK(enemyCount() == before + 1);
+}
+
+static void testEnemyTextParse() {
+    std::printf("[enemy.txt parse]\n");
+    EnemyKind sl;
+    CHECK(enemyFromKey("slime", sl));
+    const EnemyDef& base = enemyDef(sl);
+    float oldAtk = base.baseAtk;
+    std::string txt =
+        "[enemy]\n"
+        "name=큰 슬라임   ; 주석\n"
+        "hp=99\n"
+        "role=boss\n"
+        "[anim.attack]\n"
+        "render_scale=0.81\n";
+    EnemyParseResult r = parseEnemyText(txt, "slime", &base);
+    CHECK(r.warnings.empty());
+    CHECK(r.def.name == "큰 슬라임");
+    CHECK(r.def.baseHp == 99.f);
+    CHECK(r.def.baseAtk == oldAtk);  // 적지 않은 값은 그대로
+    CHECK(r.def.role == EnemyRole::Boss);
+    CHECK(r.def.anims[static_cast<int>(AnimState::Attack)].renderScale > 0.8f);
+
+    // 모르는 키·잘못된 값은 경고로 남고 범위는 잘린다
+    EnemyParseResult w = parseEnemyText(
+        "[enemy]\nhpp=1\nrole=없는역할\nkeep_ratio=9\nwindup=99\n[wings]\na=1\n", "t", nullptr);
+    CHECK(w.warnings.size() >= 4);
+    CHECK(w.def.keepRatio >= 0.05f && w.def.keepRatio <= 1.f);
+    CHECK(w.def.windup <= 5.f);
+}
+
+static void testEnemyFolderScan() {
+    std::printf("[enemy folder scan]\n");
+    namespace fs = std::filesystem;
+    fs::path root = fs::temp_directory_path() / "dt_enemies_test";
+    std::error_code ec;
+    fs::remove_all(root, ec);
+    fs::create_directories(root / "_skip", ec);
+    fs::create_directories(root / "wisp", ec);
+    fs::create_directories(root / "slime", ec);
+    { std::ofstream f(root / "_skip" / "enemy.txt"); f << "[enemy]\nname=안됨\n"; }
+    { std::ofstream f(root / "wisp" / "enemy.txt"); f << "[enemy]\nname=도깨비불\nhp=33\nspeed=140\n"; }
+    { std::ofstream f(root / "slime" / "enemy.txt"); f << "[enemy]\ndesc=덮어쓴 설명\n"; }
+
+    int before = enemyCount();
+    EnemyScanResult r = loadEnemyFolders(root);
+    CHECK(r.newEnemies == 1);
+    CHECK(enemyCount() == before + 1);
+    EnemyKind k;
+    CHECK(enemyFromKey("wisp", k));
+    CHECK(enemyDef(k).name == "도깨비불");
+    CHECK(enemyStatsFor(k, 1).maxHp == 33.f + enemyDef(k).hpGrowth);
+    CHECK(!enemyFromKey("_skip", k));
+    CHECK(enemyFromKey("slime", k) && enemyDef(k).desc == "덮어쓴 설명");
+
+    EnemyScanResult none = loadEnemyFolders(root / "없음");
+    CHECK(none.folderCount == 0 && none.warnings.empty());
+    fs::remove_all(root, ec);
+}
+
+static void testBossPhase2Summons() {
+    std::printf("[boss phase2 summon]\n");
+    World w;
+    w.setBounds(kDesk);
+    w.setupDragon(Species::Fire, 20, -1.f, {400.f, 500.f});
+    Enemy& boss = w.spawnEnemy(defaultBoss(), 8, {1000.f, 500.f});
+    int id = boss.id;
+    CHECK(w.enemies().size() == 1);
+    // 체력을 절반 아래로 떨어뜨리면 부하를 부른다
+    for (Enemy& e : w.enemiesMutable()) if (e.id == id) e.hp = e.maxHp * 0.4f;
+    PlayerInput in;
+    for (int i = 0; i < 10 && w.enemies().size() < 2; ++i) w.updateCombat(1.f / 30.f, CombatMode::SkillManual, in);
+    CHECK(w.enemies().size() >= 2);
+    bool foundAdd = false;
+    for (const Enemy& e : w.enemies())
+        if (e.id != id && enemyDef(e.kind).role == EnemyRole::Melee) foundAdd = true;
+    CHECK(foundAdd);
+}
+
+
+// ---------------------------------------------------------------------------
+// v0.5: 바탕화면 디펜스 전투
+// ---------------------------------------------------------------------------
+
+static void testDefenseBattle() {
+    std::printf("[defense battle]\n");
+    Game g;
+    SaveData s;
+    s.hasDragon = true;
+    s.dragon.species = Species::Fire;
+    s.dragon.level = 6;
+    s.dragon.hp = -1.f;
+    s.huntMode = CombatMode::SkillManual;
+    g.init(s, kDesk);
+
+    // 전투 전에는 바탕화면 전체를 쓴다
+    CHECK(g.world().bounds().h > cfg::kBandHeight + 1.f);
+
+    RectF band = g.battleBand();
+    // 띠는 화면 맨 아래에 붙어 있다(작업 표시줄 바로 위)
+    CHECK(band.bottom() <= kDesk.bottom());
+    CHECK(kDesk.bottom() - band.bottom() <= cfg::kBandBottomMargin + 0.01f);
+    CHECK(band.h <= cfg::kBandHeight + 0.01f);
+    CHECK(band.x == kDesk.x && band.w == kDesk.w);
+
+    g.startHunt();
+    CHECK(g.hunting());
+    // 전투를 켜면 경계가 띠로 바뀌고 드래곤이 띠 안으로 내려온다
+    CHECK(g.world().bounds().h <= cfg::kBandHeight + 0.01f);
+    Vec2 dp = g.world().dragon().pos;
+    CHECK(dp.y >= band.y && dp.y <= band.bottom());
+
+    // 첫 무리가 나오면 모두 화면 왼쪽 밖에서 들어온다
+    PlayerInput in;
+    for (int i = 0; i < 30 * 10 && g.world().enemies().empty(); ++i) g.update(1.f / 30.f, in, false, true);
+    CHECK(!g.world().enemies().empty());
+    bool allFromLeft = true, allEntering = true;
+    for (const Enemy& e : g.world().enemies()) {
+        if (e.pos.x > band.x) allFromLeft = false;
+        if (!e.entering) allEntering = false;
+    }
+    CHECK(allFromLeft);
+    CHECK(allEntering);
+
+    // 적은 오른쪽(드래곤 쪽)으로 다가와 띠 안으로 들어온다
+    float before = g.world().enemies().front().pos.x;
+    for (int i = 0; i < 30 * 5; ++i) g.update(1.f / 30.f, in, false, true);
+    bool someoneEntered = false;
+    for (const Enemy& e : g.world().enemies())
+        if (!e.entering) someoneEntered = true;
+    CHECK(someoneEntered || g.world().enemies().empty() || g.world().enemies().front().pos.x > before);
+
+    // 전투를 끄면 다시 바탕화면 전체를 돌아다닌다
+    g.stopHunt("테스트");
+    CHECK(!g.hunting());
+    CHECK(g.world().bounds().h > cfg::kBandHeight + 1.f);
+}
+
+static void testDefenseWaveGrows() {
+    std::printf("[defense wave grows]\n");
+    // 웨이브가 쌓이면 한 번에 나오는 적이 늘어난다(상한은 kWaveMax)
+    Game g;
+    SaveData s;
+    s.hasDragon = true;
+    s.dragon.species = Species::Earth;
+    s.dragon.level = 1;
+    s.dragon.hp = -1.f;
+    s.huntMode = CombatMode::Auto;
+    g.init(s, kDesk);
+    g.startHunt();
+    g.confirmAutoWarning();
+    CHECK(g.hunting());
+    g.world().dragon().hp = 1e6f;  // 죽지 않게 해서 웨이브만 센다
+
+    int maxSeen = 0, waves = 0;
+    bool wasActive = false;
+    PlayerInput in;
+    for (int i = 0; i < 30 * 600; ++i) {
+        g.update(1.f / 30.f, in, false, true);
+        bool active = g.waveActive();
+        if (active && !wasActive) ++waves;
+        wasActive = active;
+        maxSeen = std::max(maxSeen, static_cast<int>(g.world().enemies().size()));
+        if (waves >= 12) break;
+    }
+    CHECK(waves >= 3);
+    CHECK(maxSeen >= 1 && maxSeen <= cfg::kWaveMax + 2);  // 보스 소환 등을 감안한 여유
+}
+
+static void testAutoBattleNoLongerCapped() {
+    std::printf("[auto battle uncapped in game]\n");
+    // 상한을 껐으므로 자동 전투가 레벨 5에서 멈추지 않는다
+    Game g;
+    SaveData s;
+    s.hasDragon = true;
+    s.dragon.species = Species::Fire;
+    s.dragon.level = 4;
+    s.dragon.hp = -1.f;
+    s.huntMode = CombatMode::Auto;
+    g.init(s, kDesk);
+    g.world().dragon().hp = 1e6f;
+    g.startHunt();
+    g.confirmAutoWarning();
+    PlayerInput in;
+    for (int i = 0; i < 30 * 900 && g.dragonRecord().level <= 6; ++i) g.update(1.f / 30.f, in, false, true);
+    CHECK(g.dragonRecord().level > 5);  // 예전 상한(5)을 넘어선다
+    CHECK(g.hunting());                 // 상한 때문에 멈추지 않는다
+}
+
+
+// ---------------------------------------------------------------------------
+// v0.6: 바탕화면 UI 설정
+// ---------------------------------------------------------------------------
+
+static void testUiSettingsSaved() {
+    std::printf("[ui settings save]\n");
+    SaveData s;
+    s.panelX = 123.5f;
+    s.panelY = 45.f;
+    s.panelCollapsed = true;
+    s.confineToBand = true;
+    SaveData l;
+    CHECK(deserializeSave(serializeSave(s), l));
+    CHECK(l.panelX > 123.f && l.panelX < 124.f);
+    CHECK(l.panelY == 45.f);
+    CHECK(l.panelCollapsed);
+    CHECK(l.confineToBand);
+
+    // 이전 저장 파일(설정 키가 없음)도 그대로 읽히고 기본값이 쓰인다
+    SaveData old;
+    CHECK(deserializeSave("version=1\nnextDragonId=2\nhuntMode=1\n", old));
+    CHECK(old.panelX < 0.f && old.panelY < 0.f);
+    CHECK(!old.panelCollapsed && !old.confineToBand);
+}
+
+static void testConfineToBand() {
+    std::printf("[confine to band]\n");
+    Game g;
+    SaveData s;
+    s.hasDragon = true;
+    s.dragon.species = Species::Wind;
+    s.dragon.level = 3;
+    s.dragon.hp = -1.f;
+    g.init(s, kDesk);
+    CHECK(!g.confineToBand());
+    CHECK(g.world().bounds().h > cfg::kBandHeight + 1.f);
+
+    g.setConfineToBand(true);
+    CHECK(g.confineToBand());
+    // v1.0: 순간이동이 아니라 날아서 내려간다. 도착할 때까지는 경계가 아직 화면 전체다.
+    RectF band = g.battleBand();
+    PlayerInput in;
+    CHECK(g.world().confining());
+    for (int i = 0; i < 30 * 30 && g.world().confining(); ++i) g.update(1.f / 30.f, in, false, false);
+    CHECK(!g.world().confining());  // 30초 안에는 도착한다
+    CHECK(g.world().bounds().h <= cfg::kBandHeight + 0.01f);
+    // 그 뒤로는 오래 두어도 띠를 벗어나지 않는다
+    for (int i = 0; i < 30 * 120; ++i) {
+        g.update(1.f / 30.f, in, false, false);
+        CHECK_SILENT(g.world().dragon().pos.y >= band.y - 1.f &&
+                     g.world().dragon().pos.y <= band.bottom() + 1.f);
+    }
+    CHECK(true);
+
+    g.setConfineToBand(false);
+    CHECK(g.world().bounds().h > cfg::kBandHeight + 1.f);
+}
+
+static void testPlaceAndPanel() {
+    std::printf("[drag dragon / panel pos]\n");
+    Game g;
+    SaveData s;
+    s.hasDragon = true;
+    s.dragon.species = Species::Water;
+    s.dragon.level = 2;
+    s.dragon.hp = -1.f;
+    g.init(s, kDesk);
+
+    // 끌어다 놓으면 그 자리에 선다
+    g.placeDragon({700.f, 500.f});
+    CHECK(std::fabs(g.world().dragon().pos.x - 700.f) < 1.f);
+    CHECK(std::fabs(g.world().dragon().pos.y - 500.f) < 1.f);
+    CHECK(!g.world().dragon().flying);
+    // 경계 밖으로는 놓이지 않는다
+    g.placeDragon({-9999.f, 9999.f});
+    CHECK(g.world().bounds().contains(g.world().dragon().pos.x, g.world().dragon().pos.y));
+
+    // 상태창 위치·접힘은 저장 요청을 남긴다
+    g.setPanelPos({10.f, 20.f});
+    CHECK(g.panelPos().x == 10.f && g.panelPos().y == 20.f);
+    g.setPanelCollapsed(true);
+    CHECK(g.panelCollapsed());
+    CHECK(g.snapshotForSave().panelCollapsed);
+    CHECK(g.snapshotForSave().panelX == 10.f);
+}
+
+
+// ---------------------------------------------------------------------------
+// v0.7: 안정성·편의
+// ---------------------------------------------------------------------------
+
+static void testAlerts() {
+    std::printf("[alerts]\n");
+    Game g;
+    SaveData s;
+    s.hasDragon = true;
+    s.dragon.species = Species::Fire;
+    s.dragon.level = 1;
+    s.dragon.hp = -1.f;
+    g.init(s, kDesk);
+    CHECK(!g.hasAlert());
+
+    // 사망하면 화면을 못 봐도 알 수 있게 알림이 남는다
+    g.setHuntMode(CombatMode::Direct);
+    g.startHunt();
+    Vec2 dp = g.world().dragon().pos;
+    for (int i = 0; i < 3; ++i) g.world().spawnEnemy(defaultMelee(), 15, dp + Vec2{40.f, -40.f + 40.f * i});
+    g.world().dragon().hp = 1.f;
+    stepGame(g, 20.f, false, true);
+    CHECK(g.screen() == Screen::Death);
+    CHECK(g.hasAlert());
+    Game::Alert a = g.takeAlert();
+    CHECK(!a.title.empty() && !a.body.empty());
+    CHECK(a.warning);                       // 사망은 경고로
+    CHECK(!g.hasAlert());                   // 꺼내 가면 비워진다
+    CHECK(g.takeAlert().title.empty());     // 비었을 때 꺼내도 안전하다
+
+    // 알림은 쌓이기만 하지 않는다(오래된 것부터 버린다)
+    for (int i = 0; i < 10; ++i) g.alert("t" + std::to_string(i), "b");
+    int n = 0;
+    while (g.hasAlert()) { g.takeAlert(); ++n; }
+    CHECK(n <= 4);
+}
+
+static void testFirstRunHint() {
+    std::printf("[first run hint]\n");
+    SaveData s;
+    CHECK(!s.hintShown);
+    Game g;
+    g.init(s, kDesk);
+    CHECK(!g.hintShown());
+    g.markHintShown();
+    CHECK(g.hintShown());
+    CHECK(g.snapshotForSave().hintShown);
+    // 저장하고 다시 읽어도 유지된다(안내가 매번 뜨지 않게)
+    SaveData l;
+    CHECK(deserializeSave(serializeSave(g.snapshotForSave()), l));
+    CHECK(l.hintShown);
+    // 이전 저장 파일에는 없는 키라 기본값(false)이다
+    SaveData old;
+    CHECK(deserializeSave("version=1\nnextDragonId=2\n", old));
+    CHECK(!old.hintShown);
+}
+
+static void testViewSettings() {
+    std::printf("[view settings]\n");
+    SaveData s;
+    CHECK(s.menuScale == 1.f);
+    CHECK(s.charScale == 1.f);
+    CHECK(!s.powerSave);
+    CHECK(s.menuX < 0.f);
+    Game g;
+    g.init(s, kDesk);
+
+    // 메뉴 위치는 그대로 저장된다
+    g.setMenuPos({120.f, 240.f});
+    CHECK(g.menuPos().x == 120.f && g.menuPos().y == 240.f);
+
+    // 배수는 허용 범위를 넘지 않는다
+    g.setMenuScale(99.f);
+    CHECK(g.menuScale() == cfg::kMenuScaleMax);
+    g.setMenuScale(-5.f);
+    CHECK(g.menuScale() == cfg::kMenuScaleMin);
+    g.setCharScale(99.f);
+    CHECK(g.charScale() == cfg::kCharScaleMax);
+    g.setCharScale(0.f);
+    CHECK(g.charScale() == cfg::kCharScaleMin);
+
+    g.setCharScale(1.4f);
+    g.setPowerSave(true);
+    CHECK(g.powerSave());
+
+    // 저장하고 다시 읽어도 유지된다
+    SaveData l;
+    CHECK(deserializeSave(serializeSave(g.snapshotForSave()), l));
+    CHECK(l.menuX == 120.f && l.menuY == 240.f);
+    CHECK(std::fabs(l.charScale - 1.4f) < 0.001f);
+    CHECK(l.powerSave);
+
+    // 이전 저장 파일에는 없는 키라 기본값이 쓰인다
+    SaveData old;
+    CHECK(deserializeSave("version=1\nnextDragonId=2\n", old));
+    CHECK(old.menuScale == 1.f && old.charScale == 1.f && !old.powerSave);
+
+    // 손으로 고친 저장 파일의 범위 밖 값도 읽을 때 맞춘다
+    SaveData bad;
+    CHECK(deserializeSave("version=1\nui.charScale=50\nui.menuScale=0.01\n", bad));
+    CHECK(bad.charScale == cfg::kCharScaleMax);
+    CHECK(bad.menuScale == cfg::kMenuScaleMin);
+}
+
+static void testBattleBandHeight() {
+    std::printf("[battle band]\n");
+    // 띠는 작업 표시줄 바로 위에 붙어 있어야 한다. 높이를 바꿔도 이 관계는 유지된다.
+    SaveData s;
+    Game g;
+    g.init(s, kDesk);
+    g.chooseSpecies(Species::Fire);
+    RectF band = g.battleBand();
+    CHECK(std::fabs(band.h - cfg::kBandHeight) < 0.001f);
+    CHECK(std::fabs((band.y + band.h) - (kDesk.y + kDesk.h - cfg::kBandBottomMargin)) < 0.001f);
+    CHECK(band.w > 0.f);
+}
+
+static void testThinBandStanding() {
+    std::printf("[thin band standing]\n");
+    // v0.8: 전투 띠(50)가 드래곤 지름(68)보다 얇다. 이때 드래곤이 위로 떠오르거나
+    // 띠 밖으로 나가면 안 된다. 예전 clampPoint는 범위가 뒤집혀 위쪽에 붙였다.
+    CHECK(cfg::kBandHeight < cfg::kDragonRadius * 2.f);
+    SaveData s;
+    Game g;
+    g.init(s, kDesk);
+    g.chooseSpecies(Species::Fire);
+    RectF band = g.battleBand();
+    float floorY = band.bottom() - cfg::kDragonRadius;
+
+    // 띠에만 머물게 하면 날아서 내려가 바닥 줄에 선다
+    g.setConfineToBand(true);
+    for (int i = 0; i < 30 * 30 && g.world().confining(); ++i) stepGame(g, 1.f / 30.f, false, true);
+    CHECK(!g.world().confining());
+    CHECK(std::fabs(g.world().dragon().pos.y - floorY) < 0.001f);
+
+    // 도착한 뒤에는 위쪽으로 끌어다 놓아도 바닥 줄로 맞춰진다(경계가 이미 띠다)
+    g.placeDragon({band.x + 200.f, band.y - 300.f});
+    CHECK(std::fabs(g.world().dragon().pos.y - floorY) < 0.001f);
+
+    // 한참 돌아다녀도 띠 안에 머문다
+    for (int i = 0; i < 400; ++i) {
+        stepGame(g, 0.05f, false, true);
+        const DragonActor& d = g.world().dragon();
+        CHECK(d.pos.y <= floorY + 0.5f);
+        CHECK(d.pos.y >= band.y - 0.5f);
+    }
+
+    // 사냥을 시작해도(띠로 제한) 마찬가지, 적도 띠 안에 들어온다
+    g.setConfineToBand(false);
+    g.setHuntMode(CombatMode::Auto);
+    g.confirmAutoWarning();
+    g.startHunt();
+    for (int i = 0; i < 200; ++i) {
+        stepGame(g, 0.05f, false, true);
+        if (!g.world().dragon().alive) break;
+        CHECK(g.world().dragon().pos.y <= floorY + 0.5f);
+        for (const Enemy& e : g.world().enemies()) {
+            CHECK(e.pos.y >= band.y - 0.5f);
+            CHECK(e.pos.y <= band.bottom() + 0.5f);
+        }
+    }
+}
+
+static void testKeepRange() {
+    std::printf("[keep range]\n");
+    SaveData s;
+    CHECK(s.keepRange == 0);
+    // 레벨을 올려 사거리가 긴 스킬을 연다(바깥 간격이 의미를 갖게)
+    s.hasDragon = true;
+    s.dragon.species = Species::Fire;
+    s.dragon.level = 8;
+    Game g;
+    g.init(s, kDesk);
+    g.setHuntMode(CombatMode::SkillManual);
+    g.startHunt();
+
+    auto settleDistance = [&](int keep) {
+        g.setKeepRange(keep);
+        float last = 0.f;
+        for (int i = 0; i < 600; ++i) {
+            stepGame(g, 0.03f, false, true);
+            if (!g.world().dragon().alive) break;
+            if (g.world().enemies().empty()) continue;
+            const Enemy& e = g.world().enemies().front();
+            last = distance(g.world().dragon().pos, e.pos) - e.radius;
+        }
+        return last;
+    };
+
+    float nearD = settleDistance(0);
+    float farD = settleDistance(2);
+    // 바깥 간격이 근접보다 확실히 멀어야 한다. 이게 이번 기능의 전부다.
+    CHECK(farD > nearD);
+
+    // 설정은 저장되고 범위를 넘지 않는다
+    g.setKeepRange(99);
+    CHECK(g.keepRange() == cfg::kKeepRangeCount - 1);
+    g.setKeepRange(-5);
+    CHECK(g.keepRange() == 0);
+    g.setKeepRange(1);
+    SaveData l;
+    CHECK(deserializeSave(serializeSave(g.snapshotForSave()), l));
+    CHECK(l.keepRange == 1);
+    SaveData old;
+    CHECK(deserializeSave("version=1\nnextDragonId=2\n", old));
+    CHECK(old.keepRange == 0);
+}
+
+static void testStable() {
+    std::printf("[stable]\n");
+    SaveData s;
+    Game g;
+    g.init(s, kDesk);
+    CHECK(g.screen() == Screen::Select);
+    g.chooseSpecies(Species::Fire);
+    CHECK(g.stable().size() == 1 && g.activeIndex() == 0);
+
+    // 관리창에서 한 마리 더 데려온다. 띄운 개체는 그대로다.
+    g.openStable();
+    CHECK(g.screen() == Screen::Stable);
+    g.beginAddDragon();
+    CHECK(g.screen() == Screen::Select && g.addingDragon());
+    g.chooseSpecies(Species::Water);
+    CHECK(g.stable().size() == 2);
+    CHECK(g.dragonRecord().species == Species::Fire);  // 띄운 개체는 바뀌지 않는다
+    CHECK(g.activeIndex() == 0);
+
+    // 최대 마리 수를 넘지 않는다
+    for (int i = 0; i < 5; ++i) {
+        g.openStable();
+        g.beginAddDragon();
+        g.chooseSpecies(Species::Earth);
+    }
+    CHECK(static_cast<int>(g.stable().size()) == cfg::kMaxStable);
+    CHECK(g.stableFull());
+
+    // 보관 중인 개체는 쉬면서 회복한다(경험치는 오르지 않는다)
+    SaveData hurt = g.snapshotForSave();
+    hurt.stable[1].hp = 1.f;
+    int expBefore = hurt.stable[1].exp;
+    Game g2;
+    g2.init(hurt, kDesk);
+    PlayerInput none;
+    for (int i = 0; i < 30 * 30; ++i) g2.update(1.f / 30.f, none, false, false);
+    SaveData after = g2.snapshotForSave();
+    CHECK(after.stable[1].hp > 1.f);
+    CHECK(after.stable[1].exp == expBefore);
+
+    // 전투 중에는 바꿀 수 없다
+    g2.setHuntMode(CombatMode::Direct);
+    g2.startHunt();
+    CHECK(g2.hunting());
+    CHECK(!g2.canSwitchDragon());
+    CHECK(!g2.switchDragon(1));
+    CHECK(g2.activeIndex() == 0);
+
+    // 멈추면 바꿀 수 있고, 띄운 개체의 상태가 목록에 저장된다
+    g2.stopHunt();
+    CHECK(g2.canSwitchDragon());
+    CHECK(g2.switchDragon(1));
+    CHECK(g2.activeIndex() == 1);
+    CHECK(g2.dragonRecord().id == after.stable[1].id);
+}
+
+static void testStablePermadeath() {
+    std::printf("[stable permadeath]\n");
+    // 여러 마리를 가지고 있어도 죽은 개체는 되살아나지 않는다.
+    SaveData s;
+    Game g;
+    g.init(s, kDesk);
+    g.chooseSpecies(Species::Fire);
+    g.openStable();
+    g.beginAddDragon();
+    g.chooseSpecies(Species::Water);
+    CHECK(g.stable().size() == 2);
+    int deadId = g.dragonRecord().id;
+
+    // 띄워 둔 개체를 죽인다. 관리창이 떠 있으면 사냥이 시작되지 않으므로 먼저 닫는다.
+    g.closeStable();
+    CHECK(g.screen() == Screen::Desktop);
+    g.setHuntMode(CombatMode::Direct);
+    g.startHunt();
+    CHECK(g.hunting());
+    Vec2 dp = g.world().dragon().pos;
+    for (int i = 0; i < 3; ++i) g.world().spawnEnemy(defaultMelee(), 15, dp + Vec2{40.f, -40.f + 40.f * i});
+    g.world().dragon().hp = 1.f;
+    stepGame(g, 20.f, false, true);
+    CHECK(!g.hasDragon());
+    CHECK(g.screen() == Screen::Death);
+
+    // 죽은 개체는 목록에서 빠지고 묘비로만 남는다
+    CHECK(g.stable().size() == 1);
+    for (const DragonRecord& d : g.stable()) CHECK(d.id != deadId);
+    CHECK(g.lastGrave() != nullptr && g.lastGrave()->id == deadId);
+
+    // 남은 개체가 있으므로 관리창으로 간다(자동으로 띄우지는 않는다)
+    g.acknowledgeDeath();
+    CHECK(g.screen() == Screen::Stable);
+    CHECK(!g.hasDragon());
+
+    // 다시 켜도 죽은 개체는 없다
+    SaveData saved = g.snapshotForSave();
+    SaveData reloaded;
+    CHECK(deserializeSave(serializeSave(saved), reloaded));
+    CHECK(reloaded.stable.size() == 1);
+    for (const DragonRecord& d : reloaded.stable) CHECK(d.id != deadId);
+    Game g3;
+    g3.init(reloaded, kDesk);
+    CHECK(g3.screen() == Screen::Stable);
+    CHECK(g3.switchDragon(0));
+    CHECK(g3.dragonRecord().id != deadId);
+}
+
+static void testTinyScreen() {
+    std::printf("[tiny screen]\n");
+    // 작업 영역이 아주 작아도 좌표가 뒤집히거나 밖으로 나가지 않는다
+    const RectF tiny{0.f, 0.f, 320.f, 80.f};
+    Game g;
+    SaveData s;
+    s.hasDragon = true;
+    s.dragon.species = Species::Water;
+    s.dragon.level = 2;
+    s.dragon.hp = -1.f;
+    g.init(s, tiny);
+    RectF band = g.battleBand();
+    CHECK(band.w > 0.f && band.h > 0.f);
+    CHECK(band.y >= tiny.y - 0.01f);
+    CHECK(band.bottom() <= tiny.bottom() + 0.01f);
+
+    PlayerInput in;
+    g.startHunt();
+    for (int i = 0; i < 30 * 60; ++i) {
+        g.update(1.f / 30.f, in, false, true);
+        const Vec2 p = g.world().dragon().pos;
+        CHECK_SILENT(p.x >= tiny.x - 1.f && p.x <= tiny.right() + 1.f);
+        CHECK_SILENT(p.y >= tiny.y - 1.f && p.y <= tiny.bottom() + 1.f);
+    }
+    CHECK(true);
+}
+
+
+// ---------------------------------------------------------------------------
+// v1.4 스킬 해제·장착
+// ---------------------------------------------------------------------------
+
+// 시험용 종을 하나 만든다. 레벨을 적은 스킬과 비워 둔 스킬을 섞는다.
+static SpeciesDef makeSkillTestSpecies(const std::string& key) {
+    SpeciesDef d;
+    d.key = key;
+    d.name = key;
+    d.role = "시험";
+    d.desc = "스킬 해제 시험용";
+    d.baseHp = 100.f; d.baseAtk = 10.f; d.baseDef = 0.f; d.baseSpeed = 170.f; d.baseDodge = 0.f;
+    d.hpGrowth = 0.f; d.atkGrowth = 0.f; d.defGrowth = 0.f;
+    d.skills = {
+        {"A", "", 1, 4.f, SkillKind::Projectile, 1.5f, 0.f, 380.f, 0.f, 0.f},   // level=1 (직접)
+        {"B", "", 0, 4.f, SkillKind::Burst, 1.5f, 120.f, 0.f, 0.f, 0.f},        // 자동
+        {"C", "", 5, 4.f, SkillKind::Line, 1.5f, 30.f, 300.f, 0.f, 0.f},        // level=5 (직접)
+        {"D", "", 0, 4.f, SkillKind::Zone, 1.0f, 90.f, 300.f, 3.f, 0.f},        // 자동
+        {"E", "", 0, 4.f, SkillKind::Dash, 1.5f, 30.f, 200.f, 0.f, 0.f},        // 자동
+        {"P", "", 0, 0.f, SkillKind::PassiveStat, 0.5f, 0.f, 0.f, 0.f, 0.f},    // 자동(패시브)
+    };
+    d.skills[5].stat = StatKind::Atk;
+    for (int i = 0; i < kAnimStateCount; ++i) d.anims[i] = {8.f, true, 0, 1.f};
+    return d;
+}
+
+static void testSkillUnlockLevels() {
+    std::printf("[skill-unlock]\n");
+    Species s = registerOrUpdateSpecies(makeSkillTestSpecies("testskills"));
+    const SpeciesDef& d = speciesDef(s);
+    // 적어 둔 값은 지킨다
+    CHECK(d.skills[0].unlockLevel == 1);
+    CHECK(d.skills[2].unlockLevel == 5);
+    // 빈 것은 아직 쓰이지 않은 가장 낮은 레벨을 목록 순서대로 가져간다 (2, 3, 4, 6)
+    CHECK(d.skills[1].unlockLevel == 2);
+    CHECK(d.skills[3].unlockLevel == 3);
+    CHECK(d.skills[4].unlockLevel == 4);
+    CHECK(d.skills[5].unlockLevel == 6);
+    // 한 레벨에 둘이 겹치지 않는다
+    std::vector<int> lv;
+    for (const SkillDef& sk : d.skills) lv.push_back(sk.unlockLevel);
+    std::sort(lv.begin(), lv.end());
+    CHECK(std::adjacent_find(lv.begin(), lv.end()) == lv.end());
+
+    // 해제된 액티브만 돌려준다(패시브 제외)
+    CHECK(unlockedActiveSkills(d, 1).size() == 1);
+    CHECK(unlockedActiveSkills(d, 4).size() == 4);
+    CHECK(unlockedActiveSkills(d, 6).size() == 5);  // P는 패시브라 빠진다
+
+    // 등록을 다시 해도 결과가 같다(두 번 돌려도 레벨이 밀리지 않는다)
+    registerOrUpdateSpecies(makeSkillTestSpecies("testskills"));
+    CHECK(speciesDef(s).skills[1].unlockLevel == 2);
+    CHECK(speciesDef(s).skills[5].unlockLevel == 6);
+}
+
+static void testSkillSlots() {
+    std::printf("[skill-slots]\n");
+    Species sp = registerOrUpdateSpecies(makeSkillTestSpecies("testslots"));
+    SaveData s;
+    Game g;
+    g.init(s, kDesk);
+    g.chooseSpecies(sp);
+
+    // Lv1에서는 A 하나만 해제돼 1번 칸에 자동으로 들어간다
+    CHECK(g.skillSlots()[0] == 0);
+    CHECK(g.skillSlots()[1] == -1);
+    CHECK(!g.hasUnequippedSkill());
+
+    // 레벨을 올리면 새로 열린 스킬이 빈 칸을 채운다
+    SaveData up = g.snapshotForSave();
+    up.dragon.level = 6;
+    up.stable[0].level = 6;
+    Game g2;
+    g2.init(up, kDesk);
+    // 액티브 5개(A~E) 중 앞의 4개가 칸을 채우고 하나가 남는다
+    int filled = 0;
+    for (int v : g2.skillSlots()) if (v >= 0) ++filled;
+    CHECK(filled == kSkillSlots);
+    CHECK(g2.hasUnequippedSkill());
+    // 패시브(5번)는 칸에 들어가지 않는다
+    for (int v : g2.skillSlots()) CHECK(v != 5);
+
+    // 남은 스킬을 2번 칸에 넣으면 거기 있던 것이 빠진다
+    int before = g2.skillSlots()[1];
+    CHECK(g2.equipSkill(1, 4));
+    CHECK(g2.skillSlots()[1] == 4);
+    CHECK(g2.skillSlots()[0] != before || before == g2.skillSlots()[0]);  // 다른 칸은 그대로
+    // 같은 스킬이 두 칸을 차지하지 않는다
+    int count = 0;
+    for (int v : g2.skillSlots()) if (v == 4) ++count;
+    CHECK(count == 1);
+
+    // 이미 1번에 있는 것을 3번으로 옮기면 두 칸이 맞바뀐다
+    int a = g2.skillSlots()[0], c = g2.skillSlots()[2];
+    CHECK(g2.equipSkill(2, a));
+    CHECK(g2.skillSlots()[2] == a && g2.skillSlots()[0] == c);
+
+    // 패시브와 미해제 스킬은 넣을 수 없다
+    CHECK(!g2.equipSkill(0, 5));             // 패시브
+    CHECK(!g2.equipSkill(0, 99));            // 없는 번호
+    g2.clearSlot(0);
+    CHECK(g2.skillSlots()[0] == -1);
+}
+
+static void testSkillSlotsSaved() {
+    std::printf("[skill-slots-save]\n");
+    Species sp = registerOrUpdateSpecies(makeSkillTestSpecies("testsave"));
+    SaveData s;
+    s.hasDragon = true;
+    s.dragon.species = sp;
+    s.dragon.level = 6;
+    s.dragon.id = 1;
+    s.stable.push_back(s.dragon);
+    s.activeIndex = 0;
+    Game g;
+    g.init(s, kDesk);
+    CHECK(g.equipSkill(0, 4));
+    SaveData out = g.snapshotForSave();
+
+    // 저장 -> 불러오기에서 장착이 그대로 남는다
+    SaveData back;
+    CHECK(deserializeSave(serializeSave(out), back));
+    CHECK(back.dragon.slots == out.dragon.slots);
+    CHECK(back.stable[0].slots == out.dragon.slots);
+
+    // v1.3 이전 저장 파일(장착 칸 없음)이면 해제된 액티브로 채워진다
+    std::string text = serializeSave(out);
+    std::string stripped;
+    std::istringstream in(text);
+    std::string line;
+    while (std::getline(in, line)) {
+        if (line.find("slots=") != std::string::npos) continue;
+        stripped += line + "\n";
+    }
+    SaveData old;
+    CHECK(deserializeSave(stripped, old));
+    int filled = 0;
+    for (int v : old.dragon.slots) if (v >= 0) ++filled;
+    CHECK(filled == kSkillSlots);
+    for (int v : old.dragon.slots) CHECK(v != 5);  // 패시브는 들어가지 않는다
+
+    // 저장 파일에 이상한 값이 들어 있어도 그대로 쓰지 않는다
+    std::string broken = stripped + "dragon.slots=99,-7,5,1\n";
+    SaveData fixed;
+    CHECK(deserializeSave(broken, fixed));
+    for (int v : fixed.dragon.slots) CHECK(v == -1 || (v >= 0 && v != 5));
+}
+
+static void testPassiveSkills() {
+    std::printf("[skill-passive]\n");
+    // PassiveStat 은 해제된 뒤에만 능력치에 반영된다
+    Species sp = registerOrUpdateSpecies(makeSkillTestSpecies("testpassive"));
+    DragonStats before = statsFor(sp, 5);   // 패시브는 Lv6 해제
+    DragonStats after = statsFor(sp, 6);
+    CHECK(std::fabs(before.atk - 10.f) < 0.01f);
+    CHECK(std::fabs(after.atk - 15.f) < 0.01f);  // power=0.5 -> +50%
+
+    // 회피 패시브는 상한(0.75)을 넘지 못한다
+    SpeciesDef dodgy = makeSkillTestSpecies("testdodge");
+    dodgy.baseDodge = 0.7f;
+    dodgy.skills[5].stat = StatKind::Dodge;
+    dodgy.skills[5].power = 0.5f;
+    Species dsp = registerOrUpdateSpecies(dodgy);
+    CHECK(statsFor(dsp, 6).dodge <= 0.75f + 0.001f);
+
+    // PassiveOnKill 은 적을 쓰러뜨릴 때 회복시킨다
+    SpeciesDef healer = makeSkillTestSpecies("testonkill");
+    healer.skills[5].kind = SkillKind::PassiveOnKill;
+    healer.skills[5].power = 0.2f;
+    healer.skills[5].unlockLevel = 1;
+    Species hsp = registerOrUpdateSpecies(healer);
+    World w;
+    w.setBounds({0.f, 0.f, 1600.f, 900.f});
+    w.setupDragon(hsp, 1, 50.f, {800.f, 450.f});
+    Enemy& e = w.spawnEnemy(defaultMelee(), 1, {830.f, 450.f});
+    float hpBefore = w.dragon().hp;
+    e.hp = 0.5f;  // 한 대면 죽는다
+    PlayerInput in;
+    for (int i = 0; i < 120 && w.aliveEnemyCount() > 0; ++i) w.updateCombat(1.f / 60.f, CombatMode::Auto, in);
+    CHECK(w.aliveEnemyCount() == 0);
+    CHECK(w.dragon().hp > hpBefore);  // 처치하면서 회복했다
+}
+
+static void testAutoUsesEquippedOnly() {
+    std::printf("[skill-auto-equipped]\n");
+    Species sp = registerOrUpdateSpecies(makeSkillTestSpecies("testauto"));
+    World w;
+    w.setBounds({0.f, 0.f, 1600.f, 900.f});
+    w.setupDragon(sp, 6, -1.f, {800.f, 450.f});
+    // 칸을 모두 비우면 자동 전투에서도 스킬이 나가지 않는다(기본 공격만 한다)
+    w.setSlots({-1, -1, -1, -1});
+    w.spawnEnemy(defaultMelee(), 6, {900.f, 450.f});
+    PlayerInput in;
+    for (int i = 0; i < 300; ++i) w.updateCombat(1.f / 60.f, CombatMode::Auto, in);
+    for (float cd : w.dragon().skillCd) CHECK(cd <= 0.f);  // 아무 스킬도 쓰지 않았다
+
+    // 한 칸만 채우면 그 스킬만 쓴다
+    World w2;
+    w2.setBounds({0.f, 0.f, 1600.f, 900.f});
+    w2.setupDragon(sp, 6, -1.f, {800.f, 450.f});
+    w2.setSlots({2, -1, -1, -1});  // C(Line)만
+    w2.spawnEnemy(defaultMelee(), 6, {880.f, 450.f});
+    for (int i = 0; i < 300; ++i) w2.updateCombat(1.f / 60.f, CombatMode::Auto, in);
+    CHECK(w2.dragon().skillCd[2] > 0.f || w2.aliveEnemyCount() == 0);
+    CHECK(w2.dragon().skillCd[0] <= 0.f);
+    CHECK(w2.dragon().skillCd[1] <= 0.f);
+
+    // 수동에서도 키(칸)와 스킬이 짝지어진다 — 2번 키는 2번 칸의 스킬을 쓴다
+    World w3;
+    w3.setBounds({0.f, 0.f, 1600.f, 900.f});
+    w3.setupDragon(sp, 6, -1.f, {800.f, 450.f});
+    w3.setSlots({4, 2, -1, -1});
+    w3.spawnEnemy(defaultMelee(), 6, {880.f, 450.f});
+    PlayerInput press;
+    press.skill[1] = true;
+    w3.updateCombat(1.f / 60.f, CombatMode::SkillManual, press);
+    CHECK(w3.dragon().skillCd[2] > 0.f);   // 2번 칸에 넣어 둔 C가 나갔다
+    CHECK(w3.dragon().skillCd[4] <= 0.f);  // 1번 칸의 E는 그대로다
+}
+
+// v1.3에서 빠져 있던 것: 다친 드래곤의 체력이 저장되지 않아 다시 켜면 가득 찬 채로 돌아왔다.
+static void testActiveDragonHpSaved() {
+    std::printf("[active hp saved]\n");
+    SaveData s;
+    Game g;
+    g.init(s, kDesk);
+    g.chooseSpecies(Species::Fire);
+    float maxHp = g.world().dragon().stats.maxHp;
+    g.world().dragon().hp = maxHp * 0.3f;
+    SaveData out = g.snapshotForSave();
+    CHECK(std::fabs(out.stable[0].hp - maxHp * 0.3f) < 0.01f);
+    SaveData back;
+    CHECK(deserializeSave(serializeSave(out), back));
+    CHECK(std::fabs(back.dragon.hp - maxHp * 0.3f) < 0.6f);  // 저장 파일은 소수점을 줄여 적는다
+    // 다시 켜도 가득 차 있지 않다
+    Game g2;
+    g2.init(back, kDesk);
+    CHECK(g2.world().dragon().hp < maxHp * 0.5f);
+}
+
+static void testSkillMotionParse() {
+    std::printf("[skill-motion]\n");
+    std::string text =
+        "[dragon]\nname=모션시험\n"
+        "[skill.1]\nname=하나\nkind=Line\nmotion=claw\nmotion_fps=14\nmotion_frame_w=256\n"
+        "[skill.2]\nname=둘\nkind=PassiveStat\nstat=dodge\npower=0.04\n"
+        "[skill.5]\nname=다섯\nkind=Burst\n";
+    DragonParseResult r = parseDragonText(text, "motiontest", nullptr);
+    CHECK(r.def.skills.size() == 5);
+    CHECK(r.def.skills[0].motion == "claw");
+    CHECK(std::fabs(r.def.skills[0].motionAnim.fps - 14.f) < 0.01f);
+    CHECK(r.def.skills[0].motionAnim.loop == false);  // 스킬 모션은 항상 1회 재생
+    CHECK(r.def.skills[1].kind == SkillKind::PassiveStat);
+    CHECK(r.def.skills[1].stat == StatKind::Dodge);
+    CHECK(skillIsPassive(r.def.skills[1].kind));
+    // 번호를 건너뛰면 경고한다(사이는 기본값 스킬로 채워진다)
+    bool warnedGap = false;
+    for (const std::string& w : r.warnings)
+        if (w.find("건너뛰") != std::string::npos) warnedGap = true;
+    CHECK(warnedGap);
+
+    // 모르는 stat 과 kind 는 경고로 알린다
+    DragonParseResult bad = parseDragonText("[dragon]\nname=x\n[skill.1]\nkind=Nope\nstat=luck\n", "badtest", nullptr);
+    CHECK(bad.warnings.size() >= 2);
+}
+
+// v1.5: 내장 종을 없앴으므로(이제 전부 assets/dragons/ 폴더에서 온다) 테스트가 쓸 종을
+// 여기서 네 개 등록한다. 등록 순서가 곧 Species::Fire(0) ~ Species::Water(3) 번호다.
+// 게임 실제 종과는 무관한 시험용이다.
+static void registerTestSpecies() {
+    const char* keys[4] = {"testa", "testb", "testc", "testd"};
+    for (const char* k : keys) ensureSpecies(k);
+    CHECK(speciesCount() >= 4);
+}
+
 int main() {
+    registerTestSpecies();
     testExpCurve();
+    testNoAutoCap();
     testAutoCapClamp();
     testMultiLevelUp();
     testSaveRoundTrip();
@@ -668,6 +1629,32 @@ int main() {
     testAnimStates();
     testLoadDragonFolders();
     testIdleBehavior();
+    testEnemyRegistry();
+    testEnemyTextParse();
+    testEnemyFolderScan();
+    testBossPhase2Summons();
+    testDefenseBattle();
+    testDefenseWaveGrows();
+    testAutoBattleNoLongerCapped();
+    testUiSettingsSaved();
+    testConfineToBand();
+    testPlaceAndPanel();
+    testAlerts();
+    testFirstRunHint();
+    testViewSettings();
+    testBattleBandHeight();
+    testThinBandStanding();
+    testStable();
+    testStablePermadeath();
+    testKeepRange();
+    testTinyScreen();
+    testSkillUnlockLevels();
+    testSkillSlots();
+    testSkillSlotsSaved();
+    testPassiveSkills();
+    testAutoUsesEquippedOnly();
+    testSkillMotionParse();
+    testActiveDragonHpSaved();
     std::printf("\n%d passed, %d failed\n", g_passed, g_failed);
     return g_failed == 0 ? 0 : 1;
 }

@@ -2,6 +2,8 @@
 
 #include <algorithm>
 #include <fstream>
+
+#include "core/Config.h"
 #include <sstream>
 #include <system_error>
 
@@ -62,12 +64,50 @@ std::vector<std::string> split(const std::string& s, char sep) {
 
 }  // namespace
 
+namespace {
+// v1.4 장착 칸을 "0,2,-1,5" 처럼 한 줄로 적는다. 칸 수가 바뀌어도 읽을 수 있게
+// 쉼표로 나눠 읽고, 모자라면 -1(빈 칸)로 둔다.
+std::string slotsText(const std::array<int, kSkillSlots>& slots) {
+    std::string out;
+    for (int i = 0; i < kSkillSlots; ++i) {
+        if (i) out += ',';
+        out += std::to_string(slots[static_cast<size_t>(i)]);
+    }
+    return out;
+}
+
+void parseSlots(const std::string& val, std::array<int, kSkillSlots>& out) {
+    out.fill(-1);
+    size_t pos = 0;
+    for (int i = 0; i < kSkillSlots && pos <= val.size(); ++i) {
+        size_t comma = val.find(',', pos);
+        std::string part = val.substr(pos, comma == std::string::npos ? std::string::npos : comma - pos);
+        out[static_cast<size_t>(i)] = part.empty() ? -1 : toInt(part, -1);
+        if (comma == std::string::npos) break;
+        pos = comma + 1;
+    }
+}
+}  // namespace
+
 std::string serializeSave(const SaveData& s) {
     std::ostringstream o;
     o << "# Dragon Tower save\n";
     o << "version=" << s.version << "\n";
     o << "nextDragonId=" << s.nextDragonId << "\n";
     o << "huntMode=" << static_cast<int>(s.huntMode) << "\n";
+    o << "ui.panelX=" << s.panelX << "\n";
+    o << "ui.panelY=" << s.panelY << "\n";
+    o << "ui.panelCollapsed=" << (s.panelCollapsed ? 1 : 0) << "\n";
+    o << "ui.confineToBand=" << (s.confineToBand ? 1 : 0) << "\n";
+    o << "ui.hintShown=" << (s.hintShown ? 1 : 0) << "\n";
+    o << "keepRange=" << s.keepRange << "\n";
+    o << "ui.menuX=" << s.menuX << "\n";
+    o << "ui.menuY=" << s.menuY << "\n";
+    o << "ui.menuScale=" << s.menuScale << "\n";
+    o << "ui.charScale=" << s.charScale << "\n";
+    o << "ui.powerSave=" << (s.powerSave ? 1 : 0) << "\n";
+    o << "ui.menuOpen=" << (s.menuOpen ? 1 : 0) << "\n";
+    o << "ui.menuTab=" << s.menuTab << "\n";
     o << "bestFloor=" << s.bestFloor << "\n";
     o << "towerClears=" << s.towerClears << "\n";
     o << "dragon.present=" << (s.hasDragon ? 1 : 0) << "\n";
@@ -80,6 +120,23 @@ std::string serializeSave(const SaveData& s) {
         o << "dragon.exp=" << d.exp << "\n";
         o << "dragon.autoExp=" << d.autoExp << "\n";
         o << "dragon.hp=" << d.hp << "\n";
+        o << "dragon.slots=" << slotsText(d.slots) << "\n";
+    }
+    // v1.3 보유 목록. 위의 dragon.* 는 지금 플레이 중인 개체를 가리키며 그대로 둔다
+    // (옛 빌드에서도 저장 파일을 읽을 수 있게 하기 위해서다).
+    o << "stable.count=" << s.stable.size() << "\n";
+    o << "stable.active=" << s.activeIndex << "\n";
+    for (size_t i = 0; i < s.stable.size(); ++i) {
+        const DragonRecord& d = s.stable[i];
+        std::string pre = "stable." + std::to_string(i) + ".";
+        o << pre << "id=" << d.id << "\n";
+        o << pre << "species=" << speciesDef(d.species).key << "\n";
+        o << pre << "alive=" << (d.alive ? 1 : 0) << "\n";
+        o << pre << "level=" << d.level << "\n";
+        o << pre << "exp=" << d.exp << "\n";
+        o << pre << "autoExp=" << d.autoExp << "\n";
+        o << pre << "hp=" << d.hp << "\n";
+        o << pre << "slots=" << slotsText(d.slots) << "\n";
     }
     o << "codex.species=";
     bool first = true;
@@ -90,8 +147,17 @@ std::string serializeSave(const SaveData& s) {
         first = false;
     }
     o << "\n";
-    o << "codex.imp=" << (s.impSeen ? 1 : 0) << "\n";
-    o << "codex.guardian=" << (s.guardianSeen ? 1 : 0) << "\n";
+    o << "codex.enemies=";
+    {
+        bool f2 = true;
+        for (const std::string& k : s.enemiesSeen) {
+            if (k.empty()) continue;
+            if (!f2) o << ",";
+            o << k;
+            f2 = false;
+        }
+    }
+    o << "\n";
     for (const GraveEntry& g : s.graves) {
         o << "grave=" << g.id << "|" << speciesDef(g.species).key << "|" << g.level << "|" << g.place << "\n";
     }
@@ -114,6 +180,20 @@ bool deserializeSave(const std::string& text, SaveData& out) {
 
         if (key == "version") { s.version = toInt(val, 1); sawVersion = true; }
         else if (key == "nextDragonId") s.nextDragonId = std::max(1, toInt(val, 1));
+        else if (key == "ui.panelX") s.panelX = toFloat(val, -1.f);
+        else if (key == "ui.panelY") s.panelY = toFloat(val, -1.f);
+        else if (key == "ui.panelCollapsed") s.panelCollapsed = toInt(val, 0) != 0;
+        else if (key == "ui.confineToBand") s.confineToBand = toInt(val, 0) != 0;
+        else if (key == "ui.hintShown") s.hintShown = toInt(val, 0) != 0;
+        else if (key == "keepRange") s.keepRange = std::clamp(toInt(val, 0), 0, cfg::kKeepRangeCount - 1);
+        else if (key == "ui.menuX") s.menuX = toFloat(val, -1.f);
+        else if (key == "ui.menuY") s.menuY = toFloat(val, -1.f);
+        // 배수는 범위를 벗어난 값이 들어와도 쓸 수 있게 맞춘다(손으로 고친 저장 파일 대비).
+        else if (key == "ui.menuScale") s.menuScale = std::clamp(toFloat(val, 1.f), cfg::kMenuScaleMin, cfg::kMenuScaleMax);
+        else if (key == "ui.charScale") s.charScale = std::clamp(toFloat(val, 1.f), cfg::kCharScaleMin, cfg::kCharScaleMax);
+        else if (key == "ui.powerSave") s.powerSave = toInt(val, 0) != 0;
+        else if (key == "ui.menuOpen") s.menuOpen = toInt(val, 0) != 0;
+        else if (key == "ui.menuTab") s.menuTab = std::clamp(toInt(val, 0), 0, 1);
         else if (key == "huntMode") {
             int m = toInt(val, 1);
             s.huntMode = (m >= 0 && m <= 2) ? static_cast<CombatMode>(m) : CombatMode::SkillManual;
@@ -121,6 +201,30 @@ bool deserializeSave(const std::string& text, SaveData& out) {
         else if (key == "bestFloor") s.bestFloor = std::max(0, toInt(val, 0));
         else if (key == "towerClears") s.towerClears = std::max(0, toInt(val, 0));
         else if (key == "dragon.present") dragonPresent = toInt(val, 0) != 0;
+        else if (key == "stable.count") {
+            int n = std::clamp(toInt(val, 0), 0, cfg::kMaxStable);
+            s.stable.assign(static_cast<size_t>(n), DragonRecord{});
+        }
+        else if (key == "stable.active") s.activeIndex = toInt(val, -1);
+        else if (key.rfind("stable.", 0) == 0) {
+            // stable.<번호>.<항목>
+            size_t dot = key.find('.', 7);
+            if (dot != std::string::npos) {
+                int idx = toInt(key.substr(7, dot - 7), -1);
+                std::string f = key.substr(dot + 1);
+                if (idx >= 0 && idx < static_cast<int>(s.stable.size())) {
+                    DragonRecord& d = s.stable[static_cast<size_t>(idx)];
+                    if (f == "id") d.id = toInt(val, 0);
+                    else if (f == "species") { Species sp; if (speciesFromKey(val, sp)) d.species = sp; }
+                    else if (f == "alive") d.alive = toInt(val, 1) != 0;
+                    else if (f == "level") d.level = std::clamp(toInt(val, 1), 1, cfg::kMaxLevel);
+                    else if (f == "exp") d.exp = std::max(0, toInt(val, 0));
+                    else if (f == "autoExp") d.autoExp = std::max(0, toInt(val, 0));
+                    else if (f == "hp") d.hp = toFloat(val, -1.f);
+                    else if (f == "slots") parseSlots(val, d.slots);
+                }
+            }
+        }
         else if (key == "dragon.id") s.dragon.id = toInt(val, 0);
         // 폴더가 사라진 종이라도 다른 종으로 바뀌지 않도록 자리 표시 종을 등록한다.
         else if (key == "dragon.species") { if (!val.empty()) s.dragon.species = ensureSpecies(val); }
@@ -129,14 +233,21 @@ bool deserializeSave(const std::string& text, SaveData& out) {
         else if (key == "dragon.exp") s.dragon.exp = std::max(0, toInt(val, 0));
         else if (key == "dragon.autoExp") s.dragon.autoExp = std::max(0, toInt(val, 0));
         else if (key == "dragon.hp") s.dragon.hp = toFloat(val, -1.f);
+        else if (key == "dragon.slots") parseSlots(val, s.dragon.slots);
         else if (key == "codex.species") {
             // 모르는 키도 그대로 보관한다(폴더를 다시 넣으면 도감이 되살아난다).
             for (const std::string& k : split(val, ',')) {
                 if (!k.empty()) s.speciesSeen.insert(k);
             }
         }
-        else if (key == "codex.imp") s.impSeen = toInt(val, 0) != 0;
-        else if (key == "codex.guardian") s.guardianSeen = toInt(val, 0) != 0;
+        else if (key == "codex.enemies") {
+            for (const std::string& k : split(val, ',')) {
+                if (!k.empty()) s.enemiesSeen.insert(k);
+            }
+        }
+        // v0.3 이전 저장 파일 호환: 임프·수호자 기록을 키로 옮긴다.
+        else if (key == "codex.imp") { if (toInt(val, 0) != 0) s.enemiesSeen.insert("imp"); }
+        else if (key == "codex.guardian") { if (toInt(val, 0) != 0) s.enemiesSeen.insert("guardian"); }
         else if (key == "grave") {
             auto parts = split(val, '|');
             if (parts.size() >= 4) {
@@ -152,6 +263,43 @@ bool deserializeSave(const std::string& text, SaveData& out) {
     if (!sawVersion) return false;
     // 죽은 개체는 현재 개체로 불러오지 않는다(재실행으로 부활 방지).
     s.hasDragon = dragonPresent && s.dragon.alive;
+
+    // v1.3: 보유 목록이 없는(v1.2 이전) 저장 파일이면 지금 개체 하나로 목록을 만든다.
+    if (s.stable.empty()) {
+        if (s.hasDragon) {
+            s.stable.push_back(s.dragon);
+            s.activeIndex = 0;
+        } else {
+            s.activeIndex = -1;
+        }
+    } else {
+        // 죽은 개체는 목록에 남기지 않는다(묘비로만 남는다).
+        std::vector<DragonRecord> alive;
+        int newActive = -1;
+        for (size_t i = 0; i < s.stable.size(); ++i) {
+            if (!s.stable[i].alive) continue;
+            if (static_cast<int>(i) == s.activeIndex) newActive = static_cast<int>(alive.size());
+            alive.push_back(s.stable[i]);
+        }
+        s.stable = std::move(alive);
+        s.activeIndex = newActive;
+        if (s.activeIndex >= 0) {
+            s.dragon = s.stable[static_cast<size_t>(s.activeIndex)];
+            s.hasDragon = true;
+        } else {
+            s.hasDragon = false;
+        }
+    }
+    // v1.4: 장착 칸이 없는(v1.3 이전) 저장 파일이면 여기서 채워진다. 값이 있어도
+    // 종의 스킬 목록이 바뀌었을 수 있으므로 한 번 검사하고 빈 칸을 메운다.
+    for (DragonRecord& d : s.stable) fillEmptySkillSlots(d);
+    if (s.hasDragon) {
+        fillEmptySkillSlots(s.dragon);
+        if (s.activeIndex >= 0 && s.activeIndex < static_cast<int>(s.stable.size()))
+            s.stable[static_cast<size_t>(s.activeIndex)].slots = s.dragon.slots;
+    }
+    for (const DragonRecord& d : s.stable)
+        if (d.id >= s.nextDragonId) s.nextDragonId = d.id + 1;
     if (s.hasDragon && s.dragon.id >= s.nextDragonId) s.nextDragonId = s.dragon.id + 1;
     out = s;
     return true;

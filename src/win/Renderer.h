@@ -14,6 +14,30 @@ namespace dt::win {
 
 enum class UiAction {
     None,
+    DragPanel,        // 상태창 끌기 손잡이
+    TogglePanel,      // 상태창 접기/펼치기
+    ToggleConfine,    // 드래곤을 아래 띠에만 둘지
+    DragDragon,       // 드래곤 끌어 옮기기
+    DragMenu,         // 메뉴 창 끌기 손잡이
+    DragMenuSize,     // 메뉴 오른쪽 아래 모서리를 끌어 크기 바꾸기
+    CloseMenu,        // 메뉴 닫기(X)
+    SetMenuTab,       // arg = 0 전투 설정 / 1 환경 설정
+    DragCharSlider,   // 캐릭터 크기 슬라이더 끌기
+    SetMotion,        // arg = AnimState. 고른 모션을 다음 입력까지 유지
+    ClearMotion,      // 모션 고정 풀기
+    TogglePowerSave,  // 조용할 때 프레임 줄이기
+    SetKeepRange,     // 싸울 때 유지할 간격. arg = 0 근접 / 1 중간 / 2 바깥
+    ToggleMenu,       // 메뉴 창 열고 닫기(키보드 조작과 무관)
+    OpenStable,       // 드래곤 관리창 열기
+    CloseStable,      // 관리창 닫기
+    OpenSkills,       // v1.4 스킬 관리창 열기
+    CloseSkills,      // 스킬 관리창 닫기
+    SelectSlot,       // arg = 장착 칸(0~3). 이 칸에 다음으로 고른 스킬이 들어간다
+    EquipSkill,       // arg = 스킬 목록 번호. 고른 칸에 넣는다
+    ClearSlot,        // arg = 장착 칸. 비운다
+    SkillPage,        // arg = 스킬 목록 쪽 번호
+    ShowDragon,       // arg = 보유 목록 자리. 바탕화면에 띄운다(= 플레이할 드래곤)
+    AddDragon,        // 새 드래곤 데려오기(선택 화면으로)
     ChooseSpecies,  // arg = 종류
     StartHunt,
     StopHunt,
@@ -43,6 +67,14 @@ struct RenderContext {
     float mouseY = -1.f;
 };
 
+// 한 프레임에 그린 것들의 위치. 어디서 클릭을 받을지(나머지는 통과)와
+// 어디를 다시 그릴지 정하는 데 쓴다.
+struct FrameRegions {
+    std::vector<Gdiplus::RectF> hit;   // 마우스를 받아야 하는 영역
+    bool fullScreen = false;           // 창·모달이 떠 있어 화면 전체를 받아야 한다
+    void add(const Gdiplus::RectF& r) { hit.push_back(r); }
+};
+
 class Renderer {
 public:
     bool init();
@@ -50,11 +82,9 @@ public:
 
     // 전체 오버레이(바탕화면 크기). 눌릴 수 있는 버튼 목록을 outButtons에 채운다.
     void drawOverlay(Gdiplus::Graphics& g, const Game& game, const Sprites& sprites, const RenderContext& ctx,
-                     std::vector<UiButton>& outButtons);
+                     std::vector<UiButton>& outButtons, FrameRegions* outRegions = nullptr);
 
     // 설정 버튼 창. attention이면 입력을 켜 달라는 의미로 깜빡인다.
-    void drawSettingsButton(Gdiplus::Graphics& g, float size, const Sprites& sprites, bool inputOn, bool attention,
-                            bool hover, float time);
 
 private:
     Gdiplus::Font* font(float size, bool bold);
@@ -62,6 +92,10 @@ private:
               int align = 0, bool bold = false, bool strongShadow = false);
     void paragraph(Gdiplus::Graphics& g, const std::string& s, const Gdiplus::RectF& r, float size, uint32_t color,
                    int align = 0, bool bold = false);
+    // v0.9 UI 스킨. 조각이 있으면 그림으로, 없으면 예전처럼 도형으로 그린다.
+    // piece()는 그렸으면 true. 9조각으로 늘릴 여백이 0이면 통째로 늘린다.
+    bool piece(Gdiplus::Graphics& g, const char* name, const Gdiplus::RectF& r, float alpha = 1.f,
+               Gdiplus::RectF* content = nullptr);
     void panel(Gdiplus::Graphics& g, const Gdiplus::RectF& r, uint8_t alpha = 236);
     void button(Gdiplus::Graphics& g, std::vector<UiButton>& out, const RenderContext& ctx, const Gdiplus::RectF& r,
                 const std::string& label, UiAction action, int arg = 0, bool enabled = true, bool selected = false,
@@ -71,7 +105,8 @@ private:
     void drawWorld(Gdiplus::Graphics& g, const Game& game, const Sprites& sprites, const RenderContext& ctx);
     void drawDragon(Gdiplus::Graphics& g, const DragonActor& d, const Sprites& sprites, float time, float x, float y,
                     float height, bool preview);
-    void drawEnemy(Gdiplus::Graphics& g, const Enemy& e, const Sprites& sprites, float time);
+    // charScale은 보기 배수다. 그림 크기만 바꾸고 판정에는 쓰지 않는다.
+    void drawEnemy(Gdiplus::Graphics& g, const Enemy& e, const Sprites& sprites, float time, float charScale);
     void drawSprite(Gdiplus::Graphics& g, Gdiplus::Bitmap* bmp, float cx, float cy, float height, bool flip,
                     float flash, float alpha);
     // 시트의 한 칸만 그린다. frame은 0부터.
@@ -79,7 +114,17 @@ private:
                         float flash, float alpha);
     void drawFx(Gdiplus::Graphics& g, const World& w);
 
-    void drawStatusCard(Gdiplus::Graphics& g, const Game& game, const Sprites& sprites, const RenderContext& ctx);
+    void drawStatusCard(Gdiplus::Graphics& g, const Game& game, const Sprites& sprites, const RenderContext& ctx,
+                        std::vector<UiButton>& out);
+    // 켜짐/꺼짐 토글 스위치. 누르면 action이 발생한다.
+    void toggle(Gdiplus::Graphics& g, std::vector<UiButton>& out, const RenderContext& ctx, const Gdiplus::RectF& r,
+                const std::string& label, bool on, UiAction action, int arg, bool enabled);
+    // v1.4 값을 끌어서 고르는 막대
+    void slider(Gdiplus::Graphics& g, std::vector<UiButton>& out, const RenderContext& ctx,
+                const Gdiplus::RectF& r, float value, float lo, float hi, UiAction action);
+    // v1.5 드래곤을 오른쪽 클릭하면 뜨는 모션 목록
+    void drawMotionMenu(Gdiplus::Graphics& g, const Game& game, const Sprites& sprites,
+                        const RenderContext& ctx, std::vector<UiButton>& out);
     void drawMenu(Gdiplus::Graphics& g, const Game& game, const RenderContext& ctx, std::vector<UiButton>& out);
     void drawNotices(Gdiplus::Graphics& g, const Game& game);
     void drawTowerHud(Gdiplus::Graphics& g, const Game& game);
@@ -88,11 +133,26 @@ private:
     void drawSelect(Gdiplus::Graphics& g, const Game& game, const Sprites& sprites, const RenderContext& ctx,
                     std::vector<UiButton>& out);
     void drawCodex(Gdiplus::Graphics& g, const Game& game, const RenderContext& ctx, std::vector<UiButton>& out);
+    // v1.3 드래곤 관리창: 보유 목록, 바탕화면에 띄울 개체 고르기, 묘비
+    void drawStable(Gdiplus::Graphics& g, const Game& game, const Sprites& sprites, const RenderContext& ctx,
+                    std::vector<UiButton>& out);
+    // v1.4 스킬 관리창: 장착 4칸과 그 종의 스킬 목록(해제 레벨·패시브 표시)
+    void drawSkills(Gdiplus::Graphics& g, const Game& game, const Sprites& sprites,
+                    const RenderContext& ctx,
+                    std::vector<UiButton>& out);
+    // 스킬 한 칸(아이콘·대기시간·잠금)을 그린다. 상태창과 관리창이 함께 쓴다.
+    // skillIndex < 0 이면 빈 칸으로 그린다.
+    void drawSkillBox(Gdiplus::Graphics& g, const Sprites& sprites, const SpeciesDef& sp,
+                      const DragonActor& d, int skillIndex,
+                      const Gdiplus::RectF& b, int level, const std::string& cornerLabel);
 
     std::unique_ptr<Gdiplus::FontFamily> family_;
     std::map<int, std::unique_ptr<Gdiplus::Font>> fonts_;
     float width_ = 0.f;
     float height_ = 0.f;
+    // 한 프레임 동안 쓸 스킨. drawOverlay 시작에서 정한다.
+    const Sprites* sprites_ = nullptr;
+    std::string skin_ = "default";
 };
 
 }  // namespace dt::win

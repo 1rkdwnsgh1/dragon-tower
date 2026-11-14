@@ -7,6 +7,8 @@
 
 #include "Renderer.h"
 #include "Sprites.h"
+#include <shellapi.h>  // NOTIFYICONDATAW (트레이 아이콘)
+
 #include "WinCommon.h"
 #include "core/Game.h"
 
@@ -48,22 +50,26 @@ private:
     void saveNow();
     void requestExit();
     void updateFullscreenState();
+    // v0.6
+    void syncKeyboard();  // 게임 상태에 맞춰 키보드 받기를 켜고 끈다
+    void updateClickThrough();   // 커서가 우리 요소 위에 있을 때만 입력을 받는다
+    void createTray();
+    void destroyTray();
+    void showTrayMenu();
+    void refreshTrayTip();
+    void showBalloon(const std::string& title, const std::string& body, bool warning);
+    void pumpAlerts();
+    bool startDrag(float lx, float ly);  // 상태창·메뉴·드래곤 끌기 시작
 
     HINSTANCE inst_ = nullptr;
     HWND overlay_ = nullptr;
-    HWND button_ = nullptr;
     Surface overlaySurf_;
-    Surface buttonSurf_;
     RECT work_{};
     float scale_ = 1.f;
-    int buttonPx_ = 64;
-    int buttonX_ = 0;
-    int buttonY_ = 0;
 
     bool running_ = false;
     bool inputEnabled_ = false;
     bool hidden_ = false;
-    bool buttonHover_ = false;
     float time_ = 0.f;
     float fullscreenTimer_ = 0.f;
     float topmostTimer_ = 0.f;
@@ -71,6 +77,21 @@ private:
     float mouseX_ = -1.f;
     float mouseY_ = -1.f;
     bool keyPrev_[256] = {};
+
+    // v0.6 클릭 통과: 커서가 요소 위에 있는 동안만 입력을 받는다
+    FrameRegions regions_;
+    bool cursorOnUi_ = false;
+    // v0.6 끌기
+    enum class Drag { None, Panel, Menu, MenuSize, Dragon, CharSlider };
+    float dragStartScale_ = 1.f;  // 메뉴 크기 끌기를 시작할 때의 배수
+    Drag drag_ = Drag::None;
+    float dragDX_ = 0.f, dragDY_ = 0.f;
+    // v0.6 트레이 아이콘
+    NOTIFYICONDATAW tray_{};
+    bool trayAdded_ = false;
+    UINT taskbarCreatedMsg_ = 0;  // 탐색기가 다시 시작하면 트레이 아이콘을 다시 넣는다
+    // v0.6 조용할 때 프레임을 줄인다
+    float idleAccum_ = 0.f;
 
     Game game_;
     Renderer renderer_;

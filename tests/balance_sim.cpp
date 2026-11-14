@@ -55,13 +55,15 @@ static PlayerInput directBot(const World& w) {
             in.moveY = dir.y;
         }
     }
-    for (int i = 0; i < 3; ++i) in.skill[i] = w.skillReady(i);
+    // v1.4: 입력은 장착 칸 기준이다(스킬 목록 번호가 아니다)
+    for (int i = 0; i < kSkillSlots; ++i) in.skill[i] = w.slotReady(i);
     return in;
 }
 
 static PlayerInput skillBot(const World& w) {
     PlayerInput in;
-    for (int i = 0; i < 3; ++i) in.skill[i] = w.skillReady(i);
+    // v1.4: 입력은 장착 칸 기준이다(스킬 목록 번호가 아니다)
+    for (int i = 0; i < kSkillSlots; ++i) in.skill[i] = w.slotReady(i);
     return in;
 }
 

@@ -14,7 +14,10 @@
 - `docs/implementation-notes.md`: 구현하며 임시로 정한 값과 확인할 것
 - `docs/character-pipeline.md`: 캐릭터 이미지·애니메이션·스킬 적용 규격
 - `assets/dragons/README.md`: 드래곤 추가·그림 넣기 사용법
+- `assets/enemies/README.md`: 적 추가·그림 넣기 사용법
+- `assets/ui/README.md`: UI 스킨(창틀·버튼·막대 그림) 사용법
 - `docs/ai-workflow-notes.md`: AI 작업 비용 기록과 개선
+- `docs/team-ai-prompt.md`: 팀원이 쓰는 AI 도구의 프로젝트 지침에 붙여넣을 요약 (이 문서와 `CLAUDE.md`의 요약이므로, 어긋나면 이쪽 둘이 기준)
 - `docs/characters/revenant-dragon-skills-v1.md`: 망령룡 스킬 V1 후보, 현행 구조와의 차이, 기술 설계·순서 승인 대기 사항
 
 새 문서를 추가하면 이 목록에도 추가한다.

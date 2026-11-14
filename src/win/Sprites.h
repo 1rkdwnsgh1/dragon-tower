@@ -9,9 +9,26 @@
 #include <vector>
 
 #include "WinCommon.h"
+#include "core/Enemy.h"
 #include "core/Species.h"
 
 namespace dt::win {
+
+// 조각을 목적지에 맞추는 방법. 그림 종류마다 다르다.
+//  Nine   — 9조각. 네 모서리를 지키고 가장자리·가운데만 늘린다. 큰 창틀용.
+//  Height — 높이를 목적지에 맞춰 통째로 줄이고 가로만 늘린다. 세로로 눌리지 않는다.
+//           버튼·막대처럼 "낮고 가로로 긴" 것에 쓴다.
+//  Contain— 비율을 지킨 채 목적지 안에 넣는다. 토글·체크처럼 모양이 정해진 것에 쓴다.
+enum class UiFit { Nine, Height, Contain };
+
+// UI 스킨 조각. margin은 "늘리지 않을 테두리 두께"(원본 px)다.
+struct UiPiece {
+    Gdiplus::Bitmap* bmp = nullptr;
+    int left = 0, top = 0, right = 0, bottom = 0;
+    UiFit fit = UiFit::Nine;
+    bool valid() const { return bmp != nullptr; }
+    bool stretch() const { return left || top || right || bottom; }
+};
 
 // 가로 한 줄 스프라이트 시트. frames는 칸 수, frameW는 칸 너비(픽셀).
 struct Sheet {
@@ -33,6 +50,14 @@ public:
     Sheet sheet(const std::string& speciesKey, AnimState state) const;
     bool hasAnySheet(const std::string& speciesKey) const;
 
+    // v1.4 스킬 전용 본체 모션 시트(assets/dragons/<키>/skill_<motion>.png).
+    // 없으면 bmp == nullptr 이고, 그리는 쪽이 공용 attack 시트로 대신한다.
+    Sheet skillSheet(const std::string& speciesKey, const std::string& motion) const;
+
+    // UI 스킨 조각을 찾는다. 스킨에 없으면 default 에서 찾고, 그래도 없으면 bmp == nullptr.
+    // 그림이 없으면 렌더러가 예전처럼 도형으로 그린다.
+    UiPiece ui(const std::string& skinKey, const std::string& name) const;
+
     int loadedCount() const { return static_cast<int>(images_.size()); }
     int sheetCount() const { return static_cast<int>(sheets_.size()); }
     const std::vector<std::string>& warnings() const { return warnings_; }
@@ -44,9 +69,25 @@ private:
         int frameW = 0;
         int frameH = 0;
     };
-    void loadSheetsFor(const std::filesystem::path& dir, const SpeciesDef& def);
+    // prefix는 시트 이름 앞에 붙는 구분자다(적은 "enemy:<키>").
+    void loadSheetsFor(const std::filesystem::path& dir, const AnimDef* anims, const std::string& prefix,
+                       const std::string& label);
+    // 한 장을 읽어 칸으로 나눈다. 읽었으면 true. 시트 이름은 prefix + "/" + name 이다.
+    bool loadSheetFile(const std::filesystem::path& file, const AnimDef& anim, const std::string& key,
+                       const std::string& label);
+    // v1.4 그 종의 스킬이 쓰는 skill_*.png 를 모두 읽는다.
+    void loadSkillSheets(const std::filesystem::path& dir, const SpeciesDef& def, const std::string& label);
+
+    struct UiData {
+        std::unique_ptr<Gdiplus::Bitmap> bmp;
+        int left = 0, top = 0, right = 0, bottom = 0;
+        UiFit fit = UiFit::Nine;
+        bool hasCfg = false;  // 이 스킨의 ui.txt 에 설정이 적혀 있었는가
+    };
+    void loadUiSkins(const std::filesystem::path& uiDir);
 
     std::map<std::string, std::unique_ptr<Gdiplus::Bitmap>> images_;
+    std::map<std::string, UiData> ui_;  // "<스킨>/<조각>"
     std::map<std::string, SheetData> sheets_;  // "<키>/<상태>"
     std::vector<std::string> warnings_;
 };

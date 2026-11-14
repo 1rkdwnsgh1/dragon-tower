@@ -13,6 +13,7 @@ option(DRAGON_BUILD_TESTS "핵심 규칙 테스트를 빌드한다" ON)
 # ---- 핵심 규칙(플랫폼 무관) ----
 add_library(dragon_core STATIC
     src/core/Species.cpp
+    src/core/Enemy.cpp
     src/core/DragonData.cpp
     src/core/Progression.cpp
     src/core/SaveData.cpp
@@ -52,4 +53,9 @@ if(DRAGON_BUILD_TESTS)
 
     add_executable(balance_sim tests/balance_sim.cpp)
     target_link_libraries(balance_sim PRIVATE dragon_core)
+
+    # 에셋 데이터가 제대로 읽히는지 확인한다(게임을 켜지 않고 오타·범위 오류를 잡는다)
+    add_executable(asset_check tools/asset_check.cpp)
+    target_link_libraries(asset_check PRIVATE dragon_core)
+    add_test(NAME asset_check COMMAND asset_check "${CMAKE_CURRENT_SOURCE_DIR}/assets")
 endif()
