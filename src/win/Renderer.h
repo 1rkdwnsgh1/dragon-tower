@@ -19,8 +19,10 @@ enum class UiAction {
     ToggleConfine,    // 드래곤을 아래 띠에만 둘지
     DragDragon,       // 드래곤 끌어 옮기기
     DragMenu,         // 메뉴 창 끌기 손잡이
-    MenuScale,        // 메뉴 창 크기. arg = -1 작게 / +1 크게
-    CharScale,        // 캐릭터 보기 크기. arg = -1 작게 / +1 크게
+    DragMenuSize,     // 메뉴 오른쪽 아래 모서리를 끌어 크기 바꾸기
+    CloseMenu,        // 메뉴 닫기(X)
+    SetMenuTab,       // arg = 0 전투 설정 / 1 환경 설정
+    DragCharSlider,   // 캐릭터 크기 슬라이더 끌기
     TogglePowerSave,  // 조용할 때 프레임 줄이기
     SetKeepRange,     // 싸울 때 유지할 간격. arg = 0 근접 / 1 중간 / 2 바깥
     ToggleMenu,       // 메뉴 창 열고 닫기(키보드 조작과 무관)
@@ -111,6 +113,9 @@ private:
     // 켜짐/꺼짐 토글 스위치. 누르면 action이 발생한다.
     void toggle(Gdiplus::Graphics& g, std::vector<UiButton>& out, const RenderContext& ctx, const Gdiplus::RectF& r,
                 const std::string& label, bool on, UiAction action, int arg, bool enabled);
+    // v1.4 값을 끌어서 고르는 막대
+    void slider(Gdiplus::Graphics& g, std::vector<UiButton>& out, const RenderContext& ctx,
+                const Gdiplus::RectF& r, float value, float lo, float hi, UiAction action);
     void drawMenu(Gdiplus::Graphics& g, const Game& game, const RenderContext& ctx, std::vector<UiButton>& out);
     void drawNotices(Gdiplus::Graphics& g, const Game& game);
     void drawTowerHud(Gdiplus::Graphics& g, const Game& game);

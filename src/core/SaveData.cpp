@@ -82,6 +82,7 @@ std::string serializeSave(const SaveData& s) {
     o << "ui.charScale=" << s.charScale << "\n";
     o << "ui.powerSave=" << (s.powerSave ? 1 : 0) << "\n";
     o << "ui.menuOpen=" << (s.menuOpen ? 1 : 0) << "\n";
+    o << "ui.menuTab=" << s.menuTab << "\n";
     o << "bestFloor=" << s.bestFloor << "\n";
     o << "towerClears=" << s.towerClears << "\n";
     o << "dragon.present=" << (s.hasDragon ? 1 : 0) << "\n";
@@ -165,6 +166,7 @@ bool deserializeSave(const std::string& text, SaveData& out) {
         else if (key == "ui.charScale") s.charScale = std::clamp(toFloat(val, 1.f), cfg::kCharScaleMin, cfg::kCharScaleMax);
         else if (key == "ui.powerSave") s.powerSave = toInt(val, 0) != 0;
         else if (key == "ui.menuOpen") s.menuOpen = toInt(val, 0) != 0;
+        else if (key == "ui.menuTab") s.menuTab = std::clamp(toInt(val, 0), 0, 1);
         else if (key == "huntMode") {
             int m = toInt(val, 1);
             s.huntMode = (m >= 0 && m <= 2) ? static_cast<CombatMode>(m) : CombatMode::SkillManual;

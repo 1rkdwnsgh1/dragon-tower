@@ -49,6 +49,7 @@ struct SaveData {
     float charScale = 1.f;        // 화면에 보이는 드래곤·적 크기 배수(보기 전용, 판정은 그대로)
     bool powerSave = false;       // 조용할 때 다시 그리는 횟수를 줄인다(노트북 절전)
     bool menuOpen = false;        // v1.0 메뉴 창을 펼쳐 두었는가(키보드 조작과 무관하게 열린다)
+    int menuTab = 0;              // v1.4 메뉴 탭. 0 전투 설정 / 1 환경 설정
     int bestFloor = 0;        // 탑 최고 도달 층(기록, 개체가 죽어도 유지)
     int towerClears = 0;
     // v0.2: 종이 폴더로 추가될 수 있어 고정 배열 대신 키 집합으로 저장한다.

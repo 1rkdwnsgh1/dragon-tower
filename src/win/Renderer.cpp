@@ -359,7 +359,7 @@ void Renderer::drawOverlay(Graphics& g, const Game& game, const Sprites& sprites
     Screen sc = game.screen();
 
     if (ctx.inputEnabled) {
-        // 키보드 조작이 켜졌다는 표시로 화면을 아주 살짝 어둡게 한다(키보드가 게임으로 간다).
+        // 키보드를 받는 중이라는 표시로 화면을 아주 살짝 어둡게 한다(싸우는 중이고 자동이 아닐 때).
         SolidBrush tint(Color(30, 0, 0, 0));
         g.FillRectangle(&tint, 0.f, 0.f, width_, height_);
     }
@@ -395,7 +395,7 @@ void Renderer::drawOverlay(Graphics& g, const Game& game, const Sprites& sprites
     if (!ctx.inputEnabled && game.needsInput()) {
         RectF r(width_ * 0.5f - 280.f, 70.f, 560.f, 40.f);
         panel(g, r, 230);
-        text(g, "오른쪽 아래 설정 버튼을 눌러 키보드 조작을 켜 주세요.", r.X + r.Width * 0.5f, r.Y + 10.f, 15.f, kWarnC, 1,
+        text(g, "창 안을 눌러 고르세요.", r.X + r.Width * 0.5f, r.Y + 10.f, 15.f, kWarnC, 1,
              true);
     }
 }
@@ -846,13 +846,12 @@ void Renderer::drawStatusCard(Graphics& g, const Game& game, const Sprites& spri
     panel(g, r, 224);
 
     // 제목 줄은 끌기 손잡이다. 오른쪽 끝에 접기 버튼이 있다.
-    RectF handle(r.X, r.Y, r.Width - 92.f, 30.f);
+    // v1.4: 전에는 ▦·≡ 같은 글자를 썼는데 폰트에 없어 깨져 보였다. 한글로 적는다.
+    RectF handle(r.X, r.Y, r.Width - 126.f, 30.f);
     out.push_back({handle, UiAction::DragPanel, 0, true});
     markRegion(handle);
-    // 드래곤 관리창 열기. 여러 마리를 가지고 있으면 여기서 바꾼다.
-    button(g, out, ctx, RectF(r.GetRight() - 88.f, r.Y + 4.f, 26.f, 22.f), "▦", UiAction::OpenStable);
-    // 메뉴 열기/닫기. 설정(키보드 조작)과 따로 움직인다.
-    button(g, out, ctx, RectF(r.GetRight() - 60.f, r.Y + 4.f, 26.f, 22.f), "≡", UiAction::ToggleMenu, 0, true,
+    button(g, out, ctx, RectF(r.GetRight() - 122.f, r.Y + 4.f, 56.f, 22.f), "관리", UiAction::OpenStable);
+    button(g, out, ctx, RectF(r.GetRight() - 62.f, r.Y + 4.f, 56.f, 22.f), "메뉴", UiAction::ToggleMenu, 0, true,
            game.menuOpen());
     {
         bool hov = handle.Contains(PointF(ctx.mouseX, ctx.mouseY));
@@ -959,7 +958,7 @@ void Renderer::drawStatusCard(Graphics& g, const Game& game, const Sprites& spri
     }
     float hx = x + 3 * (box + 8.f) + 4.f;
     if (!ctx.inputEnabled) {
-        paragraph(g, "설정 버튼으로\n키보드 조작 켜기", RectF(hx, y + 2.f, r.GetRight() - hx - 8.f, box), 11.f, kSub);
+        paragraph(g, "싸우기 시작하면\n키보드를 받습니다", RectF(hx, y + 2.f, r.GetRight() - hx - 8.f, box), 11.f, kSub);
     } else if ((game.screen() == Screen::Tower ? game.towerMode() : game.huntMode()) == CombatMode::Direct) {
         paragraph(g, "WASD 이동\nSpace 회피 · 1~3 스킬", RectF(hx, y + 2.f, r.GetRight() - hx - 8.f, box), 11.f, kSub);
     } else if ((game.screen() == Screen::Tower ? game.towerMode() : game.huntMode()) == CombatMode::SkillManual) {
@@ -967,11 +966,28 @@ void Renderer::drawStatusCard(Graphics& g, const Game& game, const Sprites& spri
     }
 }
 
+// 값을 끌어서 고르는 가로 막대. 오른쪽에 지금 값을 글자로 보여 준다.
+// rect 에는 막대의 자리를, action 에는 끌기 동작을 담아 보낸다(App 이 rect 로 비율을 계산한다).
+void Renderer::slider(Graphics& g, std::vector<UiButton>& out, const RenderContext& ctx, const RectF& r,
+                      float value, float lo, float hi, UiAction action) {
+    float ratio = std::clamp((value - lo) / std::max(0.0001f, hi - lo), 0.f, 1.f);
+    float h = 6.f;
+    RectF track(r.X, r.Y + (r.Height - h) * 0.5f, r.Width, h);
+    fillRound(g, track, h * 0.5f, Color(255, 28, 30, 42));
+    fillRound(g, RectF(track.X, track.Y, track.Width * ratio, h), h * 0.5f, Color(255, 96, 170, 240));
+    float kx = track.X + track.Width * ratio;
+    bool hover = r.Contains(PointF(ctx.mouseX, ctx.mouseY));
+    fillCircle(g, kx, r.Y + r.Height * 0.5f, hover ? 9.f : 8.f, Color(255, 240, 246, 255));
+    strokeRound(g, RectF(kx - 9.f, r.Y + r.Height * 0.5f - 9.f, 18.f, 18.f), 9.f, Color(160, 20, 24, 34), 1.f);
+    out.push_back({r, action, 0, true});
+    markRegion(r);
+}
+
 void Renderer::drawMenu(Graphics& g, const Game& game, const RenderContext& ctx, std::vector<UiButton>& out) {
-    // v0.8: 위치와 크기를 저장해 둔 값으로 그린다. 글자·버튼·여백을 모두 같은 배수로 키운다.
+    // 위치와 크기는 저장해 둔 값으로 그린다. 글자·버튼·여백을 모두 같은 배수로 키운다.
     const float s = game.menuScale();
     const float mw = 340.f * s;
-    const float mh = 578.f * s;
+    const float mh = 470.f * s;
     Vec2 saved = game.menuPos();
     float mx = saved.x >= 0.f ? saved.x : width_ - 96.f - mw;
     float my = saved.y >= 0.f ? saved.y : height_ - 16.f - 186.f - 12.f - mh;
@@ -984,10 +1000,10 @@ void Renderer::drawMenu(Graphics& g, const Game& game, const RenderContext& ctx,
     float w = r.Width - 32.f * s;
     float y = r.Y + 12.f * s;
 
-    // 제목 줄은 끌기 손잡이. 오른쪽에 창 크기 버튼을 둔다.
+    // 제목 줄: 끌어서 옮기고, 오른쪽 끝은 닫기
     {
         float btn = 26.f * s;
-        RectF handle(r.X, r.Y, r.Width - (btn * 2.f + 14.f * s), 30.f * s);
+        RectF handle(r.X, r.Y, r.Width - (btn + 14.f * s), 30.f * s);
         out.push_back({handle, UiAction::DragMenu, 0, true});
         markRegion(handle);
         bool hov = handle.Contains(PointF(ctx.mouseX, ctx.mouseY));
@@ -995,309 +1011,104 @@ void Renderer::drawMenu(Graphics& g, const Game& game, const RenderContext& ctx,
             fillRound(g, RectF(r.X + 10.f * s, r.Y + 9.f * s + i * 4.f * s, 14.f * s, 2.f * s), 1.f,
                       Color(hov ? 220 : 120, 180, 190, 220));
         text(g, "메뉴", x + 22.f * s, y, 17.f * s, kText, 0, true);
-        button(g, out, ctx, RectF(r.GetRight() - btn * 2.f - 10.f * s, r.Y + 4.f * s, btn, 22.f * s), "－",
-               UiAction::MenuScale, -1, s > cfg::kMenuScaleMin + 0.001f);
-        button(g, out, ctx, RectF(r.GetRight() - btn - 6.f * s, r.Y + 4.f * s, btn, 22.f * s), "＋",
-               UiAction::MenuScale, +1, s < cfg::kMenuScaleMax - 0.001f);
+        button(g, out, ctx, RectF(r.GetRight() - btn - 8.f * s, r.Y + 4.f * s, btn, 22.f * s), "닫기",
+               UiAction::CloseMenu);
     }
-    y += 32.f * s;
+    y += 34.f * s;
 
-    if (game.hunting())
-        button(g, out, ctx, RectF(x, y, w, 42.f * s), "사냥 중단", UiAction::StopHunt, 0, true, false, true);
-    else
-        button(g, out, ctx, RectF(x, y, w, 42.f * s), "사냥 시작", UiAction::StartHunt);
-    y += 52.f * s;
-
-    text(g, "사냥 모드", x, y, 13.f * s, kSub, 0, true);
-    if (!game.canChangeMode()) text(g, "전투 중에는 바꿀 수 없음", r.GetRight() - 16.f * s, y, 12.f * s, kWarnC, 2);
-    y += 22.f * s;
-    float bw = (w - 16.f * s) / 3.f;
-    const CombatMode modes[3] = {CombatMode::Direct, CombatMode::SkillManual, CombatMode::Auto};
-    bool autoAvailable = autoExpRemaining(game.dragonRecord()) > 0;
-    for (int i = 0; i < 3; ++i) {
-        bool en = game.canChangeMode() && (modes[i] != CombatMode::Auto || autoAvailable || game.huntMode() == CombatMode::Auto);
-        button(g, out, ctx, RectF(x + i * (bw + 8.f * s), y, bw, 38.f * s), combatModeName(modes[i]), UiAction::SetMode,
-               static_cast<int>(modes[i]), en, game.huntMode() == modes[i]);
-    }
-    y += 44.f * s;
-    if (!autoAvailable) text(g, "이 드래곤은 자동 사냥 상한에 도달했습니다.", x, y, 12.f * s, kAutoC);
-    y += 22.f * s;
-
-    // v0.9 싸울 때 유지할 간격. 직접 조작에서는 사람이 직접 움직이므로 쓰이지 않는다.
+    // 탭: 전투 설정 / 환경 설정
+    int tab = game.menuTab();
     {
-        bool used = game.huntMode() != CombatMode::Direct;
-        text(g, "간격", x, y, 13.f * s, kSub, 0, true);
-        if (!used) text(g, "직접 조작에서는 쓰이지 않음", r.GetRight() - 16.f * s, y, 12.f * s, kSub, 2);
+        float tw = (w - 6.f * s) * 0.5f;
+        button(g, out, ctx, RectF(x, y, tw, 30.f * s), "전투 설정", UiAction::SetMenuTab, 0, true, tab == 0);
+        button(g, out, ctx, RectF(x + tw + 6.f * s, y, tw, 30.f * s), "환경 설정", UiAction::SetMenuTab, 1, true,
+               tab == 1);
+    }
+    y += 40.f * s;
+
+    if (tab == 0) {
+        // ---------------- 전투 설정 ----------------
+        if (game.hunting())
+            button(g, out, ctx, RectF(x, y, w, 42.f * s), "사냥 중단", UiAction::StopHunt, 0, true, false, true);
+        else
+            button(g, out, ctx, RectF(x, y, w, 42.f * s), "사냥 시작", UiAction::StartHunt);
+        y += 52.f * s;
+
+        text(g, "사냥 모드", x, y, 13.f * s, kSub, 0, true);
+        if (!game.canChangeMode()) text(g, "전투 중에는 바꿀 수 없음", r.GetRight() - 16.f * s, y, 12.f * s, kWarnC, 2);
         y += 22.f * s;
-        for (int i = 0; i < cfg::kKeepRangeCount; ++i) {
-            button(g, out, ctx, RectF(x + i * (bw + 8.f * s), y, bw, 34.f * s), game.keepRangeName(i),
-                   UiAction::SetKeepRange, i, used, game.keepRange() == i);
+        float bw = (w - 16.f * s) / 3.f;
+        const CombatMode modes[3] = {CombatMode::Direct, CombatMode::SkillManual, CombatMode::Auto};
+        bool autoAvailable = autoExpRemaining(game.dragonRecord()) > 0;
+        for (int i = 0; i < 3; ++i) {
+            bool en = game.canChangeMode() &&
+                      (modes[i] != CombatMode::Auto || autoAvailable || game.huntMode() == CombatMode::Auto);
+            button(g, out, ctx, RectF(x + i * (bw + 8.f * s), y, bw, 38.f * s), combatModeName(modes[i]),
+                   UiAction::SetMode, static_cast<int>(modes[i]), en, game.huntMode() == modes[i]);
         }
-        y += 40.f * s;
-        if (game.huntMode() == CombatMode::SkillManual)
-            text(g, "방향키를 누르는 동안에는 직접 움직입니다.", x, y, 11.f * s, kSub);
-        y += 18.f * s;
-    }
+        y += 44.f * s;
+        if (!autoAvailable) text(g, "이 드래곤은 자동 사냥 상한에 도달했습니다.", x, y, 12.f * s, kAutoC);
+        y += 20.f * s;
 
-    // 보기 설정(v0.8). 캐릭터 크기는 그림만 바뀌고 판정 크기는 그대로다.
-    {
-        float btn = 30.f * s;
-        text(g, "캐릭터 크기", x, y + 6.f * s, 13.f * s, kSub, 0, true);
+        text(g, "싸울 때 유지할 간격", x, y, 13.f * s, kSub, 0, true);
+        y += 22.f * s;
+        const char* keepName[cfg::kKeepRangeCount] = {"근접", "중간", "바깥"};
+        float kw = (w - 16.f * s) / 3.f;
+        for (int i = 0; i < cfg::kKeepRangeCount; ++i) {
+            button(g, out, ctx, RectF(x + i * (kw + 8.f * s), y, kw, 34.f * s), keepName[i], UiAction::SetKeepRange, i,
+                   true, game.keepRange() == i);
+        }
+        y += 42.f * s;
+        paragraph(g, "스킬 수동에서는 방향키를 누르는 동안 직접 밀 수 있습니다. 키보드는 싸우는 중에만 받습니다.",
+                  RectF(x, y, w, 40.f * s), 11.f * s, kSub);
+        y += 44.f * s;
+
+        float hw = (w - 8.f * s) * 0.5f;
+        bool towerOk = !game.waveActive();
+        button(g, out, ctx, RectF(x, y, hw, 38.f * s), "탑 도전", UiAction::OpenTower, 0, towerOk);
+        button(g, out, ctx, RectF(x + hw + 8.f * s, y, hw, 38.f * s), "기록·도감", UiAction::OpenCodex);
+    } else {
+        // ---------------- 환경 설정 ----------------
+        text(g, "캐릭터 크기", x, y, 13.f * s, kSub, 0, true);
         int pct = static_cast<int>(game.charScale() * 100.f + 0.5f);
-        text(g, std::to_string(pct) + "%", r.GetRight() - btn * 2.f - 18.f * s, y + 6.f * s, 13.f * s, kText, 2, true);
-        button(g, out, ctx, RectF(r.GetRight() - btn * 2.f - 10.f * s, y, btn, 26.f * s), "－", UiAction::CharScale, -1,
-               game.charScale() > cfg::kCharScaleMin + 0.001f);
-        button(g, out, ctx, RectF(r.GetRight() - btn - 6.f * s, y, btn, 26.f * s), "＋", UiAction::CharScale, +1,
-               game.charScale() < cfg::kCharScaleMax - 0.001f);
+        text(g, std::to_string(pct) + "%", r.GetRight() - 16.f * s, y, 13.f * s, kText, 2, true);
+        y += 20.f * s;
+        slider(g, out, ctx, RectF(x, y, w, 24.f * s), game.charScale(), cfg::kCharScaleMin, cfg::kCharScaleMax,
+               UiAction::DragCharSlider);
         y += 32.f * s;
+        text(g, "그림만 커지고 맞는 거리·공격 범위는 그대로입니다.", x, y, 11.f * s, kSub);
+        y += 26.f * s;
+
+        toggle(g, out, ctx, RectF(x, y, w, 26.f * s), "드래곤을 아래쪽에만 두기", game.confineToBand(),
+               UiAction::ToggleConfine, 0, true);
+        y += 34.f * s;
         toggle(g, out, ctx, RectF(x, y, w, 26.f * s), "절전(조용할 때 프레임 줄이기)", game.powerSave(),
                UiAction::TogglePowerSave, 0, true);
-        y += 34.f * s;
+        y += 32.f * s;
+        paragraph(g, "노트북에서 배터리가 걱정되면 켜세요. 드래곤이 움직이는 동안에는 줄이지 않습니다.",
+                  RectF(x, y, w, 34.f * s), 11.f * s, kSub);
+        y += 40.f * s;
+
+        button(g, out, ctx, RectF(x, y, w, 38.f * s),
+               "드래곤 관리 (" + std::to_string(game.stable().size()) + "/" + std::to_string(cfg::kMaxStable) + ")",
+               UiAction::OpenStable);
+        y += 46.f * s;
+        button(g, out, ctx, RectF(x, y, w, 36.f * s), "저장하고 게임 종료", UiAction::ExitGame);
     }
 
-    float hw = (w - 8.f * s) * 0.5f;
-    // v1.3 드래곤 관리. 여러 마리를 가지고 바꿔 가며 쓴다.
-    button(g, out, ctx, RectF(x, y, w, 38.f * s),
-           "드래곤 관리 (" + std::to_string(game.stable().size()) + "/" + std::to_string(cfg::kMaxStable) + ")",
-           UiAction::OpenStable);
-    y += 46.f * s;
-    bool towerOk = !game.waveActive();
-    button(g, out, ctx, RectF(x, y, hw, 40.f * s), "탑 도전", UiAction::OpenTower, 0, towerOk);
-    button(g, out, ctx, RectF(x + hw + 8.f * s, y, hw, 40.f * s), "기록·도감", UiAction::OpenCodex);
-    y += 48.f * s;
-    button(g, out, ctx, RectF(x, y, w, 36.f * s), "저장하고 게임 종료", UiAction::ExitGame);
-    y += 44.f * s;
-    paragraph(g, "창과 버튼은 언제나 마우스로 쓸 수 있습니다. 설정 버튼은 키보드 조작(이동·회피·스킬)을 켜고 끕니다.",
-              RectF(x, y, w, 44.f * s), 11.f * s, kSub);
-}
-
-void Renderer::drawNotices(Graphics& g, const Game& game) {
-    float y = 18.f;
-    for (const Notice& n : game.notices()) {
-        float a = 1.f - std::clamp((n.t - (n.duration - 0.6f)) / 0.6f, 0.f, 1.f);
-        a *= std::clamp(n.t / 0.2f, 0.f, 1.f);
-        RectF r(width_ * 0.5f - 330.f, y, 660.f, 36.f);
-        fillRound(g, r, 10.f, Color(static_cast<BYTE>(215 * a), 20, 22, 32));
-        strokeRound(g, r, 10.f, col(n.color, 0.6f * a), 1.5f);
-        uint32_t c = (n.color & 0x00FFFFFF) | (static_cast<uint32_t>(255 * a) << 24);
-        text(g, n.text, r.X + r.Width * 0.5f, r.Y + 8.f, 15.f, c, 1, true);
-        y += 42.f;
-    }
-}
-
-void Renderer::drawTowerHud(Graphics& g, const Game& game) {
-    RectF a(game.arena().x, game.arena().y, game.arena().w, game.arena().h);
-    text(g, "탑 " + std::to_string(game.towerFloor()) + "층 / " + std::to_string(Game::kTowerFloors), a.X + 16.f,
-         a.Y - 34.f, 18.f, kText, 0, true, true);
-    text(g, std::string(combatModeName(game.towerMode())) + " · 자동 사냥 불가", a.GetRight() - 16.f, a.Y - 30.f, 14.f,
-         kSub, 2, false, true);
-    for (const Enemy& e : game.world().enemies()) {
-        if (enemyDef(e.kind).role != EnemyRole::Boss) continue;
-        RectF br(a.X + a.Width * 0.2f, a.Y + 14.f, a.Width * 0.6f, 16.f);
-        const std::string& bn = enemyDef(e.kind).name;
-        bar(g, br, e.hp / e.maxHp, e.phase2 ? 0xFFFF4D4D : 0xFFE0703A, e.phase2 ? bn + " (분노)" : bn);
-    }
-}
-
-// ---------------------------------------------------------------------------
-// 창(모달)
-// ---------------------------------------------------------------------------
-
-void Renderer::drawModal(Graphics& g, const Game& game, const Sprites& sprites, const RenderContext& ctx,
-                         std::vector<UiButton>& out) {
-    Screen sc = game.screen();
-    float cx = width_ * 0.5f;
-    float cy = height_ * 0.5f;
-    const DragonRecord& rec = game.dragonRecord();
-
-    switch (sc) {
-        case Screen::Select:
-            drawSelect(g, game, sprites, ctx, out);
-            break;
-        case Screen::Codex:
-            drawCodex(g, game, ctx, out);
-            break;
-        case Screen::Stable:
-            drawStable(g, game, sprites, ctx, out);
-            break;
-        case Screen::AutoWarning: {
-            RectF r(cx - 290.f, cy - 160.f, 580.f, 320.f);
-            panel(g, r);
-            text(g, "자동 사냥을 시작할까요?", r.X + 24.f, r.Y + 20.f, 20.f, kText, 0, true);
-            std::string body =
-                "• 드래곤이 스스로 이동·공격·스킬을 사용합니다.\n"
-                "• 자동 사냥에서도 피해를 입습니다. 체력이 0이 되면 이 드래곤은 영구히 사라집니다.\n"
-                "• 다른 앱이 전체화면이어도 자동 사냥은 계속됩니다(숨김은 일시정지가 아닙니다).\n"
-                "• 자동으로 얻을 수 있는 경험치는 남은 " + std::to_string(autoExpRemaining(rec)) +
-                "까지이며, 상한에 도달하면 자동으로 멈춥니다.";
-            paragraph(g, body, RectF(r.X + 24.f, r.Y + 62.f, r.Width - 48.f, 150.f), 14.f, kText);
-            text(g, "현재 체력 " + fmtInt(game.world().dragon().hp) + " / " + fmtInt(game.world().dragon().stats.maxHp),
-                 r.X + 24.f, r.Y + 216.f, 14.f, kWarnC, 0, true);
-            button(g, out, ctx, RectF(r.X + 24.f, r.GetBottom() - 64.f, 250.f, 44.f), "자동 사냥 시작", UiAction::ConfirmAuto);
-            button(g, out, ctx, RectF(r.GetRight() - 24.f - 180.f, r.GetBottom() - 64.f, 180.f, 44.f), "취소",
-                   UiAction::CloseModal);
-            break;
+    // 오른쪽 아래 모서리: 끌어서 창 크기 바꾸기
+    {
+        float gsz = 16.f * s;
+        RectF grip(r.GetRight() - gsz - 4.f, r.GetBottom() - gsz - 4.f, gsz, gsz);
+        bool hov = grip.Contains(PointF(ctx.mouseX, ctx.mouseY));
+        for (int i = 0; i < 3; ++i) {
+            float o = i * 5.f * s;
+            Pen pen(Color(hov ? 230 : 130, 180, 190, 220), 1.5f);
+            g.DrawLine(&pen, grip.GetRight() - o, grip.GetBottom(), grip.GetRight(), grip.GetBottom() - o);
         }
-        case Screen::TowerWarning: {
-            RectF r(cx - 310.f, cy - 200.f, 620.f, 400.f);
-            panel(g, r);
-            text(g, "탑에 도전할까요?", r.X + 24.f, r.Y + 20.f, 20.f, kText, 0, true);
-            text(g, "3층 구성 · 마지막 층에는 탑의 수호자가 기다립니다.", r.X + 24.f, r.Y + 56.f, 14.f, kSub);
-            bool low = rec.level < cfg::kTowerRecommendedLevel;
-            text(g, "현재 Lv." + std::to_string(rec.level) + "  ·  권장 Lv." + std::to_string(cfg::kTowerRecommendedLevel),
-                 r.X + 24.f, r.Y + 84.f, 16.f, low ? kWarnC : kHpC, 0, true);
-            RectF danger(r.X + 24.f, r.Y + 116.f, r.Width - 48.f, 92.f);
-            fillRound(g, danger, 8.f, Color(120, 120, 20, 24));
-            paragraph(g,
-                      "탑에서 체력이 0이 되면 " + dragonName(rec) + "은(는) 영구히 사라지고 다시 사용할 수 없습니다. "
-                      "레벨·경험치·스킬은 모두 사라지며, 탑 최고 기록과 도감만 남습니다.",
-                      RectF(danger.X + 12.f, danger.Y + 10.f, danger.Width - 24.f, danger.Height - 16.f), 14.f, 0xFFFFC2C2,
-                      0, true);
-            paragraph(g,
-                      "탑에서는 자동 사냥을 쓸 수 없습니다. 들어가면 체력이 모두 회복되고, 층을 돌파할 때마다 30% 회복합니다. "
-                      "층 사이에서 탑을 나가면 드래곤은 살아서 돌아옵니다.",
-                      RectF(r.X + 24.f, r.Y + 220.f, r.Width - 48.f, 60.f), 13.f, kSub);
-            float bw = (r.Width - 48.f - 16.f) / 3.f;
-            float by = r.GetBottom() - 68.f;
-            button(g, out, ctx, RectF(r.X + 24.f, by, bw, 46.f), "직접 조작으로 도전", UiAction::EnterTower,
-                   static_cast<int>(CombatMode::Direct));
-            button(g, out, ctx, RectF(r.X + 24.f + bw + 8.f, by, bw, 46.f), "스킬 수동으로 도전", UiAction::EnterTower,
-                   static_cast<int>(CombatMode::SkillManual));
-            button(g, out, ctx, RectF(r.X + 24.f + (bw + 8.f) * 2.f, by, bw, 46.f), "취소", UiAction::CloseModal);
-            break;
-        }
-        case Screen::FloorClear: {
-            RectF r(cx - 260.f, cy - 130.f, 520.f, 260.f);
-            panel(g, r);
-            text(g, std::to_string(game.towerFloor()) + "층 돌파!", r.X + r.Width * 0.5f, r.Y + 24.f, 24.f, 0xFFFFE9A8, 1,
-                 true);
-            text(g, "체력이 30% 회복되었습니다.", r.X + r.Width * 0.5f, r.Y + 66.f, 15.f, kText, 1);
-            const DragonActor& d = game.world().dragon();
-            bar(g, RectF(r.X + 60.f, r.Y + 100.f, r.Width - 120.f, 16.f), d.hp / d.stats.maxHp, kHpC,
-                "체력 " + fmtInt(d.hp) + " / " + fmtInt(d.stats.maxHp));
-            std::string next = game.towerFloor() + 1 == Game::kTowerFloors ? "다음은 수호자의 층입니다." : "다음 층으로 갈까요?";
-            text(g, next, r.X + r.Width * 0.5f, r.Y + 130.f, 14.f, kSub, 1);
-            button(g, out, ctx, RectF(r.X + 24.f, r.GetBottom() - 66.f, 220.f, 46.f), "다음 층", UiAction::NextFloor);
-            button(g, out, ctx, RectF(r.GetRight() - 24.f - 220.f, r.GetBottom() - 66.f, 220.f, 46.f), "탑에서 나가기",
-                   UiAction::LeaveTower);
-            break;
-        }
-        case Screen::TowerVictory: {
-            RectF r(cx - 260.f, cy - 130.f, 520.f, 260.f);
-            panel(g, r);
-            text(g, "탑 정복!", r.X + r.Width * 0.5f, r.Y + 26.f, 28.f, 0xFFFFD86B, 1, true);
-            text(g, dragonName(rec) + "이(가) 탑의 수호자를 쓰러뜨렸습니다.", r.X + r.Width * 0.5f, r.Y + 76.f, 15.f, kText,
-                 1);
-            text(g, "보상: +" + std::to_string(cfg::kTowerClearExp) + " EXP  ·  정복 횟수 " +
-                        std::to_string(game.save().towerClears),
-                 r.X + r.Width * 0.5f, r.Y + 106.f, 15.f, kExpC, 1, true);
-            button(g, out, ctx, RectF(r.X + r.Width * 0.5f - 120.f, r.GetBottom() - 70.f, 240.f, 46.f), "바탕화면으로",
-                   UiAction::LeaveTower);
-            break;
-        }
-        case Screen::Death: {
-            RectF r(cx - 290.f, cy - 150.f, 580.f, 300.f);
-            panel(g, r, 245);
-            const GraveEntry* gr = game.lastGrave();
-            text(g, "드래곤이 쓰러졌습니다", r.X + r.Width * 0.5f, r.Y + 24.f, 24.f, kDanger, 1, true);
-            if (gr) {
-                std::string who = std::string(speciesDef(gr->species).name) + " #" + std::to_string(gr->id) + " · Lv." +
-                                  std::to_string(gr->level);
-                text(g, who, r.X + r.Width * 0.5f, r.Y + 70.f, 17.f, kText, 1, true);
-                text(g, "쓰러진 곳: " + placeLabel(gr->place), r.X + r.Width * 0.5f, r.Y + 100.f, 14.f, kSub, 1);
-            }
-            paragraph(g, "이 드래곤은 다시 사용할 수 없습니다. 탑 최고 기록(" + std::to_string(game.save().bestFloor) +
-                             "층)과 도감은 남아 있습니다. 새 드래곤으로 다시 도전하세요.",
-                      RectF(r.X + 40.f, r.Y + 130.f, r.Width - 80.f, 60.f), 14.f, kText, 1);
-            button(g, out, ctx, RectF(r.X + r.Width * 0.5f - 130.f, r.GetBottom() - 70.f, 260.f, 46.f), "새 드래곤 선택",
-                   UiAction::AckDeath);
-            break;
-        }
-        default:
-            break;
+        out.push_back({grip, UiAction::DragMenuSize, 0, true});
+        markRegion(grip);
     }
-}
-
-void Renderer::drawSelect(Graphics& g, const Game& game, const Sprites& sprites, const RenderContext& ctx,
-                          std::vector<UiButton>& out) {
-    // v0.2: 종이 폴더로 늘어날 수 있으므로 화면 너비에 맞춰 카드 크기를 줄이고,
-    // 그래도 넘치면 들어가는 만큼만 보여 준다.
-    const float gap = 14.f;
-    const float minCardW = 150.f;
-    const float maxCardW = 222.f;
-    const float availW = width_ - 80.f - 48.f;  // 양옆 여백과 패널 안쪽 여백
-    int total = speciesCount();
-    int shown = std::max(1, total);
-    float cardW = maxCardW;
-    while (shown > 1) {
-        cardW = (availW - gap * (shown - 1)) / shown;
-        if (cardW >= minCardW) break;
-        --shown;
-    }
-    cardW = std::clamp(cardW, minCardW, maxCardW);
-
-    const float pw = cardW * shown + gap * (shown - 1) + 48.f;
-    const float ph = 600.f;
-    RectF r(width_ * 0.5f - pw * 0.5f, height_ * 0.5f - ph * 0.5f, pw, ph);
-    panel(g, r, 242);
-    // v1.3: 관리창에서 "새 드래곤"으로 들어왔으면 돌아갈 수 있어야 한다.
-    bool adding = game.addingDragon();
-    text(g, adding ? "새 드래곤 데려오기" : "드래곤 선택", r.X + 24.f, r.Y + 18.f, 22.f, kText, 0, true);
-    std::string sub = adding ? "보유 목록에 더합니다. 지금 띄워 둔 드래곤은 그대로 있습니다."
-                             : "함께 탑을 오를 드래곤 한 마리를 고르세요. 이름과 수치는 임시안입니다.";
-    if (shown < total) sub += "  (" + std::to_string(total) + "종 중 " + std::to_string(shown) + "종 표시)";
-    text(g, sub, r.X + 24.f, r.Y + 54.f, 14.f, kSub);
-    float hx = r.GetRight() - 24.f - 130.f;
-    if (adding) {
-        button(g, out, ctx, RectF(hx, r.Y + 18.f, 130.f, 34.f), "관리창으로", UiAction::OpenStable);
-        hx -= 138.f;
-    }
-    if (!game.save().graves.empty() || game.save().bestFloor > 0) {
-        button(g, out, ctx, RectF(hx, r.Y + 18.f, 130.f, 34.f), "기록·도감", UiAction::OpenCodex);
-    }
-
-    float y0 = r.Y + 88.f;
-    for (int i = 0; i < shown; ++i) {
-        const SpeciesDef& sp = speciesDef(static_cast<Species>(i));
-        RectF c(r.X + 24.f + i * (cardW + gap), y0, cardW, ph - 88.f - 72.f);
-        bool hover = c.Contains(PointF(ctx.mouseX, ctx.mouseY));
-        fillRound(g, c, 10.f, hover ? Color(255, 44, 48, 68) : Color(255, 34, 37, 52));
-        strokeRound(g, c, 10.f, col(sp.color, hover ? 1.f : 0.6f), hover ? 2.5f : 1.5f);
-
-        DragonActor preview;
-        preview.species = sp.id;
-        preview.facing = Vec2{1.f, 0.f};
-        preview.anim = AnimState::Idle;
-        drawDragon(g, preview, sprites, ctx.time + i, c.X + c.Width * 0.5f, c.Y + 62.f, 96.f, true);
-
-        float x = c.X + 14.f;
-        float y = c.Y + 128.f;
-        text(g, sp.name, x, y, 17.f, kText, 0, true);
-        text(g, sp.role, c.GetRight() - 14.f, y + 2.f, 13.f, sp.color, 2, true);
-        y += 28.f;
-        paragraph(g, sp.desc, RectF(x, y, c.Width - 28.f, 40.f), 12.f, kSub);
-        y += 42.f;
-        DragonStats st = statsFor(sp.id, 1);
-        text(g, "체력 " + fmtInt(st.maxHp) + " · 공격 " + fmtInt(st.atk) + " · 방어 " + fmtInt(st.def), x, y, 12.f, kText);
-        y += 18.f;
-        std::string line2 = "속도 " + fmtInt(st.speed) + " · 회피 " + fmtPct(st.dodge);
-        if (st.regen > 0.f) line2 += " · 재생";
-        text(g, line2, x, y, 12.f, kText);
-        y += 26.f;
-        for (const SkillDef& s : sp.skills) {
-            text(g, s.name, x, y, 12.f, 0xFFE8EAF2, 0, true);
-            text(g, "Lv." + std::to_string(s.unlockLevel), c.GetRight() - 14.f, y, 12.f, kSub, 2);
-            y += 17.f;
-            paragraph(g, s.desc, RectF(x, y, c.Width - 28.f, 30.f), 11.f, 0xFF9AA2B4);
-            y += 30.f;
-        }
-        button(g, out, ctx, RectF(c.X + 14.f, c.GetBottom() - 52.f, c.Width - 28.f, 40.f), "이 드래곤으로 시작",
-               UiAction::ChooseSpecies, i);
-    }
-    RectF warn(r.X + 24.f, r.GetBottom() - 60.f, r.Width - 48.f, 40.f);
-    fillRound(g, warn, 8.f, Color(110, 120, 20, 24));
-    text(g, "드래곤이 쓰러지면 그 개체는 되살릴 수 없습니다. 탑 최고 기록과 도감은 남습니다.", warn.X + warn.Width * 0.5f,
-         warn.Y + 10.f, 14.f, 0xFFFFC2C2, 1, true);
 }
 
 void Renderer::drawStable(Graphics& g, const Game& game, const Sprites& sprites, const RenderContext& ctx,

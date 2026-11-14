@@ -65,6 +65,8 @@ constexpr float kWaveLevelStep = 3;       // 웨이브 이만큼마다 적 수�
 constexpr float kMenuScaleMin = 0.7f;
 constexpr float kMenuScaleMax = 1.6f;
 constexpr float kMenuScaleStep = 0.1f;
+// v1.4: 메뉴 모서리를 끌 때 배수 1.0이 바뀌는 데 필요한 픽셀 수. 클수록 천천히 바뀐다.
+constexpr float kMenuScaleDragPx = 420.f;
 constexpr float kCharScaleMin = 0.5f;   // 캐릭터 크기는 보기 전용이다. 판정 크기는 바뀌지 않는다
 constexpr float kCharScaleMax = 2.0f;
 constexpr float kCharScaleStep = 0.1f;

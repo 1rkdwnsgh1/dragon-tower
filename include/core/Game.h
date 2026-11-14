@@ -68,7 +68,10 @@ public:
     int towerFloor() const { return towerFloor_; }
     static constexpr int kTowerFloors = 3;
     bool inTowerFlow() const;
-    bool needsInput() const;       // 입력이 필요한 화면인가
+    bool needsInput() const;
+    // v1.4: 키보드를 받아야 하는 상태인가. 싸우는 중이고 자동 모드가 아닐 때만이다.
+    // 자동 사냥은 키가 필요 없으므로 쓰던 프로그램의 포커스를 가져오지 않는다.
+    bool wantsKeyboard() const;       // 입력이 필요한 화면인가
     bool combatPaused() const { return paused_; }
     const std::string& pauseReason() const { return pauseReason_; }
     const World& world() const { return world_; }
@@ -106,6 +109,9 @@ public:
     // v1.0: 메뉴 창은 키보드 조작과 상관없이 마우스로 열고 닫는다.
     bool menuOpen() const { return save_.menuOpen; }
     void setMenuOpen(bool on);
+    // v1.4 메뉴 탭: 0 전투 설정 / 1 환경 설정
+    int menuTab() const { return save_.menuTab; }
+    void setMenuTab(int t);
     // v0.9: 싸울 때 유지할 간격(0 근접 / 1 중간 / 2 바깥). 스킬 수동·자동에 적용된다.
     int keepRange() const { return save_.keepRange; }
     void setKeepRange(int v);

@@ -114,9 +114,9 @@ bool App::init(HINSTANCE inst) {
     // 클릭 통과·비활성 상태로 시작한다. 입력을 켜면 스타일을 바꾼다.
     DWORD ex = WS_EX_LAYERED | WS_EX_TOPMOST | WS_EX_TOOLWINDOW | WS_EX_NOACTIVATE | WS_EX_TRANSPARENT;
     overlay_ = CreateWindowExW(ex, kWindowClass, L"Dragon Tower", WS_POPUP, 0, 0, 100, 100, nullptr, nullptr, inst, this);
-    button_ = CreateWindowExW(WS_EX_LAYERED | WS_EX_TOPMOST | WS_EX_TOOLWINDOW | WS_EX_NOACTIVATE, kWindowClass,
-                              L"Dragon Tower 설정", WS_POPUP, 0, 0, 64, 64, nullptr, nullptr, inst, this);
-    if (!overlay_ || !button_) return false;
+    // v1.4: 설정 버튼 창을 없앴다. 키보드는 게임이 알아서 켜고(싸우는 중이고 자동이 아닐 때),
+    // 메뉴는 상태창에서 연다. 레이어드 창 하나와 매 프레임 UpdateLayeredWindow 한 번이 사라졌다.
+    if (!overlay_) return false;
 
     layout();
 
@@ -159,18 +159,18 @@ bool App::init(HINSTANCE inst) {
     if (more > 0) game_.notify("경고 " + std::to_string(more) + "건이 더 있습니다.", 0xFFFFD166, 10.f);
 
     ShowWindow(overlay_, SW_SHOWNOACTIVATE);
-    ShowWindow(button_, SW_SHOWNOACTIVATE);
     // 처음 선택 화면이면 바로 고를 수 있도록 입력을 켠다.
     setInputEnabled(game_.needsInput());
     taskbarCreatedMsg_ = RegisterWindowMessageW(L"TaskbarCreated");
     createTray();
     // Ctrl+Shift+D 로 키보드 조작을 켜고 끈다. 이미 쓰는 조합이면 조용히 넘어간다.
+    // v1.4: 키보드 받기는 게임이 알아서 하므로, 이 단축키는 **메뉴 열고 닫기**로 쓴다.
     if (!RegisterHotKey(overlay_, kHotkeyId, MOD_CONTROL | MOD_SHIFT | MOD_NOREPEAT, 'D')) {
         game_.notify("Ctrl+Shift+D 단축키를 등록하지 못했습니다(다른 앱이 쓰는 중).", 0xFFFFD166, 6.f);
     }
     refreshTrayTip();
     if (!game_.hintShown()) {
-        game_.notify("창과 버튼은 언제나 마우스로 씁니다. Ctrl+Shift+D는 키보드 조작을 켜고 끕니다.", 0xFFAAD4FF, 12.f);
+        game_.notify("창과 버튼은 마우스로 씁니다. 싸우기 시작하면 키보드를 받습니다. Ctrl+Shift+D는 메뉴입니다.", 0xFFAAD4FF, 12.f);
         game_.markHintShown();
         saveNow();
     }
@@ -186,12 +186,10 @@ void App::layout() {
     overlaySurf_.create(w, h);
     SetWindowPos(overlay_, HWND_TOPMOST, work_.left, work_.top, w, h, SWP_NOACTIVATE);
 
-    buttonPx_ = static_cast<int>(std::lround(kButtonLogical * scale_));
+    buttonPx_ = static_cast<int>(std::lround(kButtonLogical * scale_));  // 더 쓰지 않는다(설정 버튼 제거)
     int margin = static_cast<int>(std::lround(kButtonMargin * scale_));
     buttonX_ = work_.right - margin - buttonPx_;
     buttonY_ = work_.bottom - margin - buttonPx_;
-    buttonSurf_.create(buttonPx_, buttonPx_);
-    SetWindowPos(button_, HWND_TOPMOST, buttonX_, buttonY_, buttonPx_, buttonPx_, SWP_NOACTIVATE);
     game_.setDesktopBounds(RectF(0.f, 0.f, w / scale_, h / scale_));
 }
 
@@ -199,7 +197,6 @@ void App::shutdown() {
     UnregisterHotKey(overlay_, kHotkeyId);
     destroyTray();
     overlaySurf_.destroy();
-    buttonSurf_.destroy();
     renderer_.shutdown();
 }
 
@@ -208,9 +205,11 @@ void App::shutdown() {
 // ---------------------------------------------------------------------------
 
 void App::setInputEnabled(bool on) {
-    // v1.0: 이 스위치는 "키보드 조작"만 켜고 끈다. 마우스는 우리가 그린 것 위에서 항상 받는다.
-    // 클릭 통과(WS_EX_TRANSPARENT)는 updateClickThrough 가 매 프레임 맡는다. 여기서 같이 건드리면
+    // v1.4: 사람이 켜고 끄는 스위치가 아니다. 게임이 키보드를 필요로 할 때만(싸우는 중이고
+    // 자동이 아닐 때) 켜진다. syncKeyboard() 가 매 프레임 이 함수를 부른다.
+    // 클릭 통과(WS_EX_TRANSPARENT)는 updateClickThrough 가 맡는다. 여기서 같이 건드리면
     // 커서가 UI 위에 있는데도 통과로 되돌려 놓는 일이 생긴다.
+    if (inputEnabled_ == on) return;
     inputEnabled_ = on;
     cursorOnUi_ = false;  // 다음 갱신에서 다시 판단하게 한다
     LONG_PTR ex = GetWindowLongPtrW(overlay_, GWL_EXSTYLE);
@@ -219,7 +218,6 @@ void App::setInputEnabled(bool on) {
     else ex |= static_cast<LONG_PTR>(WS_EX_NOACTIVATE);
     SetWindowLongPtrW(overlay_, GWL_EXSTYLE, ex);
     SetWindowPos(overlay_, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_FRAMECHANGED | SWP_NOACTIVATE);
-    SetWindowPos(button_, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
     if (on) {
         SetForegroundWindow(overlay_);
         SetFocus(overlay_);
@@ -303,19 +301,16 @@ int App::run() {
 }
 
 void App::updateFullscreenState() {
-    bool fs = isOtherAppFullscreen(overlay_, button_);
+    bool fs = isOtherAppFullscreen(overlay_, nullptr);
     if (fs == hidden_) return;
     hidden_ = fs;
     if (hidden_) {
         // 숨김은 일시정지가 아니다. 자동 사냥은 계속 진행된다.
         ShowWindow(overlay_, SW_HIDE);
-        ShowWindow(button_, SW_HIDE);
     } else {
         ShowWindow(overlay_, SW_SHOWNOACTIVATE);
-        ShowWindow(button_, SW_SHOWNOACTIVATE);
         SetWindowPos(overlay_, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
-        SetWindowPos(button_, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
-    }
+        }
 }
 
 void App::tick(float dt) {
@@ -329,8 +324,7 @@ void App::tick(float dt) {
     if (topmostTimer_ >= 2.f && !hidden_) {
         topmostTimer_ = 0.f;
         SetWindowPos(overlay_, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
-        SetWindowPos(button_, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
-    }
+        }
 
     // 끌기가 어떤 이유로든 끊겼으면 잡고 있는 상태도 푼다(드래곤이 굳어 버리지 않게).
     if (drag_ != Drag::Dragon && game_.dragonHeld()) game_.setDragonHeld(false);
@@ -342,6 +336,7 @@ void App::tick(float dt) {
     pumpAlerts();
 
     // 클릭 통과 범위는 매 프레임 갱신한다(요소가 움직이므로).
+    syncKeyboard();
     updateClickThrough();
 
     if (hidden_) return;
@@ -380,7 +375,9 @@ void App::render() {
         g.SetCompositingMode(CompositingModeSourceOver);
         g.SetSmoothingMode(SmoothingModeAntiAlias);
         g.SetTextRenderingHint(TextRenderingHintAntiAlias);
-        g.SetInterpolationMode(InterpolationModeHighQualityBicubic);
+        // v1.4: 고품질 바이큐빅은 스프라이트·UI 조각을 매 프레임 다시 샘플링하면서 비싸다.
+        // 노트북에서 프레임이 떨어지던 가장 큰 원인이라 양선형으로 낮췄다. 눈으로는 거의 같다.
+        g.SetInterpolationMode(InterpolationModeBilinear);
         g.ScaleTransform(scale_, scale_);
         RenderContext ctx;
         ctx.inputEnabled = inputEnabled_;
@@ -390,19 +387,6 @@ void App::render() {
         renderer_.drawOverlay(g, game_, sprites_, ctx, buttons_, &regions_);
         g.Flush(FlushIntentionSync);
         overlaySurf_.present(overlay_, work_.left, work_.top);
-    }
-    if (buttonSurf_.gbmp) {
-        Graphics g(buttonSurf_.gbmp.get());
-        g.SetCompositingMode(CompositingModeSourceCopy);
-        g.Clear(Color(0, 0, 0, 0));
-        g.SetCompositingMode(CompositingModeSourceOver);
-        g.SetSmoothingMode(SmoothingModeAntiAlias);
-        g.SetTextRenderingHint(TextRenderingHintAntiAlias);
-        g.ScaleTransform(scale_, scale_);
-        bool attention = !inputEnabled_ && (game_.needsInput() || (game_.combatPaused() && !hidden_));
-        renderer_.drawSettingsButton(g, kButtonLogical, sprites_, inputEnabled_, attention, buttonHover_, time_);
-        g.Flush(FlushIntentionSync);
-        buttonSurf_.present(button_, buttonX_, buttonY_);
     }
 }
 
@@ -436,12 +420,10 @@ void App::doAction(const UiButton& b) {
         case UiAction::ExitGame: requestExit(); return;
         case UiAction::TogglePanel: game_.setPanelCollapsed(!game_.panelCollapsed()); break;
         case UiAction::ToggleConfine: game_.setConfineToBand(!game_.confineToBand()); break;
-        case UiAction::MenuScale:
-            game_.setMenuScale(game_.menuScale() + b.arg * cfg::kMenuScaleStep);
-            break;
-        case UiAction::CharScale:
-            game_.setCharScale(game_.charScale() + b.arg * cfg::kCharScaleStep);
-            break;
+        case UiAction::CloseMenu: game_.setMenuOpen(false); break;
+        case UiAction::SetMenuTab: game_.setMenuTab(b.arg); break;
+        case UiAction::DragMenuSize:   // 끌기는 WM_LBUTTONDOWN 에서 시작한다
+        case UiAction::DragCharSlider: break;
         case UiAction::TogglePowerSave: game_.setPowerSave(!game_.powerSave()); break;
         case UiAction::ToggleMenu: game_.setMenuOpen(!game_.menuOpen()); break;
         case UiAction::OpenStable: game_.openStable(); break;
@@ -468,8 +450,6 @@ void App::saveNow() {
 void App::requestExit() {
     saveNow();
     running_ = false;
-    if (button_) DestroyWindow(button_);
-    button_ = nullptr;
     if (overlay_) DestroyWindow(overlay_);
     overlay_ = nullptr;
     PostQuitMessage(0);
@@ -495,6 +475,18 @@ LRESULT CALLBACK App::StaticProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
 // ---------------------------------------------------------------------------
 // v0.6: 클릭 통과 · 트레이 아이콘 · 전역 단축키 · 끌기
 // ---------------------------------------------------------------------------
+
+// v1.4: 게임 상태에 맞춰 키보드 받기를 켜고 끈다.
+// 켜질 때만 창을 활성화하므로, 자동 사냥이나 그냥 구경할 때는 포커스를 가져가지 않는다.
+void App::syncKeyboard() {
+    bool want = game_.wantsKeyboard() && !hidden_;
+    if (want == inputEnabled_) return;
+    setInputEnabled(want);
+    if (want) {
+        SetForegroundWindow(overlay_);
+        SetFocus(overlay_);
+    }
+}
 
 void App::updateClickThrough() {
     // 우리가 그린 것 위에 커서가 있을 때만 입력을 받는다. 나머지는 바탕화면과 다른 창으로
@@ -547,7 +539,7 @@ void App::destroyTray() {
 void App::refreshTrayTip() {
     if (!trayAdded_) return;
     std::wstring tip = L"Dragon Tower — ";
-    tip += inputEnabled_ ? L"키보드 조작 켜짐" : L"키보드 조작 꺼짐";
+    tip += inputEnabled_ ? L"키보드 받는 중" : L"대기";
     if (hidden_) tip += L" (숨김)";
     wcsncpy_s(tray_.szTip, tip.c_str(), _TRUNCATE);
     tray_.uFlags = NIF_TIP;
@@ -580,7 +572,7 @@ void App::showTrayMenu() {
     HMENU m = CreatePopupMenu();
     if (!m) return;
     AppendMenuW(m, MF_STRING, kMenuToggleInput,
-                inputEnabled_ ? L"키보드 조작 끄기 (Ctrl+Shift+D)" : L"키보드 조작 켜기 (Ctrl+Shift+D)");
+                game_.menuOpen() ? L"메뉴 닫기 (Ctrl+Shift+D)" : L"메뉴 열기 (Ctrl+Shift+D)");
     AppendMenuW(m, MF_STRING, kMenuShowHide, hidden_ ? L"드래곤 보이기" : L"드래곤 숨기기");
     AppendMenuW(m, MF_SEPARATOR, 0, nullptr);
     AppendMenuW(m, MF_STRING, kMenuResetPanel, L"상태창 위치 되돌리기");
@@ -597,6 +589,21 @@ void App::showTrayMenu() {
 bool App::startDrag(float lx, float ly) {
     for (const UiButton& b : buttons_) {
         if (!b.enabled || !b.rect.Contains(Gdiplus::PointF(lx, ly))) continue;
+        if (b.action == UiAction::DragMenuSize) {
+            drag_ = Drag::MenuSize;
+            dragDX_ = lx;                      // 시작한 가로 위치
+            dragStartScale_ = game_.menuScale();
+            return true;
+        }
+        if (b.action == UiAction::DragCharSlider) {
+            // arg 에 슬라이더 왼쪽 끝(정수 픽셀)을, rect 너비에 길이를 담아 보낸다
+            drag_ = Drag::CharSlider;
+            dragDX_ = b.rect.X;
+            dragDY_ = b.rect.Width;
+            game_.setCharScale(cfg::kCharScaleMin + (lx - b.rect.X) / std::max(1.f, b.rect.Width) *
+                                                        (cfg::kCharScaleMax - cfg::kCharScaleMin));
+            return true;
+        }
         if (b.action == UiAction::DragPanel || b.action == UiAction::DragMenu) {
             drag_ = b.action == UiAction::DragPanel ? Drag::Panel : Drag::Menu;
             // 창 왼쪽 위에서 커서까지의 거리를 기억한다
@@ -623,9 +630,8 @@ bool App::startDrag(float lx, float ly) {
 }
 
 LRESULT App::handle(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
-    const bool isButton = hwnd == button_;
     // 탐색기가 다시 시작하면 트레이 아이콘이 사라진다. 다시 넣어 준다.
-    if (!isButton && taskbarCreatedMsg_ != 0 && msg == taskbarCreatedMsg_) {
+    if (taskbarCreatedMsg_ != 0 && msg == taskbarCreatedMsg_) {
         trayAdded_ = false;
         createTray();
         refreshTrayTip();
@@ -633,74 +639,59 @@ LRESULT App::handle(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
     }
     switch (msg) {
         case WM_MOUSEACTIVATE:
-            // 설정 버튼은 포커스를 빼앗지 않는다. 오버레이는 키보드 조작이 켜졌을 때만 활성화된다.
-            // (마우스만 쓸 때 창을 활성화하면 쓰던 프로그램의 포커스를 뺏는다.)
-            if (isButton || !inputEnabled_) return MA_NOACTIVATE;
+            // 키보드를 받는 중(싸우는 중이고 자동이 아님)일 때만 창을 활성화한다.
+            // 마우스만 쓸 때 활성화하면 쓰던 프로그램의 포커스를 뺏는다.
+            if (!inputEnabled_) return MA_NOACTIVATE;
             return MA_ACTIVATE;
 
         case WM_MOUSEMOVE: {
             float x = static_cast<float>(static_cast<short>(LOWORD(lp)));
             float y = static_cast<float>(static_cast<short>(HIWORD(lp)));
-            if (isButton) {
-                if (!buttonHover_) {
-                    TRACKMOUSEEVENT tme{};
-                    tme.cbSize = sizeof(tme);
-                    tme.dwFlags = TME_LEAVE;
-                    tme.hwndTrack = hwnd;
-                    TrackMouseEvent(&tme);
-                }
-                buttonHover_ = true;
-            } else {
-                mouseX_ = x / scale_;
-                mouseY_ = y / scale_;
-                if (drag_ == Drag::Panel) {
-                    game_.setPanelPos({mouseX_ - dragDX_, mouseY_ - dragDY_});
-                } else if (drag_ == Drag::Menu) {
-                    game_.setMenuPos({mouseX_ - dragDX_, mouseY_ - dragDY_});
-                } else if (drag_ == Drag::Dragon) {
-                    game_.placeDragon({mouseX_ - dragDX_, mouseY_ - dragDY_});
-                }
+            mouseX_ = x / scale_;
+            mouseY_ = y / scale_;
+            if (drag_ == Drag::Panel) {
+                game_.setPanelPos({mouseX_ - dragDX_, mouseY_ - dragDY_});
+            } else if (drag_ == Drag::Menu) {
+                game_.setMenuPos({mouseX_ - dragDX_, mouseY_ - dragDY_});
+            } else if (drag_ == Drag::MenuSize) {
+                // v1.4: 오른쪽 아래 모서리를 끌어 메뉴 크기를 바꾼다
+                game_.setMenuScale(dragStartScale_ + (mouseX_ - dragDX_) / cfg::kMenuScaleDragPx);
+            } else if (drag_ == Drag::Dragon) {
+                game_.placeDragon({mouseX_ - dragDX_, mouseY_ - dragDY_});
+            } else if (drag_ == Drag::CharSlider) {
+                game_.setCharScale(cfg::kCharScaleMin +
+                                   (mouseX_ - dragDX_) / std::max(1.f, dragDY_) *
+                                       (cfg::kCharScaleMax - cfg::kCharScaleMin));
             }
             return 0;
         }
-        case WM_MOUSELEAVE:
-            if (isButton) buttonHover_ = false;
-            return 0;
 
-        case WM_LBUTTONDOWN:
-            if (isButton) {
-                setInputEnabled(!inputEnabled_);
-            } else {
-                // v1.0: 우리가 그린 것 위에서는 키보드 조작이 꺼져 있어도 언제나 받는다.
-                float x = static_cast<float>(static_cast<short>(LOWORD(lp)));
-                float y = static_cast<float>(static_cast<short>(HIWORD(lp)));
-                float lx = x / scale_, ly = y / scale_;
-                SetCapture(hwnd);
-                if (!startDrag(lx, ly)) onClick(lx, ly);
-            }
+        case WM_LBUTTONDOWN: {
+            // v1.0: 우리가 그린 것 위에서는 언제나 받는다.
+            float x = static_cast<float>(static_cast<short>(LOWORD(lp)));
+            float y = static_cast<float>(static_cast<short>(HIWORD(lp)));
+            float lx = x / scale_, ly = y / scale_;
+            SetCapture(hwnd);
+            if (!startDrag(lx, ly)) onClick(lx, ly);
             return 0;
+        }
 
         case WM_LBUTTONUP:
-            if (!isButton) {
-                if (drag_ != Drag::None) {
-                    if (drag_ == Drag::Dragon) game_.setDragonHeld(false);
-                    drag_ = Drag::None;
-                    saveNow();  // 옮긴 위치를 바로 남긴다
-                }
-                if (GetCapture() == hwnd) ReleaseCapture();
+            if (drag_ != Drag::None) {
+                if (drag_ == Drag::Dragon) game_.setDragonHeld(false);
+                drag_ = Drag::None;
+                saveNow();  // 옮긴 위치·크기를 바로 남긴다
             }
+            if (GetCapture() == hwnd) ReleaseCapture();
             return 0;
 
         case WM_RBUTTONDOWN:
-            if (isButton) setInputEnabled(!inputEnabled_);
-            else showTrayMenu();  // 오버레이에서 오른쪽 클릭하면 같은 메뉴
+            showTrayMenu();  // 오버레이에서 오른쪽 클릭하면 트레이와 같은 메뉴
             return 0;
 
         case WM_HOTKEY:
-            if (wp == kHotkeyId) {
-                setInputEnabled(!inputEnabled_);
-                refreshTrayTip();
-            }
+            // v1.4: 키보드 받기는 게임이 알아서 하므로, 단축키는 메뉴를 열고 닫는다.
+            if (wp == kHotkeyId) game_.setMenuOpen(!game_.menuOpen());
             return 0;
 
         case kTrayMsg:
@@ -710,11 +701,10 @@ LRESULT App::handle(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
 
         case WM_COMMAND:
             switch (LOWORD(wp)) {
-                case kMenuToggleInput: setInputEnabled(!inputEnabled_); refreshTrayTip(); return 0;
+                case kMenuToggleInput: game_.setMenuOpen(!game_.menuOpen()); refreshTrayTip(); return 0;
                 case kMenuShowHide:
                     hidden_ = !hidden_;
                     ShowWindow(overlay_, hidden_ ? SW_HIDE : SW_SHOWNOACTIVATE);
-                    ShowWindow(button_, hidden_ ? SW_HIDE : SW_SHOWNOACTIVATE);
                     refreshTrayTip();
                     return 0;
                 case kMenuResetPanel:
@@ -728,11 +718,11 @@ LRESULT App::handle(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
             return 0;
 
         case WM_SETCURSOR:
-            SetCursor(LoadCursorW(nullptr, isButton ? IDC_HAND : IDC_ARROW));
+            SetCursor(LoadCursorW(nullptr, IDC_ARROW));
             return TRUE;
 
         case WM_DISPLAYCHANGE:
-            if (!isButton) layout();
+            layout();
             return 0;
 
         case WM_DPICHANGED:
@@ -741,7 +731,7 @@ LRESULT App::handle(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
             return 0;
 
         case WM_SETTINGCHANGE:
-            if (!isButton && wp == SPI_SETWORKAREA) layout();
+            if (wp == SPI_SETWORKAREA) layout();
             return 0;
 
         case WM_QUERYENDSESSION:
@@ -753,11 +743,11 @@ LRESULT App::handle(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
             return 0;
 
         case WM_CLOSE:
-            if (!isButton) requestExit();
+            requestExit();
             return 0;
 
         case WM_DESTROY:
-            if (!isButton) PostQuitMessage(0);
+            PostQuitMessage(0);
             return 0;
     }
     return DefWindowProcW(hwnd, msg, wp, lp);
