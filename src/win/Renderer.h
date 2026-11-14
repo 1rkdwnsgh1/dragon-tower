@@ -18,6 +18,10 @@ enum class UiAction {
     TogglePanel,      // 상태창 접기/펼치기
     ToggleConfine,    // 드래곤을 아래 띠에만 둘지
     DragDragon,       // 드래곤 끌어 옮기기
+    DragMenu,         // 메뉴 창 끌기 손잡이
+    MenuScale,        // 메뉴 창 크기. arg = -1 작게 / +1 크게
+    CharScale,        // 캐릭터 보기 크기. arg = -1 작게 / +1 크게
+    TogglePowerSave,  // 조용할 때 프레임 줄이기
     ChooseSpecies,  // arg = 종류
     StartHunt,
     StopHunt,
@@ -38,6 +42,8 @@ struct UiButton {
     UiAction action = UiAction::None;
     int arg = 0;
     bool enabled = true;
+    // 게임 입력이 꺼져 있어도 누를 수 있는가(상태창처럼 항상 만져야 하는 것).
+    bool always = false;
 };
 
 struct RenderContext {
@@ -51,8 +57,11 @@ struct RenderContext {
 // 어디를 다시 그릴지 정하는 데 쓴다.
 struct FrameRegions {
     std::vector<Gdiplus::RectF> hit;   // 마우스를 받아야 하는 영역
+    // 게임 입력이 꺼져 있어도 마우스를 받아야 하는 영역(상태창). hit에도 함께 들어간다.
+    std::vector<Gdiplus::RectF> always;
     bool fullScreen = false;           // 창·모달이 떠 있어 화면 전체를 받아야 한다
     void add(const Gdiplus::RectF& r) { hit.push_back(r); }
+    void addAlways(const Gdiplus::RectF& r) { always.push_back(r); }
 };
 
 class Renderer {
@@ -83,7 +92,8 @@ private:
     void drawWorld(Gdiplus::Graphics& g, const Game& game, const Sprites& sprites, const RenderContext& ctx);
     void drawDragon(Gdiplus::Graphics& g, const DragonActor& d, const Sprites& sprites, float time, float x, float y,
                     float height, bool preview);
-    void drawEnemy(Gdiplus::Graphics& g, const Enemy& e, const Sprites& sprites, float time);
+    // charScale은 보기 배수다. 그림 크기만 바꾸고 판정에는 쓰지 않는다.
+    void drawEnemy(Gdiplus::Graphics& g, const Enemy& e, const Sprites& sprites, float time, float charScale);
     void drawSprite(Gdiplus::Graphics& g, Gdiplus::Bitmap* bmp, float cx, float cy, float height, bool flip,
                     float flash, float alpha);
     // 시트의 한 칸만 그린다. frame은 0부터.

@@ -54,9 +54,15 @@ struct RectF {
     bool contains(float px, float py) const { return px >= x && px <= x + w && py >= y && py <= y + h; }
 
     // margin만큼 안쪽으로 점을 가둔다
+    // margin은 개체의 반지름이다. 영역이 지름보다 좁으면 범위가 뒤집히는데,
+    // 그때 위쪽에 맞추면 땅에 서는 개체가 떠올라 보인다(전투 띠를 얇게 하면 그랬다).
+    // 세로는 아래쪽(바닥)에, 가로는 가운데에 맞춘다.
     Vec2 clampPoint(const Vec2& p, float margin) const {
-        return {std::clamp(p.x, x + margin, std::max(x + margin, right() - margin)),
-                std::clamp(p.y, y + margin, std::max(y + margin, bottom() - margin))};
+        float loX = x + margin, hiX = right() - margin;
+        float loY = y + margin, hiY = bottom() - margin;
+        float cx = loX <= hiX ? std::clamp(p.x, loX, hiX) : (x + right()) * 0.5f;
+        float cy = loY <= hiY ? std::clamp(p.y, loY, hiY) : hiY;
+        return {cx, cy};
     }
 };
 

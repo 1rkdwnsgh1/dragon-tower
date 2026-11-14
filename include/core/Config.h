@@ -54,10 +54,20 @@ constexpr float kTowerFloorHeal = 0.30f;   // 층 돌파 시 회복 비율
 constexpr int kTowerClearExp = 120;
 constexpr int kTowerRecommendedLevel = 8;
 // 바탕화면 디펜스 전투(v0.5). 전투는 화면 맨 아래 띠에서만 일어난다.
-constexpr float kBandHeight = 150.f;      // 작업 표시줄 바로 위 전투 띠의 높이
+// 띠 높이는 "드래곤이 전투 중에 움직일 수 있는 세로 폭"이다. 그림은 바닥선 위로 그려지므로
+// 띠보다 커도 잘리지 않는다. v0.7의 150은 떠 있는 느낌이라 50으로 내렸다.
+constexpr float kBandHeight = 50.f;       // 작업 표시줄 바로 위 전투 띠의 높이
 constexpr float kBandBottomMargin = 8.f;  // 띠 아래 여백
 constexpr float kSpawnOffsetX = 60.f;     // 왼쪽 화면 밖에서 이만큼 떨어져 등장
 constexpr float kWaveLevelStep = 3;       // 웨이브 이만큼마다 적 수가 한 마리 늘어난다
+
+// 보기 설정(v0.8). 저장 파일의 `ui.menuScale`·`ui.charScale` 범위이자 버튼 한 번에 바뀌는 폭이다.
+constexpr float kMenuScaleMin = 0.7f;
+constexpr float kMenuScaleMax = 1.6f;
+constexpr float kMenuScaleStep = 0.1f;
+constexpr float kCharScaleMin = 0.5f;   // 캐릭터 크기는 보기 전용이다. 판정 크기는 바뀌지 않는다
+constexpr float kCharScaleMax = 2.0f;
+constexpr float kCharScaleStep = 0.1f;
 
 constexpr float kArenaWidth = 960.f;
 constexpr float kArenaHeight = 600.f;

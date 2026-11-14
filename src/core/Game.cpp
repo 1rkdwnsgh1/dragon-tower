@@ -85,6 +85,32 @@ void Game::setPanelCollapsed(bool on) {
     saveRequested_ = true;
 }
 
+void Game::setMenuPos(Vec2 p) {
+    save_.menuX = p.x;
+    save_.menuY = p.y;
+    saveRequested_ = true;
+}
+
+void Game::setMenuScale(float s) {
+    float v = std::clamp(s, cfg::kMenuScaleMin, cfg::kMenuScaleMax);
+    if (save_.menuScale == v) return;
+    save_.menuScale = v;
+    saveRequested_ = true;
+}
+
+void Game::setCharScale(float s) {
+    float v = std::clamp(s, cfg::kCharScaleMin, cfg::kCharScaleMax);
+    if (save_.charScale == v) return;
+    save_.charScale = v;
+    saveRequested_ = true;
+}
+
+void Game::setPowerSave(bool on) {
+    if (save_.powerSave == on) return;
+    save_.powerSave = on;
+    saveRequested_ = true;
+}
+
 RectF Game::arena() const {
     float w = std::min(cfg::kArenaWidth, desktop_.w - 40.f);
     float h = std::min(cfg::kArenaHeight, desktop_.h - 140.f);
@@ -278,7 +304,11 @@ void Game::spawnWave() {
         int lv = std::max(1, level - rng_.range(0, 1));
         // 한 줄로 겹치지 않게 왼쪽 밖에서 간격을 두고 세운다
         float x = band.x - cfg::kSpawnOffsetX - static_cast<float>(i) * 70.f;
-        float y = rng_.uniform(band.y + 40.f, band.bottom() - 30.f);
+        // 띠가 얇으면 40/30 여백이 뒤집힌다. 여백을 띠 높이에 맞춰 줄인다.
+        float margin = std::min(30.f, band.h * 0.25f);
+        float lo = band.y + margin, hi = band.bottom() - margin;
+        if (lo > hi) lo = hi = band.y + band.h * 0.5f;
+        float y = rng_.uniform(lo, hi);
         world_.spawnEnemy(randomMelee(), lv, {x, y});
     }
     waveActive_ = true;

@@ -88,6 +88,16 @@ public:
     void markHintShown() { save_.hintShown = true; saveRequested_ = true; }
     bool panelCollapsed() const { return save_.panelCollapsed; }
     void setPanelCollapsed(bool on);
+    // v0.8: 메뉴 창 위치·크기와 보기 설정.
+    Vec2 menuPos() const { return {save_.menuX, save_.menuY}; }
+    void setMenuPos(Vec2 p);
+    float menuScale() const { return save_.menuScale; }
+    // 배수는 허용 범위로 맞춰서 넣는다. 범위를 벗어난 값을 그대로 저장하지 않는다.
+    void setMenuScale(float s);
+    float charScale() const { return save_.charScale; }
+    void setCharScale(float s);
+    bool powerSave() const { return save_.powerSave; }
+    void setPowerSave(bool on);
     const RectF& desktopBounds() const { return desktop_; }
     const GraveEntry* lastGrave() const { return save_.graves.empty() ? nullptr : &save_.graves.back(); }
 

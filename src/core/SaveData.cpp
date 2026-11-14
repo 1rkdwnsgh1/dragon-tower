@@ -2,6 +2,8 @@
 
 #include <algorithm>
 #include <fstream>
+
+#include "core/Config.h"
 #include <sstream>
 #include <system_error>
 
@@ -73,6 +75,11 @@ std::string serializeSave(const SaveData& s) {
     o << "ui.panelCollapsed=" << (s.panelCollapsed ? 1 : 0) << "\n";
     o << "ui.confineToBand=" << (s.confineToBand ? 1 : 0) << "\n";
     o << "ui.hintShown=" << (s.hintShown ? 1 : 0) << "\n";
+    o << "ui.menuX=" << s.menuX << "\n";
+    o << "ui.menuY=" << s.menuY << "\n";
+    o << "ui.menuScale=" << s.menuScale << "\n";
+    o << "ui.charScale=" << s.charScale << "\n";
+    o << "ui.powerSave=" << (s.powerSave ? 1 : 0) << "\n";
     o << "bestFloor=" << s.bestFloor << "\n";
     o << "towerClears=" << s.towerClears << "\n";
     o << "dragon.present=" << (s.hasDragon ? 1 : 0) << "\n";
@@ -133,6 +140,12 @@ bool deserializeSave(const std::string& text, SaveData& out) {
         else if (key == "ui.panelCollapsed") s.panelCollapsed = toInt(val, 0) != 0;
         else if (key == "ui.confineToBand") s.confineToBand = toInt(val, 0) != 0;
         else if (key == "ui.hintShown") s.hintShown = toInt(val, 0) != 0;
+        else if (key == "ui.menuX") s.menuX = toFloat(val, -1.f);
+        else if (key == "ui.menuY") s.menuY = toFloat(val, -1.f);
+        // 배수는 범위를 벗어난 값이 들어와도 쓸 수 있게 맞춘다(손으로 고친 저장 파일 대비).
+        else if (key == "ui.menuScale") s.menuScale = std::clamp(toFloat(val, 1.f), cfg::kMenuScaleMin, cfg::kMenuScaleMax);
+        else if (key == "ui.charScale") s.charScale = std::clamp(toFloat(val, 1.f), cfg::kCharScaleMin, cfg::kCharScaleMax);
+        else if (key == "ui.powerSave") s.powerSave = toInt(val, 0) != 0;
         else if (key == "huntMode") {
             int m = toInt(val, 1);
             s.huntMode = (m >= 0 && m <= 2) ? static_cast<CombatMode>(m) : CombatMode::SkillManual;

@@ -163,9 +163,23 @@ void Renderer::paragraph(Graphics& g, const std::string& s, const RectF& r, floa
 
 // 이번 프레임에 모은 영역. drawOverlay 동안만 유효하다.
 static FrameRegions* g_regions = nullptr;
+// 이 플래그가 켜진 동안 그린 것은 "게임 입력이 꺼져 있어도 누를 수 있는 것"으로 표시된다.
+// 상태창을 그리는 동안에만 켠다(AlwaysGuard).
+static bool g_always = false;
 static void markRegion(const RectF& r, float pad = 6.f) {
-    if (g_regions) g_regions->add(RectF(r.X - pad, r.Y - pad, r.Width + pad * 2.f, r.Height + pad * 2.f));
+    if (!g_regions) return;
+    RectF padded(r.X - pad, r.Y - pad, r.Width + pad * 2.f, r.Height + pad * 2.f);
+    g_regions->add(padded);
+    if (g_always) g_regions->addAlways(padded);
 }
+
+// 상태창을 그리는 동안만 g_always를 켠다. 예외로 빠져나가도 반드시 꺼진다.
+namespace {
+struct AlwaysGuard {
+    AlwaysGuard() { g_always = true; }
+    ~AlwaysGuard() { g_always = false; }
+};
+}  // namespace
 
 void Renderer::panel(Graphics& g, const RectF& r, uint8_t alpha) {
     markRegion(r);
@@ -192,6 +206,7 @@ void Renderer::button(Graphics& g, std::vector<UiButton>& out, const RenderConte
     b.action = action;
     b.arg = arg;
     b.enabled = enabled;
+    b.always = g_always;
     out.push_back(b);
     markRegion(r);
 }
@@ -408,7 +423,7 @@ void Renderer::drawDragon(Graphics& g, const DragonActor& d, const Sprites& spri
     g.DrawEllipse(&outline, x - h * 0.36f, cy - h * 0.14f, h * 0.72f, h * 0.46f);
 }
 
-void Renderer::drawEnemy(Graphics& g, const Enemy& e, const Sprites& sprites, float time) {
+void Renderer::drawEnemy(Graphics& g, const Enemy& e, const Sprites& sprites, float time, float charScale) {
     bool flip = e.facing < 0.f;
     float flash = e.hitFlash > 0.f ? 0.7f : 0.f;
     float bob = std::sin(time * 6.f + e.id) * 2.f;
@@ -416,7 +431,7 @@ void Renderer::drawEnemy(Graphics& g, const Enemy& e, const Sprites& sprites, fl
     float y = e.pos.y + bob;
     const EnemyDef& ed = enemyDef(e.kind);
     bool isBoss = ed.role == EnemyRole::Boss;
-    float height = e.radius * 2.6f;
+    float height = e.radius * 2.6f * charScale;
 
     SolidBrush sh(Color(70, 0, 0, 0));
     g.FillEllipse(&sh, x - e.radius, e.pos.y + e.radius * 0.9f, e.radius * 2.f, e.radius * 0.5f);
@@ -545,7 +560,9 @@ void Renderer::drawWorld(Graphics& g, const Game& game, const Sprites& sprites, 
         }
     }
 
-    for (const Enemy& e : w.enemies()) drawEnemy(g, e, sprites, time);
+    // v0.8: 캐릭터 보기 크기. 그림만 커지고 충돌·사거리 판정은 그대로다.
+    const float cs = game.charScale();
+    for (const Enemy& e : w.enemies()) drawEnemy(g, e, sprites, time, cs);
 
     const DragonActor& d = w.dragon();
     if (d.alive && game.hasDragon()) {
@@ -562,11 +579,12 @@ void Renderer::drawWorld(Graphics& g, const Game& game, const Sprites& sprites, 
                 g.DrawLine(&streak, d.pos.x + sx * 40.f, yy, d.pos.x + sx * (70.f + 10.f * std::sin(time * 20.f + i)), yy);
             }
         }
-        drawDragon(g, d, sprites, time, d.pos.x, d.pos.y, cfg::kDragonRadius * 3.f, false);
+        drawDragon(g, d, sprites, time, d.pos.x, d.pos.y, cfg::kDragonRadius * 3.f * cs, false);
         float bw = 74.f;
-        bar(g, RectF(d.pos.x - bw * 0.5f, d.pos.y - cfg::kDragonRadius * 1.5f - 22.f, bw, 8.f), d.hp / d.stats.maxHp,
-            kHpC);
-        text(g, "Lv." + std::to_string(game.dragonRecord().level), d.pos.x, d.pos.y - cfg::kDragonRadius * 1.5f - 42.f,
+        bar(g, RectF(d.pos.x - bw * 0.5f, d.pos.y - cfg::kDragonRadius * 1.5f * cs - 22.f, bw, 8.f),
+            d.hp / d.stats.maxHp, kHpC);
+        text(g, "Lv." + std::to_string(game.dragonRecord().level), d.pos.x,
+             d.pos.y - cfg::kDragonRadius * 1.5f * cs - 42.f,
              13.f, 0xFFFFF3C4, 1, true, true);
     }
 
@@ -689,12 +707,15 @@ void Renderer::toggle(Graphics& g, std::vector<UiButton>& out, const RenderConte
     text(g, label, r.X, r.Y + (r.Height - 16.f) * 0.5f, 14.f, enabled ? kText : 0xFF7C8090, 0, true);
     text(g, on ? "ON" : "OFF", knobArea.X - 8.f, r.Y + (r.Height - 14.f) * 0.5f + 1.f, 12.f,
          on ? 0xFF8CFFA0 : 0xFF9AA2B4, 2);
-    if (enabled) out.push_back({r, action, arg});
+    if (enabled) out.push_back({r, action, arg, true, g_always});
     markRegion(r);
 }
 
 void Renderer::drawStatusCard(Graphics& g, const Game& game, const Sprites& sprites, const RenderContext& ctx,
                               std::vector<UiButton>& out) {
+    // 상태창은 게임 입력이 꺼져 있어도 만질 수 있어야 한다(v0.8). 여기서 그리는 버튼·영역은
+    // 모두 "항상 받는 것"으로 표시된다.
+    AlwaysGuard alwaysGuard;
     const DragonRecord& rec = game.dragonRecord();
     const DragonActor& d = game.world().dragon();
     const SpeciesDef& sp = speciesDef(rec.species);
@@ -711,7 +732,8 @@ void Renderer::drawStatusCard(Graphics& g, const Game& game, const Sprites& spri
 
     // 제목 줄은 끌기 손잡이다. 오른쪽 끝에 접기 버튼이 있다.
     RectF handle(r.X, r.Y, r.Width - 34.f, 30.f);
-    out.push_back({handle, UiAction::DragPanel, 0, true});
+    out.push_back({handle, UiAction::DragPanel, 0, true, true});
+    markRegion(handle);
     {
         bool hov = handle.Contains(PointF(ctx.mouseX, ctx.mouseY));
         for (int i = 0; i < 3; ++i)
@@ -826,44 +848,86 @@ void Renderer::drawStatusCard(Graphics& g, const Game& game, const Sprites& spri
 }
 
 void Renderer::drawMenu(Graphics& g, const Game& game, const RenderContext& ctx, std::vector<UiButton>& out) {
-    const float mw = 340.f;
-    const float mh = 336.f;
-    RectF r(width_ - 96.f - mw, height_ - 16.f - 186.f - 12.f - mh, mw, mh);
+    // v0.8: 위치와 크기를 저장해 둔 값으로 그린다. 글자·버튼·여백을 모두 같은 배수로 키운다.
+    const float s = game.menuScale();
+    const float mw = 340.f * s;
+    const float mh = 452.f * s;
+    Vec2 saved = game.menuPos();
+    float mx = saved.x >= 0.f ? saved.x : width_ - 96.f - mw;
+    float my = saved.y >= 0.f ? saved.y : height_ - 16.f - 186.f - 12.f - mh;
+    // 화면 밖으로 나가지 않게 맞춘다(크기를 키우거나 해상도가 바뀌어도 사라지지 않게)
+    mx = std::clamp(mx, 0.f, std::max(0.f, width_ - mw));
+    my = std::clamp(my, 0.f, std::max(0.f, height_ - mh));
+    RectF r(mx, my, mw, mh);
     panel(g, r, 236);
-    float x = r.X + 16.f;
-    float w = r.Width - 32.f;
-    float y = r.Y + 12.f;
-    text(g, "메뉴", x, y, 17.f, kText, 0, true);
-    y += 32.f;
+    float x = r.X + 16.f * s;
+    float w = r.Width - 32.f * s;
+    float y = r.Y + 12.f * s;
 
-    if (game.hunting()) button(g, out, ctx, RectF(x, y, w, 42.f), "사냥 중단", UiAction::StopHunt, 0, true, false, true);
-    else button(g, out, ctx, RectF(x, y, w, 42.f), "사냥 시작", UiAction::StartHunt);
-    y += 52.f;
+    // 제목 줄은 끌기 손잡이. 오른쪽에 창 크기 버튼을 둔다.
+    {
+        float btn = 26.f * s;
+        RectF handle(r.X, r.Y, r.Width - (btn * 2.f + 14.f * s), 30.f * s);
+        out.push_back({handle, UiAction::DragMenu, 0, true, false});
+        markRegion(handle);
+        bool hov = handle.Contains(PointF(ctx.mouseX, ctx.mouseY));
+        for (int i = 0; i < 3; ++i)
+            fillRound(g, RectF(r.X + 10.f * s, r.Y + 9.f * s + i * 4.f * s, 14.f * s, 2.f * s), 1.f,
+                      Color(hov ? 220 : 120, 180, 190, 220));
+        text(g, "메뉴", x + 22.f * s, y, 17.f * s, kText, 0, true);
+        button(g, out, ctx, RectF(r.GetRight() - btn * 2.f - 10.f * s, r.Y + 4.f * s, btn, 22.f * s), "－",
+               UiAction::MenuScale, -1, s > cfg::kMenuScaleMin + 0.001f);
+        button(g, out, ctx, RectF(r.GetRight() - btn - 6.f * s, r.Y + 4.f * s, btn, 22.f * s), "＋",
+               UiAction::MenuScale, +1, s < cfg::kMenuScaleMax - 0.001f);
+    }
+    y += 32.f * s;
 
-    text(g, "사냥 모드", x, y, 13.f, kSub, 0, true);
-    if (!game.canChangeMode()) text(g, "전투 중에는 바꿀 수 없음", r.GetRight() - 16.f, y, 12.f, kWarnC, 2);
-    y += 22.f;
-    float bw = (w - 16.f) / 3.f;
+    if (game.hunting())
+        button(g, out, ctx, RectF(x, y, w, 42.f * s), "사냥 중단", UiAction::StopHunt, 0, true, false, true);
+    else
+        button(g, out, ctx, RectF(x, y, w, 42.f * s), "사냥 시작", UiAction::StartHunt);
+    y += 52.f * s;
+
+    text(g, "사냥 모드", x, y, 13.f * s, kSub, 0, true);
+    if (!game.canChangeMode()) text(g, "전투 중에는 바꿀 수 없음", r.GetRight() - 16.f * s, y, 12.f * s, kWarnC, 2);
+    y += 22.f * s;
+    float bw = (w - 16.f * s) / 3.f;
     const CombatMode modes[3] = {CombatMode::Direct, CombatMode::SkillManual, CombatMode::Auto};
     bool autoAvailable = autoExpRemaining(game.dragonRecord()) > 0;
     for (int i = 0; i < 3; ++i) {
         bool en = game.canChangeMode() && (modes[i] != CombatMode::Auto || autoAvailable || game.huntMode() == CombatMode::Auto);
-        button(g, out, ctx, RectF(x + i * (bw + 8.f), y, bw, 38.f), combatModeName(modes[i]), UiAction::SetMode,
+        button(g, out, ctx, RectF(x + i * (bw + 8.f * s), y, bw, 38.f * s), combatModeName(modes[i]), UiAction::SetMode,
                static_cast<int>(modes[i]), en, game.huntMode() == modes[i]);
     }
-    y += 44.f;
-    if (!autoAvailable) text(g, "이 드래곤은 자동 사냥 상한에 도달했습니다.", x, y, 12.f, kAutoC);
-    y += 22.f;
+    y += 44.f * s;
+    if (!autoAvailable) text(g, "이 드래곤은 자동 사냥 상한에 도달했습니다.", x, y, 12.f * s, kAutoC);
+    y += 22.f * s;
 
-    float hw = (w - 8.f) * 0.5f;
+    // 보기 설정(v0.8). 캐릭터 크기는 그림만 바뀌고 판정 크기는 그대로다.
+    {
+        float btn = 30.f * s;
+        text(g, "캐릭터 크기", x, y + 6.f * s, 13.f * s, kSub, 0, true);
+        int pct = static_cast<int>(game.charScale() * 100.f + 0.5f);
+        text(g, std::to_string(pct) + "%", r.GetRight() - btn * 2.f - 18.f * s, y + 6.f * s, 13.f * s, kText, 2, true);
+        button(g, out, ctx, RectF(r.GetRight() - btn * 2.f - 10.f * s, y, btn, 26.f * s), "－", UiAction::CharScale, -1,
+               game.charScale() > cfg::kCharScaleMin + 0.001f);
+        button(g, out, ctx, RectF(r.GetRight() - btn - 6.f * s, y, btn, 26.f * s), "＋", UiAction::CharScale, +1,
+               game.charScale() < cfg::kCharScaleMax - 0.001f);
+        y += 32.f * s;
+        toggle(g, out, ctx, RectF(x, y, w, 26.f * s), "절전(조용할 때 프레임 줄이기)", game.powerSave(),
+               UiAction::TogglePowerSave, 0, true);
+        y += 34.f * s;
+    }
+
+    float hw = (w - 8.f * s) * 0.5f;
     bool towerOk = !game.waveActive();
-    button(g, out, ctx, RectF(x, y, hw, 40.f), "탑 도전", UiAction::OpenTower, 0, towerOk);
-    button(g, out, ctx, RectF(x + hw + 8.f, y, hw, 40.f), "기록·도감", UiAction::OpenCodex);
-    y += 48.f;
-    button(g, out, ctx, RectF(x, y, w, 36.f), "저장하고 게임 종료", UiAction::ExitGame);
-    y += 44.f;
-    paragraph(g, "설정 버튼을 다시 누르면 게임 입력이 꺼지고 마우스·키보드가 다른 프로그램으로 돌아갑니다.",
-              RectF(x, y, w, 40.f), 11.f, kSub);
+    button(g, out, ctx, RectF(x, y, hw, 40.f * s), "탑 도전", UiAction::OpenTower, 0, towerOk);
+    button(g, out, ctx, RectF(x + hw + 8.f * s, y, hw, 40.f * s), "기록·도감", UiAction::OpenCodex);
+    y += 48.f * s;
+    button(g, out, ctx, RectF(x, y, w, 36.f * s), "저장하고 게임 종료", UiAction::ExitGame);
+    y += 44.f * s;
+    paragraph(g, "설정 버튼을 다시 누르면 게임 입력이 꺼지고 마우스·키보드가 다른 프로그램으로 돌아갑니다. 상태창은 입력이 꺼져 있어도 만질 수 있습니다.",
+              RectF(x, y, w, 44.f * s), 11.f * s, kSub);
 }
 
 void Renderer::drawNotices(Graphics& g, const Game& game) {

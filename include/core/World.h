@@ -198,6 +198,8 @@ private:
     Vec2 randomRoamTarget(bool fly);
     float randomRoamX();
     float randomGroundY();
+    // 발이 영역 바닥에 닿는 세로 좌표. 영역이 얇으면 여기에 붙는다.
+    float groundLine() const;
     Enemy* nearestEnemy(Vec2 from, float maxDist);
     Enemy* findEnemy(int id);
     void moveDragon(float dt, Vec2 dir, float speedMul);

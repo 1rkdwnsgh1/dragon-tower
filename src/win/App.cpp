@@ -337,11 +337,20 @@ void App::tick(float dt) {
 
     if (hidden_) return;
 
-    // 조용할 때는 다시 그리는 횟수를 줄인다. 바탕화면 전체를 30fps로 계속 그리면
-    // 노트북에서 배터리와 CPU를 쓴다. 전투·효과·입력이 있으면 바로 30fps로 돌아간다.
+    // v0.6에서는 조용할 때 항상 프레임을 줄였는데, 입력을 끄면 드래곤 움직임이 끊겨 보였다.
+    // v0.8부터는 절전 설정을 켠 경우에만 줄이고, 드래곤이 걷거나 나는 동안에는 줄이지 않는다.
+    if (!game_.powerSave()) {
+        idleAccum_ = 0.f;
+        render();
+        return;
+    }
+    const DragonActor& dr = game_.world().dragon();
+    bool dragonMoving = dr.alive && (dr.anim == AnimState::Move || dr.anim == AnimState::Fly ||
+                                     dr.flying || dr.landing);
     bool busy = game_.hunting() || game_.inTowerFlow() || inputEnabled_ ||
                 !game_.world().enemies().empty() || game_.world().hasActiveFx() ||
-                game_.screen() != Screen::Desktop || drag_ != Drag::None;
+                game_.screen() != Screen::Desktop || drag_ != Drag::None || dragonMoving ||
+                cursorOnUi_;
     if (busy) {
         idleAccum_ = 0.f;
         render();
@@ -392,8 +401,9 @@ void App::render() {
 // 클릭 처리
 // ---------------------------------------------------------------------------
 
-void App::onClick(float lx, float ly) {
+void App::onClick(float lx, float ly, bool onlyAlways) {
     for (auto it = buttons_.rbegin(); it != buttons_.rend(); ++it) {
+        if (onlyAlways && !it->always) continue;
         if (it->enabled && it->rect.Contains(PointF(lx, ly))) {
             doAction(*it);
             return;
@@ -418,7 +428,15 @@ void App::doAction(const UiButton& b) {
         case UiAction::ExitGame: requestExit(); return;
         case UiAction::TogglePanel: game_.setPanelCollapsed(!game_.panelCollapsed()); break;
         case UiAction::ToggleConfine: game_.setConfineToBand(!game_.confineToBand()); break;
+        case UiAction::MenuScale:
+            game_.setMenuScale(game_.menuScale() + b.arg * cfg::kMenuScaleStep);
+            break;
+        case UiAction::CharScale:
+            game_.setCharScale(game_.charScale() + b.arg * cfg::kCharScaleStep);
+            break;
+        case UiAction::TogglePowerSave: game_.setPowerSave(!game_.powerSave()); break;
         case UiAction::DragPanel:   // 끌기는 WM_LBUTTONDOWN에서 시작한다
+        case UiAction::DragMenu:
         case UiAction::DragDragon:
         case UiAction::None: break;
     }
@@ -464,11 +482,27 @@ LRESULT CALLBACK App::StaticProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
 // v0.6: 클릭 통과 · 트레이 아이콘 · 전역 단축키 · 끌기
 // ---------------------------------------------------------------------------
 
+bool App::cursorOnAlways() const {
+    if (regions_.always.empty()) return false;
+    POINT p{};
+    GetCursorPos(&p);
+    float lx = (p.x - work_.left) / scale_;
+    float ly = (p.y - work_.top) / scale_;
+    for (const Gdiplus::RectF& r : regions_.always) {
+        if (r.Contains(Gdiplus::PointF(lx, ly))) return true;
+    }
+    return false;
+}
+
 void App::updateClickThrough() {
-    // 입력이 꺼져 있으면 언제나 통과시킨다.
-    // 켜져 있어도, 우리가 그린 것 위에 커서가 있을 때만 받는다. 나머지는 바탕화면과
-    // 다른 창으로 그대로 넘어간다(기획서의 "클릭 통과 범위" 결정).
+    // 우리가 그린 것 위에 커서가 있을 때만 입력을 받는다. 나머지는 바탕화면과 다른 창으로
+    // 그대로 넘어간다(기획서의 "클릭 통과 범위" 결정).
+    // v0.8: 입력이 꺼져 있어도 상태창 위에서는 받는다. 상태창은 게임 입력을 켜지 않고도
+    // 옮기고 접고 전투를 켤 수 있어야 한다.
     bool want = false;
+    if (!inputEnabled_ && !hidden_) {
+        want = cursorOnAlways() || drag_ != Drag::None;
+    }
     if (inputEnabled_ && !hidden_) {
         if (regions_.fullScreen) {
             want = true;  // 선택 화면·탑·모달은 화면 전체를 받는다
@@ -560,20 +594,21 @@ void App::showTrayMenu() {
     DestroyMenu(m);
 }
 
-bool App::startDrag(float lx, float ly) {
+bool App::startDrag(float lx, float ly, bool onlyAlways) {
     for (const UiButton& b : buttons_) {
         if (!b.enabled || !b.rect.Contains(Gdiplus::PointF(lx, ly))) continue;
-        if (b.action == UiAction::DragPanel) {
-            drag_ = Drag::Panel;
-            // 상태창 왼쪽 위에서 커서까지의 거리를 기억한다
+        if (onlyAlways && !b.always) continue;
+        if (b.action == UiAction::DragPanel || b.action == UiAction::DragMenu) {
+            drag_ = b.action == UiAction::DragPanel ? Drag::Panel : Drag::Menu;
+            // 창 왼쪽 위에서 커서까지의 거리를 기억한다
             dragDX_ = lx - b.rect.X;
             dragDY_ = ly - b.rect.Y;
             return true;
         }
         if (b.action == UiAction::DragDragon) break;
     }
-    // 드래곤 위를 눌렀으면 드래곤을 끈다(전투 중에는 방해가 되므로 하지 않는다)
-    if (game_.hasDragon() && !game_.hunting() && !game_.inTowerFlow()) {
+    // 드래곤 끌기는 게임 입력이 켜져 있을 때만 한다(바탕화면을 쓰는 중에 잡히면 방해가 된다)
+    if (!onlyAlways && game_.hasDragon() && !game_.hunting() && !game_.inTowerFlow()) {
         const DragonActor& d = game_.world().dragon();
         float rr = cfg::kDragonRadius * 1.6f;
         if (std::fabs(lx - d.pos.x) <= rr && std::fabs(ly - d.pos.y) <= rr) {
@@ -618,6 +653,8 @@ LRESULT App::handle(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
                 mouseY_ = y / scale_;
                 if (drag_ == Drag::Panel) {
                     game_.setPanelPos({mouseX_ - dragDX_, mouseY_ - dragDY_});
+                } else if (drag_ == Drag::Menu) {
+                    game_.setMenuPos({mouseX_ - dragDX_, mouseY_ - dragDY_});
                 } else if (drag_ == Drag::Dragon) {
                     game_.placeDragon({mouseX_ - dragDX_, mouseY_ - dragDY_});
                 }
@@ -631,12 +668,15 @@ LRESULT App::handle(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
         case WM_LBUTTONDOWN:
             if (isButton) {
                 setInputEnabled(!inputEnabled_);
-            } else if (inputEnabled_) {
+            } else {
+                // 입력이 꺼져 있으면 "항상 받는 것"(상태창)만 누를 수 있다.
                 float x = static_cast<float>(static_cast<short>(LOWORD(lp)));
                 float y = static_cast<float>(static_cast<short>(HIWORD(lp)));
                 float lx = x / scale_, ly = y / scale_;
+                bool onlyAlways = !inputEnabled_;
+                if (onlyAlways && !cursorOnAlways()) return 0;
                 SetCapture(hwnd);
-                if (!startDrag(lx, ly)) onClick(lx, ly);
+                if (!startDrag(lx, ly, onlyAlways)) onClick(lx, ly, onlyAlways);
             }
             return 0;
 
