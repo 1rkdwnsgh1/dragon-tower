@@ -137,7 +137,8 @@ private:
     void drawStable(Gdiplus::Graphics& g, const Game& game, const Sprites& sprites, const RenderContext& ctx,
                     std::vector<UiButton>& out);
     // v1.4 스킬 관리창: 장착 4칸과 그 종의 스킬 목록(해제 레벨·패시브 표시)
-    void drawSkills(Gdiplus::Graphics& g, const Game& game, const RenderContext& ctx,
+    void drawSkills(Gdiplus::Graphics& g, const Game& game, const Sprites& sprites,
+                    const RenderContext& ctx,
                     std::vector<UiButton>& out);
     // 스킬 한 칸(아이콘·대기시간·잠금)을 그린다. 상태창과 관리창이 함께 쓴다.
     // skillIndex < 0 이면 빈 칸으로 그린다.

@@ -1262,7 +1262,7 @@ void Renderer::drawModal(Graphics& g, const Game& game, const Sprites& sprites, 
             drawStable(g, game, sprites, ctx, out);
             break;
         case Screen::Skills:
-            drawSkills(g, game, ctx, out);
+            drawSkills(g, game, sprites, ctx, out);
             break;
         case Screen::AutoWarning: {
             RectF r(cx - 290.f, cy - 160.f, 580.f, 320.f);
@@ -1544,8 +1544,8 @@ void Renderer::drawStable(Graphics& g, const Game& game, const Sprites& sprites,
 // ---------------------------------------------------------------------------
 // 위쪽에 장착 4칸, 아래에 그 종의 스킬 전부. 칸을 고르고 스킬을 누르면 그 칸에 들어간다.
 // 패시브는 칸을 쓰지 않으므로 목록에서 "항상 적용"으로만 보여 준다.
-void Renderer::drawSkills(Graphics& g, const Game& game, const RenderContext& ctx,
-                          std::vector<UiButton>& out) {
+void Renderer::drawSkills(Graphics& g, const Game& game, const Sprites& sprites,
+                          const RenderContext& ctx, std::vector<UiButton>& out) {
     const DragonRecord& rec = game.dragonRecord();
     const SpeciesDef& sp = speciesDef(rec.species);
     const DragonActor& d = game.world().dragon();
