@@ -96,6 +96,7 @@ void Sprites::loadUiSkins(const std::filesystem::path& uiDir) {
 
         // 먼저 여백 표를 읽는다(조각 이름 -> 네 변)
         std::map<std::string, std::array<int, 4>> margins;
+        std::map<std::string, UiFit> fits;
         std::ifstream f(entry.path() / "ui.txt");
         std::string line, section;
         while (std::getline(f, line)) {
@@ -115,6 +116,14 @@ void Sprites::loadUiSkins(const std::filesystem::path& uiDir) {
             size_t eq = line.find('=');
             if (eq == std::string::npos || section.empty()) continue;
             std::string key = line.substr(0, eq);
+            if (key == "fit") {
+                std::string v = line.substr(eq + 1);
+                if (v == "height") fits[section] = UiFit::Height;
+                else if (v == "contain") fits[section] = UiFit::Contain;
+                else if (v == "nine") fits[section] = UiFit::Nine;
+                else warnings_.push_back("ui/" + skin + "/" + section + ": fit 값이 이상합니다 (" + v + ")");
+                continue;
+            }
             int val = 0;
             try {
                 val = std::stoi(line.substr(eq + 1));
@@ -156,6 +165,8 @@ void Sprites::loadUiSkins(const std::filesystem::path& uiDir) {
                 u.right = it->second[2];
                 u.bottom = it->second[3];
             }
+            auto fi = fits.find(name);
+            if (fi != fits.end()) u.fit = fi->second;
             u.bmp = std::move(bmp);
             ui_[skin + "/" + name] = std::move(u);
         }
@@ -173,6 +184,7 @@ UiPiece Sprites::ui(const std::string& skinKey, const std::string& name) const {
         p.top = it->second.top;
         p.right = it->second.right;
         p.bottom = it->second.bottom;
+        p.fit = it->second.fit;
         return p;
     }
     return UiPiece{};

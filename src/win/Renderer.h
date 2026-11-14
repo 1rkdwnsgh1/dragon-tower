@@ -82,7 +82,8 @@ private:
                    int align = 0, bool bold = false);
     // v0.9 UI 스킨. 조각이 있으면 그림으로, 없으면 예전처럼 도형으로 그린다.
     // piece()는 그렸으면 true. 9조각으로 늘릴 여백이 0이면 통째로 늘린다.
-    bool piece(Gdiplus::Graphics& g, const char* name, const Gdiplus::RectF& r, float alpha = 1.f);
+    bool piece(Gdiplus::Graphics& g, const char* name, const Gdiplus::RectF& r, float alpha = 1.f,
+               Gdiplus::RectF* content = nullptr);
     void panel(Gdiplus::Graphics& g, const Gdiplus::RectF& r, uint8_t alpha = 236);
     void button(Gdiplus::Graphics& g, std::vector<UiButton>& out, const RenderContext& ctx, const Gdiplus::RectF& r,
                 const std::string& label, UiAction action, int arg = 0, bool enabled = true, bool selected = false,
