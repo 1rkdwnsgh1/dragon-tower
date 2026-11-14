@@ -6,6 +6,7 @@
 #include <algorithm>
 #include <cctype>
 #include <cstdlib>
+#include <filesystem>
 #include <fstream>
 #include <sstream>
 
@@ -395,6 +396,22 @@ EnemyParseResult parseEnemyText(const std::string& text, const std::string& fold
             }
             else if (key == "name") d.name = val;
             else if (key == "desc") d.desc = val;
+            // v1.6: 그림을 다른 적 폴더에서 가져온다. 시트를 복사하지 않고 변종을 만들기 위한 것이다.
+            // 가리킨 적이 실제로 있는지는 폴더를 다 읽은 뒤에 본다(loadEnemyFolders) — 여기서는
+            // 이름 모양만 본다. 한 다리만 건넌다: 가리킨 쪽이 또 art_from 을 적어도 따라가지 않는다.
+            else if (key == "art_from") {
+                std::string v = lower(val);
+                if (v == folderKey) warn("art_from=" + val + " 은 자기 자신이라 무시합니다");
+                else if (!validKey(v)) warn("art_from=" + val + " 은 폴더 이름 규칙(영문 소문자·숫자·'-'·'_')에 맞지 않아 무시합니다");
+                else d.artFrom = v;
+            }
+            // v1.5 에 넣기로 하고 파서에 빠져 있었다(changelog·codemap 에는 적혀 있다).
+            else if (key == "art_facing") {
+                std::string v = lower(val);
+                if (v == "right") d.artFacesRight = true;
+                else if (v == "left") d.artFacesRight = false;
+                else ok = false;
+            }
             else if (key == "role") {
                 std::string v = lower(val);
                 if (v == "melee") d.role = EnemyRole::Melee;
@@ -482,6 +499,7 @@ EnemyScanResult loadEnemyFolders(const std::filesystem::path& enemiesDir) {
     }
     std::sort(dirs.begin(), dirs.end());
 
+    std::vector<std::string> seen;  // 이번에 읽은 폴더 이름
     for (const auto& dir : dirs) {
         std::string key = dir.filename().string();
         if (!key.empty() && (key[0] == '_' || key[0] == '.')) continue;
@@ -489,6 +507,7 @@ EnemyScanResult loadEnemyFolders(const std::filesystem::path& enemiesDir) {
             out.warnings.push_back("enemies/" + key + ": 폴더 이름은 영문 소문자·숫자·'-'·'_'만 쓸 수 있어 건너뜁니다");
             continue;
         }
+        seen.push_back(key);
         EnemyKind existing;
         bool known = enemyFromKey(key, existing);
         std::filesystem::path txt = dir / "enemy.txt";
@@ -508,6 +527,27 @@ EnemyScanResult loadEnemyFolders(const std::filesystem::path& enemiesDir) {
         registerOrUpdateEnemy(r.def);
         ++out.folderCount;
         if (!known) ++out.newEnemies;
+    }
+
+    // v1.6: art_from 이 가리킨 폴더가 실제로 있는지 폴더를 다 읽은 뒤에 본다.
+    // 폴더 순서(알파벳)와 상관없이 보려면 여기서 봐야 한다. 조용히 넘기면 변종이 그림 없이
+    // 도형으로만 나오고 왜 그런지 알 수 없다(v0.4에서 조용히 잘려 고생한 것과 같은 자리다).
+    // **이번에 읽은 폴더만 본다.** 등록부에는 다른 폴더에서 읽힌 적도 남아 있어서, 전체를 돌면
+    // 지금 보고 있지도 않은 적의 경고가 섞여 나온다.
+    for (int i = 0; i < enemyCount(); ++i) {
+        const EnemyDef& d = enemyDef(static_cast<EnemyKind>(i));
+        if (d.artFrom.empty()) continue;
+        if (std::find(seen.begin(), seen.end(), d.key) == seen.end()) continue;
+        if (!std::filesystem::is_directory(enemiesDir / d.artFrom, ec)) {
+            out.warnings.push_back("enemies/" + d.key + ": art_from=" + d.artFrom +
+                                   " 폴더가 없어 그림을 빌릴 수 없습니다(도형으로 그려집니다)");
+            continue;
+        }
+        EnemyKind src;
+        if (enemyFromKey(d.artFrom, src) && !enemyDef(src).artFrom.empty()) {
+            out.warnings.push_back("enemies/" + d.key + ": art_from=" + d.artFrom +
+                                   " 도 art_from 을 쓰고 있습니다. 한 다리만 건너므로 원본 폴더를 직접 가리켜 주세요");
+        }
     }
     return out;
 }

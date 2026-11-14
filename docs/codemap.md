@@ -28,6 +28,7 @@ tests/                     코어 규칙 검증
 | 내장 적 4종의 기본값 | `src/core/Enemy.cpp` | `makeSlime`, `makeGoblin`, `makeOgre`, `makeLich` |
 | 적 추가·조회 방식 | `src/core/Enemy.cpp` | `registerOrUpdateEnemy`, `defaultMelee`, `defaultBoss` |
 | `enemy.txt` 읽는 규칙 | `src/core/DragonData.cpp` | `parseEnemyText`, `loadEnemyFolders` |
+| 적 변종이 그림 빌리기 | `assets/enemies/<키>/enemy.txt` 의 `art_from=` | 읽기: `parseEnemyText`, 확인: `loadEnemyFolders` 끝의 뒷검사, 쓰기: `src/win/Sprites.cpp` `load` 의 `artKey` |
 | 바탕화면·탑에 나오는 적 구성 | `src/core/Game.cpp` | `randomMelee`, `spawnTowerFloor` |
 | 디펜스 전투 띠(맨 아래 영역) | `src/core/Game.cpp` | `battleBand` |
 | 왼쪽에서 들어오는 웨이브 | `src/core/Game.cpp` | `spawnWave`, `waveNumber_` |
@@ -60,7 +61,7 @@ tests/                     코어 규칙 검증
 | 쉴 때 엎드리기 | `src/core/World.cpp` | `updateDragonAnim`의 `restTime`, `cfg::kRestLieDelay` |
 | 대쉬할 때 나는 모션 | `src/core/World.cpp` | `updateDragonAnim`의 `dashTime` |
 | 모션 고르기(우클릭) | `src/core/Game.cpp`, `src/win/Renderer.cpp` | `setForcedMotion`, `drawMotionMenu` |
-| 적 좌우 뒤집기 | `src/win/Renderer.cpp` | `drawEnemy`의 `artFacesRight` (`enemy.txt`의 `art_facing`) |
+| 적 좌우 뒤집기 | `src/win/Renderer.cpp` | `drawEnemy`의 `artFacesRight` (`enemy.txt`의 `art_facing`, 읽는 곳은 `parseEnemyText`) |
 | 스킬 아이콘 | `src/win/Sprites.cpp` | `skillicon_<종>_<번호>` ← `assets/dragons/<키>/icon_N.png` |
 | 메뉴 창 위치·크기 | `src/win/Renderer.cpp` | `drawMenu`의 `menuScale`, `menuPos` |
 | 캐릭터 보기 크기 | `src/win/Renderer.cpp` | `drawWorld`의 `cs`, `drawEnemy(charScale)` (그림만, 판정은 그대로) |

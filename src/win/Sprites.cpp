@@ -58,10 +58,13 @@ void Sprites::load(const std::filesystem::path& assetDir) {
     // 적 폴더 (v0.4)
     for (int i = 0; i < enemyCount(); ++i) {
         const EnemyDef& def = enemyDef(static_cast<EnemyKind>(i));
-        std::filesystem::path dir = assetDir / "enemies" / def.key;
+        // v1.6: art_from= 을 적은 변종은 다른 적 폴더의 시트를 그대로 읽는다(그림 복사 없음).
+        // 읽어 넣는 자리는 자기 키("enemy:<키>")이고, [anim.*] 설정은 자기 enemy.txt 의 것을 쓴다.
+        const std::string artKey = def.artFrom.empty() ? def.key : def.artFrom;
+        std::filesystem::path dir = assetDir / "enemies" / artKey;
         std::error_code ec;
         if (!std::filesystem::is_directory(dir, ec)) continue;
-        loadSheetsFor(dir, def.anims, "enemy:" + def.key, "enemies/" + def.key);
+        loadSheetsFor(dir, def.anims, "enemy:" + def.key, "enemies/" + artKey);
     }
 }
 

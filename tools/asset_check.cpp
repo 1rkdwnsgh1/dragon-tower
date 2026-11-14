@@ -65,7 +65,14 @@ int main(int argc, char** argv) {
                 dt::enemyCount());
     for (int i = 0; i < dt::enemyCount(); ++i) {
         const dt::EnemyDef& s = dt::enemyDef(static_cast<dt::EnemyKind>(i));
-        std::printf("  - %s (%s)\n", s.key.c_str(), s.name.c_str());
+        // v1.6: 그림을 빌려 쓰는 변종은 어디서 빌리는지 함께 적는다. 그림이 없는 적을
+        // 만들어 두고 왜 도형으로 나오는지 찾아다니지 않게 하려는 것이다.
+        if (s.artFrom.empty())
+            std::printf("  - %s (%s) %s\n", s.key.c_str(), s.name.c_str(),
+                        s.role == dt::EnemyRole::Boss ? "[보스]" : "");
+        else
+            std::printf("  - %s (%s) %s 그림은 %s 재활용\n", s.key.c_str(), s.name.c_str(),
+                        s.role == dt::EnemyRole::Boss ? "[보스]" : "", s.artFrom.c_str());
     }
     for (const std::string& w : e.warnings) {
         std::printf("  [경고] %s\n", w.c_str());

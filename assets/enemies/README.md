@@ -54,6 +54,30 @@ summon_level=5
 
 애니메이션은 드래곤과 같습니다(`[anim.idle]` 의 `fps` `loop` `frame_w` `render_scale`).
 
+## 그림을 빌려 변종 만들기 (v1.6)
+
+행동과 수치만 다른 변종은 **그림을 복사하지 말고 `art_from=` 으로 원본 폴더를 가리킵니다.**
+
+```
+[enemy]
+name=정예 슬라임
+art_from=slime      ; assets/enemies/slime 의 시트 다섯 장을 그대로 읽는다
+speed=132           ; 그림만 빌리고 수치·행동은 여기서 따로 정한다
+```
+
+- **시트 파일만 빌립니다.** `[anim.*]` 의 `frame_w`·`render_scale`·`fps` 는 **빌리지 않으므로
+  변종의 `enemy.txt` 에 다시 적어야 합니다.** 원본을 고칠 때 변종이 따라 흔들리지 않게 한 것입니다.
+- 폴더 전체를 가리킵니다. 다섯 장 중 일부만 빌릴 수는 없습니다.
+- **한 다리만 건넙니다.** 가리킨 쪽이 또 `art_from` 을 쓰면 따라가지 않고 경고합니다.
+- 가리킨 폴더가 없으면 경고하고 도형으로 그립니다(조용히 넘어가지 않습니다).
+- 변종만의 그림이 생기면 `art_from` 줄을 지우고 다섯 장을 그 폴더에 넣습니다.
+
+보기: [`elite-slime`](elite-slime/) · [`elite-goblin`](elite-goblin/) · [`elite-lich`](elite-lich/).
+
+## 그림이 어느 쪽을 보는가
+
+`art_facing=left|right` 로 적습니다. 기본은 `left` 입니다(지금 적 그림은 모두 왼쪽을 봅니다).
+
 ## 새 적 추가하기
 
 1. 폴더를 만듭니다(영문 소문자·숫자·`-`·`_`). `_`로 시작하면 읽지 않습니다.
@@ -65,6 +89,7 @@ summon_level=5
 
 `role=melee`인 적은 바탕화면 사냥에 무작위로 섞여 나오고, 탑 층 구성은 `src/core/Game.cpp`의
 `spawnTowerFloor`가 키로 찾아 씁니다(`slime` 1층, `goblin`·`ogre` 2층, 보스 3층).
+**폴더를 더하면 그만큼 바탕화면 사냥에 나오는 적이 늘어납니다**(`role=boss`는 섞이지 않습니다).
 
 ## 잘못 적으면 어떻게 되나요
 
