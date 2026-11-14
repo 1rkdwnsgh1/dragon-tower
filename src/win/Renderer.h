@@ -23,6 +23,7 @@ enum class UiAction {
     CharScale,        // 캐릭터 보기 크기. arg = -1 작게 / +1 크게
     TogglePowerSave,  // 조용할 때 프레임 줄이기
     SetKeepRange,     // 싸울 때 유지할 간격. arg = 0 근접 / 1 중간 / 2 바깥
+    ToggleMenu,       // 메뉴 창 열고 닫기(키보드 조작과 무관)
     ChooseSpecies,  // arg = 종류
     StartHunt,
     StopHunt,
@@ -43,8 +44,6 @@ struct UiButton {
     UiAction action = UiAction::None;
     int arg = 0;
     bool enabled = true;
-    // 게임 입력이 꺼져 있어도 누를 수 있는가(상태창처럼 항상 만져야 하는 것).
-    bool always = false;
 };
 
 struct RenderContext {
@@ -58,11 +57,8 @@ struct RenderContext {
 // 어디를 다시 그릴지 정하는 데 쓴다.
 struct FrameRegions {
     std::vector<Gdiplus::RectF> hit;   // 마우스를 받아야 하는 영역
-    // 게임 입력이 꺼져 있어도 마우스를 받아야 하는 영역(상태창). hit에도 함께 들어간다.
-    std::vector<Gdiplus::RectF> always;
     bool fullScreen = false;           // 창·모달이 떠 있어 화면 전체를 받아야 한다
     void add(const Gdiplus::RectF& r) { hit.push_back(r); }
-    void addAlways(const Gdiplus::RectF& r) { always.push_back(r); }
 };
 
 class Renderer {

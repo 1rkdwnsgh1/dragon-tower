@@ -33,9 +33,10 @@ tests/                     코어 규칙 검증
 | 왼쪽에서 들어오는 웨이브 | `src/core/Game.cpp` | `spawnWave`, `waveNumber_` |
 | 띠 높이·등장 위치·웨이브 증가 | `include/core/Config.h` | `kBandHeight`, `kSpawnOffsetX`, `kWaveLevelStep` |
 | 전투 토글 스위치·모드 버튼 | `src/win/Renderer.cpp` | `toggle`, `drawStatusCard` |
-| 클릭 통과 범위 판정 | `src/win/App.cpp` | `updateClickThrough`, `FrameRegions` |
-| 입력이 꺼져도 받는 영역 | `src/win/App.cpp` | `cursorOnAlways`, `UiButton::always` |
-| 상시 입력 영역 표시 | `src/win/Renderer.cpp` | `g_always`, `AlwaysGuard` (상태창을 그리는 동안만 켠다) |
+| 클릭 통과 범위 판정 | `src/win/App.cpp` | `updateClickThrough`, `FrameRegions` (마우스는 항상 받는다) |
+| 키보드 조작 켜고 끄기 | `src/win/App.cpp` | `setInputEnabled` (활성화만 다룬다. 통과는 매 프레임 갱신) |
+| 메뉴 열고 닫기 | `src/core/Game.cpp` | `setMenuOpen`, 상태창의 `≡` 버튼 |
+| 띠로 날아 내려가기 | `src/core/World.cpp` | `beginConfine`, `confining_` |
 | 입력 받을 영역 수집 | `src/win/Renderer.cpp` | `markRegion`, `g_regions` |
 | 트레이 아이콘·메뉴 | `src/win/App.cpp` | `createTray`, `showTrayMenu` |
 | 트레이 풍선 알림 | `src/win/App.cpp` | `showBalloon`, `pumpAlerts` |
@@ -49,6 +50,7 @@ tests/                     코어 규칙 검증
 | 드래곤별 스킨 선택 | `include/core/Game.h` | `Game::uiSkin`, `dragon.txt`의 `ui_skin` |
 | 싸울 때 유지할 간격 | `src/core/World.cpp` | `desiredRange`, `Game::setKeepRange` |
 | 쉴 때 엎드리기 | `src/core/World.cpp` | `updateDragonAnim`의 `restTime`, `cfg::kRestLieDelay` |
+| 대쉬할 때 나는 모션 | `src/core/World.cpp` | `updateDragonAnim`의 `dashTime` |
 | 메뉴 창 위치·크기 | `src/win/Renderer.cpp` | `drawMenu`의 `menuScale`, `menuPos` |
 | 캐릭터 보기 크기 | `src/win/Renderer.cpp` | `drawWorld`의 `cs`, `drawEnemy(charScale)` (그림만, 판정은 그대로) |
 | 드래곤을 띠에 가두기 | `src/core/Game.cpp` | `setConfineToBand`, `placeDragon` |
