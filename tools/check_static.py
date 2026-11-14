@@ -35,8 +35,12 @@ BASELINE = ROOT / "tools" / "static-baseline.txt"
 CORE_SOURCES = ["src/core", "tools/asset_check.cpp", "tests/core_tests.cpp", "tests/balance_sim.cpp"]
 WIN_SOURCES = ["src/win"]
 
+# style 은 **일부러 뺐다.** cppcheck 버전이 조금만 달라도 style 검사의 결과가 달라져서
+# 기준선이 깨진다(실제로 이 환경 2.13 과 CI 러너의 버전이 달라 4건이 어긋났다).
+# 게다가 style 지적은 전부 "const 를 붙여라" 류라 버그가 아니다.
+# warning/performance/portability 는 버전 사이에서 훨씬 안정적이다.
 CPPCHECK_ARGS = [
-    "--enable=warning,performance,portability,style",
+    "--enable=warning,performance,portability",
     "--inline-suppr",
     "--std=c++17",
     "-Iinclude",
