@@ -121,6 +121,13 @@ void Game::setMenuOpen(bool on) {
     saveRequested_ = true;
 }
 
+void Game::setMenuTab(int tab) {
+    int v = std::clamp(tab, 0, 1);
+    if (save_.menuTab == v) return;
+    save_.menuTab = v;
+    saveRequested_ = true;
+}
+
 void Game::setPowerSave(bool on) {
     if (save_.powerSave == on) return;
     save_.powerSave = on;
@@ -141,6 +148,12 @@ bool Game::inTowerFlow() const {
 
 bool Game::needsInput() const {
     return screen_ != Screen::Desktop;
+}
+
+bool Game::wantsKeyboard() const {
+    if (screen_ == Screen::Tower) return towerMode_ != CombatMode::Auto;
+    if (screen_ != Screen::Desktop) return false;
+    return hunting_ && save_.huntMode != CombatMode::Auto;
 }
 
 void Game::alert(const std::string& title, const std::string& body, bool warning) {

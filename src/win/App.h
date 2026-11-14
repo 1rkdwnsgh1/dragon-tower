@@ -51,6 +51,7 @@ private:
     void requestExit();
     void updateFullscreenState();
     // v0.6
+    void syncKeyboard();  // 게임 상태에 맞춰 키보드 받기를 켜고 끈다
     void updateClickThrough();   // 커서가 우리 요소 위에 있을 때만 입력을 받는다
     void createTray();
     void destroyTray();
@@ -62,19 +63,13 @@ private:
 
     HINSTANCE inst_ = nullptr;
     HWND overlay_ = nullptr;
-    HWND button_ = nullptr;
     Surface overlaySurf_;
-    Surface buttonSurf_;
     RECT work_{};
     float scale_ = 1.f;
-    int buttonPx_ = 64;
-    int buttonX_ = 0;
-    int buttonY_ = 0;
 
     bool running_ = false;
     bool inputEnabled_ = false;
     bool hidden_ = false;
-    bool buttonHover_ = false;
     float time_ = 0.f;
     float fullscreenTimer_ = 0.f;
     float topmostTimer_ = 0.f;
@@ -87,7 +82,8 @@ private:
     FrameRegions regions_;
     bool cursorOnUi_ = false;
     // v0.6 끌기
-    enum class Drag { None, Panel, Menu, Dragon };
+    enum class Drag { None, Panel, Menu, MenuSize, Dragon, CharSlider };
+    float dragStartScale_ = 1.f;  // 메뉴 크기 끌기를 시작할 때의 배수
     Drag drag_ = Drag::None;
     float dragDX_ = 0.f, dragDY_ = 0.f;
     // v0.6 트레이 아이콘

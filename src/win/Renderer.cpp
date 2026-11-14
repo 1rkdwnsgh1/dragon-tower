@@ -360,7 +360,7 @@ void Renderer::drawOverlay(Graphics& g, const Game& game, const Sprites& sprites
     Screen sc = game.screen();
 
     if (ctx.inputEnabled) {
-        // 키보드 조작이 켜졌다는 표시로 화면을 아주 살짝 어둡게 한다(키보드가 게임으로 간다).
+        // 키보드를 받는 중이라는 표시로 화면을 아주 살짝 어둡게 한다(싸우는 중이고 자동이 아닐 때).
         SolidBrush tint(Color(30, 0, 0, 0));
         g.FillRectangle(&tint, 0.f, 0.f, width_, height_);
     }
@@ -396,7 +396,7 @@ void Renderer::drawOverlay(Graphics& g, const Game& game, const Sprites& sprites
     if (!ctx.inputEnabled && game.needsInput()) {
         RectF r(width_ * 0.5f - 280.f, 70.f, 560.f, 40.f);
         panel(g, r, 230);
-        text(g, "오른쪽 아래 설정 버튼을 눌러 키보드 조작을 켜 주세요.", r.X + r.Width * 0.5f, r.Y + 10.f, 15.f, kWarnC, 1,
+        text(g, "창 안을 눌러 고르세요.", r.X + r.Width * 0.5f, r.Y + 10.f, 15.f, kWarnC, 1,
              true);
     }
 }
@@ -907,13 +907,12 @@ void Renderer::drawStatusCard(Graphics& g, const Game& game, const Sprites& /*sp
     panel(g, r, 224);
 
     // 제목 줄은 끌기 손잡이다. 오른쪽 끝에 접기 버튼이 있다.
-    RectF handle(r.X, r.Y, r.Width - 92.f, 30.f);
+    // v1.4: 전에는 ▦·≡ 같은 글자를 썼는데 폰트에 없어 깨져 보였다. 한글로 적는다.
+    RectF handle(r.X, r.Y, r.Width - 126.f, 30.f);
     out.push_back({handle, UiAction::DragPanel, 0, true});
     markRegion(handle);
-    // 드래곤 관리창 열기. 여러 마리를 가지고 있으면 여기서 바꾼다.
-    button(g, out, ctx, RectF(r.GetRight() - 88.f, r.Y + 4.f, 26.f, 22.f), "▦", UiAction::OpenStable);
-    // 메뉴 열기/닫기. 설정(키보드 조작)과 따로 움직인다.
-    button(g, out, ctx, RectF(r.GetRight() - 60.f, r.Y + 4.f, 26.f, 22.f), "≡", UiAction::ToggleMenu, 0, true,
+    button(g, out, ctx, RectF(r.GetRight() - 122.f, r.Y + 4.f, 56.f, 22.f), "관리", UiAction::OpenStable);
+    button(g, out, ctx, RectF(r.GetRight() - 62.f, r.Y + 4.f, 56.f, 22.f), "메뉴", UiAction::ToggleMenu, 0, true,
            game.menuOpen());
     {
         bool hov = handle.Contains(PointF(ctx.mouseX, ctx.mouseY));
@@ -998,14 +997,15 @@ void Renderer::drawStatusCard(Graphics& g, const Game& game, const Sprites& /*sp
                      std::to_string(slot + 1));
     }
     // 관리창 열기. 쓰지 않고 남은 스킬이 있으면 눈에 띄게 한다.
+    // v1.4: 전에는 "스킬 ●" 였는데 ● 가 폰트에 없어 깨져 보였다(토글 스위치처럼 보인다는 제보).
     float hx = x + kSkillSlots * (box + 6.f) + 2.f;
     float hw = r.GetRight() - hx - 8.f;
     if (hw > 40.f) {
         // 탑에서는 열 수 없다(Game::openSkills 참고). 눌리지 않는다는 것을 보이게 둔다.
-        button(g, out, ctx, RectF(hx, y, hw, 20.f), game.hasUnequippedSkill() ? "스킬 ●" : "스킬",
+        button(g, out, ctx, RectF(hx, y, hw, 20.f), game.hasUnequippedSkill() ? "스킬 새것" : "스킬",
                UiAction::OpenSkills, 0, game.screen() == Screen::Desktop);
         const char* hint = nullptr;
-        if (!ctx.inputEnabled) hint = "설정 버튼으로 키보드 조작 켜기";
+        if (!ctx.inputEnabled) hint = "싸우기 시작하면 키보드를 받습니다";
         else if ((game.screen() == Screen::Tower ? game.towerMode() : game.huntMode()) == CombatMode::Direct)
             hint = "WASD 이동 · Space 회피 · 1~4 스킬";
         else if ((game.screen() == Screen::Tower ? game.towerMode() : game.huntMode()) == CombatMode::SkillManual)
@@ -1014,11 +1014,28 @@ void Renderer::drawStatusCard(Graphics& g, const Game& game, const Sprites& /*sp
     }
 }
 
+// 값을 끌어서 고르는 가로 막대. 오른쪽에 지금 값을 글자로 보여 준다.
+// rect 에는 막대의 자리를, action 에는 끌기 동작을 담아 보낸다(App 이 rect 로 비율을 계산한다).
+void Renderer::slider(Graphics& g, std::vector<UiButton>& out, const RenderContext& ctx, const RectF& r,
+                      float value, float lo, float hi, UiAction action) {
+    float ratio = std::clamp((value - lo) / std::max(0.0001f, hi - lo), 0.f, 1.f);
+    float h = 6.f;
+    RectF track(r.X, r.Y + (r.Height - h) * 0.5f, r.Width, h);
+    fillRound(g, track, h * 0.5f, Color(255, 28, 30, 42));
+    fillRound(g, RectF(track.X, track.Y, track.Width * ratio, h), h * 0.5f, Color(255, 96, 170, 240));
+    float kx = track.X + track.Width * ratio;
+    bool hover = r.Contains(PointF(ctx.mouseX, ctx.mouseY));
+    fillCircle(g, kx, r.Y + r.Height * 0.5f, hover ? 9.f : 8.f, Color(255, 240, 246, 255));
+    strokeRound(g, RectF(kx - 9.f, r.Y + r.Height * 0.5f - 9.f, 18.f, 18.f), 9.f, Color(160, 20, 24, 34), 1.f);
+    out.push_back({r, action, 0, true});
+    markRegion(r);
+}
+
 void Renderer::drawMenu(Graphics& g, const Game& game, const RenderContext& ctx, std::vector<UiButton>& out) {
-    // v0.8: 위치와 크기를 저장해 둔 값으로 그린다. 글자·버튼·여백을 모두 같은 배수로 키운다.
+    // 위치와 크기는 저장해 둔 값으로 그린다. 글자·버튼·여백을 모두 같은 배수로 키운다.
     const float s = game.menuScale();
     const float mw = 340.f * s;
-    const float mh = 578.f * s;
+    const float mh = 510.f * s;
     Vec2 saved = game.menuPos();
     float mx = saved.x >= 0.f ? saved.x : width_ - 96.f - mw;
     float my = saved.y >= 0.f ? saved.y : height_ - 16.f - 186.f - 12.f - mh;
@@ -1031,10 +1048,10 @@ void Renderer::drawMenu(Graphics& g, const Game& game, const RenderContext& ctx,
     float w = r.Width - 32.f * s;
     float y = r.Y + 12.f * s;
 
-    // 제목 줄은 끌기 손잡이. 오른쪽에 창 크기 버튼을 둔다.
+    // 제목 줄: 끌어서 옮기고, 오른쪽 끝은 닫기
     {
         float btn = 26.f * s;
-        RectF handle(r.X, r.Y, r.Width - (btn * 2.f + 14.f * s), 30.f * s);
+        RectF handle(r.X, r.Y, r.Width - (btn + 14.f * s), 30.f * s);
         out.push_back({handle, UiAction::DragMenu, 0, true});
         markRegion(handle);
         bool hov = handle.Contains(PointF(ctx.mouseX, ctx.mouseY));
@@ -1042,84 +1059,109 @@ void Renderer::drawMenu(Graphics& g, const Game& game, const RenderContext& ctx,
             fillRound(g, RectF(r.X + 10.f * s, r.Y + 9.f * s + i * 4.f * s, 14.f * s, 2.f * s), 1.f,
                       Color(hov ? 220 : 120, 180, 190, 220));
         text(g, "메뉴", x + 22.f * s, y, 17.f * s, kText, 0, true);
-        button(g, out, ctx, RectF(r.GetRight() - btn * 2.f - 10.f * s, r.Y + 4.f * s, btn, 22.f * s), "－",
-               UiAction::MenuScale, -1, s > cfg::kMenuScaleMin + 0.001f);
-        button(g, out, ctx, RectF(r.GetRight() - btn - 6.f * s, r.Y + 4.f * s, btn, 22.f * s), "＋",
-               UiAction::MenuScale, +1, s < cfg::kMenuScaleMax - 0.001f);
+        button(g, out, ctx, RectF(r.GetRight() - btn - 8.f * s, r.Y + 4.f * s, btn, 22.f * s), "닫기",
+               UiAction::CloseMenu);
     }
-    y += 32.f * s;
+    y += 34.f * s;
 
-    if (game.hunting())
-        button(g, out, ctx, RectF(x, y, w, 42.f * s), "사냥 중단", UiAction::StopHunt, 0, true, false, true);
-    else
-        button(g, out, ctx, RectF(x, y, w, 42.f * s), "사냥 시작", UiAction::StartHunt);
-    y += 52.f * s;
-
-    text(g, "사냥 모드", x, y, 13.f * s, kSub, 0, true);
-    if (!game.canChangeMode()) text(g, "전투 중에는 바꿀 수 없음", r.GetRight() - 16.f * s, y, 12.f * s, kWarnC, 2);
-    y += 22.f * s;
-    float bw = (w - 16.f * s) / 3.f;
-    const CombatMode modes[3] = {CombatMode::Direct, CombatMode::SkillManual, CombatMode::Auto};
-    bool autoAvailable = autoExpRemaining(game.dragonRecord()) > 0;
-    for (int i = 0; i < 3; ++i) {
-        bool en = game.canChangeMode() && (modes[i] != CombatMode::Auto || autoAvailable || game.huntMode() == CombatMode::Auto);
-        button(g, out, ctx, RectF(x + i * (bw + 8.f * s), y, bw, 38.f * s), combatModeName(modes[i]), UiAction::SetMode,
-               static_cast<int>(modes[i]), en, game.huntMode() == modes[i]);
-    }
-    y += 44.f * s;
-    if (!autoAvailable) text(g, "이 드래곤은 자동 사냥 상한에 도달했습니다.", x, y, 12.f * s, kAutoC);
-    y += 22.f * s;
-
-    // v0.9 싸울 때 유지할 간격. 직접 조작에서는 사람이 직접 움직이므로 쓰이지 않는다.
+    // 탭: 전투 설정 / 환경 설정
+    int tab = game.menuTab();
     {
-        bool used = game.huntMode() != CombatMode::Direct;
-        text(g, "간격", x, y, 13.f * s, kSub, 0, true);
-        if (!used) text(g, "직접 조작에서는 쓰이지 않음", r.GetRight() - 16.f * s, y, 12.f * s, kSub, 2);
+        float tw = (w - 6.f * s) * 0.5f;
+        button(g, out, ctx, RectF(x, y, tw, 30.f * s), "전투 설정", UiAction::SetMenuTab, 0, true, tab == 0);
+        button(g, out, ctx, RectF(x + tw + 6.f * s, y, tw, 30.f * s), "환경 설정", UiAction::SetMenuTab, 1, true,
+               tab == 1);
+    }
+    y += 40.f * s;
+
+    if (tab == 0) {
+        // ---------------- 전투 설정 ----------------
+        if (game.hunting())
+            button(g, out, ctx, RectF(x, y, w, 42.f * s), "사냥 중단", UiAction::StopHunt, 0, true, false, true);
+        else
+            button(g, out, ctx, RectF(x, y, w, 42.f * s), "사냥 시작", UiAction::StartHunt);
+        y += 52.f * s;
+
+        text(g, "사냥 모드", x, y, 13.f * s, kSub, 0, true);
+        if (!game.canChangeMode()) text(g, "전투 중에는 바꿀 수 없음", r.GetRight() - 16.f * s, y, 12.f * s, kWarnC, 2);
         y += 22.f * s;
-        for (int i = 0; i < cfg::kKeepRangeCount; ++i) {
-            button(g, out, ctx, RectF(x + i * (bw + 8.f * s), y, bw, 34.f * s), game.keepRangeName(i),
-                   UiAction::SetKeepRange, i, used, game.keepRange() == i);
+        float bw = (w - 16.f * s) / 3.f;
+        const CombatMode modes[3] = {CombatMode::Direct, CombatMode::SkillManual, CombatMode::Auto};
+        bool autoAvailable = autoExpRemaining(game.dragonRecord()) > 0;
+        for (int i = 0; i < 3; ++i) {
+            bool en = game.canChangeMode() &&
+                      (modes[i] != CombatMode::Auto || autoAvailable || game.huntMode() == CombatMode::Auto);
+            button(g, out, ctx, RectF(x + i * (bw + 8.f * s), y, bw, 38.f * s), combatModeName(modes[i]),
+                   UiAction::SetMode, static_cast<int>(modes[i]), en, game.huntMode() == modes[i]);
         }
-        y += 40.f * s;
-        if (game.huntMode() == CombatMode::SkillManual)
-            text(g, "방향키를 누르는 동안에는 직접 움직입니다.", x, y, 11.f * s, kSub);
-        y += 18.f * s;
-    }
+        y += 44.f * s;
+        if (!autoAvailable) text(g, "이 드래곤은 자동 사냥 상한에 도달했습니다.", x, y, 12.f * s, kAutoC);
+        y += 20.f * s;
 
-    // 보기 설정(v0.8). 캐릭터 크기는 그림만 바뀌고 판정 크기는 그대로다.
-    {
-        float btn = 30.f * s;
-        text(g, "캐릭터 크기", x, y + 6.f * s, 13.f * s, kSub, 0, true);
+        text(g, "싸울 때 유지할 간격", x, y, 13.f * s, kSub, 0, true);
+        y += 22.f * s;
+        const char* keepName[cfg::kKeepRangeCount] = {"근접", "중간", "바깥"};
+        float kw = (w - 16.f * s) / 3.f;
+        for (int i = 0; i < cfg::kKeepRangeCount; ++i) {
+            button(g, out, ctx, RectF(x + i * (kw + 8.f * s), y, kw, 34.f * s), keepName[i], UiAction::SetKeepRange, i,
+                   true, game.keepRange() == i);
+        }
+        y += 42.f * s;
+        paragraph(g, "스킬 수동에서는 방향키를 누르는 동안 직접 밀 수 있습니다. 키보드는 싸우는 중에만 받습니다.",
+                  RectF(x, y, w, 40.f * s), 11.f * s, kSub);
+        y += 44.f * s;
+
+        float hw = (w - 8.f * s) * 0.5f;
+        bool towerOk = !game.waveActive();
+        // 스킬 관리는 전투에 속하므로 이 탭에 둔다. 남은 스킬이 있으면 글자로 알린다
+        // (전에는 ● 를 찍었는데 폰트에 없어 깨져 보였다).
+        button(g, out, ctx, RectF(x, y, hw, 38.f * s), game.hasUnequippedSkill() ? "스킬 관리 (새것)" : "스킬 관리",
+               UiAction::OpenSkills, 0, game.hasDragon() && game.screen() == Screen::Desktop);
+        button(g, out, ctx, RectF(x + hw + 8.f * s, y, hw, 38.f * s), "탑 도전", UiAction::OpenTower, 0, towerOk);
+        y += 46.f * s;
+        button(g, out, ctx, RectF(x, y, w, 38.f * s), "기록·도감", UiAction::OpenCodex);
+    } else {
+        // ---------------- 환경 설정 ----------------
+        text(g, "캐릭터 크기", x, y, 13.f * s, kSub, 0, true);
         int pct = static_cast<int>(game.charScale() * 100.f + 0.5f);
-        text(g, std::to_string(pct) + "%", r.GetRight() - btn * 2.f - 18.f * s, y + 6.f * s, 13.f * s, kText, 2, true);
-        button(g, out, ctx, RectF(r.GetRight() - btn * 2.f - 10.f * s, y, btn, 26.f * s), "－", UiAction::CharScale, -1,
-               game.charScale() > cfg::kCharScaleMin + 0.001f);
-        button(g, out, ctx, RectF(r.GetRight() - btn - 6.f * s, y, btn, 26.f * s), "＋", UiAction::CharScale, +1,
-               game.charScale() < cfg::kCharScaleMax - 0.001f);
+        text(g, std::to_string(pct) + "%", r.GetRight() - 16.f * s, y, 13.f * s, kText, 2, true);
+        y += 20.f * s;
+        slider(g, out, ctx, RectF(x, y, w, 24.f * s), game.charScale(), cfg::kCharScaleMin, cfg::kCharScaleMax,
+               UiAction::DragCharSlider);
         y += 32.f * s;
+        text(g, "그림만 커지고 맞는 거리·공격 범위는 그대로입니다.", x, y, 11.f * s, kSub);
+        y += 26.f * s;
+
+        toggle(g, out, ctx, RectF(x, y, w, 26.f * s), "드래곤을 아래쪽에만 두기", game.confineToBand(),
+               UiAction::ToggleConfine, 0, true);
+        y += 34.f * s;
         toggle(g, out, ctx, RectF(x, y, w, 26.f * s), "절전(조용할 때 프레임 줄이기)", game.powerSave(),
                UiAction::TogglePowerSave, 0, true);
-        y += 34.f * s;
+        y += 32.f * s;
+        paragraph(g, "노트북에서 배터리가 걱정되면 켜세요. 드래곤이 움직이는 동안에는 줄이지 않습니다.",
+                  RectF(x, y, w, 34.f * s), 11.f * s, kSub);
+        y += 40.f * s;
+
+        button(g, out, ctx, RectF(x, y, w, 38.f * s),
+               "드래곤 관리 (" + std::to_string(game.stable().size()) + "/" + std::to_string(cfg::kMaxStable) + ")",
+               UiAction::OpenStable);
+        y += 46.f * s;
+        button(g, out, ctx, RectF(x, y, w, 36.f * s), "저장하고 게임 종료", UiAction::ExitGame);
     }
 
-    float hw = (w - 8.f * s) * 0.5f;
-    // v1.3 드래곤 관리. 여러 마리를 가지고 바꿔 가며 쓴다.
-    button(g, out, ctx, RectF(x, y, hw, 38.f * s),
-           "드래곤 (" + std::to_string(game.stable().size()) + "/" + std::to_string(cfg::kMaxStable) + ")",
-           UiAction::OpenStable);
-    // v1.4 스킬 관리. 쓰지 않고 남은 스킬이 있으면 점을 찍어 알린다.
-    button(g, out, ctx, RectF(x + hw + 8.f * s, y, hw, 38.f * s),
-           game.hasUnequippedSkill() ? "스킬 관리 ●" : "스킬 관리", UiAction::OpenSkills, 0,
-           game.hasDragon() && game.screen() == Screen::Desktop);
-    y += 46.f * s;
-    bool towerOk = !game.waveActive();
-    button(g, out, ctx, RectF(x, y, hw, 40.f * s), "탑 도전", UiAction::OpenTower, 0, towerOk);
-    button(g, out, ctx, RectF(x + hw + 8.f * s, y, hw, 40.f * s), "기록·도감", UiAction::OpenCodex);
-    y += 48.f * s;
-    button(g, out, ctx, RectF(x, y, w, 36.f * s), "저장하고 게임 종료", UiAction::ExitGame);
-    y += 44.f * s;
-    paragraph(g, "창과 버튼은 언제나 마우스로 쓸 수 있습니다. 설정 버튼은 키보드 조작(이동·회피·스킬)을 켜고 끕니다.",
-              RectF(x, y, w, 44.f * s), 11.f * s, kSub);
+    // 오른쪽 아래 모서리: 끌어서 창 크기 바꾸기
+    {
+        float gsz = 16.f * s;
+        RectF grip(r.GetRight() - gsz - 4.f, r.GetBottom() - gsz - 4.f, gsz, gsz);
+        bool hov = grip.Contains(PointF(ctx.mouseX, ctx.mouseY));
+        for (int i = 0; i < 3; ++i) {
+            float o = i * 5.f * s;
+            Pen pen(Color(hov ? 230 : 130, 180, 190, 220), 1.5f);
+            g.DrawLine(&pen, grip.GetRight() - o, grip.GetBottom(), grip.GetRight(), grip.GetBottom() - o);
+        }
+        out.push_back({grip, UiAction::DragMenuSize, 0, true});
+        markRegion(grip);
+    }
 }
 
 void Renderer::drawNotices(Graphics& g, const Game& game) {
@@ -1658,39 +1700,5 @@ void Renderer::drawCodex(Graphics& g, const Game& game, const RenderContext& ctx
 // ---------------------------------------------------------------------------
 // 설정 버튼
 // ---------------------------------------------------------------------------
-
-void Renderer::drawSettingsButton(Graphics& g, float size, const Sprites& sprites, bool inputOn, bool attention,
-                                  bool hover, float time) {
-    float c = size * 0.5f;
-    float r = size * 0.5f - 4.f;
-    float pulse = attention ? 0.5f + 0.5f * std::sin(time * 6.f) : 0.f;
-    fillCircle(g, c, c + 2.f, r, Color(90, 0, 0, 0));
-    fillCircle(g, c, c, r, hover ? Color(240, 46, 50, 70) : Color(232, 30, 32, 46));
-    Color ring = attention ? Color(255, 255, static_cast<BYTE>(170 + 60 * pulse), 60)
-                 : inputOn ? Color(255, 90, 220, 120)
-                           : Color(255, 130, 136, 150);
-    strokeCircle(g, c, c, r - 1.f, ring, attention ? 3.f + 2.f * pulse : 3.f);
-
-    Bitmap* icon = sprites.get("button_settings");
-    if (icon) {
-        float s = r * 1.2f;
-        g.DrawImage(icon, RectF(c - s * 0.5f, c - s * 0.5f - 4.f, s, s));
-    } else {
-        // 톱니바퀴 모양
-        Color gear = inputOn ? Color(255, 200, 255, 210) : Color(255, 210, 214, 224);
-        SolidBrush gb(gear);
-        float gc = c - 4.f;
-        GraphicsState st = g.Save();
-        g.TranslateTransform(c, gc);
-        for (int i = 0; i < 8; ++i) {
-            g.FillRectangle(&gb, -3.5f, -r * 0.58f, 7.f, 8.f);
-            g.RotateTransform(45.f);
-        }
-        g.Restore(st);
-        fillCircle(g, c, gc, r * 0.42f, gear);
-        fillCircle(g, c, gc, r * 0.18f, Color(255, 30, 32, 46));
-    }
-    text(g, inputOn ? "ON" : "OFF", c, size - 22.f, 10.f, inputOn ? 0xFF8CFFA0 : 0xFFB0B4C0, 1, true);
-}
 
 }  // namespace dt::win
