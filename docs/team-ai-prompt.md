@@ -46,12 +46,15 @@ sudo apt-get update && sudo apt-get install -y mingw-w64   # 한 번만
 tools/check_win_build.sh          # 9초. 푸시 전에 이것부터
 ```
 
-아래 세 가지를 CI 실패로 알게 된 적이 있는데, **이 스크립트가 셋 다 잡는다.** 그래도 GCC 는
+아래 네 가지를 CI 실패로 알게 된 적이 있는데, **이 스크립트가 넷 다 잡는다.** 그래도 GCC 는
 MSVC 가 아니므로 CI 를 대신하지는 않는다 — 왕복 횟수를 줄이는 것이다.
 
 1. **헤더에 쓰는 타입은 헤더에서 포함한다.** `App.h`에 `shellapi.h`가 없어 `NOTIFYICONDATAW`를 인식하지 못했다
 2. **`RectF` 모호성**: `App.cpp`에서 그냥 `RectF`는 우리 타입 `dt::RectF`로 해석된다. GDI+ 타입이 필요하면 `Gdiplus::RectF`로 명시한다
 3. **파일 안의 정의 순서** — 선언 전에 쓰면 안 된다
+4. **기본 인수는 선언에만 적는다** (큐 10번에서 걸렸다). 함수를 헤더로 내면서 정의 쪽에 기본값을
+   그대로 두면 GCC 가 `default argument given for parameter` 로 **거절한다.** 선언에만 두고
+   정의에서는 뺀다 — 한 파일 안에 있을 때는 생기지 않던 문제다
 
 빌드: `cmake -S . -B build && cmake --build build`
 실행: `build/Debug/dragon_tower.exe` · 저장 파일: `%APPDATA%\DragonTower\save.txt`
