@@ -23,6 +23,7 @@ void Game::init(const SaveData& save, const RectF& desktop) {
     save_ = save;
     desktop_ = desktop;
     world_.setBounds(desktop_);
+    world_.setKeepRange(save_.keepRange);  // 저장해 둔 간격을 이어서 쓴다
     if (save_.hasDragon) {
         const DragonRecord& d = save_.dragon;
         world_.setupDragon(d.species, d.level, d.hp, {desktop_.center().x, desktop_.bottom() - 120.f});
@@ -161,6 +162,37 @@ bool Game::consumeSaveRequest() {
 SaveData Game::snapshotForSave() {
     if (save_.hasDragon && world_.dragon().alive) save_.dragon.hp = world_.dragon().hp;
     return save_;
+}
+
+void Game::setKeepRange(int v) {
+    int n = std::clamp(v, 0, cfg::kKeepRangeCount - 1);
+    if (save_.keepRange == n) return;
+    save_.keepRange = n;
+    world_.setKeepRange(n);
+    saveRequested_ = true;
+    notify(std::string("간격: ") + keepRangeName(n), kGood, 2.0f);
+}
+
+const char* Game::keepRangeName(int v) const {
+    switch (v) {
+        case 1: return "중간";
+        case 2: return "바깥";
+        default: return "근접";
+    }
+}
+
+void Game::setDragonHeld(bool on) {
+    if (!save_.hasDragon) return;
+    DragonActor& d = world_.dragon();
+    if (d.held == on) return;
+    d.held = on;
+    if (!on) {
+        // 놓은 자리를 새 기준으로 삼는다. 공중에 놓았으면 날아서 내려온다.
+        d.groundY = d.pos.y;
+        d.wanderTarget = d.pos;
+        d.behaviorLeft = 0.f;
+        d.restTime = 0.f;
+    }
 }
 
 void Game::placeDragonForDesktop() {

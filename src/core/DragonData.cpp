@@ -102,6 +102,7 @@ SpeciesDef newSpeciesTemplate(const std::string& key) {
     d.anims[static_cast<int>(AnimState::Hit)] = {12.f, false, 0};
     d.anims[static_cast<int>(AnimState::Death)] = {10.f, false, 0};
     d.anims[static_cast<int>(AnimState::Fly)] = {10.f, true, 0};
+    d.anims[static_cast<int>(AnimState::Rest)] = {6.f, true, 0};
     return d;
 }
 
@@ -175,6 +176,7 @@ DragonParseResult parseDragonText(const std::string& text, const std::string& fo
                 if (val != folderKey) warn("key=" + val + "는 폴더 이름(" + folderKey + ")과 달라 폴더 이름을 씁니다");
             }
             else if (key == "name") d.name = val;
+            else if (key == "ui_skin") d.uiSkin = val;
             else if (key == "role") d.role = val;
             else if (key == "desc") d.desc = val;
             else if (key == "color") ok = parseColor(val, d.color);

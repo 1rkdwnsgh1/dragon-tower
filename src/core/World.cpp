@@ -63,6 +63,12 @@ void World::updateDragonAnim(float dt) {
     if (d.animHold > 0.f) return;  // 1회 재생이 끝나지 않았다
     // 날고 있으면 잠시 멈춰 있어도 공중이므로 Fly를 유지한다.
     AnimState want = d.flying ? AnimState::Fly : (d.moving ? AnimState::Move : AnimState::Idle);
+    // v0.9: 바탕화면에서 한동안 가만히 쉬면 엎드린다(쉬는 모션). 시트가 없으면 idle로 대체된다.
+    // 바로 엎드리지 않고 조금 기다리는 이유는, 잠깐 멈출 때마다 누웠다 일어나면 부산해 보이기 때문이다.
+    if (want == AnimState::Idle && !d.held && d.behavior == IdleBehavior::Rest &&
+        d.restTime >= cfg::kRestLieDelay) {
+        want = AnimState::Rest;
+    }
     if (d.anim != want) {
         d.anim = want;
         d.animTime = 0.f;
@@ -346,19 +352,51 @@ bool World::castSkill(int i, bool aiChoice) {
     return true;
 }
 
-void World::dragonAi(float dt, bool castSkills) {
+// v0.9: 싸울 때 유지할 간격. 설정에 따라 붙거나 떨어져서 싸운다.
+// 바깥 간격은 "지금 쓸 수 있는 가장 긴 스킬"을 기준으로 한다. 레벨이 올라 사거리가 긴 스킬이
+// 열리면 자연히 더 떨어져서 싸우게 된다.
+float World::desiredRange() const {
+    switch (keepRange_) {
+        case 1: return cfg::kBasicAttackRange * cfg::kKeepMidRatio;
+        case 2: {
+            const SpeciesDef& sp = speciesDef(dragon_.species);
+            float best = 0.f;
+            for (int i = 0; i < 3; ++i) {
+                if (!skillUnlocked(i)) continue;
+                best = std::max(best, sp.skills[i].range);
+            }
+            // 쓸 수 있는 스킬이 없으면 붙어서 기본 공격으로 싸우는 수밖에 없다
+            if (best <= 0.f) return cfg::kBasicAttackRange * cfg::kKeepNearRatio;
+            return best * cfg::kKeepFarRatio;
+        }
+        default: return cfg::kBasicAttackRange * cfg::kKeepNearRatio;
+    }
+}
+
+void World::dragonAi(float dt, bool castSkills, const PlayerInput& in, bool allowManual) {
     DragonActor& d = dragon_;
     Enemy* t = nearestEnemy(d.pos, 1e9f);
     if (!t) {
         wander(dt);  // 애니메이션은 updateCombat 끝에서 한 번만 진행한다
         return;
     }
-    float desired = cfg::kBasicAttackRange * 0.7f;
+    // 사람이 방향키를 잡고 있으면 그동안은 사람 뜻대로 움직인다(스킬 수동에서만).
+    if (allowManual && (std::fabs(in.moveX) > 0.01f || std::fabs(in.moveY) > 0.01f)) {
+        moveDragon(dt, {in.moveX, in.moveY}, 1.f);
+        return;
+    }
+    float desired = desiredRange();
     float dist = distance(d.pos, t->pos) - t->radius;
     Vec2 dir{0.f, 0.f};
-    if (dist > desired) dir = (t->pos - d.pos).normalized();
+    if (dist > desired) {
+        dir = (t->pos - d.pos).normalized();
+    } else if (dist < desired - cfg::kKeepSlack) {
+        // 너무 붙었으면 물러난다. 여유(kKeepSlack)를 두어 앞뒤로 떠는 것을 막는다.
+        dir = (d.pos - t->pos).normalized();
+    }
     moveDragon(dt, dir, 1.f);
-    if (dir.length() < 0.01f && std::fabs(t->pos.x - d.pos.x) > 4.f) d.facing = Vec2{t->pos.x > d.pos.x ? 1.f : -1.f, 0.f};
+    // 물러나는 중에도 적을 바라본다(뒷걸음질). 그래야 스킬이 적 쪽으로 나간다.
+    if (std::fabs(t->pos.x - d.pos.x) > 4.f) d.facing = Vec2{t->pos.x > d.pos.x ? 1.f : -1.f, 0.f};
     if (castSkills) {
         for (int i = 0; i < 3; ++i) {
             if (skillReady(i) && castSkill(i, true)) break;
@@ -443,6 +481,15 @@ void World::pickBehavior() {
 
 void World::wander(float dt) {
     DragonActor& d = dragon_;
+    // v0.9: 사람이 잡고 있는 동안에는 스스로 움직이지 않는다. 그렇지 않으면 끌어다 놓는 사이에
+    // 자동 행동이 위치를 덮어써서 손에서 빠져나가는 것처럼 보였다.
+    if (d.held) {
+        d.flying = false;
+        d.moving = false;
+        d.restTime = 0.f;
+        d.behaviorLeft = 0.f;  // 놓으면 바로 새 행동을 고른다
+        return;
+    }
     if (d.dashTime > 0.f) {
         moveDragon(dt, {0.f, 0.f}, 1.f);
         return;
@@ -454,8 +501,10 @@ void World::wander(float dt) {
     if (d.behavior == IdleBehavior::Rest) {
         d.flying = false;
         d.moving = false;
+        d.restTime += dt;  // 오래 쉬면 엎드린다
         return;
     }
+    d.restTime = 0.f;
 
     // 목적지에 닿았을 때
     if (distance(d.pos, d.wanderTarget) < 8.f) {
@@ -699,7 +748,8 @@ void World::updateCombat(float dt, CombatMode mode, const PlayerInput& in) {
             }
             moveDragon(dt, {in.moveX, in.moveY}, 1.f);
         } else {
-            dragonAi(dt, mode == CombatMode::Auto);
+            // 스킬 수동에서는 방향키로 직접 밀 수 있다. 자동은 손대지 않는다.
+            dragonAi(dt, mode == CombatMode::Auto, in, mode == CombatMode::SkillManual);
         }
         if (d.dashTime > 0.f) d.dashTime -= dt;
 

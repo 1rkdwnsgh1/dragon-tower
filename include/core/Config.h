@@ -92,6 +92,18 @@ constexpr float kIdleWalkSpeed = 0.35f;
 constexpr float kIdleFlySpeed = 0.80f;
 // 날다가 내려오는 데 쓰는 최대 시간(초)과, 지면에 닿았다고 볼 거리(픽셀)
 constexpr float kIdleLandMax = 8.0f;
+constexpr float kRestLieDelay = 2.0f;   // 이만큼 가만히 쉬면 엎드린다(쉬는 모션)
+
+// v0.9 싸울 때 유지할 간격(스킬 수동·자동에서 AI가 지킨다). 0 근접 / 1 중간 / 2 바깥.
+constexpr int kKeepRangeCount = 3;
+constexpr float kKeepNearRatio = 0.70f;   // 근접: 기본 공격 사거리의 70%
+constexpr float kKeepMidRatio = 1.00f;    // 중간: 기본 공격이 겨우 닿는 거리
+constexpr float kKeepFarRatio = 0.80f;    // 바깥: 쓸 수 있는 가장 긴 스킬 사거리의 80%
+constexpr float kKeepSlack = 24.f;        // 이보다 가까워지면 물러난다(제자리걸음 방지)
+
+// v0.9 체력 막대 그림이 바뀌는 지점. 남은 비율이 이 아래면 다음 그림을 쓴다.
+constexpr float kMidHpRatio = 0.55f;
+constexpr float kLowHpRatio = 0.25f;
 constexpr float kGroundEpsilon = 2.0f;
 // 걷기는 화면 아래 이만큼 아래에서만, 날기는 위쪽 이만큼까지 올라간다(화면 높이 비율)
 constexpr float kIdleWalkTopRatio = 0.55f;

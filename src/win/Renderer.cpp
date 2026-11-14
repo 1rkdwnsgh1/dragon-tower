@@ -181,8 +181,54 @@ struct AlwaysGuard {
 };
 }  // namespace
 
+// 9조각으로 늘려 그린다. 네 모서리는 원래 크기 그대로 두고 가장자리와 가운데만 늘린다.
+// 여백이 0이면 통째로 늘린다(막대 채움처럼 장식이 없는 그림).
+static void drawNineSlice(Graphics& g, const UiPiece& p, const RectF& dst, float alpha) {
+    ImageAttributes ia;
+    ColorMatrix cm = {{{1.f, 0.f, 0.f, 0.f, 0.f},
+                       {0.f, 1.f, 0.f, 0.f, 0.f},
+                       {0.f, 0.f, 1.f, 0.f, 0.f},
+                       {0.f, 0.f, 0.f, alpha, 0.f},
+                       {0.f, 0.f, 0.f, 0.f, 1.f}}};
+    ia.SetColorMatrix(&cm, ColorMatrixFlagsDefault, ColorAdjustTypeBitmap);
+    ia.SetWrapMode(WrapModeTileFlipXY);  // 가장자리에서 바깥 픽셀이 번지지 않게 한다
+    float sw = static_cast<float>(p.bmp->GetWidth());
+    float sh = static_cast<float>(p.bmp->GetHeight());
+    if (!p.stretch()) {
+        g.DrawImage(p.bmp, dst, 0.f, 0.f, sw, sh, UnitPixel, &ia);
+        return;
+    }
+    float l = static_cast<float>(p.left), tp = static_cast<float>(p.top);
+    float rt = static_cast<float>(p.right), bt = static_cast<float>(p.bottom);
+    // 목적지가 테두리 합보다 작으면 테두리를 줄여 맞춘다(작은 버튼에서 찌그러지지 않게)
+    float kx = (l + rt) > dst.Width ? dst.Width / (l + rt) : 1.f;
+    float ky = (tp + bt) > dst.Height ? dst.Height / (tp + bt) : 1.f;
+    float dl = l * kx, dr = rt * kx, dt_ = tp * ky, db = bt * ky;
+    float sxs[4] = {0.f, l, sw - rt, sw};
+    float sys[4] = {0.f, tp, sh - bt, sh};
+    float dxs[4] = {dst.X, dst.X + dl, dst.GetRight() - dr, dst.GetRight()};
+    float dys[4] = {dst.Y, dst.Y + dt_, dst.GetBottom() - db, dst.GetBottom()};
+    for (int iy = 0; iy < 3; ++iy) {
+        for (int ix = 0; ix < 3; ++ix) {
+            float dw = dxs[ix + 1] - dxs[ix], dh = dys[iy + 1] - dys[iy];
+            float sw2 = sxs[ix + 1] - sxs[ix], sh2 = sys[iy + 1] - sys[iy];
+            if (dw <= 0.f || dh <= 0.f || sw2 <= 0.f || sh2 <= 0.f) continue;
+            g.DrawImage(p.bmp, RectF(dxs[ix], dys[iy], dw, dh), sxs[ix], sys[iy], sw2, sh2, UnitPixel, &ia);
+        }
+    }
+}
+
+bool Renderer::piece(Graphics& g, const char* name, const RectF& r, float alpha) {
+    if (!sprites_) return false;
+    UiPiece p = sprites_->ui(skin_, name);
+    if (!p.valid()) return false;
+    drawNineSlice(g, p, r, alpha);
+    return true;
+}
+
 void Renderer::panel(Graphics& g, const RectF& r, uint8_t alpha) {
     markRegion(r);
+    if (piece(g, "panel", r, alpha / 255.f)) return;
     fillRound(g, RectF(r.X + 3.f, r.Y + 5.f, r.Width, r.Height), 14.f, Color(static_cast<BYTE>(alpha / 3), 0, 0, 0));
     fillRound(g, r, 14.f, Color(alpha, 24, 26, 38));
     strokeRound(g, r, 14.f, Color(255, 86, 96, 140), 1.5f);
@@ -191,13 +237,20 @@ void Renderer::panel(Graphics& g, const RectF& r, uint8_t alpha) {
 void Renderer::button(Graphics& g, std::vector<UiButton>& out, const RenderContext& ctx, const RectF& r,
                       const std::string& label, UiAction action, int arg, bool enabled, bool selected, bool danger) {
     bool hover = enabled && r.Contains(PointF(ctx.mouseX, ctx.mouseY));
-    Color fill = !enabled ? Color(200, 48, 50, 60)
-                 : selected ? Color(255, 70, 128, 214)
-                 : danger ? (hover ? Color(255, 170, 70, 70) : Color(255, 132, 52, 56))
-                          : (hover ? Color(255, 80, 92, 134) : Color(255, 56, 64, 94));
-    fillRound(g, r, 8.f, fill);
-    if (selected) strokeRound(g, r, 8.f, Color(255, 170, 210, 255), 2.f);
-    else if (hover) strokeRound(g, r, 8.f, Color(255, 150, 160, 200), 1.5f);
+    // 그림이 있으면 그림으로. 눌린 느낌(selected)과 hover 는 같은 "켜진" 그림을 쓴다.
+    const char* art = !enabled ? "button_off" : (selected || hover) ? "button_hover" : "button";
+    if (!piece(g, art, r)) {
+        Color fill = !enabled ? Color(200, 48, 50, 60)
+                     : selected ? Color(255, 70, 128, 214)
+                     : danger ? (hover ? Color(255, 170, 70, 70) : Color(255, 132, 52, 56))
+                              : (hover ? Color(255, 80, 92, 134) : Color(255, 56, 64, 94));
+        fillRound(g, r, 8.f, fill);
+        if (selected) strokeRound(g, r, 8.f, Color(255, 170, 210, 255), 2.f);
+        else if (hover) strokeRound(g, r, 8.f, Color(255, 150, 160, 200), 1.5f);
+    } else if (danger) {
+        // 위험한 버튼은 그림 위에 붉은 기를 덧입혀 구분한다
+        fillRound(g, r, 8.f, Color(70, 200, 60, 60));
+    }
     float size = r.Height >= 40.f ? 16.f : 14.f;
     text(g, label, r.X + r.Width * 0.5f, r.Y + (r.Height - size * 1.35f) * 0.5f, size, enabled ? kText : 0xFF7C8090, 1,
          true);
@@ -213,12 +266,20 @@ void Renderer::button(Graphics& g, std::vector<UiButton>& out, const RenderConte
 
 void Renderer::bar(Graphics& g, const RectF& r, float ratio, uint32_t color, const std::string& label) {
     ratio = std::clamp(ratio, 0.f, 1.f);
-    fillRound(g, r, r.Height * 0.5f, Color(220, 12, 14, 20));
+    // 채움 그림은 색으로 고른다. 체력은 적게 남으면 빨간 그림으로 바꾼다.
+    const char* fillArt = color == kHpC ? (ratio <= cfg::kLowHpRatio   ? "bar_fill_low"
+                                           : ratio <= cfg::kMidHpRatio ? "bar_fill_hp_mid"
+                                                                       : "bar_fill_hp")
+                          : color == kExpC ? "bar_fill_exp"
+                          : color == kAutoC ? "bar_fill_auto"
+                                            : nullptr;
+    bool framed = piece(g, "bar_frame", r);
+    if (!framed) fillRound(g, r, r.Height * 0.5f, Color(220, 12, 14, 20));
     if (ratio > 0.f) {
         RectF f(r.X, r.Y, std::max(r.Height, r.Width * ratio), r.Height);
-        fillRound(g, f, r.Height * 0.5f, col(color));
+        if (!(fillArt && piece(g, fillArt, f))) fillRound(g, f, r.Height * 0.5f, col(color));
     }
-    strokeRound(g, r, r.Height * 0.5f, Color(160, 0, 0, 0), 1.f);
+    if (!framed) strokeRound(g, r, r.Height * 0.5f, Color(160, 0, 0, 0), 1.f);
     if (!label.empty()) {
         float size = std::max(10.f, r.Height - 3.f);
         text(g, label, r.X + r.Width * 0.5f, r.Y + (r.Height - size * 1.35f) * 0.5f, size, kText, 1, true);
@@ -231,6 +292,9 @@ void Renderer::bar(Graphics& g, const RectF& r, float ratio, uint32_t color, con
 
 void Renderer::drawOverlay(Graphics& g, const Game& game, const Sprites& sprites, const RenderContext& ctx,
                            std::vector<UiButton>& out, FrameRegions* outRegions) {
+    // v0.9: 이번 프레임에 쓸 UI 스킨을 정한다(드래곤마다 다를 수 있다).
+    sprites_ = &sprites;
+    skin_ = game.uiSkin();
     g_regions = outRegions;
     if (outRegions) {
         outRegions->hit.clear();
@@ -695,15 +759,19 @@ void Renderer::toggle(Graphics& g, std::vector<UiButton>& out, const RenderConte
     // 글자 + 스위치. 스위치는 오른쪽 끝에 둔다.
     float sw = 42.f, sh = 22.f;
     RectF knobArea(r.GetRight() - sw, r.Y + (r.Height - sh) * 0.5f, sw, sh);
-    Color track = !enabled ? Color(200, 48, 50, 60)
-                           : on ? Color(255, 70, 190, 120) : Color(235, 60, 64, 80);
-    auto lift = [](BYTE v) { return static_cast<BYTE>(v > 230 ? 255 : v + 25); };
-    if (hover) track = Color(255, lift(track.GetR()), lift(track.GetG()), lift(track.GetB()));
-    fillRound(g, knobArea, sh * 0.5f, track);
-    strokeRound(g, knobArea, sh * 0.5f, Color(255, 20, 22, 30), 1.f);
-    float kr = sh * 0.5f - 3.f;
-    float kx = on ? knobArea.GetRight() - kr - 3.f : knobArea.X + kr + 3.f;
-    fillCircle(g, kx, knobArea.Y + sh * 0.5f, kr, Color(255, 245, 248, 255));
+    // 그림이 있으면 켜짐/꺼짐 그림을 통째로 쓴다(손잡이까지 그려져 있다).
+    const char* art = !enabled ? "toggle_disabled" : on ? "toggle_on" : "toggle_off";
+    if (!piece(g, art, knobArea, hover ? 1.f : 0.92f)) {
+        Color track = !enabled ? Color(200, 48, 50, 60)
+                               : on ? Color(255, 70, 190, 120) : Color(235, 60, 64, 80);
+        auto lift = [](BYTE v) { return static_cast<BYTE>(v > 230 ? 255 : v + 25); };
+        if (hover) track = Color(255, lift(track.GetR()), lift(track.GetG()), lift(track.GetB()));
+        fillRound(g, knobArea, sh * 0.5f, track);
+        strokeRound(g, knobArea, sh * 0.5f, Color(255, 20, 22, 30), 1.f);
+        float kr = sh * 0.5f - 3.f;
+        float kx = on ? knobArea.GetRight() - kr - 3.f : knobArea.X + kr + 3.f;
+        fillCircle(g, kx, knobArea.Y + sh * 0.5f, kr, Color(255, 245, 248, 255));
+    }
     text(g, label, r.X, r.Y + (r.Height - 16.f) * 0.5f, 14.f, enabled ? kText : 0xFF7C8090, 0, true);
     text(g, on ? "ON" : "OFF", knobArea.X - 8.f, r.Y + (r.Height - 14.f) * 0.5f + 1.f, 12.f,
          on ? 0xFF8CFFA0 : 0xFF9AA2B4, 2);
@@ -851,7 +919,7 @@ void Renderer::drawMenu(Graphics& g, const Game& game, const RenderContext& ctx,
     // v0.8: 위치와 크기를 저장해 둔 값으로 그린다. 글자·버튼·여백을 모두 같은 배수로 키운다.
     const float s = game.menuScale();
     const float mw = 340.f * s;
-    const float mh = 452.f * s;
+    const float mh = 532.f * s;
     Vec2 saved = game.menuPos();
     float mx = saved.x >= 0.f ? saved.x : width_ - 96.f - mw;
     float my = saved.y >= 0.f ? saved.y : height_ - 16.f - 186.f - 12.f - mh;
@@ -902,6 +970,22 @@ void Renderer::drawMenu(Graphics& g, const Game& game, const RenderContext& ctx,
     y += 44.f * s;
     if (!autoAvailable) text(g, "이 드래곤은 자동 사냥 상한에 도달했습니다.", x, y, 12.f * s, kAutoC);
     y += 22.f * s;
+
+    // v0.9 싸울 때 유지할 간격. 직접 조작에서는 사람이 직접 움직이므로 쓰이지 않는다.
+    {
+        bool used = game.huntMode() != CombatMode::Direct;
+        text(g, "간격", x, y, 13.f * s, kSub, 0, true);
+        if (!used) text(g, "직접 조작에서는 쓰이지 않음", r.GetRight() - 16.f * s, y, 12.f * s, kSub, 2);
+        y += 22.f * s;
+        for (int i = 0; i < cfg::kKeepRangeCount; ++i) {
+            button(g, out, ctx, RectF(x + i * (bw + 8.f * s), y, bw, 34.f * s), game.keepRangeName(i),
+                   UiAction::SetKeepRange, i, used, game.keepRange() == i);
+        }
+        y += 40.f * s;
+        if (game.huntMode() == CombatMode::SkillManual)
+            text(g, "방향키를 누르는 동안에는 직접 움직입니다.", x, y, 11.f * s, kSub);
+        y += 18.f * s;
+    }
 
     // 보기 설정(v0.8). 캐릭터 크기는 그림만 바뀌고 판정 크기는 그대로다.
     {

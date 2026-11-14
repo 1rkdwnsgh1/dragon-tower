@@ -75,6 +75,7 @@ std::string serializeSave(const SaveData& s) {
     o << "ui.panelCollapsed=" << (s.panelCollapsed ? 1 : 0) << "\n";
     o << "ui.confineToBand=" << (s.confineToBand ? 1 : 0) << "\n";
     o << "ui.hintShown=" << (s.hintShown ? 1 : 0) << "\n";
+    o << "keepRange=" << s.keepRange << "\n";
     o << "ui.menuX=" << s.menuX << "\n";
     o << "ui.menuY=" << s.menuY << "\n";
     o << "ui.menuScale=" << s.menuScale << "\n";
@@ -140,6 +141,7 @@ bool deserializeSave(const std::string& text, SaveData& out) {
         else if (key == "ui.panelCollapsed") s.panelCollapsed = toInt(val, 0) != 0;
         else if (key == "ui.confineToBand") s.confineToBand = toInt(val, 0) != 0;
         else if (key == "ui.hintShown") s.hintShown = toInt(val, 0) != 0;
+        else if (key == "keepRange") s.keepRange = std::clamp(toInt(val, 0), 0, cfg::kKeepRangeCount - 1);
         else if (key == "ui.menuX") s.menuX = toFloat(val, -1.f);
         else if (key == "ui.menuY") s.menuY = toFloat(val, -1.f);
         // 배수는 범위를 벗어난 값이 들어와도 쓸 수 있게 맞춘다(손으로 고친 저장 파일 대비).

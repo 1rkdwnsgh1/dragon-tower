@@ -127,6 +127,8 @@ struct DragonActor {
     bool flying = false;       // 날고 있는가(걷기와 그리는 상태가 다르다)
     bool landing = false;      // 날다가 지면으로 내려오는 중
     float groundY = 0.f;       // 걷는 높이. 걷기는 이 높이에서 수평으로만 움직인다
+    float restTime = 0.f;      // v0.9 쉬는 행동을 이어 온 시간. 길어지면 엎드린다
+    bool held = false;         // v0.9 사람이 마우스로 잡고 있는 중(자동 행동을 멈춘다)
 };
 
 enum class WorldEventType { EnemyKilled, DragonDied, EnemySpawned };
@@ -192,6 +194,12 @@ public:
     int statDodges = 0;
     int statHitsTaken = 0;
 
+    // v0.9 싸울 때 유지할 간격(0 근접 / 1 중간 / 2 바깥). 스킬 수동·자동에서 AI가 지킨다.
+    void setKeepRange(int v) { keepRange_ = v; }
+    int keepRange() const { return keepRange_; }
+    // 지금 설정과 해금된 스킬로 계산한 유지 거리
+    float desiredRange() const;
+
 private:
     void wander(float dt);     // 애니메이션 진행을 포함하지 않는 배회(내부용)
     void pickBehavior();       // 다음 행동을 확률로 고르고 목적지를 정한다
@@ -203,7 +211,8 @@ private:
     Enemy* nearestEnemy(Vec2 from, float maxDist);
     Enemy* findEnemy(int id);
     void moveDragon(float dt, Vec2 dir, float speedMul);
-    void dragonAi(float dt, bool castSkills);
+    void dragonAi(float dt, bool castSkills, const PlayerInput& in, bool allowManual);
+    int keepRange_ = 0;
     bool castSkill(int i, bool aiChoice);
     void basicAttack();
     void updateEnemies(float dt);

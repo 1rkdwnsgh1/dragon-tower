@@ -326,6 +326,9 @@ void App::tick(float dt) {
         SetWindowPos(button_, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
     }
 
+    // 끌기가 어떤 이유로든 끊겼으면 잡고 있는 상태도 푼다(드래곤이 굳어 버리지 않게).
+    if (drag_ != Drag::Dragon && game_.dragonHeld()) game_.setDragonHeld(false);
+
     PlayerInput in = pollKeys();
     game_.update(dt, in, hidden_, inputEnabled_);
     if (game_.consumeSaveRequest()) saveNow();
@@ -435,6 +438,7 @@ void App::doAction(const UiButton& b) {
             game_.setCharScale(game_.charScale() + b.arg * cfg::kCharScaleStep);
             break;
         case UiAction::TogglePowerSave: game_.setPowerSave(!game_.powerSave()); break;
+        case UiAction::SetKeepRange: game_.setKeepRange(b.arg); break;
         case UiAction::DragPanel:   // 끌기는 WM_LBUTTONDOWN에서 시작한다
         case UiAction::DragMenu:
         case UiAction::DragDragon:
@@ -607,14 +611,17 @@ bool App::startDrag(float lx, float ly, bool onlyAlways) {
         }
         if (b.action == UiAction::DragDragon) break;
     }
-    // 드래곤 끌기는 게임 입력이 켜져 있을 때만 한다(바탕화면을 쓰는 중에 잡히면 방해가 된다)
-    if (!onlyAlways && game_.hasDragon() && !game_.hunting() && !game_.inTowerFlow()) {
+    // 드래곤 끌기는 게임 입력이 켜져 있을 때만 한다(바탕화면을 쓰는 중에 잡히면 방해가 된다).
+    // v0.9: 사냥 중에도 끌 수 있다. 전투 띠 밖으로는 나가지 않게 placeDragon 이 맞춘다.
+    // 탑에서는 화면이 따로 있으므로 끌지 않는다.
+    if (!onlyAlways && game_.hasDragon() && !game_.inTowerFlow()) {
         const DragonActor& d = game_.world().dragon();
         float rr = cfg::kDragonRadius * 1.6f;
         if (std::fabs(lx - d.pos.x) <= rr && std::fabs(ly - d.pos.y) <= rr) {
             drag_ = Drag::Dragon;
             dragDX_ = lx - d.pos.x;
             dragDY_ = ly - d.pos.y;
+            game_.setDragonHeld(true);  // 끄는 동안 스스로 움직이지 않게 한다
             return true;
         }
     }
@@ -683,6 +690,7 @@ LRESULT App::handle(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
         case WM_LBUTTONUP:
             if (!isButton) {
                 if (drag_ != Drag::None) {
+                    if (drag_ == Drag::Dragon) game_.setDragonHeld(false);
                     drag_ = Drag::None;
                     saveNow();  // 옮긴 위치를 바로 남긴다
                 }
