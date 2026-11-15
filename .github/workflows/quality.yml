@@ -94,7 +94,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        target: [fuzz_dragon_text, fuzz_enemy_text, fuzz_save_roundtrip]
+        target: [fuzz_dragon_text, fuzz_enemy_text, fuzz_save_roundtrip, fuzz_tower_text]
     steps:
       - uses: actions/checkout@v4
       - run: |

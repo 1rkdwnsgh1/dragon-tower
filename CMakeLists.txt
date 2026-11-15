@@ -86,7 +86,7 @@ if(DRAGON_BUILD_FUZZERS)
         -fsanitize=fuzzer-no-link,address,undefined -fno-omit-frame-pointer -g)
     target_link_options(dragon_core_fuzz PUBLIC -fsanitize=fuzzer-no-link,address,undefined)
 
-    foreach(fz fuzz_dragon_text fuzz_enemy_text fuzz_save_roundtrip)
+    foreach(fz fuzz_dragon_text fuzz_enemy_text fuzz_save_roundtrip fuzz_tower_text)
         add_executable(${fz} tests/fuzz/${fz}.cpp)
         target_link_libraries(${fz} PRIVATE dragon_core_fuzz)
         target_link_options(${fz} PRIVATE -fsanitize=fuzzer)
