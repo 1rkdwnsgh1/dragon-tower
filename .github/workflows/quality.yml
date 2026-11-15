@@ -33,10 +33,21 @@ jobs:
       - name: src/win 교차 컴파일
         run: tools/check_win_build.sh --link
 
+      # 실행 파일만 올리면 받은 사람이 켰을 때 그림이 하나도 안 나온다(assets 를 읽지 못함).
+      # 그래서 게임이 실제로 읽는 assets 를 옆에 붙여 "받아서 바로 켜는" 묶음으로 올린다.
+      # assets/references 는 작업용 원본(일부는 LFS 포인터)이라 뺀다.
+      - name: 실행 묶음 만들기 (실행 파일 + assets)
+        run: |
+          mkdir -p dist/play/DragonTower
+          cp dist/win-local/dragon_tower.exe dist/play/DragonTower/
+          cp -r assets dist/play/DragonTower/assets
+          rm -rf dist/play/DragonTower/assets/references
+          cp README.md dist/play/DragonTower/
+
       - uses: actions/upload-artifact@v4
         with:
-          name: dragon-tower-mingw-exe
-          path: dist/win-local/dragon_tower.exe
+          name: dragon-tower-mingw-play
+          path: dist/play/DragonTower
           if-no-files-found: error
 
       # --- 2. 새니타이저 (ASan + UBSan) ---
