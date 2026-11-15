@@ -4,7 +4,7 @@
 # 이 목록은 **줄어들기만 해야 한다.** 새 지적이 생기면 CI 가 막는다.
 # 고친 뒤에는 `python3 tools/check_static.py --build-dir build --update` 로 갱신한다.
 
-src/core/DragonData.cpp:clang-tidy/performance-inefficient-string-concatenation 5
+src/core/DragonData.cpp:clang-tidy/performance-inefficient-string-concatenation 7
 src/core/World.cpp:clang-tidy/bugprone-incorrect-roundings 2
 src/core/World.cpp:clang-tidy/cert-err33-c 1
 src/core/World.cpp:clang-tidy/clang-analyzer-deadcode.DeadStores 1

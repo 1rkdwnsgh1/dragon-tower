@@ -35,8 +35,22 @@
 #include "core/DragonData.h"
 #include "core/EnemyData.h"
 #include "core/Game.h"
+#include "core/TowerData.h"
 
 using namespace dt;
+
+// assets/tower/floors.txt 에서 읽은 층. main 에서 한 번 채운다.
+// 비어 있으면 Game 의 기본값(builtinTowerFloors)을 그대로 쓴다.
+//
+// 왜 필요한가: floors 모드(PR #27)는 탑 층이 코드에 박혀 있을 때 쓰였고,
+// 층을 데이터로 뺀 PR #24 와는 서로 모르는 상태로 각각 만들어졌다.
+// 연결하지 않으면 floors.txt 를 넣어도 시뮬레이션은 내장 3층만 돈다.
+static std::vector<TowerFloorDef> g_towerFloors;
+
+// Game 을 만든 직후에 부른다. 층 데이터를 쓰는 모든 시뮬레이션이 이걸 거쳐야 한다.
+static void applyTowerFloors(Game& g) {
+    if (!g_towerFloors.empty()) g.setTowerFloors(g_towerFloors);
+}
 
 static const RectF kDesk{0.f, 0.f, 1920.f, 1040.f};
 static const float kDt = 1.f / 30.f;
@@ -111,6 +125,7 @@ static void autoHunt(Species sp) {
     const int trials = 20;
     for (int t = 0; t < trials; ++t) {
         Game g;
+        applyTowerFloors(g);
         g.seed(100 + t);
         g.init(SaveData{}, kDesk);
         g.chooseSpecies(sp);
@@ -135,6 +150,7 @@ static void manualHunt(Species sp, CombatMode mode, int targetLevel) {
     const int trials = 20;
     for (int t = 0; t < trials; ++t) {
         Game g;
+        applyTowerFloors(g);
         g.seed(500 + t);
         g.init(SaveData{}, kDesk);
         g.chooseSpecies(sp);
@@ -166,6 +182,7 @@ static void tower(Species sp, CombatMode mode, int level) {
         s.dragon.species = sp;
         s.dragon.level = level;
         Game g;
+        applyTowerFloors(g);
         g.seed(900 + t);
         g.init(s, kDesk);
         g.openTowerWarning();
@@ -203,6 +220,7 @@ struct FloorStat {
 static void climb(const SaveData& base, CombatMode mode, uint32_t seed, std::vector<FloorStat>& stat,
                   int& fullClears, int& deaths) {
     Game g;
+    applyTowerFloors(g);
     g.seed(seed);
     g.init(base, kDesk);
     g.openTowerWarning();
@@ -351,6 +369,7 @@ static AutoStat autoRun(Species sp, int level, float limitSec, uint32_t seed, in
         base.dragon.level = level;
 
         Game g;
+        applyTowerFloors(g);
         g.seed(seed + static_cast<uint32_t>(t));
         g.init(base, kDesk);
         g.setHuntMode(CombatMode::Auto);
@@ -476,8 +495,13 @@ static int floorsMode(int argc, char** argv, int firstOpt) {
     if (list.empty()) { std::printf("등록된 종이 없습니다. assets 폴더를 확인하세요.\n"); return 2; }
 
     std::printf("[탑 층별]  시드 %u · 층마다 %d회 · 돌파율은 그 층에 도달한 경우에 대한 비율\n", seed, trials);
-    std::printf("           탑은 현재 %d층까지다(assets/tower/floors.txt 가 들어오면 그만큼 자동으로 늘어난다)\n\n",
-                Game::kTowerFloors);
+    {
+        Game probe;
+        applyTowerFloors(probe);
+        std::printf("           탑은 현재 %d층까지다 (%s)\n\n", probe.towerFloorCount(),
+                    g_towerFloors.empty() ? "내장 기본값 — assets/tower/floors.txt 없음"
+                                          : "assets/tower/floors.txt 에서 읽음");
+    }
     for (Species sp : list) {
         const SpeciesDef& def = speciesDef(sp);
         std::printf("%s (%s)", def.name.c_str(), def.key.c_str());
@@ -518,6 +542,9 @@ int main(int argc, char** argv) {
     }
     DragonScanResult d = loadDragonFolders(assets / "dragons");
     EnemyScanResult e = loadEnemyFolders(assets / "enemies");
+    TowerScanResult tw = loadTowerFloors(assets / "tower");
+    if (tw.found) g_towerFloors = tw.floors;
+    for (const std::string& w : tw.warnings) std::printf("  탑 경고: %s\n", w.c_str());
     std::printf("에셋: %s — 종 %d개, 적 %d개", assets.string().c_str(), speciesCount(), enemyCount());
     if (!d.warnings.empty() || !e.warnings.empty())
         std::printf(" (경고 %d건 — asset_check 로 확인)", static_cast<int>(d.warnings.size() + e.warnings.size()));

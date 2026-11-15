@@ -53,6 +53,11 @@ constexpr float kGuardianPhase2Speedup = 0.8f;  // 2페이즈 예고·대기 시
 constexpr float kTowerFloorHeal = 0.30f;   // 층 돌파 시 회복 비율
 constexpr int kTowerClearExp = 120;
 constexpr int kTowerRecommendedLevel = 8;
+// assets/tower/floors.txt 를 읽을 때의 상한. 데이터가 터무니없어도 게임이 버티게 하는 울타리다.
+constexpr int kMaxTowerFloors = 50;         // 적을 수 있는 층 수
+constexpr int kMaxSpawnLinesPerFloor = 12;  // 한 층의 enemy= 줄 수
+constexpr int kMaxEnemiesPerFloor = 8;      // enemy= 한 줄의 마리 수(x<N>)
+constexpr int kMaxEnemyLevel = 99;          // enemy= 의 레벨(lv<N>)
 // 바탕화면 디펜스 전투(v0.5). 전투는 화면 맨 아래 띠에서만 일어난다.
 // 띠 높이는 "드래곤이 전투 중에 움직일 수 있는 세로 폭"이다. 그림은 바닥선 위로 그려지므로
 // 띠보다 커도 잘리지 않는다. v0.7의 150은 떠 있는 느낌이라 50으로 내렸다.

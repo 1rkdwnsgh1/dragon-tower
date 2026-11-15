@@ -11,6 +11,7 @@
 #include "core/Config.h"
 #include "core/DragonData.h"
 #include "core/EnemyData.h"
+#include "core/TowerData.h"
 
 using namespace Gdiplus;
 
@@ -98,6 +99,9 @@ bool App::init(HINSTANCE inst) {
     std::filesystem::path assetDir = exeDirectory() / L"assets";
     DragonScanResult scan = loadDragonFolders(assetDir / "dragons");
     EnemyScanResult escan = loadEnemyFolders(assetDir / "enemies");
+    // v1.6: 탑 층 구성도 데이터에서 온다. 파일이 없으면 내장 3층을 그대로 쓴다.
+    TowerScanResult tscan = loadTowerFloors(assetDir / "tower");
+    if (tscan.found) game_.setTowerFloors(tscan.floors);
     sprites_.load(assetDir);
 
     WNDCLASSEXW wc{};
@@ -143,7 +147,11 @@ bool App::init(HINSTANCE inst) {
         game_.notify("드래곤 폴더에서 " + std::to_string(scan.newSpecies) + "종을 추가로 읽었습니다.", 0xFF8CFFA0, 5.f);
     if (escan.newEnemies > 0)
         game_.notify("적 폴더에서 " + std::to_string(escan.newEnemies) + "종을 추가로 읽었습니다.", 0xFF8CFFA0, 5.f);
+    if (tscan.found)
+        game_.notify("탑 층 구성을 데이터에서 " + std::to_string(game_.towerFloorCount()) + "층 읽었습니다.",
+                     0xFF8CFFA0, 5.f);
     for (const std::string& w : escan.warnings) scan.warnings.push_back(w);
+    for (const std::string& w : tscan.warnings) scan.warnings.push_back(w);
     int warned = 0;
     for (const std::string& w : scan.warnings) {
         if (warned++ >= 3) break;

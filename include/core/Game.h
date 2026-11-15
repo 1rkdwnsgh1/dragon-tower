@@ -6,6 +6,7 @@
 
 #include "core/Config.h"
 #include "core/SaveData.h"
+#include "core/Tower.h"
 #include "core/World.h"
 
 namespace dt {
@@ -67,7 +68,13 @@ public:
     CombatMode huntMode() const { return save_.huntMode; }
     CombatMode towerMode() const { return towerMode_; }
     int towerFloor() const { return towerFloor_; }
-    static constexpr int kTowerFloors = 3;
+    // v1.6: 층 구성이 데이터(assets/tower/floors.txt)에서 온다. 파일이 없으면 내장 3층이다.
+    // 층 수가 더 이상 상수가 아니므로 화면에 쓸 때는 이 함수를 쓴다.
+    int towerFloorCount() const { return static_cast<int>(floors_.size()); }
+    // floor는 1부터 센다. 범위를 벗어나면 가장 가까운 층을 돌려준다(빈 목록은 만들지 않는다).
+    const TowerFloorDef& towerFloorDef(int floor) const;
+    // 데이터로 읽은 층으로 갈아끼운다. 빈 목록이면 내장 구성을 쓴다.
+    void setTowerFloors(std::vector<TowerFloorDef> floors);
     bool inTowerFlow() const;
     bool needsInput() const;
     // v1.4: 키보드를 받아야 하는 상태인가. 싸우는 중이고 자동 모드가 아닐 때만이다.
@@ -192,11 +199,11 @@ public:
     Alert takeAlert();  // 하나 꺼내 간다(없으면 빈 것)
 
 private:
-    EnemyKind meleeByKey(const std::string& key) const;
     EnemyKind randomMelee();
     void spawnWave();
     int waveNumber_ = 0;  // 이번 전투에서 보낸 웨이브 수
     void spawnTowerFloor();
+    std::string towerFloorLabel(int floor) const;  // "탑 1층" / "탑 3층: 수호자"
     void processEvents(bool autoExp);
     void onDragonDied();
     void placeDragonForDesktop();
@@ -221,6 +228,8 @@ private:
     bool pendingAutoStart_ = false;
     CombatMode towerMode_ = CombatMode::Direct;
     int towerFloor_ = 0;
+    // 탑 층 구성. 기본값은 내장 3층이고, App이 floors.txt를 읽었으면 갈아끼운다.
+    std::vector<TowerFloorDef> floors_ = builtinTowerFloors();
     std::string deathPlace_;
     bool paused_ = false;
     std::string pauseReason_;
