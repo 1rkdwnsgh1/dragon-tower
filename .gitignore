@@ -9,3 +9,6 @@ cmake-build-*/
 # 퍼저 작업 폴더. 저장소 코퍼스(tests/fuzz/corpus)와 섞이면 안 된다 — tests/fuzz/README.md 참고
 .fuzz-corpus/
 crashes/
+
+# tools/check_win_build.sh --link 결과물
+dist/
