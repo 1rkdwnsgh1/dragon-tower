@@ -1926,9 +1926,9 @@ static void testSaveLevelClamp() {
         "# Dragon Tower save\n"
         "version=1\n"
         "hasDragon=1\n"
-        "dragon.level=34\n"
+        "dragon.level=534\n"
         "stable.count=1\n"
-        "stable.0.level=34\n"
+        "stable.0.level=534\n"
         "activeIndex=0\n";
     SaveData a{};
     CHECK(deserializeSave(text, a));
@@ -2078,6 +2078,64 @@ static void testEliteVariantsSpawn(const std::filesystem::path& assets) {
     CHECK(adds == 3);
 }
 
+// 탑 100층 구조(2026-11-15 사용자 결정): 층 종류, 자동사냥 기준 층, 필드 보스 레벨 제한.
+// 설계: docs/tower-100-design.md 4.1. 아직 게임 흐름에는 연결되지 않은 순수 함수들이다.
+static void testTowerHundredRules() {
+    std::printf("[tower 100 rules]\n");
+    CHECK(floorType(1) == FloorType::Normal);
+    CHECK(floorType(4) == FloorType::Normal);
+    CHECK(floorType(5) == FloorType::MidBoss);
+    CHECK(floorType(9) == FloorType::Normal);
+    CHECK(floorType(10) == FloorType::FieldBoss);
+    CHECK(floorType(15) == FloorType::MidBoss);
+    CHECK(floorType(20) == FloorType::FieldBoss);
+    CHECK(floorType(95) == FloorType::MidBoss);
+    CHECK(floorType(99) == FloorType::Normal);
+    CHECK(floorType(100) == FloorType::FieldBoss);
+    CHECK(floorType(0) == FloorType::Invalid);
+    CHECK(floorType(101) == FloorType::Invalid);
+    CHECK(floorType(-5) == FloorType::Invalid);
+
+    CHECK(huntFloorFor(23) == 22);
+    CHECK(huntFloorFor(21) == 19);   // 20층(필드 보스)을 건너뛴다
+    CHECK(huntFloorFor(16) == 14);   // 15층(중간 보스)을 건너뛴다
+    CHECK(huntFloorFor(11) == 9);    // 10층(필드 보스)을 건너뛴다
+    CHECK(huntFloorFor(6) == 4);
+    CHECK(huntFloorFor(2) == 1);
+    CHECK(huntFloorFor(1) == 1);     // 아직 깬 층이 없으면 1층 몬스터
+    CHECK(huntFloorFor(0) == 1);
+    CHECK(huntFloorFor(101) == 99);  // 100층 정복 뒤
+    g_silentFailed = false;
+    for (int fl = 1; fl <= 101; ++fl) CHECK_SILENT(floorType(huntFloorFor(fl)) == FloorType::Normal);
+
+    CHECK(fieldBossLevelCap(10) == 50);
+    CHECK(fieldBossLevelCap(20) == 100);
+    CHECK(fieldBossLevelCap(30) == 150);
+    CHECK(fieldBossLevelCap(100) == 500);
+    CHECK(fieldBossLevelCap(100) == cfg::kMaxLevel);  // 100층 상한이 곧 최고 레벨
+    CHECK(fieldBossLevelCap(5) == 0);
+    CHECK(fieldBossLevelCap(11) == 0);
+
+    CHECK(partyMeetsLevelCap(10, {50, 50, 50, 50}));   // 50 포함
+    CHECK(!partyMeetsLevelCap(10, {50, 51, 1, 1}));    // 한 마리라도 51이면 안 된다
+    CHECK(partyMeetsLevelCap(20, {100, 1, 99, 100}));
+    CHECK(!partyMeetsLevelCap(20, {101, 1, 1, 1}));
+    CHECK(!partyMeetsLevelCap(10, {1, 1, 1}));         // 4마리 미만
+    CHECK(!partyMeetsLevelCap(10, {1, 1, 1, 1, 1}));   // 5마리
+    CHECK(!partyMeetsLevelCap(15, {1, 1, 1, 1}));      // 필드 보스층이 아니다
+
+    // 최고 레벨 500: 지금 경험치 식으로 누적이 32비트 정수 안에 여유 있게 들어가는가.
+    // 곡선이나 보상 배율을 바꾸면 이 검사가 먼저 깨진다 — 그때 64비트로 옮긴다.
+    CHECK(totalExpToReach(cfg::kMaxLevel) > 0);
+    CHECK(totalExpToReach(cfg::kMaxLevel) < 1000000000);
+    DragonRecord d;
+    ExpResult r = grantExp(d, totalExpToReach(cfg::kMaxLevel) + 12345, false);
+    CHECK(d.level == cfg::kMaxLevel);
+    CHECK(r.levelsGained == cfg::kMaxLevel - 1);
+    CHECK(d.exp == 0);  // 최고 레벨에서는 남는 경험치를 버린다
+    CHECK(cfg::kMaxSkillsPerDragon == 30);  // 레벨 상한을 올려도 스킬 칸은 그대로
+}
+
 int main(int argc, char** argv) {
     // 종을 등록하기 전에 돌아야 하는 것들이 맨 앞이다.
     testEmptySpeciesRegistry();
@@ -2096,6 +2154,7 @@ int main(int argc, char** argv) {
     testTowerFloorsBuiltin();
     testTowerTextParse();
     testTowerFloorsFromData();
+    testTowerHundredRules();
     testFxPhases();
     testFxShapeUnchanged();
     testFxFromSkillData();

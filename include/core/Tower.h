@@ -28,4 +28,22 @@ struct TowerFloorDef {
 // 데이터 파일을 지워도 게임은 전과 같이 동작한다.
 std::vector<TowerFloorDef> builtinTowerFloors();
 
+// ---- 탑 100층 구조 (2026-11-15 사용자 결정) ----
+// floors.txt(층마다 나오는 적)와 별개인 구조 규칙이다. 수치는 Config.h 의 kTowerTopFloor 등.
+// 설계: docs/tower-100-design.md. 아직 게임 흐름에는 연결하지 않았다(설계안의 T3·T4·T7).
+enum class FloorType { Normal, MidBoss, FieldBoss, Invalid };
+
+// 1~kTowerTopFloor. 10의 배수는 필드 보스, 그 외 5의 배수는 중간 보스. 범위 밖은 Invalid.
+FloorType floorType(int floor);
+
+// 자동사냥에 쓸 층: 머무는 층의 직전 일반 층. 보스층은 건너뛰고, 없으면 1층.
+// 예) 23→22, 21→19, 16→14, 1→1. 100층을 넘은 경우(정복 뒤)는 100층에 있는 것으로 본다.
+int huntFloorFor(int currentFloor);
+
+// 필드 보스층의 입장 레벨 상한(층 × kFieldBossLevelPerFloor, 그 레벨 포함). 필드 보스층이 아니면 0.
+int fieldBossLevelCap(int floor);
+
+// 출전 드래곤이 정확히 kFieldBossPartySize 마리이고 각각 상한 이하인가.
+bool partyMeetsLevelCap(int floor, const std::vector<int>& levels);
+
 }  // namespace dt
