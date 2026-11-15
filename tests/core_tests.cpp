@@ -488,6 +488,137 @@ static void testTowerFloorsFromData() {
     fs::remove_all(root, ec);
 }
 
+// v1.6: 효과(FX)에 발동·지속·잔류 세 단계와 스프라이트 설정을 더했다.
+// fx= 를 적지 않은 스킬은 **보이는 모습이 전과 같아야 한다** — 그것을 여기서 고정한다.
+static void testFxPhases() {
+    std::printf("[fx phases]\n");
+    // 단계 경계. 길이 0.1 / 0.2 / 0.1 → 0.4
+    Fx f;
+    f.windup = 0.1f;
+    f.hold = 0.2f;
+    f.tail = 0.1f;
+    f.duration = 0.4f;
+    f.t = 0.f;
+    CHECK(f.phase() == FxPhase::Windup);
+    CHECK(f.phaseProgress() == 0.f);
+    f.t = 0.05f;
+    CHECK(f.phase() == FxPhase::Windup);
+    CHECK(std::fabs(f.phaseProgress() - 0.5f) < 0.001f);
+    f.t = 0.1f;
+    CHECK(f.phase() == FxPhase::Hold);  // 경계는 다음 단계에 든다
+    f.t = 0.2f;
+    CHECK(f.phase() == FxPhase::Hold);
+    CHECK(std::fabs(f.phaseProgress() - 0.5f) < 0.001f);
+    f.t = 0.3f;
+    CHECK(f.phase() == FxPhase::Tail);
+    f.t = 0.39f;
+    CHECK(f.phase() == FxPhase::Tail);
+    CHECK(f.phaseProgress() > 0.8f);
+    // 길이가 0인 단계에서도 터지지 않는다
+    Fx z;
+    z.windup = z.hold = z.tail = 0.f;
+    z.duration = 0.f;
+    z.t = 0.f;
+    CHECK(z.phase() == FxPhase::Tail);
+    CHECK(z.phaseProgress() == 1.f);
+}
+
+static void testFxShapeUnchanged() {
+    std::printf("[fx: fx= 없는 스킬은 전과 같다]\n");
+    World w;
+    w.setBounds(kDesk);
+    w.setupDragon(Species::Fire, 20, -1.f, {400.f, 500.f});
+    w.spawnEnemy(defaultMelee(), 3, {460.f, 500.f});
+    // 기존 스킬에는 fx= 가 없다. 도형 효과의 전체 길이가 전과 같아야 한다.
+    w.addFx(FxType::Ring, {0.f, 0.f}, {0.f, 0.f}, 50.f, 0.45f, 0xFFFFFFFF);
+    CHECK(!w.fx().empty());
+    if (!w.fx().empty()) {
+        const Fx& f = w.fx().back();
+        CHECK(f.duration == 0.45f);        // 길이 그대로
+        CHECK(f.key.empty());              // 스프라이트 없음 → 도형으로 그린다
+        CHECK(std::fabs(f.windup + f.hold + f.tail - f.duration) < 0.001f);
+        CHECK(f.windup > 0.f && f.hold > 0.f && f.tail > 0.f);
+    }
+
+    // 효과는 쌓이지 않는다 — 상한을 넘으면 오래된 것부터 버린다
+    for (int i = 0; i < cfg::kMaxFx + 20; ++i)
+        w.addFx(FxType::Hit, {static_cast<float>(i), 0.f}, {0.f, 0.f}, 10.f, 5.f, 0xFFFFFFFF);
+    CHECK(static_cast<int>(w.fx().size()) <= cfg::kMaxFx);
+    // 시간이 지나면 사라진다
+    for (int i = 0; i < 400; ++i) w.updateFx(1.f / 30.f);
+    CHECK(w.fx().empty());
+}
+
+static void testFxFromSkillData() {
+    std::printf("[fx: dragon.txt 의 fx= 설정]\n");
+    std::string text =
+        "[dragon]\n"
+        "name=효과시험룡\n"
+        "[skill.1]\n"
+        "name=빛터짐\n"
+        "kind=Burst\n"
+        "radius=120\n"
+        "fx=burst\n"
+        "fx_front=no\n"
+        "fx_scale=1.8\n"
+        "fx_offset_y=-30\n"
+        "fx_windup=0.2\n"
+        "fx_hold=0.5\n"
+        "fx_tail=0.3\n"
+        "fx_fps=20\n";
+    DragonParseResult r = parseDragonText(text, "fxtest", nullptr);
+    CHECK(r.warnings.empty());
+    // 새 종 템플릿에 기본 스킬 3개가 있으므로 [skill.1] 은 0번을 덮어쓴다(개수는 그대로 3)
+    CHECK(r.def.skills.size() >= 1);
+    if (!r.def.skills.empty()) {
+        const SkillDef& s = r.def.skills[0];
+        CHECK(s.fx == "burst");
+        CHECK(!s.fxInFront);
+        CHECK(std::fabs(s.fxScale - 1.8f) < 0.001f);
+        CHECK(std::fabs(s.fxOffsetY + 30.f) < 0.001f);
+        CHECK(std::fabs(s.fxWindup - 0.2f) < 0.001f);
+        CHECK(s.fxAnim.fps == 20.f);
+        CHECK(!s.fxAnim.loop);  // 효과는 1회 재생
+    }
+
+    // 범위 밖 값은 울타리에 맞추고 알린다
+    DragonParseResult bad = parseDragonText(
+        "[dragon]\nname=x\n[skill.1]\nname=y\nfx=z\nfx_scale=-5\nfx_windup=99\nfx_render_scale=100\n", "fxbad",
+        nullptr);
+    CHECK(bad.def.skills.size() >= 1);
+    if (!bad.def.skills.empty()) {
+        CHECK(bad.def.skills[0].fxScale > 0.f);
+        CHECK(bad.def.skills[0].fxWindup <= 5.f);
+        CHECK(bad.def.skills[0].fxAnim.renderScale <= 4.f);
+    }
+
+    // fx= 를 적은 스킬을 쓰면 효과에 그 설정이 실려 나온다
+    SpeciesDef def = r.def;
+    def.key = "fxtest";
+    def.skills[0].unlockLevel = 1;
+    Species sp = registerOrUpdateSpecies(def);
+    World w;
+    w.setBounds(kDesk);
+    w.setupDragon(sp, 20, -1.f, {400.f, 500.f});
+    w.spawnEnemy(defaultMelee(), 3, {430.f, 500.f});
+    w.setSlots({0, -1, -1, -1});
+    PlayerInput in;
+    in.skill[0] = true;
+    w.updateCombat(1.f / 30.f, CombatMode::SkillManual, in);
+    // 전투 중에는 피격 등 다른 효과도 생기므로 key로 찾는다
+    const Fx* found = nullptr;
+    for (const Fx& e : w.fx())
+        if (e.key == "burst") found = &e;
+    CHECK(found != nullptr);
+    if (found) {
+        CHECK(!found->inFront);
+        CHECK(std::fabs(found->scale - 1.8f) < 0.001f);
+        CHECK(std::fabs(found->offsetY + 30.f) < 0.001f);
+        // 길이는 적은 세 단계의 합(0.2+0.5+0.3)이다 — 도형의 0.45f 가 아니다
+        CHECK(std::fabs(found->duration - 1.0f) < 0.001f);
+    }
+}
+
 static void testDirectDodge() {
     std::printf("[direct dodge invulnerability]\n");
     World w;
@@ -1826,6 +1957,9 @@ int main() {
     testTowerFloorsBuiltin();
     testTowerTextParse();
     testTowerFloorsFromData();
+    testFxPhases();
+    testFxShapeUnchanged();
+    testFxFromSkillData();
     testDirectDodge();
     testDragonTextParse();
     testDragonTextWarnings();

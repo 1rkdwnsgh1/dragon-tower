@@ -1,0 +1,10 @@
+;d
+;
+; 아.
+[floor.1]
+title=1층
+W[sp층
+sp0
+enemy=gob|ispng=160
+enemy=gob|in x1 v6 insefdoor60
+enemy=gob|in x0 v

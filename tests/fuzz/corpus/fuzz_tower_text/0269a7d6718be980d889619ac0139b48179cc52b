@@ -1,0 +1,32 @@
+; íƒ‘ í¸
+enemy.
+
+[floor.1]
+ti‘“šÂ1ì¸µ
+spacing=220
+enemy=slime x2 lv4
+
+[floor.2]
+title=2ì¸µ
+spacing=160
+enemy=goblin x1 lv6
+enemy=ogre x1 lv6 inset=60
+enemy=goblin x1 lv6
+
+[floor.3]
+titl†ì„ ë•Œ ì“°ì´ëŠ” ê²ƒ)ê³¼ ë˜‘le=2ìr.2]
+title=2ì¸µ
+spacing=160
+enemy=goblin x1 lv6
+enemy=ogre x1 lv6 inset=60
+e
+spacing=160
+enemy=goblin x1 lv6
+enemy=ogre x1 lv6 inset=60
+enemy=goblin x1 lv6title=2ìr.2]
+title=2ì¸µ
+spacing=160
+enemy=goblin x1 lv8 insetnemy=goblin x1 lv6title=2ìr.2]
+title=2ì¸µ
+spacing=160
+enemy=goblin x1 lv8 inset=n40

@@ -1,0 +1,26 @@
+; íƒ‘ ì¸
+enemy.
+
+[floor.1]
+ti‘“=220
+enemy=slime Éx2 lv4
+
+[floor.2]
+title=2ì¸µ
+spacing=160
+enemy=goblin x1 lv6
+enemy=og
+tiPle=2ì¸µ
+spacing=160
+enemy=goblin x1 lv6
+enemy=ogre x1 lv6 inset=60
+en16r6 inset=60
+enemy=goblin x1 lv6
+
+[floor.3]
+titlƒ)ê³¼ÿÿÿÿÿÿÿ ë˜‘le=3ìr.2]
+title=2ì¸µ
+spacing=412
+enemy=goblin x1 lv6
+enmmy=ogre x1 lv6 inset=60
+inset=40

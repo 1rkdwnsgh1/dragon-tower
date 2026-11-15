@@ -88,6 +88,18 @@ struct SkillDef {
     // 비어 있으면 공용 attack 시트를 쓴다(예전과 같다).
     std::string motion;
     AnimDef motionAnim{12.f, false, 0, 1.f};
+    // ---- 아래는 v1.6에서 더했다 ----
+    // 스킬 효과(FX) 스프라이트. assets/dragons/<키>/fx_<fx>.png
+    // 비어 있으면 지금까지처럼 도형(FxType)만 그린다 — 기존 스킬은 아무것도 달라지지 않는다.
+    std::string fx;
+    bool fxInFront = true;  // 본체 위에 그리는가. false면 본체 뒤
+    float fxScale = 1.f;    // 효과 크기 배율
+    float fxOffsetY = 0.f;  // 본체 기준 세로 보정(px, 위가 음수)
+    // 발동 → 지속 → 잔류 세 단계의 길이(초). 0이면 cfg::kFx... 기본값을 쓴다.
+    float fxWindup = 0.f;
+    float fxHold = 0.f;
+    float fxTail = 0.f;
+    AnimDef fxAnim{12.f, false, 0, 1.f};
 };
 
 struct SpeciesDef {

@@ -1,0 +1,6 @@
+[floor.199999]
+spacing=-1e40
+enemy=s999 lv+-2147483648
+boss=maybe
+[floor.0]
+enemy= x lv
