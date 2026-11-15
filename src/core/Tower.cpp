@@ -3,6 +3,10 @@
 // 값을 바꾸지 말 것 — assets/tower/floors.txt 가 없을 때 "전과 똑같이" 동작하는 기준이다.
 #include "core/Tower.h"
 
+#include <algorithm>
+
+#include "core/Config.h"
+
 namespace dt {
 
 std::vector<TowerFloorDef> builtinTowerFloors() {
@@ -32,6 +36,35 @@ std::vector<TowerFloorDef> builtinTowerFloors() {
     out.push_back(f3);
 
     return out;
+}
+
+// ---- 탑 100층 구조 ----
+
+FloorType floorType(int floor) {
+    if (floor < 1 || floor > cfg::kTowerTopFloor) return FloorType::Invalid;
+    if (floor % cfg::kFieldBossEvery == 0) return FloorType::FieldBoss;
+    if (floor % cfg::kMidBossEvery == 0) return FloorType::MidBoss;
+    return FloorType::Normal;
+}
+
+int huntFloorFor(int currentFloor) {
+    int f = std::min(currentFloor, cfg::kTowerTopFloor + 1) - 1;
+    while (f >= 1 && floorType(f) != FloorType::Normal) --f;
+    return f >= 1 ? f : 1;
+}
+
+int fieldBossLevelCap(int floor) {
+    return floorType(floor) == FloorType::FieldBoss ? floor * cfg::kFieldBossLevelPerFloor : 0;
+}
+
+bool partyMeetsLevelCap(int floor, const std::vector<int>& levels) {
+    const int cap = fieldBossLevelCap(floor);
+    if (cap <= 0) return false;
+    if (static_cast<int>(levels.size()) != cfg::kFieldBossPartySize) return false;
+    for (int lv : levels) {
+        if (lv < 1 || lv > cap) return false;
+    }
+    return true;
 }
 
 }  // namespace dt

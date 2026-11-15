@@ -114,6 +114,7 @@ tests/                     코어 규칙 검증
 | 이미지·시트 읽기 | `src/win/Sprites.cpp` | `load`, `loadSheetsFor` |
 | 창 만들기, 입력 전환, 메인 루프 | `src/win/App.cpp` | `App::init`, `setInputEnabled`, `tick` |
 | 전체화면 감지, 저장 경로, DPI | `src/win/Platform.cpp` | `isOtherAppFullscreen`, `saveFilePath` |
+| 탑 100층 구조(층 종류·자동사냥 기준 층·필드 보스 레벨 제한) | `src/core/Tower.cpp` | `floorType`, `huntFloorFor`, `fieldBossLevelCap`, `partyMeetsLevelCap` (수치는 `cfg::kTowerTopFloor` 등) |
 
 ## 파일 크기 (2026-11-14, v1.4)
 

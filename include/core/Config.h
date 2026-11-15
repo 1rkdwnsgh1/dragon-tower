@@ -4,7 +4,7 @@
 namespace dt::cfg {
 
 // 성장
-constexpr int kMaxLevel = 30;
+constexpr int kMaxLevel = 500;  // 탑 100층 확장(2026-11-15 사용자 결정). 경험치 곡선은 미결정
 // 자동 전투 경험치 상한. v0.5에서 끄기로 했다(기획서 10장 참고).
 // 상한을 다시 켜려면 kAutoExpCapEnabled 를 true 로 바꾼다. 수치와 저장 필드는 그대로 둔다.
 constexpr bool kAutoExpCapEnabled = false;
@@ -64,10 +64,16 @@ constexpr float kTowerFloorHeal = 0.30f;   // 층 돌파 시 회복 비율
 constexpr int kTowerClearExp = 120;
 constexpr int kTowerRecommendedLevel = 8;
 // assets/tower/floors.txt 를 읽을 때의 상한. 데이터가 터무니없어도 게임이 버티게 하는 울타리다.
-constexpr int kMaxTowerFloors = 50;         // 적을 수 있는 층 수
+constexpr int kMaxTowerFloors = 100;         // 적을 수 있는 층 수
 constexpr int kMaxSpawnLinesPerFloor = 12;  // 한 층의 enemy= 줄 수
 constexpr int kMaxEnemiesPerFloor = 8;      // enemy= 한 줄의 마리 수(x<N>)
-constexpr int kMaxEnemyLevel = 99;          // enemy= 의 레벨(lv<N>)
+constexpr int kMaxEnemyLevel = 500;          // enemy= 의 레벨(lv<N>)
+// 탑 100층 구조(2026-11-15 사용자 결정). 규칙 함수는 core/Tower.h, 설계는 docs/tower-100-design.md
+constexpr int kTowerTopFloor = 100;
+constexpr int kMidBossEvery = 5;            // 5의 배수는 중간 보스(10의 배수와 겹치면 필드 보스)
+constexpr int kFieldBossEvery = 10;         // 10의 배수는 필드 보스(파티)
+constexpr int kFieldBossLevelPerFloor = 5;  // 필드 보스 입장: 출전 드래곤 각각 층 × 5 레벨 이하
+constexpr int kFieldBossPartySize = 4;
 // 바탕화면 디펜스 전투(v0.5). 전투는 화면 맨 아래 띠에서만 일어난다.
 // 띠 높이는 "드래곤이 전투 중에 움직일 수 있는 세로 폭"이다. 그림은 바닥선 위로 그려지므로
 // 띠보다 커도 잘리지 않는다. v0.7의 150은 떠 있는 느낌이라 50으로 내렸다.
@@ -124,7 +130,7 @@ constexpr int kMaxStable = 4;
 // v1.4 드래곤 하나가 가질 수 있는 스킬 수의 상한. 제한이 필요해서가 아니라
 // dragon.txt에 [skill.9999] 같은 오타가 들어왔을 때 메모리를 그만큼 잡지 않으려는 안전장치다.
 // 레벨마다 하나씩 해제되므로 최고 레벨보다 많아 봐야 열리지 않는다.
-constexpr int kMaxSkillsPerDragon = kMaxLevel;
+constexpr int kMaxSkillsPerDragon = 30;  // 최고 레벨과 따로 고정한다(레벨을 500으로 올려도 스킬 칸은 그대로)
 constexpr float kStableRegenRatio = 0.02f;  // 1초에 최대 체력의 이만큼 회복(0에서 꽉 차기까지 50초)
 
 // v0.9 체력 막대 그림이 바뀌는 지점. 남은 비율이 이 아래면 다음 그림을 쓴다.
