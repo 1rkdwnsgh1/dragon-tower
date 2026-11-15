@@ -1940,7 +1940,146 @@ static void testSaveLevelClamp() {
     CHECK(serializeSave(b) == once);
 }
 
-int main() {
+
+// ---------------------------------------------------------------------------
+// v1.6: 그림을 빌려 쓰는 적 변종 (enemy.txt 의 art_from)
+// ---------------------------------------------------------------------------
+
+static void testEnemyArtFromParse() {
+    std::printf("[enemy art_from parse]\n");
+    // 제대로 적으면 읽힌다. 소문자로 맞춰 담는다
+    EnemyParseResult r = parseEnemyText("[enemy]\nname=정예 슬라임\nart_from=SLIME\n", "elite-slime", nullptr);
+    CHECK(r.warnings.empty());
+    CHECK(r.def.artFrom == "slime");
+
+    // 자기 자신·폴더 이름 규칙에 맞지 않는 값은 경고로 남고 비워 둔다(그림은 자기 폴더에서 읽는다)
+    EnemyParseResult self = parseEnemyText("[enemy]\nart_from=mine\n", "mine", nullptr);
+    CHECK(self.warnings.size() == 1);
+    CHECK(self.def.artFrom.empty());
+    EnemyParseResult bad = parseEnemyText("[enemy]\nart_from=../slime\n", "x", nullptr);
+    CHECK(bad.warnings.size() == 1);
+    CHECK(bad.def.artFrom.empty());
+
+    // v1.5에 정하고 파서에 빠져 있던 art_facing
+    EnemyParseResult f = parseEnemyText("[enemy]\nart_facing=right\n", "x", nullptr);
+    CHECK(f.warnings.empty() && f.def.artFacesRight);
+    EnemyParseResult fl = parseEnemyText("[enemy]\nart_facing=left\n", "x", nullptr);
+    CHECK(fl.warnings.empty() && !fl.def.artFacesRight);
+    EnemyParseResult fw = parseEnemyText("[enemy]\nart_facing=위쪽\n", "x", nullptr);
+    CHECK(fw.warnings.size() == 1 && !fw.def.artFacesRight);
+}
+
+static void testEnemyArtFromScanWarnings() {
+    std::printf("[enemy art_from scan]\n");
+    namespace fs = std::filesystem;
+    fs::path root = fs::temp_directory_path() / "dt_artfrom_test";
+    std::error_code ec;
+    fs::remove_all(root, ec);
+    fs::create_directories(root / "arta", ec);
+    fs::create_directories(root / "artb", ec);
+    fs::create_directories(root / "artc", ec);
+    { std::ofstream f(root / "arta" / "enemy.txt"); f << "[enemy]\nname=원본\n"; }
+    // 있는 폴더를 가리킨다 -> 경고 없음
+    { std::ofstream f(root / "artb" / "enemy.txt"); f << "[enemy]\nname=빌림\nart_from=arta\n"; }
+    // 없는 폴더를 가리킨다 -> 경고
+    { std::ofstream f(root / "artc" / "enemy.txt"); f << "[enemy]\nname=없는곳\nart_from=nowhere\n"; }
+
+    EnemyScanResult r = loadEnemyFolders(root);
+    bool missing = false;
+    for (const std::string& w : r.warnings)
+        if (w.find("artc") != std::string::npos && w.find("nowhere") != std::string::npos) missing = true;
+    CHECK(missing);
+    bool falseAlarm = false;
+    for (const std::string& w : r.warnings)
+        if (w.find("artb") != std::string::npos) falseAlarm = true;
+    CHECK(!falseAlarm);
+
+    // 빌린 쪽을 또 빌리면(한 다리 넘기면) 경고한다
+    { std::ofstream f(root / "artc" / "enemy.txt"); f << "[enemy]\nname=두다리\nart_from=artb\n"; }
+    EnemyScanResult chain = loadEnemyFolders(root);
+    bool chained = false;
+    for (const std::string& w : chain.warnings)
+        if (w.find("artc") != std::string::npos && w.find("artb") != std::string::npos) chained = true;
+    CHECK(chained);
+    fs::remove_all(root, ec);
+}
+
+// 실제 assets 폴더를 읽어 변종 3종이 등록되고 실제로 뽑히는지 본다.
+// ctest 가 assets 경로를 인자로 준다. 인자가 없으면(직접 실행) 건너뛴다.
+// 등록부를 실제 데이터로 바꾸므로 main 의 마지막에서 돈다.
+static void testEliteVariantsSpawn(const std::filesystem::path& assets) {
+    std::printf("[elite variants spawn]\n");
+    EnemyScanResult scan = loadEnemyFolders(assets / "enemies");
+    for (const std::string& w : scan.warnings) std::printf("  경고: %s\n", w.c_str());
+    CHECK(scan.warnings.empty());  // asset_check 와 같은 기준
+
+    EnemyKind es, eg, el, sl, li;
+    CHECK(enemyFromKey("elite-slime", es));
+    CHECK(enemyFromKey("elite-goblin", eg));
+    CHECK(enemyFromKey("elite-lich", el));
+    CHECK(enemyFromKey("slime", sl) && enemyFromKey("lich", li));
+
+    // 그림은 원본에서 빌리고, 원본은 빌리지 않는다
+    CHECK(enemyDef(es).artFrom == "slime");
+    CHECK(enemyDef(eg).artFrom == "goblin");
+    CHECK(enemyDef(el).artFrom == "lich");
+    CHECK(enemyDef(sl).artFrom.empty() && enemyDef(li).artFrom.empty());
+
+    // 행동이 원본과 다르다: 돌진형은 더 빠르고, 궁수는 더 멀리서 때린다
+    CHECK(enemyDef(es).baseSpeed > enemyDef(sl).baseSpeed);
+    CHECK(enemyDef(eg).attackRange > enemyDef(sl).attackRange * 2.f);
+    CHECK(enemyDef(eg).keepRatio < enemyDef(sl).keepRatio);
+    // 예고 없이 맞는 적은 만들지 않는다(확정 규칙: 적 공격은 항상 예고 후 판정)
+    CHECK(enemyDef(es).windup > 0.f && enemyDef(eg).windup > 0.f && enemyDef(el).windup > 0.f);
+
+    // 원본 리치가 여전히 탑의 기본 보스다(변종이 자리를 빼앗지 않는다)
+    CHECK(enemyDef(el).role == EnemyRole::Boss);
+    CHECK(defaultBoss() == li);
+
+    // 바탕화면 사냥: 일반 적 두 변종이 실제로 섞여 나온다
+    Game g;
+    SaveData s;
+    s.hasDragon = true;
+    s.dragon.species = Species::Fire;
+    s.dragon.level = 60;  // 치이지 않게 높게 둔다. 매 무리를 바로 치운다
+    s.dragon.hp = -1.f;
+    s.huntMode = CombatMode::SkillManual;
+    g.init(s, kDesk);
+    g.startHunt();
+    PlayerInput in;
+    bool sawSlime = false, sawGoblin = false;
+    int waves = 0;
+    for (int w = 0; w < 200 && !(sawSlime && sawGoblin); ++w) {
+        for (int i = 0; i < 30 * 20 && g.world().enemies().empty(); ++i) g.update(1.f / 30.f, in, false, true);
+        if (g.world().enemies().empty()) break;
+        ++waves;
+        for (const Enemy& e : g.world().enemies()) {
+            if (e.kind == es) sawSlime = true;
+            if (e.kind == eg) sawGoblin = true;
+        }
+        g.world().clearEnemies(false);
+    }
+    CHECK(waves > 0);  // 무리가 실제로 나왔다(안 나왔으면 아래 두 줄이 뜻이 없다)
+    CHECK(sawSlime);
+    CHECK(sawGoblin);
+    std::printf("  무리 %d번 안에 두 변종이 모두 나왔다\n", waves);
+
+    // 보스 변종: 체력 절반에서 정예 슬라임 3마리를 부른다
+    World wd;
+    wd.setBounds(kDesk);
+    wd.setupDragon(Species::Fire, 20, -1.f, {400.f, 500.f});
+    Enemy& boss = wd.spawnEnemy(el, 8, {1000.f, 500.f});
+    int id = boss.id;
+    for (Enemy& e : wd.enemiesMutable()) if (e.id == id) e.hp = e.maxHp * 0.4f;
+    for (int i = 0; i < 20 && wd.enemies().size() < 4; ++i) wd.updateCombat(1.f / 30.f, CombatMode::SkillManual, in);
+    int adds = 0;
+    for (const Enemy& e : wd.enemies())
+        if (e.id != id && e.kind == es) ++adds;
+    CHECK(adds == 3);
+}
+
+int main(int argc, char** argv) {
+    // 종을 등록하기 전에 돌아야 하는 것들이 맨 앞이다.
     testEmptySpeciesRegistry();
     testSaveLevelClamp();
     registerTestSpecies();
@@ -1994,6 +2133,11 @@ int main() {
     testAutoUsesEquippedOnly();
     testSkillMotionParse();
     testActiveDragonHpSaved();
+    testEnemyArtFromParse();
+    testEnemyArtFromScanWarnings();
+    // 실제 assets 를 읽는 것은 등록부를 바꾸므로 맨 마지막에 돈다
+    if (argc > 1) testEliteVariantsSpawn(std::filesystem::path(argv[1]));
+    else std::printf("[elite variants spawn] assets 경로 인자가 없어 건너뜀\n");
     std::printf("\n%d passed, %d failed\n", g_passed, g_failed);
     return g_failed == 0 ? 0 : 1;
 }

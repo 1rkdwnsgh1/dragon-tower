@@ -25,6 +25,10 @@ struct EnemyDef {
     bool artFacesRight = false;
     EnemyKind id{};
     std::string key;   // 폴더 이름. 저장 파일에 기록된다
+    // v1.6: 그림을 다른 적 폴더에서 가져온다(`enemy.txt` 의 `art_from=`).
+    // 비어 있으면 자기 폴더에서 읽는다. 시트 파일만 빌려 오고 [anim.*] 설정은 빌리지 않는다 —
+    // 변종이 칸 너비·배율을 자기 enemy.txt 에 적어야 한다(원본이 바뀌어도 변종이 따라 흔들리지 않게).
+    std::string artFrom;
     std::string name;  // 화면에 보이는 이름
     std::string desc;
     EnemyRole role = EnemyRole::Melee;

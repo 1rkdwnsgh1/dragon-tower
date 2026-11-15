@@ -50,7 +50,7 @@ if(DRAGON_BUILD_TESTS)
     enable_testing()
     add_executable(core_tests tests/core_tests.cpp)
     target_link_libraries(core_tests PRIVATE dragon_core)
-    add_test(NAME core_tests COMMAND core_tests)
+    add_test(NAME core_tests COMMAND core_tests "${CMAKE_CURRENT_SOURCE_DIR}/assets")
 
     add_executable(balance_sim tests/balance_sim.cpp)
     target_compile_definitions(balance_sim PRIVATE DT_ASSETS_DIR="${CMAKE_CURRENT_SOURCE_DIR}/assets")
