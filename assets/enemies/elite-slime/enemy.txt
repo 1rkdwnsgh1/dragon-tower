@@ -1,0 +1,60 @@
+; 정예 슬라임 — 슬라임의 변종. 그림은 slime 폴더의 시트를 빌려 쓴다(art_from).
+; 수치는 전부 임시안이다. 형식과 쓰는 법: assets/enemies/README.md
+;
+; 무엇이 다른가: 느리고 끈질긴 원본과 반대로 "빠르고 얇다".
+; 빨리 붙고 예고가 짧아 먼저 처리해야 하는 적이다.
+
+[enemy]
+name=정예 슬라임
+role=melee
+desc=몸을 굳혀 돌진한다. 빠르지만 그만큼 얇다.
+color=FF8CE37A
+art_from=slime
+
+hp=38
+atk=8
+def=1
+speed=132
+radius=24
+exp=5
+
+hp_growth=13
+atk_growth=2.6
+def_growth=0.5
+speed_growth=3.0
+exp_growth=3
+
+; 돌진형: 거의 몸이 닿아야 때리고(사거리 짧음), 멀면 끝까지 따라온다(keep_ratio 높음)
+attack_range=58
+keep_ratio=0.95
+windup=0.60
+attack_cooldown=1.6
+
+; ---- 애니메이션 ----
+; 시트는 slime 폴더의 것을 읽지만 칸 너비·배율은 여기 적은 값을 쓴다
+; (원본이 바뀌어도 변종이 따라 흔들리지 않게 하려는 것이다).
+[anim.idle]
+fps=6
+loop=yes
+frame_w=256
+
+[anim.move]
+fps=11
+loop=yes
+frame_w=256
+
+[anim.attack]
+fps=10
+loop=no
+frame_w=256
+render_scale=0.81
+
+[anim.hit]
+fps=8
+loop=no
+frame_w=256
+
+[anim.death]
+fps=6
+loop=no
+frame_w=256

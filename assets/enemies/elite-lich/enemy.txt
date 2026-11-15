@@ -1,0 +1,65 @@
+; 정예 리치 — 리치의 변종. 그림은 lich 폴더의 시트를 빌려 쓴다(art_from).
+; 수치는 전부 임시안이다. 형식과 쓰는 법: assets/enemies/README.md
+;
+; 무엇이 다른가: 원본 리치(탑의 주인)보다 맷집은 얇고 소환이 무겁다.
+; 중간 층 보스 자리를 생각한 것이다 — 부하를 먼저 끊지 않으면 밀린다.
+; 원본 리치를 대체하지 않는다. defaultBoss()는 지금처럼 lich 를 돌려준다.
+
+[enemy]
+name=정예 리치
+role=boss
+desc=부하를 불러 세우고 뒤에서 패턴을 건다.
+color=FF9D7CE0
+art_from=lich
+
+hp=0
+atk=2
+def=0
+speed=74
+radius=62
+exp=30
+
+hp_growth=78
+atk_growth=2.6
+def_growth=0.6
+speed_growth=0.0
+exp_growth=8
+
+; 원거리형. 예고를 0으로 두면 기본값이 쓰이는데, 값으로 적어 두는 쪽이 읽기 쉽다.
+attack_range=520
+keep_ratio=0.40
+windup=0.90
+attack_cooldown=1.8
+
+; 체력 절반에서 2페이즈. 원본(고블린 2마리)보다 많고 빠른 부하를 부른다
+phase2=yes
+summon=elite-slime
+summon_count=3
+summon_level=6
+
+; ---- 애니메이션 ----
+[anim.idle]
+fps=6
+loop=yes
+frame_w=256
+
+[anim.move]
+fps=8
+loop=yes
+frame_w=256
+
+[anim.attack]
+fps=8
+loop=no
+frame_w=256
+render_scale=1.09
+
+[anim.hit]
+fps=8
+loop=no
+frame_w=256
+
+[anim.death]
+fps=6
+loop=no
+frame_w=256
