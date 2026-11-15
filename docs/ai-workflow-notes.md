@@ -16,6 +16,12 @@ tools/check_win_build.sh          # 문법 검사 9초
 tools/check_win_build.sh --link   # .exe 까지
 ```
 
+**검사 도구는 결과물을 남긴다 — `git add -A` 전에 `git status --short` 를 본다.**
+`tools/check_win_build.sh --link` 는 `dist/win-local/dragon_tower.exe`(3.7MB), `tools/check_static.py`
+는 `build-cc/` 를 만든다. 세 회차가 각각 이걸 커밋에 집어넣었다(한 번은 푸시까지 갔다).
+**둘 다 `.gitignore` 에 넣었으니 이제 걸리지 않는다** — 새 검사 도구를 만들면 그 도구의 작업
+폴더도 같은 PR에서 `.gitignore` 에 적는다.
+
 v0.6 의 CI 실패 셋을 전부 여기서 잡는다(실제로 `shellapi.h` 를 지워 확인했다).
 자세한 것과 한계는 [`docs/quality-tools.md`](quality-tools.md) 1절.
 

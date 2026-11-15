@@ -5,6 +5,10 @@ Thumbs.db
 .vscode/
 build/
 cmake-build-*/
+# 검사 도구가 남기는 폴더. 세 회차가 이걸 모르고 `git add -A` 로 집어넣었다 —
+# tools/check_static.py 가 build-cc/, tools/check_win_build.sh --link 가 dist/ 를 만든다.
+build-cc/
+dist/
 
 # 퍼저 작업 폴더. 저장소 코퍼스(tests/fuzz/corpus)와 섞이면 안 된다 — tests/fuzz/README.md 참고
 .fuzz-corpus/
