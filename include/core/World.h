@@ -75,6 +75,10 @@ struct DotZone {
 
 enum class FxType { Ring, Heal, Dodge, Hit, Poof, LineBlast, Dash, LevelUp, Death, Shield };
 
+// v1.6: 효과는 발동 → 지속 → 잔류 세 단계를 지난다.
+// 도형으로 그리던 기존 효과도 같은 세 단계를 가진다(전체 길이는 그대로, 비율로 나눈다).
+enum class FxPhase { Windup, Hold, Tail };
+
 struct Fx {
     FxType type = FxType::Ring;
     Vec2 a, b;
@@ -82,6 +86,14 @@ struct Fx {
     float t = 0.f;
     float duration = 0.4f;
     uint32_t color = 0xFFFFFFFF;
+    // ---- v1.6: 스프라이트 효과. key 가 비어 있으면 전처럼 도형으로만 그린다 ----
+    std::string key;      // fx_<key>.png. 비어 있으면 도형만
+    bool inFront = true;  // 본체 위에 그리는가
+    float scale = 1.f;
+    float offsetY = 0.f;
+    float windup = 0.f, hold = 0.f, tail = 0.f;  // 세 단계 길이. 합이 duration 이다
+    FxPhase phase() const;
+    float phaseProgress() const;  // 지금 단계 안에서 0..1
 };
 
 struct FloatText {
@@ -213,6 +225,10 @@ public:
 
     void addText(const std::string& text, Vec2 pos, uint32_t color, float size = 16.f, float dur = 1.0f);
     void addFx(FxType type, Vec2 a, Vec2 b, float radius, float dur, uint32_t color);
+    // v1.6: 스킬의 fx 설정을 붙여서 넣는다. s.fx 가 비어 있으면 addFx 와 완전히 같다
+    // (shapeDur 를 그대로 쓰고 단계만 비율로 나눈다) — 기존 스킬의 보이는 모습이 바뀌지 않는다.
+    void addSkillFx(const SkillDef& s, FxType fallback, Vec2 a, Vec2 b, float radius, float shapeDur,
+                    uint32_t color);
 
     // 통계(밸런스 시뮬레이션용)
     int statDodges = 0;

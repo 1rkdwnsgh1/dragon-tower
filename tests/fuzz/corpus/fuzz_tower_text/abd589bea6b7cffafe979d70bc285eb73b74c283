@@ -1,0 +1,39 @@
+; 탑 �
+enemy.
+
+[floor.1]
+title=1층
+spacing=220
+enemy=slime x2 lv4
+
+[floor.2]
+title=2층
+spacing=160
+enemy=goblin x1 lv6
+enemy=ogre x1 lv6 inset=60
+enemy=goblin x1 lv6
+
+[floor.3]
+titl�을 때 쓰이는 것)과 똑le=2�r.2]
+title=2층
+spacing=160
+enemy=goblin x1 lv6
+enemy=ogre x1 lv6 inset=60
+enemy=goblin x1 lv6
+
+r.1]
+title=1층
+spacing=220
+enemy=slime x2 lv4
+
+[floor.2]
+title=2�r.2]
+title=2층
+spacing=160
+enemy=goblit=60
+enemy=goblin x1 lv6
+
+[f�oor.3]
+title=�자
+boss=yes
+enemy=- x1 lv8 inset=40

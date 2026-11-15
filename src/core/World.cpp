@@ -211,6 +211,29 @@ void World::addText(const std::string& text, Vec2 pos, uint32_t color, float siz
     texts_.push_back(t);
 }
 
+FxPhase Fx::phase() const {
+    if (t < windup) return FxPhase::Windup;
+    if (t < windup + hold) return FxPhase::Hold;
+    return FxPhase::Tail;
+}
+
+float Fx::phaseProgress() const {
+    float lo = 0.f, len = windup;
+    switch (phase()) {
+        case FxPhase::Windup: break;
+        case FxPhase::Hold:
+            lo = windup;
+            len = hold;
+            break;
+        case FxPhase::Tail:
+            lo = windup + hold;
+            len = tail;
+            break;
+    }
+    if (len <= 0.f) return 1.f;
+    return std::clamp((t - lo) / len, 0.f, 1.f);
+}
+
 void World::addFx(FxType type, Vec2 a, Vec2 b, float radius, float dur, uint32_t color) {
     Fx f;
     f.type = type;
@@ -219,6 +242,36 @@ void World::addFx(FxType type, Vec2 a, Vec2 b, float radius, float dur, uint32_t
     f.radius = radius;
     f.duration = dur;
     f.color = color;
+    // 단계를 전체 길이의 비율로 나눈다. 전체 길이는 건드리지 않으므로 보이는 모습은 전과 같다.
+    f.windup = dur * cfg::kFxShapeWindupRatio;
+    f.hold = dur * cfg::kFxShapeHoldRatio;
+    f.tail = dur - f.windup - f.hold;
+    // 오래 켜 두면 효과가 쌓인다. 상한을 두고 오래된 것부터 버린다.
+    if (fx_.size() >= static_cast<size_t>(cfg::kMaxFx)) fx_.erase(fx_.begin());
+    fx_.push_back(f);
+}
+
+void World::addSkillFx(const SkillDef& s, FxType fallback, Vec2 a, Vec2 b, float radius, float shapeDur,
+                       uint32_t color) {
+    if (s.fx.empty()) {
+        addFx(fallback, a, b, radius, shapeDur, color);  // 전과 완전히 같다
+        return;
+    }
+    Fx f;
+    f.type = fallback;  // 시트가 없으면 이 도형으로 대신 그린다(그리는 쪽에서 판단)
+    f.a = a;
+    f.b = b;
+    f.radius = radius;
+    f.color = color;
+    f.key = s.fx;
+    f.inFront = s.fxInFront;
+    f.scale = s.fxScale;
+    f.offsetY = s.fxOffsetY;
+    f.windup = s.fxWindup > 0.f ? s.fxWindup : cfg::kFxWindup;
+    f.hold = s.fxHold > 0.f ? s.fxHold : cfg::kFxHold;
+    f.tail = s.fxTail > 0.f ? s.fxTail : cfg::kFxTail;
+    f.duration = f.windup + f.hold + f.tail;
+    if (fx_.size() >= static_cast<size_t>(cfg::kMaxFx)) fx_.erase(fx_.begin());
     fx_.push_back(f);
 }
 
@@ -314,7 +367,7 @@ bool World::castSkill(int i, bool aiChoice) {
                 damageEnemy(e, d.stats.atk * s.power);
                 if (s.extra > 0.f) e.stun = std::max(e.stun, s.extra);
             }
-            addFx(FxType::Ring, d.pos, d.pos, s.radius, 0.45f, sp.color);
+            addSkillFx(s, FxType::Ring, d.pos, d.pos, s.radius, 0.45f, sp.color);
             break;
         }
         case SkillKind::Line: {
@@ -326,7 +379,7 @@ bool World::castSkill(int i, bool aiChoice) {
                 if (!e.alive) continue;
                 if (distancePointSegment(e.pos, d.pos, end) <= s.radius + e.radius) damageEnemy(e, d.stats.atk * s.power);
             }
-            addFx(FxType::LineBlast, d.pos, end, s.radius, 0.45f, sp.color);
+            addSkillFx(s, FxType::LineBlast, d.pos, end, s.radius, 0.45f, sp.color);
             break;
         }
         case SkillKind::Dash: {
@@ -339,7 +392,7 @@ bool World::castSkill(int i, bool aiChoice) {
                 if (!e.alive) continue;
                 if (distancePointSegment(e.pos, d.pos, end) <= s.radius + e.radius) damageEnemy(e, d.stats.atk * s.power);
             }
-            addFx(FxType::Dash, d.pos, end, cfg::kDragonRadius, 0.35f, sp.color);
+            addSkillFx(s, FxType::Dash, d.pos, end, cfg::kDragonRadius, 0.35f, sp.color);
             const float dashDur = 0.2f;
             d.dashTime = dashDur;
             d.dashVel = (end - d.pos) * (1.f / dashDur);
@@ -350,7 +403,7 @@ bool World::castSkill(int i, bool aiChoice) {
             if (aiChoice && d.hp > d.stats.maxHp * 0.55f) return false;
             float amount = d.stats.maxHp * s.power;
             d.hp = std::min(d.stats.maxHp, d.hp + amount);
-            addFx(FxType::Heal, d.pos, d.pos, 60.f, 0.7f, kColorHeal);
+            addSkillFx(s, FxType::Heal, d.pos, d.pos, 60.f, 0.7f, kColorHeal);
             addText("+" + intText(amount), d.pos - Vec2{0.f, 50.f}, kColorHeal, 18.f);
             break;
         }
@@ -361,7 +414,7 @@ bool World::castSkill(int i, bool aiChoice) {
             }
             d.shieldTime = s.duration;
             d.shieldPct = s.power;
-            addFx(FxType::Shield, d.pos, d.pos, 56.f, 0.5f, sp.color);
+            addSkillFx(s, FxType::Shield, d.pos, d.pos, 56.f, 0.5f, sp.color);
             break;
         }
         case SkillKind::Haste: {
@@ -369,7 +422,7 @@ bool World::castSkill(int i, bool aiChoice) {
             d.hasteTime = s.duration;
             d.hasteSpeed = s.power;
             d.hasteDodge = s.extra;
-            addFx(FxType::Dash, d.pos, d.pos, 50.f, 0.4f, sp.color);
+            addSkillFx(s, FxType::Dash, d.pos, d.pos, 50.f, 0.4f, sp.color);
             break;
         }
         case SkillKind::Zone: {

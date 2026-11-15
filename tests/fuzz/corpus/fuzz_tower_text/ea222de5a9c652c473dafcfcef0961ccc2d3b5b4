@@ -1,0 +1,27 @@
+bC
+Xwì§€ ì•ŠëŠ”ë‹¤.
+
+[floor.1]
+°ì´ëtitle=1ì¸µ
+spacing=724
+enemy=slime x2 ÿÿÿÿÿin xÏß“6
+enemy=ogre x1 lv3ì¸µ: ìˆ˜í˜¸ì
+bossse=y
+enemy=- x6
+enemy=ogre x1 lv3ì¸µ: ìˆ˜í˜¸ì
+bossse=y=160
+enemy=goblin xÏß“6
+enemy=ogre x1 lv3ì¸µ: ìˆ˜í˜¸ì
+bossse=y
+enemy=- x1 lv8inset´4y=goblin
+enemy=ogre x1 lv3ì¸µ: ìˆ˜í˜ xÏß“6
+y=160
+enemy=goblin xÏß“6
+enemy=ogre x1 lv3ì¸µ: ìˆ˜í˜¸ì
+bossse=y
+enemy=- x1 lv8inset=4y=gobli~ xÏß“6
+enemy=ogre x1 lv3ì¸µ: ìˆ˜í˜¸ìy
+enemy=- x1 lv8inset=4y=gobli~ xÏß
+bossse=y
+enemy=- x1 n xÏß“6
+enemy=ogrelv8inset=40

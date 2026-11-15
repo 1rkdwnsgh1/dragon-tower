@@ -1,0 +1,27 @@
+bC
+Xw지 않는다.
+
+[floor.1]
+�이�title=1층
+spacingsse=y
+enemy=- x6
+enemy=ogre x1 lv3층: 수호자
+bossse=y=160
+enemy=goblin x�ߓ�6
+enemy=ogre x1 lv3층: 수호자
+bossse=y
+enemy=- x1 lv8inset=4y=goblin x�ߓ�6
+y=160
+enemy=gon x�ߓ�6
+enemy=ogre x1 lv3층: 수호자
+bossse=y
+enemy=- x1 lv8inset=4y=goblin x�ߓ�6
+y=160
+enemy=goblin x�ߓ�6
+enemy=ogre x0 lv3층: 수호자
+bossse=y
+enemy=- x1 lv8inset=4y=goblin x�ߓ�6
+enemy=ogre x1 lv3층: 수호자
+bossse=y
+enemy=- x1 n x�ߓ�6
+et=40

@@ -92,6 +92,10 @@ tests/                     코어 규칙 검증
 | 키 1~4와 자동 전투의 스킬 선택 | `src/core/World.cpp` | `slotSkill`, `slotReady`, `dragonAi`의 `castSkills` |
 | 스킬 관리창 그리기 | `src/win/Renderer.cpp` | `drawSkills`, `drawSkillBox` |
 | 스킬별 본체 모션 | `src/win/Sprites.cpp`, `src/win/Renderer.cpp` | `loadSkillSheets`/`skillSheet`, `drawDragon`의 `skillMotion` |
+| 스킬 효과(FX) 설정 | `assets/dragons/<키>/dragon.txt` | `fx=`, `fx_front=`, `fx_scale=` ([사용법](../assets/dragons/README.md)) |
+| 효과의 세 단계(발동·지속·잔류) | `src/core/World.cpp` | `Fx::phase`, `Fx::phaseProgress`, `addSkillFx` |
+| 효과 단계 기본 길이·개수 상한 | `include/core/Config.h` | `kFxWindup`, `kFxHold`, `kFxTail`, `kMaxFx` |
+| 효과를 도형으로 그리기 | `src/win/Renderer.cpp` | `drawFx` (시트 그리기는 아직 없다) |
 | 스킬 칸 수·모션 유지 시간 | `include/core/Species.h`, `include/core/Config.h` | `kSkillSlots`, `cfg::kSkillMotionHold` |
 | 적 행동과 공격 예고 | `src/core/World.cpp` | `updateEnemies`, `resolveZone` |
 | 애니메이션 상태 전환 | `src/core/World.cpp` | `updateDragonAnim`, `setDragonAnim` |

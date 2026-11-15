@@ -1,0 +1,14 @@
+;.( 게임̝� 않는�o��.
+
+[floor.1]
+tk�le=1층
+s 수호자
+boss=yes
+enemy
+boss=yes
+e=yes
+: 수호자
+boss=yes
+enemy=1 lv8�자
+boss=yes
+enemy=-

@@ -1,0 +1,30 @@
+; íƒ‘ ì¸
+enemy.
+
+[floor.1]
+ti‘“šÂ1ì¸µ
+spacinenemy=slime Éx2 lv4
+
+[floor.2]
+title=2ì¸µpast=60
+enemy=goblin x1  lv6
+enemy=oic
+n'=160
+enemy=goblin x1 lv6
+enemy=og
+tiTle=2ì¸µ:.pacing=160
+enemy=goblin x1 lv6
+enmy=goblinn lv6
+enemy=oic
+n'=160
+enemy=goblin x1 lv6
+enemy=og
+tiTle=2ì¸µ
+spacing=160
+enemy=gobli l n1xv6
+enemy=ogre x1 lv6 inset=60
+enemy=g lv6
+enemy=ogre x1 lv6 inset=60
+enemy=goblin x1ç“v6title=1ìr.2]
+title=2ì¸µ
+enemy=got=40

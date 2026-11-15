@@ -241,6 +241,17 @@ DragonParseResult parseDragonText(const std::string& text, const std::string& fo
             else if (key == "motion_fps") ok = parseFloat(val, s.motionAnim.fps);
             else if (key == "motion_frame_w") ok = parseInt(val, s.motionAnim.frameW);
             else if (key == "motion_render_scale") ok = parseFloat(val, s.motionAnim.renderScale);
+            // v1.6 스킬 효과(FX) 스프라이트. 파일은 fx_<fx>.png 이다. 적지 않으면 전처럼 도형만 그린다.
+            else if (key == "fx") s.fx = val;
+            else if (key == "fx_front") ok = parseBool(val, s.fxInFront);
+            else if (key == "fx_scale") ok = parseFloat(val, s.fxScale);
+            else if (key == "fx_offset_y") ok = parseFloat(val, s.fxOffsetY);
+            else if (key == "fx_windup") ok = parseFloat(val, s.fxWindup);
+            else if (key == "fx_hold") ok = parseFloat(val, s.fxHold);
+            else if (key == "fx_tail") ok = parseFloat(val, s.fxTail);
+            else if (key == "fx_fps") ok = parseFloat(val, s.fxAnim.fps);
+            else if (key == "fx_frame_w") ok = parseInt(val, s.fxAnim.frameW);
+            else if (key == "fx_render_scale") ok = parseFloat(val, s.fxAnim.renderScale);
             // level= 을 적지 않으면 0(자동)으로 남아 "한 레벨에 하나씩" 규칙이 채운다.
             else if (key == "level") ok = parseInt(val, s.unlockLevel);
             else if (key == "cooldown") ok = parseFloat(val, s.cooldown);
@@ -281,6 +292,19 @@ DragonParseResult parseDragonText(const std::string& text, const std::string& fo
         if (!(s.motionAnim.renderScale > 0.f)) s.motionAnim.renderScale = 1.f;
         s.motionAnim.renderScale = std::clamp(s.motionAnim.renderScale, 0.25f, 4.f);
         s.motionAnim.loop = false;  // 스킬 모션은 항상 1회 재생이다
+        // v1.6 효과(FX). 모션과 같은 울타리를 쓴다.
+        if (!(s.fxAnim.fps >= 1.f && s.fxAnim.fps <= 60.f)) s.fxAnim.fps = 12.f;
+        if (s.fxAnim.frameW < 0) s.fxAnim.frameW = 0;
+        if (!(s.fxAnim.renderScale > 0.f)) s.fxAnim.renderScale = 1.f;
+        s.fxAnim.renderScale = std::clamp(s.fxAnim.renderScale, 0.25f, 4.f);
+        s.fxAnim.loop = false;  // 효과도 1회 재생이다(지속 단계에서 멈춰 있는다)
+        if (!(s.fxScale > 0.f)) s.fxScale = 1.f;
+        s.fxScale = std::clamp(s.fxScale, 0.1f, 8.f);
+        s.fxOffsetY = std::clamp(s.fxOffsetY, -600.f, 600.f);
+        // 단계는 0(기본값 쓰기)을 허용한다. 음수와 지나치게 긴 값만 막는다.
+        s.fxWindup = std::clamp(s.fxWindup, 0.f, 5.f);
+        s.fxHold = std::clamp(s.fxHold, 0.f, 10.f);
+        s.fxTail = std::clamp(s.fxTail, 0.f, 5.f);
     }
     if (d.skills.size() > static_cast<size_t>(cfg::kMaxSkillsPerDragon))
         d.skills.resize(static_cast<size_t>(cfg::kMaxSkillsPerDragon));
