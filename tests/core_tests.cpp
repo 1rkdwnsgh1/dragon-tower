@@ -14,6 +14,7 @@
 #include "core/Game.h"
 #include "core/Progression.h"
 #include "core/SaveData.h"
+#include "core/TowerData.h"
 #include "core/World.h"
 
 using namespace dt;
@@ -338,6 +339,153 @@ static void testTowerFlow() {
     g.enterTower(CombatMode::Direct);
     stepGame(g, 1.f, false, false);
     CHECK(g.combatPaused());
+}
+
+// v1.6: 탑 층을 데이터로 뺐다. 파일이 없으면 v1.5와 똑같이 동작해야 한다 — 그것을 여기서 고정한다.
+static void testTowerFloorsBuiltin() {
+    std::printf("[tower floors: builtin fallback]\n");
+    SaveData s;
+    s.hasDragon = true;
+    s.nextDragonId = 2;
+    s.dragon.id = 1;
+    s.dragon.species = Species::Fire;
+    s.dragon.level = 25;
+    Game g;
+    g.seed(6);
+    g.init(s, kDesk);
+    CHECK(g.towerFloorCount() == 3);
+    CHECK(g.towerFloorDef(1).title == "1층");
+    CHECK(g.towerFloorDef(3).boss);
+    // 범위를 벗어난 층을 물으면 가장 가까운 층을 준다(터지지 않는다).
+    CHECK(g.towerFloorDef(0).title == "1층");
+    CHECK(g.towerFloorDef(99).boss);
+
+    g.openTowerWarning();
+    g.enterTower(CombatMode::SkillManual);
+    // 1층은 슬라임 둘. 세로로 가운데에서 ±110 — v1.5의 하드코딩과 같은 자리다.
+    const std::vector<Enemy>& es = g.world().enemies();
+    CHECK(es.size() == 2);
+    if (es.size() == 2) {
+        float cy = kDesk.center().y;
+        float lo = std::min(es[0].pos.y, es[1].pos.y);
+        float hi = std::max(es[0].pos.y, es[1].pos.y);
+        CHECK(std::fabs(lo - (cy - 110.f)) < 0.5f);
+        CHECK(std::fabs(hi - (cy + 110.f)) < 0.5f);
+        EnemyKind slime;
+        CHECK(enemyFromKey("slime", slime));
+        CHECK(es[0].kind == slime && es[1].kind == slime);
+    }
+}
+
+static void testTowerTextParse() {
+    std::printf("[tower floors.txt parse]\n");
+    std::string ok =
+        "; 주석\n"
+        "[floor.1]\n"
+        "title=첫 층\n"
+        "spacing=90\n"
+        "enemy=slime x3 lv2\n"
+        "\n"
+        "[floor.2]\n"
+        "boss=yes\n"
+        "enemy=- x1 lv9 inset=40  ; 키를 비우면 보스\n"
+        "enemy=goblin lv5\n";
+    TowerParseResult r = parseTowerText(ok);
+    CHECK(r.warnings.empty());
+    CHECK(r.floors.size() == 2);
+    if (r.floors.size() == 2) {
+        CHECK(r.floors[0].title == "첫 층");
+        CHECK(r.floors[0].spacing == 90.f);
+        CHECK(!r.floors[0].boss);
+        CHECK(r.floors[0].spawns.size() == 1);
+        CHECK(r.floors[0].spawns[0].key == "slime");
+        CHECK(r.floors[0].spawns[0].count == 3);
+        CHECK(r.floors[0].spawns[0].level == 2);
+        CHECK(r.floors[1].boss);
+        CHECK(r.floors[1].spawns.size() == 2);
+        CHECK(r.floors[1].spawns[0].key.empty());
+        CHECK(r.floors[1].spawns[0].inset == 40.f);
+        // 적지 않은 값은 기본값을 쓴다
+        CHECK(r.floors[1].spawns[1].count == 1);
+        CHECK(r.floors[1].spawns[1].level == 5);
+    }
+
+    // 잘못된 것은 조용히 넘기지 않고 경고로 남는다
+    std::string bad =
+        "[floor.1]\n"
+        "enemy=slime x2 lv3\n"
+        "spacing=9999\n"       // 범위 밖 → 맞추고 알림
+        "wrongkey=1\n"         // 모르는 키
+        "enemy=slime zzz\n"    // 모르는 낱말
+        "[floor.3]\n"          // 번호 건너뜀
+        "enemy=goblin\n"
+        "[floor.2]\n"
+        "title=적 없는 층\n";  // enemy= 가 없음 → 층을 뺀다
+    TowerParseResult w = parseTowerText(bad);
+    CHECK(w.warnings.size() >= 4);
+    CHECK(w.floors.size() == 1);  // 1층만 남는다
+    if (w.floors.size() == 1) CHECK(w.floors[0].spacing <= 600.f);
+
+    TowerParseResult empty = parseTowerText("");
+    CHECK(empty.floors.empty() && empty.warnings.empty());
+}
+
+static void testTowerFloorsFromData() {
+    std::printf("[tower floors from data]\n");
+    namespace fs = std::filesystem;
+    fs::path root = fs::temp_directory_path() / "dt_tower_test";
+    std::error_code ec;
+    fs::remove_all(root, ec);
+
+    // 파일이 없으면 found=false — 부르는 쪽이 내장 구성을 쓴다
+    TowerScanResult none = loadTowerFloors(root);
+    CHECK(!none.found && none.floors.empty() && none.warnings.empty());
+
+    fs::create_directories(root, ec);
+    {
+        std::ofstream f(root / "floors.txt");
+        for (int i = 1; i <= 5; ++i) {
+            f << "[floor." << i << "]\n";
+            f << "title=" << i << "층\n";
+            if (i == 5) f << "boss=yes\nenemy=- x1 lv6\n";
+            else f << "enemy=slime x1 lv1\n";
+        }
+    }
+    TowerScanResult r = loadTowerFloors(root);
+    CHECK(r.found);
+    CHECK(r.floors.size() == 5);
+    CHECK(r.warnings.empty());
+
+    SaveData s;
+    s.hasDragon = true;
+    s.nextDragonId = 2;
+    s.dragon.id = 1;
+    s.dragon.species = Species::Fire;
+    s.dragon.level = 25;
+    Game g;
+    g.seed(6);
+    g.init(s, kDesk);
+    g.setTowerFloors(r.floors);
+    CHECK(g.towerFloorCount() == 5);
+
+    // 5층까지 올라가야 정복이다(3층이 아니다)
+    g.openTowerWarning();
+    g.enterTower(CombatMode::SkillManual);
+    int guard = 0;
+    while (g.screen() != Screen::TowerVictory && g.screen() != Screen::Death && guard++ < 40) {
+        PlayerInput in;
+        in.skill[0] = in.skill[1] = in.skill[2] = true;
+        stepGame(g, 30.f, false, true, in);
+        if (g.screen() == Screen::FloorClear) g.nextFloor();
+    }
+    CHECK(g.screen() == Screen::TowerVictory);
+    CHECK(g.save().bestFloor == 5);
+
+    // 빈 목록을 주면 내장 구성으로 돌아간다
+    g.setTowerFloors({});
+    CHECK(g.towerFloorCount() == 3);
+
+    fs::remove_all(root, ec);
 }
 
 static void testDirectDodge() {
@@ -1675,6 +1823,9 @@ int main() {
     testHiddenRules();
     testAutoStopsAtCap();
     testTowerFlow();
+    testTowerFloorsBuiltin();
+    testTowerTextParse();
+    testTowerFloorsFromData();
     testDirectDodge();
     testDragonTextParse();
     testDragonTextWarnings();

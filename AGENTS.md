@@ -15,6 +15,7 @@
 - `docs/character-pipeline.md`: 캐릭터 이미지·애니메이션·스킬 적용 규격
 - `assets/dragons/README.md`: 드래곤 추가·그림 넣기 사용법
 - `assets/enemies/README.md`: 적 추가·그림 넣기 사용법
+- `assets/tower/README.md`: 탑 층 구성(`floors.txt`) 사용법
 - `assets/ui/README.md`: UI 스킨(창틀·버튼·막대 그림) 사용법
 - `docs/ai-workflow-notes.md`: AI 작업 비용 기록과 개선, 이 환경에서 안 되는 것
 - `docs/auto-queue.md`: 예약된 AI 세션이 집어 가는 작업 큐와 진행 상태 (2026-11-15 20:00 종료)

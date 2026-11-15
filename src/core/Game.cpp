@@ -1,6 +1,7 @@
 #include "core/Game.h"
 
 #include <algorithm>
+#include <utility>  // std::move (전이 포함을 믿지 않는다 — v1.4의 교훈)
 
 #include "core/Config.h"
 
@@ -565,12 +566,6 @@ void Game::stopHunt(const std::string& reason) {
     saveRequested_ = true;
 }
 
-EnemyKind Game::meleeByKey(const std::string& key) const {
-    EnemyKind k;
-    if (enemyFromKey(key, k) && enemyDef(k).role == EnemyRole::Melee) return k;
-    return defaultMelee();
-}
-
 EnemyKind Game::randomMelee() {
     // 바탕화면 사냥에는 일반 적이 섞여 나온다.
     std::vector<EnemyKind> pool;
@@ -612,21 +607,52 @@ void Game::openTowerWarning() {
     screen_ = Screen::TowerWarning;
 }
 
+const TowerFloorDef& Game::towerFloorDef(int floor) const {
+    // 층은 1부터 센다. 목록이 비는 일은 없지만(setTowerFloors가 막는다) 만일을 대비해 둔다.
+    if (floors_.empty()) {
+        static const TowerFloorDef kEmpty{};
+        return kEmpty;
+    }
+    int n = static_cast<int>(floors_.size());
+    int i = std::clamp(floor, 1, n) - 1;
+    return floors_[static_cast<size_t>(i)];
+}
+
+void Game::setTowerFloors(std::vector<TowerFloorDef> floors) {
+    if (floors.empty()) {
+        floors_ = builtinTowerFloors();
+        return;
+    }
+    floors_ = std::move(floors);
+}
+
+std::string Game::towerFloorLabel(int floor) const {
+    const TowerFloorDef& f = towerFloorDef(floor);
+    if (!f.title.empty()) return "탑 " + f.title;
+    return "탑 " + std::to_string(floor) + "층";
+}
+
 void Game::spawnTowerFloor() {
     RectF a = arena();
     float rx = a.right() - 120.f;
     float cy = a.center().y;
-    // 층마다 등장하는 적이 다르다. 없는 키는 첫 번째 일반 적으로 대신한다.
-    if (towerFloor_ == 1) {
-        EnemyKind k = meleeByKey("slime");
-        world_.spawnEnemy(k, 4, {rx, cy - 110.f});
-        world_.spawnEnemy(k, 4, {rx, cy + 110.f});
-    } else if (towerFloor_ == 2) {
-        world_.spawnEnemy(meleeByKey("goblin"), 6, {rx, cy - 160.f});
-        world_.spawnEnemy(meleeByKey("ogre"), 6, {rx - 60.f, cy});
-        world_.spawnEnemy(meleeByKey("goblin"), 6, {rx, cy + 160.f});
-    } else {
-        world_.spawnEnemy(defaultBoss(), 8, {rx - 40.f, cy});
+    const TowerFloorDef& f = towerFloorDef(towerFloor_);
+
+    // 한 층의 적을 모두 펼쳐 놓고 가운데를 기준으로 위아래로 고르게 세운다.
+    // spacing 은 "옆 적과의 간격"이다 — 2마리면 ±spacing/2, 3마리면 -spacing, 0, +spacing.
+    std::vector<const TowerSpawn*> list;
+    for (const TowerSpawn& s : f.spawns) {
+        for (int i = 0; i < s.count; ++i) list.push_back(&s);
+    }
+    int n = static_cast<int>(list.size());
+    for (int i = 0; i < n; ++i) {
+        const TowerSpawn& s = *list[static_cast<size_t>(i)];
+        EnemyKind k;
+        // 키를 비웠거나(= '-') 없는 키면 그 층의 기본 적으로 대신한다.
+        // v1.5까지는 일반 적만 놓을 수 있었는데, 이제 키로 보스도 아래 층에 놓을 수 있다.
+        if (s.key.empty() || !enemyFromKey(s.key, k)) k = f.boss ? defaultBoss() : defaultMelee();
+        float offset = (static_cast<float>(i) - static_cast<float>(n - 1) * 0.5f) * f.spacing;
+        world_.spawnEnemy(k, s.level, {rx - s.inset, cy + offset});
     }
 }
 
@@ -648,7 +674,7 @@ void Game::enterTower(CombatMode m) {
     spawnTowerFloor();
     screen_ = Screen::Tower;
     saveRequested_ = true;
-    notify("탑 1층", 0xFFFFFFFF, 2.f);
+    notify(towerFloorLabel(towerFloor_), 0xFFFFFFFF, 2.f);
 }
 
 void Game::nextFloor() {
@@ -660,7 +686,7 @@ void Game::nextFloor() {
     spawnTowerFloor();
     screen_ = Screen::Tower;
     saveRequested_ = true;
-    notify(towerFloor_ == kTowerFloors ? "탑 3층: 수호자" : "탑 " + std::to_string(towerFloor_) + "층", 0xFFFFFFFF, 2.f);
+    notify(towerFloorLabel(towerFloor_), 0xFFFFFFFF, 2.f);
 }
 
 void Game::leaveTower() {
@@ -849,7 +875,7 @@ void Game::update(float dt, const PlayerInput& in, bool hidden, bool inputEnable
             processEvents(false);
             if (screen_ != Screen::Tower) break;
             if (world_.aliveEnemyCount() == 0) {
-                if (towerFloor_ >= kTowerFloors) {
+                if (towerFloor_ >= towerFloorCount()) {
                     save_.towerClears++;
                     ExpResult r = grantExp(save_.dragon, cfg::kTowerClearExp, false);
                     if (r.levelsGained > 0) { world_.setDragonLevel(save_.dragon.level); syncSkillSlots(); }

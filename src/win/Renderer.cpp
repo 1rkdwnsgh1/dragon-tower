@@ -1228,7 +1228,7 @@ void Renderer::drawNotices(Graphics& g, const Game& game) {
 
 void Renderer::drawTowerHud(Graphics& g, const Game& game) {
     RectF a(game.arena().x, game.arena().y, game.arena().w, game.arena().h);
-    text(g, "탑 " + std::to_string(game.towerFloor()) + "층 / " + std::to_string(Game::kTowerFloors), a.X + 16.f,
+    text(g, "탑 " + std::to_string(game.towerFloor()) + "층 / " + std::to_string(game.towerFloorCount()), a.X + 16.f,
          a.Y - 34.f, 18.f, kText, 0, true, true);
     text(g, std::string(combatModeName(game.towerMode())) + " · 자동 사냥 불가", a.GetRight() - 16.f, a.Y - 30.f, 14.f,
          kSub, 2, false, true);
@@ -1319,7 +1319,9 @@ void Renderer::drawModal(Graphics& g, const Game& game, const Sprites& sprites, 
             const DragonActor& d = game.world().dragon();
             bar(g, RectF(r.X + 60.f, r.Y + 100.f, r.Width - 120.f, 16.f), d.hp / d.stats.maxHp, kHpC,
                 "체력 " + fmtInt(d.hp) + " / " + fmtInt(d.stats.maxHp));
-            std::string next = game.towerFloor() + 1 == Game::kTowerFloors ? "다음은 수호자의 층입니다." : "다음 층으로 갈까요?";
+            // v1.6: 층 수가 데이터에서 오므로 "마지막 층인가"가 아니라 "다음 층이 보스인가"로 본다.
+            std::string next =
+                game.towerFloorDef(game.towerFloor() + 1).boss ? "다음은 보스 층입니다." : "다음 층으로 갈까요?";
             text(g, next, r.X + r.Width * 0.5f, r.Y + 130.f, 14.f, kSub, 1);
             button(g, out, ctx, RectF(r.X + 24.f, r.GetBottom() - 66.f, 220.f, 46.f), "다음 층", UiAction::NextFloor);
             button(g, out, ctx, RectF(r.GetRight() - 24.f - 220.f, r.GetBottom() - 66.f, 220.f, 46.f), "탑에서 나가기",
@@ -1687,7 +1689,7 @@ void Renderer::drawCodex(Graphics& g, const Game& game, const RenderContext& ctx
     text(g, "기록·도감", r.X + 24.f, r.Y + 18.f, 22.f, kText, 0, true);
     float x = r.X + 24.f;
     float y = r.Y + 62.f;
-    text(g, "탑 최고 도달 층: " + std::to_string(s.bestFloor) + " / " + std::to_string(Game::kTowerFloors) +
+    text(g, "탑 최고 도달 층: " + std::to_string(s.bestFloor) + " / " + std::to_string(game.towerFloorCount()) +
                 "   ·   탑 정복 " + std::to_string(s.towerClears) + "회",
          x, y, 15.f, 0xFFFFE9A8, 0, true);
     y += 34.f;

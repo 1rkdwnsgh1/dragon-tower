@@ -2,6 +2,7 @@
 
 #include "core/Config.h"
 #include "core/EnemyData.h"
+#include "core/TowerData.h"
 
 #include <algorithm>
 #include <cctype>
@@ -509,6 +510,220 @@ EnemyScanResult loadEnemyFolders(const std::filesystem::path& enemiesDir) {
         ++out.folderCount;
         if (!known) ++out.newEnemies;
     }
+    return out;
+}
+
+
+// ---------------------------------------------------------------------------
+// 탑 층 (assets/tower/floors.txt). 위 두 파서와 같은 형식·같은 보조 함수를 쓴다.
+// ---------------------------------------------------------------------------
+
+namespace {
+
+// "slime x2 lv4 inset=60" 을 해석한다. 첫 낱말이 적 키고 나머지는 순서에 상관없다.
+// 키 자리에 '-' 를 적으면 그 층의 기본 적(보스 층이면 보스)을 쓴다.
+bool parseSpawn(const std::string& val, TowerSpawn& out, std::string& err) {
+    std::istringstream ts(val);
+    std::string tok;
+    bool first = true;
+    while (ts >> tok) {
+        if (first) {
+            first = false;
+            if (tok != "-") {
+                if (!validKey(tok)) {
+                    err = "적 키 '" + tok + "' 에 쓸 수 없는 글자가 있습니다";
+                    return false;
+                }
+                out.key = tok;
+            }
+            continue;
+        }
+        std::string t = lower(tok);
+        if (t.size() > 1 && t[0] == 'x') {
+            if (!parseInt(t.substr(1), out.count)) {
+                err = "마리 수를 읽을 수 없습니다: " + tok;
+                return false;
+            }
+        } else if (t.size() > 2 && t.compare(0, 2, "lv") == 0) {
+            if (!parseInt(t.substr(2), out.level)) {
+                err = "레벨을 읽을 수 없습니다: " + tok;
+                return false;
+            }
+        } else if (t.compare(0, 6, "inset=") == 0) {
+            if (!parseFloat(t.substr(6), out.inset)) {
+                err = "inset 값을 읽을 수 없습니다: " + tok;
+                return false;
+            }
+        } else {
+            err = "모르는 낱말 '" + tok + "' (쓸 수 있는 것: x<마리> lv<레벨> inset=<px>)";
+            return false;
+        }
+    }
+    if (first) {
+        err = "값이 비어 있습니다";
+        return false;
+    }
+    return true;
+}
+
+}  // namespace
+
+TowerParseResult parseTowerText(const std::string& text) {
+    TowerParseResult r;
+
+    std::istringstream in(text);
+    std::string raw;
+    int lineNo = 0;
+    int curFloor = -1;  // r.floors 의 첨자. -1이면 아직 [floor.N] 이 나오지 않았다
+    bool sectionValid = true;
+
+    auto warn = [&](const std::string& msg) {
+        if (r.warnings.size() < 20) r.warnings.push_back("tower/floors.txt " + std::to_string(lineNo) + "행: " + msg);
+    };
+    auto note = [&](const std::string& msg) {
+        if (r.warnings.size() < 20) r.warnings.push_back("tower/floors.txt: " + msg);
+    };
+
+    while (std::getline(in, raw)) {
+        ++lineNo;
+        if (!raw.empty() && raw.back() == '\r') raw.pop_back();
+        std::string line = trim(stripComment(raw));
+        if (line.empty()) continue;
+
+        if (line[0] == '[') {
+            if (line.back() != ']') {
+                warn("구역 이름이 ']'로 끝나지 않습니다");
+                sectionValid = false;
+                continue;
+            }
+            std::string name = lower(trim(line.substr(1, line.size() - 2)));
+            sectionValid = true;
+            if (name.compare(0, 6, "floor.") == 0) {
+                int n = 0;
+                if (!parseInt(name.substr(6), n) || n < 1) {
+                    warn("층 번호를 읽을 수 없습니다: [" + name + "]. [floor.1] 부터 차례로 적어 주세요");
+                    sectionValid = false;
+                    continue;
+                }
+                if (n > cfg::kMaxTowerFloors) {
+                    warn("층은 1~" + std::to_string(cfg::kMaxTowerFloors) + "까지입니다: [" + name + "]");
+                    sectionValid = false;
+                    continue;
+                }
+                // 번호를 건너뛰면 몇 층인지 사람과 코드의 생각이 달라진다. dragon.txt 의 [skill.N] 과 같은 규칙이다.
+                if (n != static_cast<int>(r.floors.size()) + 1) {
+                    warn("층 번호가 차례가 아닙니다: [" + name + "]. [floor." + std::to_string(r.floors.size() + 1) +
+                         "] 이어야 합니다");
+                    sectionValid = false;
+                    continue;
+                }
+                r.floors.push_back(TowerFloorDef{});
+                curFloor = static_cast<int>(r.floors.size()) - 1;
+            } else {
+                warn("모르는 구역 [" + name + "] (쓸 수 있는 것: [floor.N])");
+                sectionValid = false;
+            }
+            continue;
+        }
+
+        if (!sectionValid) continue;
+        if (curFloor < 0) {
+            warn("[floor.N] 구역 안에 적어야 합니다: " + line);
+            continue;
+        }
+
+        size_t eq = line.find('=');
+        if (eq == std::string::npos) {
+            warn("키=값 형식이 아닙니다: " + line);
+            continue;
+        }
+        std::string key = lower(trim(line.substr(0, eq)));
+        std::string val = trim(line.substr(eq + 1));
+        if (val.empty()) {
+            warn(key + " 값이 비어 있습니다");
+            continue;
+        }
+
+        TowerFloorDef& f = r.floors[static_cast<size_t>(curFloor)];
+        bool ok = true;
+        if (key == "title") {
+            f.title = val;
+        } else if (key == "spacing") {
+            ok = parseFloat(val, f.spacing);
+        } else if (key == "boss") {
+            ok = parseBool(val, f.boss);
+        } else if (key == "enemy") {
+            if (f.spawns.size() >= static_cast<size_t>(cfg::kMaxSpawnLinesPerFloor)) {
+                warn("한 층에 적을 수 있는 enemy= 는 " + std::to_string(cfg::kMaxSpawnLinesPerFloor) + "줄까지입니다");
+            } else {
+                TowerSpawn s;
+                std::string err;
+                if (parseSpawn(val, s, err)) {
+                    f.spawns.push_back(s);
+                } else {
+                    warn("enemy=" + val + " — " + err);
+                }
+            }
+        } else {
+            warn("모르는 키 " + key + " ([floor.N]: title/spacing/boss/enemy)");
+        }
+        if (!ok) warn(key + "=" + val + " 값을 읽을 수 없습니다");
+    }
+
+    // 범위 밖 값은 조용히 자르지 않고 알린다 (v0.4에서 enemy.txt 가 조용히 잘려 고생했다).
+    auto clampF = [&](const std::string& where, const char* nm, float& v, float lo, float hi) {
+        if (v < lo || v > hi) {
+            note(where + "의 " + nm + "=" + std::to_string(v) + " 가 범위를 벗어나 " +
+                 std::to_string(v < lo ? lo : hi) + " 로 맞췄습니다");
+            v = v < lo ? lo : hi;
+        }
+    };
+    auto clampI = [&](const std::string& where, const char* nm, int& v, int lo, int hi) {
+        if (v < lo || v > hi) {
+            note(where + "의 " + nm + "=" + std::to_string(v) + " 가 범위를 벗어나 " +
+                 std::to_string(v < lo ? lo : hi) + " 로 맞췄습니다");
+            v = v < lo ? lo : hi;
+        }
+    };
+
+    std::vector<TowerFloorDef> kept;
+    for (size_t i = 0; i < r.floors.size(); ++i) {
+        TowerFloorDef f = r.floors[i];
+        std::string where = std::to_string(i + 1) + "층";
+        clampF(where, "spacing", f.spacing, 0.f, 600.f);
+        for (TowerSpawn& s : f.spawns) {
+            clampI(where, "x(마리 수)", s.count, 1, cfg::kMaxEnemiesPerFloor);
+            clampI(where, "lv(레벨)", s.level, 1, cfg::kMaxEnemyLevel);
+            clampF(where, "inset", s.inset, -400.f, 400.f);
+        }
+        // 적이 없는 층은 들어가는 순간 돌파된다. 그러면 탑이 공짜로 올라가므로 빼고 알린다.
+        if (f.spawns.empty()) {
+            note(where + "에 enemy= 가 없어 그 층을 뺐습니다. 뒤 층의 번호가 하나씩 앞으로 옮겨집니다");
+            continue;
+        }
+        kept.push_back(f);
+    }
+    r.floors = kept;
+    return r;
+}
+
+TowerScanResult loadTowerFloors(const std::filesystem::path& towerDir) {
+    TowerScanResult out;
+    std::error_code ec;
+    std::filesystem::path txt = towerDir / "floors.txt";
+    if (!std::filesystem::exists(txt, ec)) return out;  // found=false → 부르는 쪽이 내장 구성을 쓴다
+
+    std::ifstream f(txt, std::ios::binary);
+    std::stringstream ss;
+    ss << f.rdbuf();
+    TowerParseResult r = parseTowerText(ss.str());
+    out.warnings = r.warnings;
+    if (r.floors.empty()) {
+        out.warnings.push_back("tower/floors.txt: 층을 하나도 읽지 못해 내장 구성(3층)을 씁니다");
+        return out;
+    }
+    out.found = true;
+    out.floors = r.floors;
     return out;
 }
 
