@@ -1,26 +1,0 @@
-bC
-Xwì§€ ìM•ŠëŠ”ë‹¤.
-
-[floor.1]
-°ì´ëtitle=1ì¸µ
-spacingsse=y
-enemy=- x6
-˜í˜¸ì
-bossse=y
-enemy=- x1 lv8inset=4y=goblin xÏß“6
-y=160
-enemy=goblin xÏß“6
-enemy=ogr x1 l6
-y=160
-enemy=goblin xÏß“6
-enemy=ogre x0 lv3ì¸µy=- x1 lv8$inset=4y=goblin xÏß“6
-y=160
-enemy=gon xÏß“6
-enemy=: ìˆ˜í˜¸ì
-bossse=y
-enemy=- xre x1e x0 lv3ì¸µy=- x1 lv8$inset=4y=goblin xÏß“6
-y=160
-enemy=gon xÏß“6
-enemy=: ìˆ˜í˜¸ì
-bossse=y
-enemy=- xre x1 lv3ì¸µ:grelv8inset=40

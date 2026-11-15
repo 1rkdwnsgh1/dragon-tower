@@ -47,6 +47,15 @@ mkdir -p /tmp/fz/dragon && cp tests/fuzz/corpus/fuzz_dragon_text/* /tmp/fz/drago
 `ctest` 는 `-runs=0` 으로 **모아 둔 입력만 다시 돌리고 끝난다**(0.5초). 새 입력을 찾지 않으므로
 저장소에 아무것도 쓰지 않는다. `CMakeLists.txt` 의 `-runs=0` 을 지우지 말 것.
 
+## 코퍼스 크기 검사
+
+```bash
+tests/fuzz/check_corpus_size.sh
+```
+
+CI(`quality` 워크플로)가 매번 부른다. 파일 60개 · 512KB 를 넘으면 실패하고 고치는 법을 찍는다.
+**글로 적은 규칙만으로는 두 번 막지 못했으므로 검사로 만들었다.**
+
 ## 코퍼스는 작게 유지한다
 
 이 폴더에는 **씨앗과 회귀 입력만** 둔다(지금 17개, 96KB).

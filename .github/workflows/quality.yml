@@ -61,6 +61,12 @@ jobs:
           cmake -S . -B build-cc -DCMAKE_EXPORT_COMPILE_COMMANDS=ON > /dev/null
           python3 tools/check_static.py --build-dir build-cc
 
+      # --- 3.5 코퍼스가 커지지 않았는지 (저장소 오염 막기) ---
+      # 2026-11-14·15에 libFuzzer 가 저장소 코퍼스 폴더에 쓴 입력이 두 번 커밋됐다.
+      # 문서로 적는 것만으로는 안 막혀서 검사로 만들었다.
+      - name: 퍼저 코퍼스 크기
+        run: tests/fuzz/check_corpus_size.sh
+
       # --- 4. 스프라이트 시트 (격자 나누기 + 크기) ---
       - name: 시트 검사
         run: python3 tools/check_sheets.py --out sheet-contact.png
