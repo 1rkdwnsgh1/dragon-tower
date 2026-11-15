@@ -61,6 +61,7 @@ cd build-asan && ASAN_OPTIONS=detect_leaks=1 UBSAN_OPTIONS=print_stacktrace=1 ct
 | `fuzz_dragon_text` | `dragon.txt` 파서 | 오타·반쪽 줄·깨진 UTF-8 이 실제로 들어온다 |
 | `fuzz_enemy_text` | `enemy.txt` 파서 | `summon_count` 처럼 나중에 루프 횟수가 되는 값이 있다 |
 | `fuzz_save_roundtrip` | 저장 파일 + **왕복 불변식** | 깨지면 영구 사망 게임에서 기른 개체가 사라진다 |
+| `fuzz_tower_text` | `floors.txt` 파서 (v1.6) | 층 수·마리 수·레벨이 나중에 루프 횟수가 된다. `Config.h` 의 울타리 네 개가 **모든 경로에서** 걸리는지 본다 |
 
 ```bash
 cmake -S . -B build-fuzz -DCMAKE_BUILD_TYPE=Debug \
@@ -73,6 +74,11 @@ cmake --build build-fuzz -j
 것까지 본다. 이 검사가 `dragon.level` 의 상한 누락을 찾았다 — `stable.N.level` 은 30으로
 자르는데 `dragon.level` 만 자르지 않아서, 손으로 고친 저장 파일이 레벨 34로 읽히고 그대로
 저장됐다가 다음에 켤 때 30으로 잘렸다.
+
+**⚠ 퍼징은 반드시 작업 폴더를 따로 주고 돌린다.** libFuzzer 는 인수로 준 폴더에 새로 찾은
+입력을 계속 써 넣으므로 `tests/fuzz/corpus/` 를 그대로 주면 **저장소가 오염된다.**
+2026-11-14에 실제로 754개 파일 3.3MB 가 이렇게 들어갔다. 자세한 것은
+[`tests/fuzz/README.md`](../tests/fuzz/README.md).
 
 **찾은 입력은 `tests/fuzz/corpus/<퍼저>/` 에 넣는다.** `ctest` 가 그 폴더를 매번 다시 돌린다
 (새 입력을 찾지 않고 끝나므로 빠르다). 코퍼스는 작게 유지한다 — 큰 파일을 저장소에 넣지 않고,

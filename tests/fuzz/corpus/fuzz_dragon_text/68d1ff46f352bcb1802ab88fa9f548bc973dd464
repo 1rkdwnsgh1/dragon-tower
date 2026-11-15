@@ -1,13 +1,0 @@
-s; λ§λλ.
-[skill.2]
-name=μνΌ μν™•
-desc=μ> μ„ μuoel°λ¬λ¨λshp=
-def=lΌμ„ κ±°λ‘μ–΄ μµλ€ μ²΄ ¥λμ 2%λ¥Ό υν•λ‹¤.
-kind=PassiveOnKill
-pth κ±°λ‘μ²΄λ ¥μ 4%λ¥Ό νλ³µν•λ‹¤.
-kind=PassiveOnKill
-power=0.°λ‘μ–΄ bμµλ€ μ²΄λ ¥μ 2%λ¥Ό νλ•λ‹¤.
-kind=PassiveOnKill
-powμΉμ— μ•κ°λ¥Ό κΉ”μ•„ ΌμνΌμλ³K•λ‹¤.
-kind=PassiveOnKill
-power=0. ν”‹Ό

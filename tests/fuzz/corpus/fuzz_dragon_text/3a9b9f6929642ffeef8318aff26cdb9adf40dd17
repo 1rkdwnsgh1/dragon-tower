@@ -1,18 +1,0 @@
-s; κ=shadow_01_b μ—†λ‹¤)5
-[skill.5]
-name=κ·ΈΌ ν™•λ¥ μ΄ 4%pΰg[ZG‹¤.
-kind=PassiveStat
-stat=dod •ν•΄μ§€μ§€reatÿ=shadow_at
-stat=dod •ν•΄μ§€μ§€ μ•€ _12.png@et skill_breatµh=Stat
-stat=dod •ν•΄μ§€μ§€ μ•assiveStat
-stat=dod`jΒ·ΈΌ ν™• 4%p μ¤λ¥Έλ‹¤.
-ind=PassiveStat
-stat=dod •ν•΄μ§€μλ¦Όμ§€ «ª»ν•μμμμμμμμssiveStat
-stat=λ„μ§€ «ª»ν•λ‹¤.
-; μ „μΉ κ·Έλ¦Όμ€ μ—†λ‹¤(™•λ¥ ÿÿÿÿÿÿÿμ¤λ¥Έλ‹¤.
-kind=PassiveStat
-stat=dod •=κ·ΈΌ ν™•λ¥ μτ 3%p μ¤λ¥Έλ‹¤.
-•μμμμμμμμssiveStat
-stat=dod Wν•΄»ν•λ‹¤.
-; μ „μΉ κ·Έλ¦Όμ€ μκΈ°λfps=5
-loop=yer=0.04
