@@ -343,6 +343,26 @@ static void testTowerFlow() {
 }
 
 // v1.6: 탑 층을 데이터로 뺐다. 파일이 없으면 v1.5와 똑같이 동작해야 한다 — 그것을 여기서 고정한다.
+// assets/dragons 폴더가 없으면 어떻게 되는가.
+//
+// v1.5에서 내장 4종을 지운 뒤로 종은 전부 이 폴더에서 온다. 그래서 폴더가 없으면
+// 드래곤이 0마리인 채로 게임이 켜진다. loadDragonFolders 는 그때 **경고도 없이** 돌아오는데
+// (아래가 그것을 고정한다), App::init 은 그 사실을 보고 화면에 알려야 한다.
+// 실제로 exe 만 들어 있는 압축을 받은 사람이 "드래곤이 사라졌다"고 했다.
+static void testMissingDragonsDirIsSilent() {
+    const std::filesystem::path nowhere =
+        std::filesystem::temp_directory_path() / "dragon-tower-no-such-dir-12345";
+    std::error_code ec;
+    std::filesystem::remove_all(nowhere, ec);
+
+    DragonScanResult r = loadDragonFolders(nowhere / "dragons");
+    // 폴더가 없으면 조용히 돌아온다 — 새 종도 없고 경고도 없다.
+    CHECK(r.newSpecies == 0);
+    CHECK(r.warnings.empty());
+    // 그러므로 **경고 목록만 보고는 문제를 알 수 없다.** 종 수를 직접 봐야 한다.
+    // App::init 이 speciesCount() == 0 을 따로 확인하는 이유가 이것이다.
+}
+
 static void testTowerFloorsBuiltin() {
     std::printf("[tower floors: builtin fallback]\n");
     SaveData s;
@@ -2221,6 +2241,7 @@ int main(int argc, char** argv) {
     testAutoStopsAtCap();
     testTowerFlow();
     testFrameStats();
+    testMissingDragonsDirIsSilent();
     testTowerFloorsBuiltin();
     testTowerTextParse();
     testTowerFloorsFromData();
