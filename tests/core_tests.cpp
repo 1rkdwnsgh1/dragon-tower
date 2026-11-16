@@ -11,6 +11,7 @@
 #include "core/Config.h"
 #include "core/DragonData.h"
 #include "core/EnemyData.h"
+#include "core/FrameStats.h"
 #include "core/Game.h"
 #include "core/Progression.h"
 #include "core/SaveData.h"
@@ -2136,6 +2137,74 @@ static void testTowerHundredRules() {
     CHECK(cfg::kMaxSkillsPerDragon == 30);  // 레벨 상한을 올려도 스킬 칸은 그대로
 }
 
+// 큐 11번: 프레임 측정의 순수 계산(include/core/FrameStats.h). 시계는 Windows 쪽에 있고
+// 모으고 평균 내는 규칙만 여기서 고정한다.
+static void testFrameStats() {
+    std::printf("\n[프레임 측정 누적]\n");
+    FrameStats st(3);
+    CHECK(st.window() == 3);
+    CHECK(!st.hasAverage());          // 창이 차기 전에는 보여 줄 평균이 없다
+    CHECK(st.avgTotalMs() == 0.0);
+    CHECK(st.fps() == 0.0);           // 0 으로 나누지 않는다
+
+    // 한 프레임에 같은 단계를 여러 번 넣으면 더해진다.
+    st.addStage(FrameStage::Ui, 1.0);
+    st.addStage(FrameStage::Ui, 0.5);
+    st.addStage(FrameStage::Clear, 2.0);
+    st.endFrame();
+    CHECK(std::fabs(st.row(FrameStage::Ui).lastMs - 1.5) < 1e-9);
+    CHECK(std::fabs(st.row(FrameStage::Clear).lastMs - 2.0) < 1e-9);
+    CHECK(st.totalFrames() == 1);
+    CHECK(!st.hasAverage());          // 아직 3 프레임이 안 됐다
+
+    // 프레임이 바뀌면 누적이 비워진다(앞 프레임 값이 새 프레임에 섞이지 않는다).
+    st.addStage(FrameStage::Clear, 4.0);
+    st.endFrame();
+    CHECK(std::fabs(st.row(FrameStage::Clear).lastMs - 4.0) < 1e-9);
+    CHECK(st.row(FrameStage::Ui).lastMs == 0.0);
+
+    // 세 번째 프레임에서 창이 차고 평균·최대가 한 번 갱신된다.
+    st.addStage(FrameStage::Clear, 3.0);
+    st.endFrame();
+    CHECK(st.hasAverage());
+    CHECK(st.totalFrames() == 3);
+    CHECK(std::fabs(st.row(FrameStage::Clear).avgMs - 3.0) < 1e-9);  // (2+4+3)/3
+    CHECK(std::fabs(st.row(FrameStage::Clear).maxMs - 4.0) < 1e-9);
+    CHECK(std::fabs(st.row(FrameStage::Ui).avgMs - 0.5) < 1e-9);     // (1.5+0+0)/3
+    CHECK(std::fabs(st.avgTotalMs() - 3.5) < 1e-9);                  // 단계 평균의 합
+    CHECK(std::fabs(st.fps() - 1000.0 / 3.5) < 1e-6);
+
+    // 창이 찬 뒤에는 최대가 새 창의 것만 본다(앞 창의 4.0 이 남지 않는다).
+    for (int i = 0; i < 3; ++i) {
+        st.addStage(FrameStage::Clear, 1.0);
+        st.endFrame();
+    }
+    CHECK(std::fabs(st.row(FrameStage::Clear).maxMs - 1.0) < 1e-9);
+    CHECK(std::fabs(st.row(FrameStage::Clear).avgMs - 1.0) < 1e-9);
+
+    // 시계가 튀어도(음수·NaN) 표가 망가지지 않는다.
+    FrameStats bad(1);
+    bad.addStage(FrameStage::World, -5.0);
+    bad.addStage(FrameStage::World, std::nan(""));
+    bad.addStage(FrameStage::World, 2.0);
+    bad.endFrame();
+    CHECK(std::fabs(bad.row(FrameStage::World).avgMs - 2.0) < 1e-9);
+
+    // 창 길이를 0 이나 음수로 줘도 1 로 맞춰진다(0 으로 나누지 않는다).
+    FrameStats zero(0);
+    CHECK(zero.window() == 1);
+    zero.addStage(FrameStage::Present, 1.0);
+    zero.endFrame();
+    CHECK(zero.hasAverage());
+
+    // 끄고 켤 때 쓰는 reset: 창 길이는 남고 모은 숫자는 사라진다.
+    st.reset();
+    CHECK(st.window() == 3);
+    CHECK(!st.hasAverage());
+    CHECK(st.totalFrames() == 0);
+    CHECK(st.row(FrameStage::Clear).avgMs == 0.0);
+}
+
 int main(int argc, char** argv) {
     // 종을 등록하기 전에 돌아야 하는 것들이 맨 앞이다.
     testEmptySpeciesRegistry();
@@ -2151,6 +2220,7 @@ int main(int argc, char** argv) {
     testHiddenRules();
     testAutoStopsAtCap();
     testTowerFlow();
+    testFrameStats();
     testTowerFloorsBuiltin();
     testTowerTextParse();
     testTowerFloorsFromData();
