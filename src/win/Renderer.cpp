@@ -4,6 +4,7 @@
 #include <cmath>
 #include <cstdio>
 
+#include "FrameProfiler.h"
 #include "Platform.h"
 #include "core/Config.h"
 #include "core/Progression.h"
@@ -346,6 +347,14 @@ void Renderer::drawOverlay(Graphics& g, const Game& game, const Sprites& sprites
     sprites_ = &sprites;
     skin_ = game.uiSkin();
     g_regions = outRegions;
+    // 큐 11번: 프레임 측정. 꺼져 있으면 아래 stage() 는 분기 하나로 끝난다.
+    // 켜져 있을 때만 단계마다 Flush 한다 — GDI+ 가 모아서 처리하면 단계별 숫자가 섞인다.
+    FrameProfiler& prof = frameProfiler();
+    auto stage = [&](FrameStage st) {
+        if (!prof.enabled()) return;
+        g.Flush(Gdiplus::FlushIntentionSync);
+        prof.mark(st);
+    };
     if (outRegions) {
         outRegions->hit.clear();
         // 선택 화면·탑·모달이 떠 있으면 화면 전체에서 입력을 받는다(배경 클릭 방지).
@@ -376,6 +385,8 @@ void Renderer::drawOverlay(Graphics& g, const Game& game, const Sprites& sprites
     }
 
     if (game.hasDragon() || sc == Screen::Death) drawWorld(g, game, sprites, ctx);
+    stage(FrameStage::World);  // 여기까지가 스프라이트(배경 띠·드래곤·적·효과)
+
     if (game.hasDragon()) drawStatusCard(g, game, sprites, ctx, out);
     if (sc == Screen::Tower) drawTowerHud(g, game);
     // v1.0: 메뉴는 키보드 조작과 상관없이 열려 있으면 그린다. 마우스로 언제든 쓸 수 있다.
@@ -400,6 +411,73 @@ void Renderer::drawOverlay(Graphics& g, const Game& game, const Sprites& sprites
         text(g, "창 안을 눌러 고르세요.", r.X + r.Width * 0.5f, r.Y + 10.f, 15.f, kWarnC, 1,
              true);
     }
+    stage(FrameStage::Ui);  // 여기까지가 UI(상태창·알림·메뉴·모달)
+
+    // 측정 표시는 맨 마지막에, 자기 비용을 따로 떼어 센다.
+    if (prof.enabled()) {
+        drawFrameStats(g, prof.stats());
+        stage(FrameStage::Debug);
+    }
+}
+
+// ---------------------------------------------------------------------------
+// 큐 11번: 프레임 측정 표시 (기본 꺼짐, 트레이 메뉴로 켠다)
+// ---------------------------------------------------------------------------
+// 재기만 한다 — 어떤 그리기도 고치지 않는다. 숫자는 평균·최대(ms)다.
+// 자리는 왼쪽 위 고정. 상태창(오른쪽)·알림(가운데 위)과 겹치지 않는 자리를 골랐다.
+void Renderer::drawFrameStats(Graphics& g, const FrameStats& st) {
+    struct Line {
+        const char* label;
+        FrameStage stage;
+    };
+    static const Line kLines[] = {
+        {"지우기", FrameStage::Clear},
+        {"스프라이트", FrameStage::World},
+        {"UI", FrameStage::Ui},
+        {"측정 표시", FrameStage::Debug},
+        {"ULW(합성)", FrameStage::Present},
+    };
+    const float rowH = 20.f;
+    const int rows = static_cast<int>(sizeof(kLines) / sizeof(kLines[0]));
+    RectF r(16.f, 16.f, 268.f, 66.f + rowH * (rows + 1));
+    panel(g, r, 232);
+    markRegion(r);  // 클릭 통과 규칙: 우리가 그린 것 위에서는 마우스를 받는다
+
+    float x0 = r.X + 14.f;
+    float xAvg = r.GetRight() - 86.f;
+    float xMax = r.GetRight() - 14.f;
+    text(g, "프레임 측정", x0, r.Y + 10.f, 15.f, kWarnC, 0, true);
+
+    char buf[128];
+    if (st.hasAverage()) {
+        std::snprintf(buf, sizeof(buf), "%.1f fps · %.2f ms", st.fps(), st.avgTotalMs());
+    } else {
+        std::snprintf(buf, sizeof(buf), "모으는 중 (%d 프레임)", st.window());
+    }
+    text(g, buf, xMax, r.Y + 12.f, 13.f, kSub, 2);
+
+    float y = r.Y + 36.f;
+    text(g, "단계", x0, y, 12.f, kSub, 0);
+    text(g, "평균", xAvg, y, 12.f, kSub, 2);
+    text(g, "최대", xMax, y, 12.f, kSub, 2);
+    y += rowH;
+
+    double total = st.avgTotalMs();
+    for (const Line& ln : kLines) {
+        FrameStats::Row row = st.row(ln.stage);
+        // 전체의 40%를 넘게 먹는 단계를 눈에 띄게 한다 — "어디가 범인인가"가 이 표의 목적이다.
+        bool hot = total > 0.0 && row.avgMs > total * 0.4;
+        uint32_t c = hot ? kDanger : kText;
+        text(g, ln.label, x0, y, 13.f, c, 0, hot);
+        std::snprintf(buf, sizeof(buf), "%.2f", row.avgMs);
+        text(g, buf, xAvg, y, 13.f, c, 2, hot);
+        std::snprintf(buf, sizeof(buf), "%.2f", row.maxMs);
+        text(g, buf, xMax, y, 13.f, kSub, 2);
+        y += rowH;
+    }
+
+    std::snprintf(buf, sizeof(buf), "%.0f x %.0f · 프레임 %lld", width_, height_, st.totalFrames());
+    text(g, buf, x0, y + 4.f, 12.f, kSub, 0);
 }
 
 // ---------------------------------------------------------------------------

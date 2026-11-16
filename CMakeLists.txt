@@ -34,6 +34,7 @@ if(WIN32)
         src/win/main.cpp
         src/win/App.cpp
         src/win/Renderer.cpp
+        src/win/FrameProfiler.cpp
         src/win/Sprites.cpp
         src/win/Platform.cpp
     )
