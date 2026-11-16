@@ -421,6 +421,7 @@ void App::render() {
         ctx.time = time_;
         ctx.mouseX = mouseX_;
         ctx.mouseY = mouseY_;
+        ctx.scale = scale_;
         renderer_.drawOverlay(g, game_, sprites_, ctx, buttons_, &regions_);
         g.Flush(FlushIntentionSync);
         overlaySurf_.present(overlay_, work_.left, work_.top);

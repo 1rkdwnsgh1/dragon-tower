@@ -254,64 +254,98 @@ static bool drawPieceRaw(Graphics& g, const UiPiece& p, const RectF& dst, float 
     return true;
 }
 
+
+// UI 조각 캐시 (큐 12번). 선언과 이유는 Renderer.h 를 볼 것.
+//
+// 하는 일: 목적지 크기를 **장치 픽셀**로 바꿔 그 크기의 비트맵에 조각을 한 번 그려 두고,
+// 다음부터는 변환을 끄고 1:1 로 붙인다. 1:1 이고 ColorMatrix 가 없으면 GDI+ 가 빠른 경로를 쓴다.
+//
+// 장치 픽셀로 캐시하는 이유: Graphics 에 ScaleTransform(dpi) 이 걸려 있다. 논리 크기로 캐시하면
+// 붙일 때 또 배율이 먹어 다시 리샘플되고(느리고 흐리다) 캐시한 의미가 없다.
+bool Renderer::drawPieceCached(Graphics& g, const UiPiece& p, const RectF& dst, float alpha, float scale,
+                               RectF* content) {
+    if (!cfg::kUiPieceCache || scale <= 0.f || !p.bmp) return drawPieceRaw(g, p, dst, alpha, content);
+    if (dst.Width <= 0.f || dst.Height <= 0.f) return false;
+
+    // 왼쪽 위와 오른쪽 아래를 각각 반올림해서 폭을 낸다. 가장자리가 어긋나지 않는다.
+    const int devX = static_cast<int>(std::floor(dst.X * scale + 0.5f));
+    const int devY = static_cast<int>(std::floor(dst.Y * scale + 0.5f));
+    const int devW = static_cast<int>(std::floor(dst.GetRight() * scale + 0.5f)) - devX;
+    const int devH = static_cast<int>(std::floor(dst.GetBottom() * scale + 0.5f)) - devY;
+    if (devW <= 0 || devH <= 0) return false;
+    // 화면만 한 조각은 캐시해 봐야 이득이 없고 메모리만 먹는다. 그냥 그린다.
+    if (static_cast<size_t>(devW) * devH > cfg::kUiPieceCacheMaxPixels)
+        return drawPieceRaw(g, p, dst, alpha, content);
+
+    PieceKey key;
+    key.bmp = p.bmp;
+    key.fit = static_cast<int>(p.fit);
+    key.l = p.left;
+    key.t = p.top;
+    key.r = p.right;
+    key.b = p.bottom;
+    key.devW = devW;
+    key.devH = devH;
+    key.alphaQ = static_cast<int>(alpha * 255.f + 0.5f);
+
+    auto it = pieceCache_.find(key);
+    if (it == pieceCache_.end()) {
+        // 창 크기를 바꾸거나 스킨을 오가면 항목이 늘어난다. 한도를 넘으면 통째로 비운다
+        // (LRU 를 두는 것보다 단순하고, 다시 채우는 값이 한 프레임이면 끝난다).
+        if (pieceCache_.size() >= cfg::kUiPieceCacheMaxEntries ||
+            pieceCacheBytes_ >= cfg::kUiPieceCacheMaxBytes) {
+            pieceCache_.clear();
+            pieceCacheBytes_ = 0;
+        }
+        PieceEntry e;
+        auto cached = std::make_unique<Bitmap>(devW, devH, PixelFormat32bppPARGB);
+        if (cached->GetLastStatus() != Ok) return drawPieceRaw(g, p, dst, alpha, content);
+        {
+            Graphics cg(cached.get());
+            // 목적지와 같은 품질로 그려야 결과가 같다.
+            cg.SetCompositingMode(CompositingModeSourceCopy);
+            cg.Clear(Color(0, 0, 0, 0));
+            cg.SetCompositingMode(CompositingModeSourceOver);
+            cg.SetSmoothingMode(SmoothingModeAntiAlias);
+            cg.SetInterpolationMode(InterpolationModeBilinear);
+            RectF local(0.f, 0.f, static_cast<float>(devW), static_cast<float>(devH));
+            RectF contentDev = local;
+            e.drawn = drawPieceRaw(cg, p, local, alpha, &contentDev);
+            e.contentDev = contentDev;
+        }
+        if (e.drawn) {
+            e.bmp = std::move(cached);
+            pieceCacheBytes_ += static_cast<size_t>(devW) * devH * 4;
+        }
+        it = pieceCache_.emplace(key, std::move(e)).first;
+    }
+
+    const PieceEntry& e = it->second;
+    if (!e.drawn) {
+        if (content) *content = dst;
+        return false;  // 이 자리엔 그림을 쓰지 않는다(부르는 쪽이 도형으로 그린다)
+    }
+
+    // 변환을 끄고 장치 좌표에 1:1 로 붙인다.
+    Matrix saved;
+    g.GetTransform(&saved);
+    g.ResetTransform();
+    g.DrawImage(e.bmp.get(), devX, devY);
+    g.SetTransform(&saved);
+
+    if (content) {
+        const float inv = 1.f / scale;
+        *content = RectF(dst.X + e.contentDev.X * inv, dst.Y + e.contentDev.Y * inv,
+                         e.contentDev.Width * inv, e.contentDev.Height * inv);
+    }
+    return true;
+}
+
 bool Renderer::piece(Graphics& g, const char* name, const RectF& r, float alpha, RectF* content) {
     if (!sprites_) return false;
     UiPiece p = sprites_->ui(skin_, name);
     if (!p.valid()) return false;
-    return cachedPiece(g, p, r, alpha, content);
-}
-
-bool Renderer::cachedPiece(Graphics& g, const UiPiece& p, const RectF& dst, float alpha, RectF* content) {
-    // #50: 관리창·스킬창 같은 큰 창의 틀(원본 1109×1382)을 매 프레임 9조각으로 줄여 그리면 비싸다
-    // (투명도 행렬까지 붙어 GDI+ 의 느린 길로 간다). 같은 크기·투명도로 그린 결과를 화면 픽셀 크기
-    // 그대로 한 장 만들어 두고, 다음 프레임부터는 그 한 장만 붙인다.
-    if (dst.Width <= 0.f || dst.Height <= 0.f) return false;
-    Matrix m;
-    g.GetTransform(&m);
-    REAL el[6] = {1.f, 0.f, 0.f, 1.f, 0.f, 0.f};
-    m.GetElements(el);
-    const float s = std::max(0.01f, std::fabs(el[0]));  // 화면 배율(DPI)
-    const int pw = static_cast<int>(std::lround(dst.Width * s));
-    const int ph = static_cast<int>(std::lround(dst.Height * s));
-    if (pw <= 0 || ph <= 0 || static_cast<long long>(pw) * ph > 8LL * 1024 * 1024)
-        return drawPieceRaw(g, p, dst, alpha, content);  // 이상하게 크면 예전처럼 바로 그린다
-    const int a = static_cast<int>(std::lround(std::clamp(alpha, 0.f, 1.f) * 255.f));
-    const int fit = static_cast<int>(p.fit);
-    PieceCacheEntry* hit = nullptr;
-    for (PieceCacheEntry& e : pieceCache_) {
-        if (e.src == p.bmp && e.w == pw && e.h == ph && e.alpha == a && e.fit == fit) {
-            hit = &e;
-            break;
-        }
-    }
-    if (!hit) {
-        if (pieceCache_.size() >= 48) pieceCache_.clear();  // 창 크기를 끌어 바꾸는 동안 쌓이지 않게
-        PieceCacheEntry e;
-        e.src = p.bmp;
-        e.w = pw;
-        e.h = ph;
-        e.alpha = a;
-        e.fit = fit;
-        e.bmp = std::make_unique<Bitmap>(pw, ph, PixelFormat32bppPARGB);
-        {
-            Graphics cg(e.bmp.get());
-            cg.SetCompositingMode(CompositingModeSourceCopy);
-            cg.Clear(Color(0, 0, 0, 0));
-            cg.SetCompositingMode(CompositingModeSourceOver);
-            cg.SetInterpolationMode(InterpolationModeHighQualityBicubic);  // 한 번만 하므로 좋은 품질로
-            cg.ScaleTransform(s, s);
-            RectF c(0.f, 0.f, dst.Width, dst.Height);
-            e.ok = drawPieceRaw(cg, p, RectF(0.f, 0.f, dst.Width, dst.Height), alpha, &c);
-            e.content = c;
-        }
-        pieceCache_.push_back(std::move(e));
-        hit = &pieceCache_.back();
-    }
-    if (!hit->ok) return false;
-    if (content)
-        *content = RectF(dst.X + hit->content.X, dst.Y + hit->content.Y, hit->content.Width, hit->content.Height);
-    g.DrawImage(hit->bmp.get(), dst, 0.f, 0.f, static_cast<REAL>(pw), static_cast<REAL>(ph), UnitPixel);
-    return true;
+    return drawPieceCached(g, p, r, alpha, scale_, content);
 }
 
 void Renderer::panel(Graphics& g, const RectF& r, uint8_t alpha) {
@@ -400,6 +434,7 @@ void Renderer::drawOverlay(Graphics& g, const Game& game, const Sprites& sprites
     // v0.9: 이번 프레임에 쓸 UI 스킨을 정한다(드래곤마다 다를 수 있다).
     sprites_ = &sprites;
     skin_ = game.uiSkin();
+    scale_ = ctx.scale > 0.f ? ctx.scale : 1.f;
     g_regions = outRegions;
     // 큐 11번: 프레임 측정. 꺼져 있으면 아래 stage() 는 분기 하나로 끝난다.
     // 켜져 있을 때만 단계마다 Flush 한다 — GDI+ 가 모아서 처리하면 단계별 숫자가 섞인다.
@@ -490,7 +525,7 @@ void Renderer::drawFrameStats(Graphics& g, const FrameStats& st) {
     };
     const float rowH = 20.f;
     const int rows = static_cast<int>(sizeof(kLines) / sizeof(kLines[0]));
-    RectF r(16.f, 16.f, 268.f, 66.f + rowH * (rows + 1));
+    RectF r(16.f, 16.f, 268.f, 82.f + rowH * (rows + 1));  // +16: UI 캐시 줄
     panel(g, r, 232);
     markRegion(r);  // 클릭 통과 규칙: 우리가 그린 것 위에서는 마우스를 받는다
 
@@ -529,6 +564,11 @@ void Renderer::drawFrameStats(Graphics& g, const FrameStats& st) {
 
     std::snprintf(buf, sizeof(buf), "%.0f x %.0f · 프레임 %lld", width_, height_, st.totalFrames());
     text(g, buf, x0, y + 4.f, 12.f, kSub, 0);
+    // UI 조각 캐시가 실제로 쌓이는지 사람이 볼 수 있게 한 줄 더 (큐 12번).
+    // 숫자가 늘기만 하고 멈추지 않으면 키가 매 프레임 달라지고 있다는 뜻이다 — 그때는 버그다.
+    std::snprintf(buf, sizeof(buf), "UI 캐시 %zu개 · %.1f MB%s", uiCacheCount(),
+                  uiCacheBytes() / (1024.0 * 1024.0), cfg::kUiPieceCache ? "" : " (꺼짐)");
+    text(g, buf, x0, y + 20.f, 12.f, kSub, 0);
 }
 
 // ---------------------------------------------------------------------------
