@@ -54,7 +54,7 @@ tests/                     코어 규칙 검증
 | 상태창·메뉴·드래곤 끌기 | `src/win/App.cpp` | `startDrag`, `WM_MOUSEMOVE` |
 | 끄는 동안 자동 행동 멈춤 | `src/core/World.cpp` | `wander`의 `d.held`, `Game::setDragonHeld` |
 | UI 스킨 읽기 | `src/win/Sprites.cpp` | `loadUiSkins`, `Sprites::ui` (스킨에 없으면 default) |
-| UI 스킨 그리기(맞춤) | `src/win/Renderer.cpp` | `drawPiece`(nine/height/contain), `Renderer::piece` |
+| UI 스킨 그리기(맞춤) | `src/win/Renderer.cpp` | `drawPieceRaw`(nine/height/contain), `Renderer::piece` |
 | 그림이 너무 클 때 포기 | `src/win/Renderer.cpp` | `kBorderShare`, `kMinArtScale` → 도형으로 그린다 |
 | 드래곤별 스킨 선택 | `include/core/Game.h` | `Game::uiSkin`, `dragon.txt`의 `ui_skin` |
 | 스킨 설정 물려받기 | `src/win/Sprites.cpp` | `loadUiSkins` 끝의 `hasCfg` 보정 (default 의 여백·fit 를 쓴다) |
@@ -122,6 +122,9 @@ tests/                     코어 규칙 검증
 | 창 만들기, 입력 전환, 메인 루프 | `src/win/App.cpp` | `App::init`, `setInputEnabled`, `tick` |
 | 전체화면 감지, 저장 경로, DPI | `src/win/Platform.cpp` | `isOtherAppFullscreen`, `saveFilePath` |
 | 탑 100층 구조(층 종류·자동사냥 기준 층·필드 보스 레벨 제한) | `src/core/Tower.cpp` | `floorType`, `huntFloorFor`, `fieldBossLevelCap`, `partyMeetsLevelCap` (수치는 `cfg::kTowerTopFloor` 등) |
+| 전투를 시작할 때 싸울 자리(아래쪽에만 켬=띠, 끔=화면 전체) | `src/core/Game.cpp` | `enterBattleArea`, `setConfineToBand`, `spawnWave` (#47) |
+| UI 그림 조각 합성 캐시 | `src/win/Renderer.cpp` | `Renderer::cachedPiece`, `pieceCache_` (원본 그리기는 `drawPieceRaw`, #50) |
+| 캐릭터 그림을 발 기준으로 세우기 | `src/win/Renderer.cpp` | `drawWorld`의 `dcy`, `drawEnemy`의 `artY` (#49) |
 
 ## 파일 크기 (2026-11-14, v1.4)
 

@@ -101,6 +101,7 @@ private:
     // piece()는 그렸으면 true. 9조각으로 늘릴 여백이 0이면 통째로 늘린다.
     bool piece(Gdiplus::Graphics& g, const char* name, const Gdiplus::RectF& r, float alpha = 1.f,
                Gdiplus::RectF* content = nullptr);
+    // #50: 같은 크기·투명도의 조각은 한 번만 합성해 두고 다시 붙인다(piece 가 부른다).
     void panel(Gdiplus::Graphics& g, const Gdiplus::RectF& r, uint8_t alpha = 236);
     void button(Gdiplus::Graphics& g, std::vector<UiButton>& out, const RenderContext& ctx, const Gdiplus::RectF& r,
                 const std::string& label, UiAction action, int arg = 0, bool enabled = true, bool selected = false,
@@ -206,6 +207,7 @@ private:
     // 한 프레임 동안 쓸 스킨. drawOverlay 시작에서 정한다.
     const Sprites* sprites_ = nullptr;
     std::string skin_ = "default";
+
 };
 
 }  // namespace dt::win

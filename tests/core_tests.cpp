@@ -1109,6 +1109,7 @@ static void testDefenseBattle() {
     s.dragon.level = 6;
     s.dragon.hp = -1.f;
     s.huntMode = CombatMode::SkillManual;
+    s.confineToBand = true;  // #47: 띠에서 싸우는 것은 "아래쪽에만"을 켰을 때다
     g.init(s, kDesk);
 
     // 전투 전에는 바탕화면 전체를 쓴다
@@ -1148,10 +1149,51 @@ static void testDefenseBattle() {
         if (!e.entering) someoneEntered = true;
     CHECK(someoneEntered || g.world().enemies().empty() || g.world().enemies().front().pos.x > before);
 
-    // 전투를 끄면 다시 바탕화면 전체를 돌아다닌다
+    // 전투를 끄면 "아래쪽에만"(켜짐)대로 띠에 머물고, 설정을 끄면 다시 바탕화면 전체를 돌아다닌다
     g.stopHunt("테스트");
     CHECK(!g.hunting());
+    CHECK(g.world().bounds().h <= cfg::kBandHeight + 0.01f);
+    g.setConfineToBand(false);
     CHECK(g.world().bounds().h > cfg::kBandHeight + 1.f);
+}
+
+// #47(2026-11-16 사용자 결정): "아래쪽에만"을 끄면 바탕화면 전투도 화면 전체에서 한다.
+// 적은 여전히 왼쪽 밖에서 들어오고(디펜스), 드래곤이 있는 높이 근처로 온다.
+static void testBattleWithoutConfine() {
+    std::printf("[battle without confine]\n");
+    Game g;
+    SaveData s;
+    s.hasDragon = true;
+    s.dragon.species = Species::Fire;
+    s.dragon.level = 6;
+    s.dragon.hp = -1.f;
+    s.huntMode = CombatMode::SkillManual;
+    s.confineToBand = false;
+    g.init(s, kDesk);
+    g.placeDragon({800.f, 200.f});  // 화면 위쪽
+    const float beforeY = g.world().dragon().pos.y;
+    g.startHunt();
+    CHECK(g.hunting());
+    CHECK(g.world().bounds().h > cfg::kBandHeight + 1.f);             // 경계는 화면 전체 그대로
+    CHECK(std::fabs(g.world().dragon().pos.y - beforeY) < 1.f);       // 아래로 끌려 내려가지 않는다
+
+    PlayerInput in;
+    for (int i = 0; i < 30 * 10 && g.world().enemies().empty(); ++i) g.update(1.f / 30.f, in, false, true);
+    CHECK(!g.world().enemies().empty());
+    const float dy = g.world().dragon().pos.y;
+    g_silentFailed = false;
+    for (const Enemy& e : g.world().enemies()) {
+        CHECK_SILENT(e.pos.x < kDesk.x);                 // 왼쪽 밖에서 들어온다
+        CHECK_SILENT(std::fabs(e.pos.y - dy) <= 100.f);  // 드래곤이 있는 높이 근처로
+    }
+
+    // 사냥 중에 "아래쪽에만"을 켜면 띠로 내려간다
+    g.setConfineToBand(true);
+    CHECK(g.world().confining() || g.world().bounds().h <= cfg::kBandHeight + 0.01f);
+    // 사냥을 멈추면 설정(켜짐)대로 띠에 머문다
+    for (int i = 0; i < 30 * 30 && g.world().confining(); ++i) g.update(1.f / 30.f, in, false, true);
+    g.stopHunt("테스트");
+    CHECK(g.world().bounds().h <= cfg::kBandHeight + 0.01f);
 }
 
 static void testDefenseWaveGrows() {
@@ -1440,8 +1482,7 @@ static void testThinBandStanding() {
         CHECK(d.pos.y >= band.y - 0.5f);
     }
 
-    // 사냥을 시작해도(띠로 제한) 마찬가지, 적도 띠 안에 들어온다
-    g.setConfineToBand(false);
+    // 사냥을 시작해도(아래쪽에만을 켠 그대로) 마찬가지, 적도 띠 안에 들어온다
     g.setHuntMode(CombatMode::Auto);
     g.confirmAutoWarning();
     g.startHunt();
@@ -2262,6 +2303,7 @@ int main(int argc, char** argv) {
     testEnemyFolderScan();
     testBossPhase2Summons();
     testDefenseBattle();
+    testBattleWithoutConfine();
     testDefenseWaveGrows();
     testAutoBattleNoLongerCapped();
     testUiSettingsSaved();
