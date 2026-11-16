@@ -8,6 +8,7 @@ Windows 바탕화면에서 드래곤을 육성하고 탑에 도전하는 게임�
 - [망령룡 캐릭터 기획: 확정 외형과 2D 제작 방향](docs/characters/revenant-dragon.md)
 - [망령룡 스킬 기획 V1 — 콘셉트 제안·기술 설계 대기](docs/characters/revenant-dragon-skills-v1.md)
 - [망령룡 제작 진행사항과 작업 자료 (2026-11-13)](docs/characters/revenant-dragon-progress.md)
+- [복구한 망령룡 스킬 6종 모션·이펙트와 관련 기획](assets/references/revenant-dragon/recovered-2026-11-16/README.md)
 - [개발 로드맵과 체크포인트](docs/roadmap.md)
 - [구현 메모: 임시로 정한 사항과 확인할 것](docs/implementation-notes.md)
 - [이미지 자료 규격과 생성 요청 예시](assets/README.md)

@@ -1,0 +1,2514 @@
+{
+  "source_repository": "https://github.com/kospher123-sys/dragon_",
+  "source_commit": "b96a77c16f9e525b6402373e82f61ccc04a33975",
+  "recovered_on": "2026-11-16",
+  "status": "V1 review assets; not production-approved or integrated",
+  "source_files": 407,
+  "source_bytes": 106688967,
+  "sets": [
+    {
+      "folder": "01_basic_attack_body",
+      "files": 21,
+      "png": 18
+    },
+    {
+      "folder": "02_basic_attack_effects",
+      "files": 44,
+      "png": 40
+    },
+    {
+      "folder": "03_spirit_pierce_body",
+      "files": 13,
+      "png": 10
+    },
+    {
+      "folder": "04_spirit_pierce_effects",
+      "files": 44,
+      "png": 40
+    },
+    {
+      "folder": "05_soul_harvest_body",
+      "files": 13,
+      "png": 10
+    },
+    {
+      "folder": "06_soul_harvest_effects",
+      "files": 44,
+      "png": 40
+    },
+    {
+      "folder": "07_spectral_erosion_body",
+      "files": 13,
+      "png": 10
+    },
+    {
+      "folder": "08_spectral_erosion_effects",
+      "files": 44,
+      "png": 40
+    },
+    {
+      "folder": "09_underworld_breath_body",
+      "files": 13,
+      "png": 10
+    },
+    {
+      "folder": "10_underworld_breath_effects",
+      "files": 64,
+      "png": 60
+    },
+    {
+      "folder": "11_march_of_the_dead_body",
+      "files": 13,
+      "png": 10
+    },
+    {
+      "folder": "12_march_of_the_dead_effects",
+      "files": 74,
+      "png": 70
+    }
+  ],
+  "files": [
+    {
+      "source_path": "그림자드래곤/망령용/01_basic_attack_body/manifest.json",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/01_basic_attack_body/manifest.json",
+      "bytes": 3276,
+      "sha256": "81a0f74dac9c1d311a5c8875d5612232b268529f45236fe1dfe3db5d4e26c699"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/01_basic_attack_body/melee/melee_01.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/01_basic_attack_body/melee/melee_01.png",
+      "bytes": 249461,
+      "sha256": "1ad858ece2ba40c659cc638d315b62e9d4a43b62cd9af928203725b6bbed8baf"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/01_basic_attack_body/melee/melee_02.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/01_basic_attack_body/melee/melee_02.png",
+      "bytes": 246574,
+      "sha256": "fb4ba2af49a6559ec779f005a6f3516003ba9e7c3f78852725544f5d89b7d8f3"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/01_basic_attack_body/melee/melee_03.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/01_basic_attack_body/melee/melee_03.png",
+      "bytes": 242133,
+      "sha256": "c3b5c84322f322615887eb168690ad64c8ac2c74206157fc6bc9dd0969bc9a49"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/01_basic_attack_body/melee/melee_04.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/01_basic_attack_body/melee/melee_04.png",
+      "bytes": 247675,
+      "sha256": "9242a5d4a2de6a08e297547138d0ff3fe6e0a8960dca121e4d94c3d981fdd96b"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/01_basic_attack_body/melee/melee_05.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/01_basic_attack_body/melee/melee_05.png",
+      "bytes": 247709,
+      "sha256": "8178c82ed4158d86c54e82490d6888d3791b7ba52f2aed3956353b76d9845aa1"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/01_basic_attack_body/melee/melee_06.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/01_basic_attack_body/melee/melee_06.png",
+      "bytes": 243430,
+      "sha256": "871777b6eecf9af82e6dea9593d0a2ec072b2263f6fe62a4dbb1a12c7ff0e35a"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/01_basic_attack_body/melee/melee_07.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/01_basic_attack_body/melee/melee_07.png",
+      "bytes": 244414,
+      "sha256": "ee1d69f30b418948543221307c6d12a525b6ee80e7c772c77702e2c86f7c7992"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/01_basic_attack_body/melee/melee_08.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/01_basic_attack_body/melee/melee_08.png",
+      "bytes": 246473,
+      "sha256": "8b3d26c31ea11f4e0f96f8d03ed18a0485e9fedf9f83e3a0a6154c770a1b04af"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/01_basic_attack_body/melee/melee_sheet.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/01_basic_attack_body/melee/melee_sheet.png",
+      "bytes": 2230190,
+      "sha256": "6ebf7202d8a600838a578c48d2ee257104d8ba95363f1c035ee205033c18fac7"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/01_basic_attack_body/prompts.txt",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/01_basic_attack_body/prompts.txt",
+      "bytes": 3619,
+      "sha256": "3653d55ffe74fe86e9c16f6367201f7ee48409414c1d21a9e6553708a297b5aa"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/01_basic_attack_body/ranged/ranged_01.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/01_basic_attack_body/ranged/ranged_01.png",
+      "bytes": 243415,
+      "sha256": "7fee04172d97a7cabeef84b09ad0f27b7b3dd51abab755dde89c0471e9ea166d"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/01_basic_attack_body/ranged/ranged_02.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/01_basic_attack_body/ranged/ranged_02.png",
+      "bytes": 243089,
+      "sha256": "56e824c626920468ad366383fde640035c8db709709e0d556535cba3d0f8269d"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/01_basic_attack_body/ranged/ranged_03.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/01_basic_attack_body/ranged/ranged_03.png",
+      "bytes": 241564,
+      "sha256": "3d5dbd91c5f6efaf5964e3268a92336673e9dee26cf17e702215a1221cf2eaf4"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/01_basic_attack_body/ranged/ranged_04.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/01_basic_attack_body/ranged/ranged_04.png",
+      "bytes": 243034,
+      "sha256": "981d6812507ac79a80fcad41d4616276052012a956b55dc11fb29edd1269aa62"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/01_basic_attack_body/ranged/ranged_05.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/01_basic_attack_body/ranged/ranged_05.png",
+      "bytes": 242879,
+      "sha256": "8c4084bfbca0b020fa304ad3d3b9f3d6e592efe299132b091133881a3303e19d"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/01_basic_attack_body/ranged/ranged_06.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/01_basic_attack_body/ranged/ranged_06.png",
+      "bytes": 242498,
+      "sha256": "f39eb24db3814bd30916ebd396bd67ec31e49066c7956cc8f8644da34d5258ba"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/01_basic_attack_body/ranged/ranged_07.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/01_basic_attack_body/ranged/ranged_07.png",
+      "bytes": 241141,
+      "sha256": "42c578c00c11f7357bf7b93e8e4987cd51d9968d59f0efc2994347625d5b8b75"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/01_basic_attack_body/ranged/ranged_08.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/01_basic_attack_body/ranged/ranged_08.png",
+      "bytes": 241273,
+      "sha256": "7051cf9e0fca326d555945c29511983b8d5ff2ba719e2d3814ef2e02c5ad4be7"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/01_basic_attack_body/ranged/ranged_sheet.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/01_basic_attack_body/ranged/ranged_sheet.png",
+      "bytes": 2206451,
+      "sha256": "1d2bff810d84c9a908e270b45b35c3d54f37687dbbdd565ae2cabfe15c86fc6e"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/01_basic_attack_body/README.txt",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/01_basic_attack_body/README.txt",
+      "bytes": 770,
+      "sha256": "2c8a1dc350c0ab29c48ccc72a6f8874615fb4aa730e2da20ea76b5728ab9e7ad"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/02_basic_attack_effects/claw_hit/claw_hit_01.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/02_basic_attack_effects/claw_hit/claw_hit_01.png",
+      "bytes": 46772,
+      "sha256": "e42a71479f7bab0fd50ca1c3a0e20c2aaa323a0f6756d0affba1ec013af7ad3b"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/02_basic_attack_effects/claw_hit/claw_hit_02.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/02_basic_attack_effects/claw_hit/claw_hit_02.png",
+      "bytes": 66988,
+      "sha256": "9fa557bf2cb9079f767c1d84e257c2c8fe29b1090eb9915cf91d7f21045053c9"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/02_basic_attack_effects/claw_hit/claw_hit_03.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/02_basic_attack_effects/claw_hit/claw_hit_03.png",
+      "bytes": 107952,
+      "sha256": "af69290ce7041ed04be2a06f3b5ec5654dca03951e840152fc823fa58b22ac68"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/02_basic_attack_effects/claw_hit/claw_hit_04.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/02_basic_attack_effects/claw_hit/claw_hit_04.png",
+      "bytes": 92472,
+      "sha256": "ac34604b02c9d3efdb7f407906b5b1e563e7047f32bdc286b666773acd57195b"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/02_basic_attack_effects/claw_hit/claw_hit_05.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/02_basic_attack_effects/claw_hit/claw_hit_05.png",
+      "bytes": 44148,
+      "sha256": "88631447b45b178468e89fb168ddbff027fbf20e35da5cb4d904838dda1dd613"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/02_basic_attack_effects/claw_hit/claw_hit_06.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/02_basic_attack_effects/claw_hit/claw_hit_06.png",
+      "bytes": 34315,
+      "sha256": "5ed7c7d885dc9338d392ee071cc995707f7d40ba49e5e1bbea90bebfbb208691"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/02_basic_attack_effects/claw_hit/claw_hit_07.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/02_basic_attack_effects/claw_hit/claw_hit_07.png",
+      "bytes": 19945,
+      "sha256": "1c4b6427590ecea5b5bfbee758eb01cb0781e8da3dd7068f1c9516e4d5f10cf8"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/02_basic_attack_effects/claw_hit/claw_hit_08.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/02_basic_attack_effects/claw_hit/claw_hit_08.png",
+      "bytes": 8909,
+      "sha256": "19e6317cd312546bc6e0d06fce96e4e6be5edac24944dac1e935931b14cde297"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/02_basic_attack_effects/claw_hit/claw_hit_atlas.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/02_basic_attack_effects/claw_hit/claw_hit_atlas.png",
+      "bytes": 422942,
+      "sha256": "f4f95903b44ece3ca86122bac55637b9fd0055ef74bbbde4a384c6c73d7283cd"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/02_basic_attack_effects/claw_hit/claw_hit_source_sheet.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/02_basic_attack_effects/claw_hit/claw_hit_source_sheet.png",
+      "bytes": 567246,
+      "sha256": "ddb412d545a272631116d58e86ed9eb44c54686c1ea77367e4c31ddaafe9b5f3"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/02_basic_attack_effects/claw_slash/claw_slash_01.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/02_basic_attack_effects/claw_slash/claw_slash_01.png",
+      "bytes": 47393,
+      "sha256": "d6a0e736a99100555331510686c713fe4e031dc809e7d69832733ff198b482c3"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/02_basic_attack_effects/claw_slash/claw_slash_02.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/02_basic_attack_effects/claw_slash/claw_slash_02.png",
+      "bytes": 72192,
+      "sha256": "55c7403c970802ee2c5b12ae0718b29762a2863e4227ebcd73ee6242b2923b22"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/02_basic_attack_effects/claw_slash/claw_slash_03.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/02_basic_attack_effects/claw_slash/claw_slash_03.png",
+      "bytes": 133783,
+      "sha256": "50aba9aac291697b8cdce83feacd9af30a1a747406bbc5ef75128ee81be2944f"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/02_basic_attack_effects/claw_slash/claw_slash_04.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/02_basic_attack_effects/claw_slash/claw_slash_04.png",
+      "bytes": 193150,
+      "sha256": "2be3339cf641605b7cf2eb99da41d4d3c20ae6bb2e4d6546ffe7759161fc1aeb"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/02_basic_attack_effects/claw_slash/claw_slash_05.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/02_basic_attack_effects/claw_slash/claw_slash_05.png",
+      "bytes": 152483,
+      "sha256": "78c3f8022f563442f537067ff39655f6e69b8a21ceecac3f1c9f2fc788d0bb02"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/02_basic_attack_effects/claw_slash/claw_slash_06.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/02_basic_attack_effects/claw_slash/claw_slash_06.png",
+      "bytes": 104881,
+      "sha256": "c91b7f6552994f041bcea5a6b2a6e24ab5a30e8edf45078a54c6a3f6d478a6dc"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/02_basic_attack_effects/claw_slash/claw_slash_07.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/02_basic_attack_effects/claw_slash/claw_slash_07.png",
+      "bytes": 54963,
+      "sha256": "c84b41dfe8df8c86a270050df4d5a831a2cfcda5978525dbc66e516f3fb8aef3"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/02_basic_attack_effects/claw_slash/claw_slash_08.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/02_basic_attack_effects/claw_slash/claw_slash_08.png",
+      "bytes": 24683,
+      "sha256": "6a7297cb94bb1d25bb1772e8c429525d67ebaa65fd008ccad8b3016c3d9b6c21"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/02_basic_attack_effects/claw_slash/claw_slash_atlas.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/02_basic_attack_effects/claw_slash/claw_slash_atlas.png",
+      "bytes": 797407,
+      "sha256": "abaee033d5714b4ba26b72370a1da81b810adac663a5de8e5787f88ea5ff804b"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/02_basic_attack_effects/claw_slash/claw_slash_source_sheet.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/02_basic_attack_effects/claw_slash/claw_slash_source_sheet.png",
+      "bytes": 957769,
+      "sha256": "cb89887f3b673b8691df769aa096775278af50f280eeb4856cdb26ed40cdd478"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/02_basic_attack_effects/manifest.json",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/02_basic_attack_effects/manifest.json",
+      "bytes": 8031,
+      "sha256": "061d98cfbd649110c1d00f5e75d08ab471812f0c846c25aa86b6fdaaa1f75fa4"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/02_basic_attack_effects/projectile_impact/projectile_impact_01.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/02_basic_attack_effects/projectile_impact/projectile_impact_01.png",
+      "bytes": 36148,
+      "sha256": "6be123652c3c0a607e96be7e7508ed7c075f20a0932f16ade79c889bd825c480"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/02_basic_attack_effects/projectile_impact/projectile_impact_02.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/02_basic_attack_effects/projectile_impact/projectile_impact_02.png",
+      "bytes": 84397,
+      "sha256": "89a7de07f7eca4564caba2f0ab2bb83139d30aa852959b3b4b2fb08cd60c41f3"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/02_basic_attack_effects/projectile_impact/projectile_impact_03.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/02_basic_attack_effects/projectile_impact/projectile_impact_03.png",
+      "bytes": 117191,
+      "sha256": "d1d693012fe12fb2ce0067a88b422832693ff8dd73448f09bcb90f9a6d7897d5"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/02_basic_attack_effects/projectile_impact/projectile_impact_04.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/02_basic_attack_effects/projectile_impact/projectile_impact_04.png",
+      "bytes": 166327,
+      "sha256": "40a2deb7c02269277363bcd7fcaf8115fd7238a6d6978654aec806a6d509676b"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/02_basic_attack_effects/projectile_impact/projectile_impact_05.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/02_basic_attack_effects/projectile_impact/projectile_impact_05.png",
+      "bytes": 171383,
+      "sha256": "c25ff845072191112915fd65db7feacddecdfb07f7dea4e349f556d874a1443c"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/02_basic_attack_effects/projectile_impact/projectile_impact_06.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/02_basic_attack_effects/projectile_impact/projectile_impact_06.png",
+      "bytes": 88523,
+      "sha256": "f22658d21c27d511a02b67740d7e51d3d0d40e02fe1507d4ff277f715e2e66b7"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/02_basic_attack_effects/projectile_impact/projectile_impact_07.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/02_basic_attack_effects/projectile_impact/projectile_impact_07.png",
+      "bytes": 40449,
+      "sha256": "e5f2281628cd141eeda94e6094f08ed9900258d09cbcd55eafaa4fbb22c14345"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/02_basic_attack_effects/projectile_impact/projectile_impact_08.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/02_basic_attack_effects/projectile_impact/projectile_impact_08.png",
+      "bytes": 18861,
+      "sha256": "a6ca7fce5b464053c08e88ff20bd68ffc01f780fb2f3d33b162d9e81709ecebb"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/02_basic_attack_effects/projectile_impact/projectile_impact_atlas.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/02_basic_attack_effects/projectile_impact/projectile_impact_atlas.png",
+      "bytes": 743173,
+      "sha256": "7aa4531da09c0d623d23cb40df6ec10891bcd93c881479dddf0a374eda5ed86f"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/02_basic_attack_effects/projectile_impact/projectile_impact_source_sheet.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/02_basic_attack_effects/projectile_impact/projectile_impact_source_sheet.png",
+      "bytes": 909385,
+      "sha256": "30ad2bbe3285112da8a04d0b08d2a93db7c6414d4768450669e610d6b9303b33"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/02_basic_attack_effects/projectile_travel/projectile_travel_01.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/02_basic_attack_effects/projectile_travel/projectile_travel_01.png",
+      "bytes": 124497,
+      "sha256": "29fdc23d4128bc252cd39a8740536e0056876f774cb63d6343d9dca935e4a0ad"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/02_basic_attack_effects/projectile_travel/projectile_travel_02.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/02_basic_attack_effects/projectile_travel/projectile_travel_02.png",
+      "bytes": 130455,
+      "sha256": "d8fc365cc4c65b09fe621e611793f0dfe231cf3eebb32b6c68526ed03d819131"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/02_basic_attack_effects/projectile_travel/projectile_travel_03.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/02_basic_attack_effects/projectile_travel/projectile_travel_03.png",
+      "bytes": 133337,
+      "sha256": "f40c72abee72f5e7e2f1795e9df1db12cb783bb2f4c79983a2bf2cab08c49d14"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/02_basic_attack_effects/projectile_travel/projectile_travel_04.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/02_basic_attack_effects/projectile_travel/projectile_travel_04.png",
+      "bytes": 126234,
+      "sha256": "90d953c7167efcb43cb907814db27b613b076be9e78ec7a9c2bddc240c34b8c6"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/02_basic_attack_effects/projectile_travel/projectile_travel_05.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/02_basic_attack_effects/projectile_travel/projectile_travel_05.png",
+      "bytes": 127191,
+      "sha256": "b5eee4f03a752597345d7a4fd827c03c4a3a1877719621ed8d626982ed17b15e"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/02_basic_attack_effects/projectile_travel/projectile_travel_06.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/02_basic_attack_effects/projectile_travel/projectile_travel_06.png",
+      "bytes": 133585,
+      "sha256": "7834c101d4c87e53a36f278f54be995b152f8d75941405785750e14393e3a6cb"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/02_basic_attack_effects/projectile_travel/projectile_travel_07.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/02_basic_attack_effects/projectile_travel/projectile_travel_07.png",
+      "bytes": 128374,
+      "sha256": "e9155eebd7793c95ade951b077f201db7e235aadc4682dfc3b197a9fad7ceba1"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/02_basic_attack_effects/projectile_travel/projectile_travel_08.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/02_basic_attack_effects/projectile_travel/projectile_travel_08.png",
+      "bytes": 123956,
+      "sha256": "554ed3734311bc6276ecdc7206cc3b7fb3db4f9e1bf2b16949824c29b6d533ae"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/02_basic_attack_effects/projectile_travel/projectile_travel_atlas.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/02_basic_attack_effects/projectile_travel/projectile_travel_atlas.png",
+      "bytes": 1001165,
+      "sha256": "7727c126ccf8845672bfb656252ce1eb82fb19679ca12fd92deb98a1db48e353"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/02_basic_attack_effects/projectile_travel/projectile_travel_source_sheet.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/02_basic_attack_effects/projectile_travel/projectile_travel_source_sheet.png",
+      "bytes": 1174418,
+      "sha256": "df9b1b61e56d924264648e43563b41f0eb77cb06bd3e32d252278638e4d41a4e"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/02_basic_attack_effects/prompts.txt",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/02_basic_attack_effects/prompts.txt",
+      "bytes": 6283,
+      "sha256": "ed75279eba71b44a24e57a58be57ff91158be809f6806a640803754b53905b8c"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/02_basic_attack_effects/README.txt",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/02_basic_attack_effects/README.txt",
+      "bytes": 1321,
+      "sha256": "3a89d53aaa74720a33c73aa033516e0524f6f4b0ed6eb2408e4f4462da9a96db"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/02_basic_attack_effects/verification.txt",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/02_basic_attack_effects/verification.txt",
+      "bytes": 270,
+      "sha256": "cca30de2e78718d3b4dee5bbb34b1fc2bbbd2279797c29b6a08827bb66d8b3fa"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/03_spirit_pierce_body/manifest.json",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/03_spirit_pierce_body/manifest.json",
+      "bytes": 1825,
+      "sha256": "af64c19c3ff49ce2da470b669b61b64b631e688f4f6d8fdce2d5460421445b27"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/03_spirit_pierce_body/prompts.txt",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/03_spirit_pierce_body/prompts.txt",
+      "bytes": 241,
+      "sha256": "6b501e54d7f2bfc53be2610b6ae2c35cbfad97f41d1890734908cdf9736947f1"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/03_spirit_pierce_body/README.txt",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/03_spirit_pierce_body/README.txt",
+      "bytes": 1042,
+      "sha256": "71b8eba7f89af5c1668e45980cea9d2442f6506756955069d5ad9c36e33233e0"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/03_spirit_pierce_body/spirit_pierce_01.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/03_spirit_pierce_body/spirit_pierce_01.png",
+      "bytes": 232174,
+      "sha256": "d35fca3e9edc1f9219c01c78922bd6ddd46781de75f08bc7c57da3ef1eb32b5c"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/03_spirit_pierce_body/spirit_pierce_02.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/03_spirit_pierce_body/spirit_pierce_02.png",
+      "bytes": 233353,
+      "sha256": "98e9ae11ec78ad80d9214b29217ff174648f5c7f50d59ff9bc8e7c4baab08277"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/03_spirit_pierce_body/spirit_pierce_03.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/03_spirit_pierce_body/spirit_pierce_03.png",
+      "bytes": 234106,
+      "sha256": "2954909bba87bb3cd46ca1fdd38d22f48d87fdc1a155770c63038571362b3af3"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/03_spirit_pierce_body/spirit_pierce_04.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/03_spirit_pierce_body/spirit_pierce_04.png",
+      "bytes": 239547,
+      "sha256": "38a5bf5046d9950a2edb66d241848cd4fed997bdedee3b2b5ff839440623e3ab"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/03_spirit_pierce_body/spirit_pierce_05.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/03_spirit_pierce_body/spirit_pierce_05.png",
+      "bytes": 238825,
+      "sha256": "3244ee87d6e0694d71e8135b66be4dde0845693f6a485f920f6c1e60f87c0df9"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/03_spirit_pierce_body/spirit_pierce_06.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/03_spirit_pierce_body/spirit_pierce_06.png",
+      "bytes": 234568,
+      "sha256": "acafc6cdf09e25e18fa36212bedd1fe2864c0b98f8787359badf6cc523d0914c"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/03_spirit_pierce_body/spirit_pierce_07.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/03_spirit_pierce_body/spirit_pierce_07.png",
+      "bytes": 232585,
+      "sha256": "d9c3f9245b4c54065bf1ef6326cac84434945b13458259e8d91e37c6a197bec7"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/03_spirit_pierce_body/spirit_pierce_08.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/03_spirit_pierce_body/spirit_pierce_08.png",
+      "bytes": 231846,
+      "sha256": "5bba0d4cc83d689cb12ef6cf2e2770aebe1044d639d80212f094b74b04f3aca5"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/03_spirit_pierce_body/spirit_pierce_atlas.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/03_spirit_pierce_body/spirit_pierce_atlas.png",
+      "bytes": 1862070,
+      "sha256": "624774a661980f6ad34347a37fd10057dcfb608ffdd6120e8efc6cd073656915"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/03_spirit_pierce_body/spirit_pierce_source_sheet.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/03_spirit_pierce_body/spirit_pierce_source_sheet.png",
+      "bytes": 2101269,
+      "sha256": "04680d54cce8bcf11ef16a72e60a39c7569811f170b7a3c34f8c1fd875f797d8"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/04_spirit_pierce_effects/charge/charge_01.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/04_spirit_pierce_effects/charge/charge_01.png",
+      "bytes": 63880,
+      "sha256": "65617175ca6af0220ebe3869610bf587d6f575d6a6b68ce52cff15e19c90098a"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/04_spirit_pierce_effects/charge/charge_02.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/04_spirit_pierce_effects/charge/charge_02.png",
+      "bytes": 125931,
+      "sha256": "6f2878324f4d4ebdb80b50ff02a700a52a134e6ac61237ae014c9c9f43ecb193"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/04_spirit_pierce_effects/charge/charge_03.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/04_spirit_pierce_effects/charge/charge_03.png",
+      "bytes": 163349,
+      "sha256": "5cb3d6f5e88c246bde18bc010c79963c4579c3de5b070357eae44354121a08c1"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/04_spirit_pierce_effects/charge/charge_04.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/04_spirit_pierce_effects/charge/charge_04.png",
+      "bytes": 159521,
+      "sha256": "3077658f768b7e31acfc1cffba4814ab74110a09208f9037e6a9c0d21f07f1e3"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/04_spirit_pierce_effects/charge/charge_05.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/04_spirit_pierce_effects/charge/charge_05.png",
+      "bytes": 120040,
+      "sha256": "041f1b35e3892a71fc528080de3934809a4fe05c6ab83adaf0d9766a9d63b427"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/04_spirit_pierce_effects/charge/charge_06.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/04_spirit_pierce_effects/charge/charge_06.png",
+      "bytes": 143118,
+      "sha256": "a0f935526fbf6c362df9d9c1ad7f13e982c80542fa1f30614ffb33412b02d90a"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/04_spirit_pierce_effects/charge/charge_07.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/04_spirit_pierce_effects/charge/charge_07.png",
+      "bytes": 81711,
+      "sha256": "979ac2463d022660ff8f102eac7f7b433846b0ea81f169d58406e057f2c53f4f"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/04_spirit_pierce_effects/charge/charge_08.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/04_spirit_pierce_effects/charge/charge_08.png",
+      "bytes": 39438,
+      "sha256": "1d3453e99fd035b2ac037687c3e7c363ffe3261cddd6503b686e804146cecbef"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/04_spirit_pierce_effects/charge/charge_atlas.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/04_spirit_pierce_effects/charge/charge_atlas.png",
+      "bytes": 905930,
+      "sha256": "de083ab0ca4dc6945cb219e2ea54ac71c2181a22aae3807074981336b71a5324"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/04_spirit_pierce_effects/charge/charge_source_sheet.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/04_spirit_pierce_effects/charge/charge_source_sheet.png",
+      "bytes": 1084052,
+      "sha256": "0925939254b1ac049e2c65580a8900faec88c605b7db0ac7d02e743f7d314529"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/04_spirit_pierce_effects/manifest.json",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/04_spirit_pierce_effects/manifest.json",
+      "bytes": 7914,
+      "sha256": "6dacd512c95683a2e7c3efd3d72944e11be32cc1b0ea6ef4a4f438be2f43c5ea"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/04_spirit_pierce_effects/piercing_attack/piercing_attack_01.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/04_spirit_pierce_effects/piercing_attack/piercing_attack_01.png",
+      "bytes": 39762,
+      "sha256": "c4c1ec36009bc44eafd8e363e61668269a27ff56b123694a78035c3d61920b25"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/04_spirit_pierce_effects/piercing_attack/piercing_attack_02.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/04_spirit_pierce_effects/piercing_attack/piercing_attack_02.png",
+      "bytes": 60901,
+      "sha256": "1a7b67c87a0faaa6f57245dca504e90c6f282afc2ed9b764ac65382f8172381c"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/04_spirit_pierce_effects/piercing_attack/piercing_attack_03.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/04_spirit_pierce_effects/piercing_attack/piercing_attack_03.png",
+      "bytes": 86959,
+      "sha256": "c64c686e129a174ba9ca3c85f336bd972414785ba1bd6b3e7bd889e09977d48a"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/04_spirit_pierce_effects/piercing_attack/piercing_attack_04.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/04_spirit_pierce_effects/piercing_attack/piercing_attack_04.png",
+      "bytes": 100809,
+      "sha256": "006e5be966a8a1b600c2152cd5ec6de05d137bd9e0c0b2ba5dbba0318add4e70"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/04_spirit_pierce_effects/piercing_attack/piercing_attack_05.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/04_spirit_pierce_effects/piercing_attack/piercing_attack_05.png",
+      "bytes": 72409,
+      "sha256": "4b01d3399aae4280324388b3f320607a5abad4f20003b2b1f1cb549deb0218ba"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/04_spirit_pierce_effects/piercing_attack/piercing_attack_06.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/04_spirit_pierce_effects/piercing_attack/piercing_attack_06.png",
+      "bytes": 71244,
+      "sha256": "9bc9b5d13bdfaf6d2cf0eac3f2637d8cbca147a2f730c655e9b21e1cda97cd58"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/04_spirit_pierce_effects/piercing_attack/piercing_attack_07.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/04_spirit_pierce_effects/piercing_attack/piercing_attack_07.png",
+      "bytes": 55233,
+      "sha256": "082d778a33121b903fcbf6ccb35ceb802ca07e576215997ea728771a529e1794"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/04_spirit_pierce_effects/piercing_attack/piercing_attack_08.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/04_spirit_pierce_effects/piercing_attack/piercing_attack_08.png",
+      "bytes": 42770,
+      "sha256": "320f1ce569160934217254d99fe85fa9f6b1303167a5a0dbb0c9c9debde65853"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/04_spirit_pierce_effects/piercing_attack/piercing_attack_atlas.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/04_spirit_pierce_effects/piercing_attack/piercing_attack_atlas.png",
+      "bytes": 513793,
+      "sha256": "fb114fcde28739096cb54495e8014690b5d0bbf2c857829ccaa58e1a216877c0"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/04_spirit_pierce_effects/piercing_attack/piercing_attack_source_sheet.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/04_spirit_pierce_effects/piercing_attack/piercing_attack_source_sheet.png",
+      "bytes": 739727,
+      "sha256": "a19d2e21b0dfcb8a4582b11742c78546e8dbaa35e2768a10ea2672d079267376"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/04_spirit_pierce_effects/prompts.txt",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/04_spirit_pierce_effects/prompts.txt",
+      "bytes": 7439,
+      "sha256": "6ce23047a737d20ee7a767bb8a5e6c5306f222a1f8cc44f71ad1a6eeb31a1fcc"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/04_spirit_pierce_effects/README.txt",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/04_spirit_pierce_effects/README.txt",
+      "bytes": 1336,
+      "sha256": "ae3f9eeb026a6695dbc7d6142f1348f885763cc58cd37ea39b872f519562a151"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/04_spirit_pierce_effects/soul_crack/soul_crack_01.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/04_spirit_pierce_effects/soul_crack/soul_crack_01.png",
+      "bytes": 16137,
+      "sha256": "bdc4455aef23527218a53203b0794060adbcc08fd71cc223b92a09f33e1d5ef3"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/04_spirit_pierce_effects/soul_crack/soul_crack_02.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/04_spirit_pierce_effects/soul_crack/soul_crack_02.png",
+      "bytes": 33229,
+      "sha256": "5645b29a0551126d8d76d99554b5f7ddb25ad166d2538872f3ce2d376b6b39cf"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/04_spirit_pierce_effects/soul_crack/soul_crack_03.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/04_spirit_pierce_effects/soul_crack/soul_crack_03.png",
+      "bytes": 59046,
+      "sha256": "b73ca4f34d4013829e71f20e9ad9b95e7bf53abda48123d95f1f8aa81f295deb"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/04_spirit_pierce_effects/soul_crack/soul_crack_04.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/04_spirit_pierce_effects/soul_crack/soul_crack_04.png",
+      "bytes": 94308,
+      "sha256": "2bd96d2d5375413152caf66116cbfce7de3440ef7485b1fc7ce7cd1cbd972c8a"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/04_spirit_pierce_effects/soul_crack/soul_crack_05.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/04_spirit_pierce_effects/soul_crack/soul_crack_05.png",
+      "bytes": 76720,
+      "sha256": "fb7dd4b9ff84aab13d6e84514602890500a2c920f6096e324a3ba04f37b39e09"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/04_spirit_pierce_effects/soul_crack/soul_crack_06.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/04_spirit_pierce_effects/soul_crack/soul_crack_06.png",
+      "bytes": 46139,
+      "sha256": "b1dcdb90b9b67d87424a759f27c5e7062f299f2f662108239ffcc7c10da3c3d6"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/04_spirit_pierce_effects/soul_crack/soul_crack_07.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/04_spirit_pierce_effects/soul_crack/soul_crack_07.png",
+      "bytes": 27501,
+      "sha256": "93f966047f786e5f6e2acfaf24854799aa33a1314f39ccea015819e35074197d"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/04_spirit_pierce_effects/soul_crack/soul_crack_08.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/04_spirit_pierce_effects/soul_crack/soul_crack_08.png",
+      "bytes": 14400,
+      "sha256": "446183b1437b2a50752dc84a5b0f3e4b78eac677ca8c05eb15870f529678acdf"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/04_spirit_pierce_effects/soul_crack/soul_crack_atlas.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/04_spirit_pierce_effects/soul_crack/soul_crack_atlas.png",
+      "bytes": 372091,
+      "sha256": "a18bdb9c5f4e03aeb5611a44f7378d17ec9875df8916ddfb0c1401cd7533258c"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/04_spirit_pierce_effects/soul_crack/soul_crack_source_sheet.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/04_spirit_pierce_effects/soul_crack/soul_crack_source_sheet.png",
+      "bytes": 450117,
+      "sha256": "04fb28af356ba4ad3426dc5dbe06538d7a6c6072af406e29df25aafe368d5eac"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/04_spirit_pierce_effects/target_impact/target_impact_01.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/04_spirit_pierce_effects/target_impact/target_impact_01.png",
+      "bytes": 44034,
+      "sha256": "fdf16b69f5c6105e8195a88ca83ea617d276cba5b7f6446a2e0206fcf66f19e3"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/04_spirit_pierce_effects/target_impact/target_impact_02.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/04_spirit_pierce_effects/target_impact/target_impact_02.png",
+      "bytes": 81058,
+      "sha256": "fd5850f74f590f4e865627cf7d184f0450f39b52886cf0ce965d8cb27006686c"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/04_spirit_pierce_effects/target_impact/target_impact_03.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/04_spirit_pierce_effects/target_impact/target_impact_03.png",
+      "bytes": 138401,
+      "sha256": "396fc4ddc0724f1b69af6c7d1eb5e7c04551a74f5cc2450a392a493fc39ae760"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/04_spirit_pierce_effects/target_impact/target_impact_04.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/04_spirit_pierce_effects/target_impact/target_impact_04.png",
+      "bytes": 155698,
+      "sha256": "0536eb844d1e67fc2be8e10b8604df115bf9322369dc8c78b9b65da0ff392943"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/04_spirit_pierce_effects/target_impact/target_impact_05.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/04_spirit_pierce_effects/target_impact/target_impact_05.png",
+      "bytes": 137029,
+      "sha256": "1f54b2593ac1a542b2ef03702066c1c6f6b54b9495519623e32e02931d038b20"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/04_spirit_pierce_effects/target_impact/target_impact_06.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/04_spirit_pierce_effects/target_impact/target_impact_06.png",
+      "bytes": 93969,
+      "sha256": "bdc8ce049d9fb16eaea766800f90f96629fb4c33c8797550ff88ce045e323074"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/04_spirit_pierce_effects/target_impact/target_impact_07.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/04_spirit_pierce_effects/target_impact/target_impact_07.png",
+      "bytes": 50941,
+      "sha256": "38456f2f47d6dc290485e329d25028cf7a80a637ea4e5185f13d815fb0c0df40"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/04_spirit_pierce_effects/target_impact/target_impact_08.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/04_spirit_pierce_effects/target_impact/target_impact_08.png",
+      "bytes": 31683,
+      "sha256": "069e29bd8d2aa7e76d437ac6421f87b360ca615bb50012065f8e8f7798b8e862"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/04_spirit_pierce_effects/target_impact/target_impact_atlas.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/04_spirit_pierce_effects/target_impact/target_impact_atlas.png",
+      "bytes": 743803,
+      "sha256": "ea85c45f2ee8ad562b2c633a5d6a87bc7d2841441d52907f33b619d5cf0800c7"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/04_spirit_pierce_effects/target_impact/target_impact_source_sheet.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/04_spirit_pierce_effects/target_impact/target_impact_source_sheet.png",
+      "bytes": 1174225,
+      "sha256": "9721f896aff779d3487e8f206bd6dc378e6bf9426c9d1458fb6b4cc0fcb566a5"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/04_spirit_pierce_effects/verification.txt",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/04_spirit_pierce_effects/verification.txt",
+      "bytes": 274,
+      "sha256": "f43ab4c980f963644443b73c92d8d40cc7e4814d9123315eddffd4b6d8046f03"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/05_soul_harvest_body/manifest.json",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/05_soul_harvest_body/manifest.json",
+      "bytes": 1855,
+      "sha256": "fde6451c97200e5fc97a099ea08c2fac510cb823f3596abd0db7851a5aeb44b8"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/05_soul_harvest_body/prompts.txt",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/05_soul_harvest_body/prompts.txt",
+      "bytes": 245,
+      "sha256": "3d82a5910d566a46a9db65cb9f62bac153e79fc689dff554beb1adb06caea3cc"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/05_soul_harvest_body/README.txt",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/05_soul_harvest_body/README.txt",
+      "bytes": 908,
+      "sha256": "0f819a8becd9305140d72a575d2f4e6ef3524a3390ff3ce619f7c0a793e94955"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/05_soul_harvest_body/soul_harvest_01.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/05_soul_harvest_body/soul_harvest_01.png",
+      "bytes": 249444,
+      "sha256": "150ae0f0fa3357a51d3f2df784c86bf4384dc562312eb69a803822d6b7c87cd1"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/05_soul_harvest_body/soul_harvest_02.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/05_soul_harvest_body/soul_harvest_02.png",
+      "bytes": 250089,
+      "sha256": "14b2dcd0849ee723558936aa35450f1859c034628dd91c5870c6aedfd6bda9e2"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/05_soul_harvest_body/soul_harvest_03.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/05_soul_harvest_body/soul_harvest_03.png",
+      "bytes": 251070,
+      "sha256": "22100ac1b0c7385c3ea2e70b608342547cdcf436bf2cb2264f51e524221ca80a"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/05_soul_harvest_body/soul_harvest_04.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/05_soul_harvest_body/soul_harvest_04.png",
+      "bytes": 250260,
+      "sha256": "7500309e219f05adfd826c13db0414659deddcfd67f4a6babc646a577aab4337"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/05_soul_harvest_body/soul_harvest_05.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/05_soul_harvest_body/soul_harvest_05.png",
+      "bytes": 249554,
+      "sha256": "e940fe687df35995e3c84eb7de93c69009376f7548ffdab77f072faf63821f9b"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/05_soul_harvest_body/soul_harvest_06.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/05_soul_harvest_body/soul_harvest_06.png",
+      "bytes": 249479,
+      "sha256": "181c2131735ab0a54b6f4aaec076c313ee42eb718163a9d42ebfc3543ae8462e"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/05_soul_harvest_body/soul_harvest_07.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/05_soul_harvest_body/soul_harvest_07.png",
+      "bytes": 245918,
+      "sha256": "97ac9c67f784807de6d8ca13a65859e56a4bec02a273d3633262a4875cd9ff8e"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/05_soul_harvest_body/soul_harvest_08.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/05_soul_harvest_body/soul_harvest_08.png",
+      "bytes": 246770,
+      "sha256": "93400a9b65fec4a628c86141ea67e19714fab801d665facebbf7bc7c5c93c026"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/05_soul_harvest_body/soul_harvest_atlas.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/05_soul_harvest_body/soul_harvest_atlas.png",
+      "bytes": 1975840,
+      "sha256": "1c3fdac9cc8987df627719c5a67f7009950e80f4afcdd8f32dd566e8aea35b09"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/05_soul_harvest_body/soul_harvest_source_sheet.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/05_soul_harvest_body/soul_harvest_source_sheet.png",
+      "bytes": 2228538,
+      "sha256": "1b2de5e930ea78cc1008f0ccc48905bb95c3335d7b2e71fe79eb06b2a3312ac0"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/06_soul_harvest_effects/absorption/absorption_01.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/06_soul_harvest_effects/absorption/absorption_01.png",
+      "bytes": 26852,
+      "sha256": "e2c01731bd48c8109182c1bcc412ad5f2994c20b8a3073c5632b62ab1e652003"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/06_soul_harvest_effects/absorption/absorption_02.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/06_soul_harvest_effects/absorption/absorption_02.png",
+      "bytes": 59430,
+      "sha256": "af25373b59afbf849e78edd28e2bc139cc3ba46063d18e04d8a50379dd1a3c30"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/06_soul_harvest_effects/absorption/absorption_03.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/06_soul_harvest_effects/absorption/absorption_03.png",
+      "bytes": 100658,
+      "sha256": "9fc29ae22d6cbbcaf1158ace49d6a2ab32af789ea7fb193c2c14aa74e595e4c7"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/06_soul_harvest_effects/absorption/absorption_04.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/06_soul_harvest_effects/absorption/absorption_04.png",
+      "bytes": 73234,
+      "sha256": "9385c8cb824331205b807af3bb9396fd062683ada01e6c11d88c6fca521c7c87"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/06_soul_harvest_effects/absorption/absorption_05.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/06_soul_harvest_effects/absorption/absorption_05.png",
+      "bytes": 60793,
+      "sha256": "4579110a7d3e0b28964a1f06861ff9e6bc304413de0b99dafb150d9c6d069dbe"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/06_soul_harvest_effects/absorption/absorption_06.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/06_soul_harvest_effects/absorption/absorption_06.png",
+      "bytes": 35553,
+      "sha256": "fbedcbf1683e99cfca4270cebd8d175643b3c03b70f6d3fef657303f3f95785f"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/06_soul_harvest_effects/absorption/absorption_07.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/06_soul_harvest_effects/absorption/absorption_07.png",
+      "bytes": 27469,
+      "sha256": "9b695df6455c71c46711132c42b7e4e88cbf8cc5686d80bafb3f51bd7a70a8ca"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/06_soul_harvest_effects/absorption/absorption_08.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/06_soul_harvest_effects/absorption/absorption_08.png",
+      "bytes": 10321,
+      "sha256": "38ac3e2a699ebe829ca1a82dccf60b5dacd0a258d036e2ba5bc46a07a3bb2fc6"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/06_soul_harvest_effects/absorption/absorption_atlas.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/06_soul_harvest_effects/absorption/absorption_atlas.png",
+      "bytes": 397751,
+      "sha256": "d49911d210ea1286547fbb93cb18ff3e90a82b3c62bf34ca5fc3059d76a1c817"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/06_soul_harvest_effects/absorption/absorption_source_sheet.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/06_soul_harvest_effects/absorption/absorption_source_sheet.png",
+      "bytes": 479599,
+      "sha256": "22805c4931cda0a878f392fe9ec79e168f256683ee72b4e251f60e9c311301e0"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/06_soul_harvest_effects/empowerment/empowerment_01.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/06_soul_harvest_effects/empowerment/empowerment_01.png",
+      "bytes": 62477,
+      "sha256": "1641482b095f62807516ca06c54910caa1d3b27802aa3db00792abc00036d884"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/06_soul_harvest_effects/empowerment/empowerment_02.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/06_soul_harvest_effects/empowerment/empowerment_02.png",
+      "bytes": 84868,
+      "sha256": "fd0a3c1d1fc67703c739e6ca6369c46fa963e72b45d35f54040bd89579f0886e"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/06_soul_harvest_effects/empowerment/empowerment_03.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/06_soul_harvest_effects/empowerment/empowerment_03.png",
+      "bytes": 90372,
+      "sha256": "91e0b65c2621286014c7fb60322a10d4e8db0bac10be445c4e4367d33d452416"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/06_soul_harvest_effects/empowerment/empowerment_04.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/06_soul_harvest_effects/empowerment/empowerment_04.png",
+      "bytes": 94316,
+      "sha256": "7492fc1ddf20631b273d134648d6dc6e594b1f4b71d4bc7d1f55a24d53179f0d"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/06_soul_harvest_effects/empowerment/empowerment_05.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/06_soul_harvest_effects/empowerment/empowerment_05.png",
+      "bytes": 81996,
+      "sha256": "cbab229c0489ec1594c2b46bc9f9eea35f3c188457665ec03362c0947474ecc0"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/06_soul_harvest_effects/empowerment/empowerment_06.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/06_soul_harvest_effects/empowerment/empowerment_06.png",
+      "bytes": 71299,
+      "sha256": "7b8b9a6f2a52ee99a862ff8381d1f1cbed9ca16582d53bc1325d2d918089f606"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/06_soul_harvest_effects/empowerment/empowerment_07.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/06_soul_harvest_effects/empowerment/empowerment_07.png",
+      "bytes": 49464,
+      "sha256": "cbf1834818d6b36e30c401a45bc2d6cdd5592cab43344a2ffa320102ab199d86"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/06_soul_harvest_effects/empowerment/empowerment_08.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/06_soul_harvest_effects/empowerment/empowerment_08.png",
+      "bytes": 38596,
+      "sha256": "7f27a55b49f59c45dba09153db228754d16639d613539241c9de152ba6e7bf03"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/06_soul_harvest_effects/empowerment/empowerment_atlas.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/06_soul_harvest_effects/empowerment/empowerment_atlas.png",
+      "bytes": 563777,
+      "sha256": "a8521f9faa5784a5c6efbeba9993fd016fd0327165e23715ca12283c21c98314"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/06_soul_harvest_effects/empowerment/empowerment_source_sheet.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/06_soul_harvest_effects/empowerment/empowerment_source_sheet.png",
+      "bytes": 674129,
+      "sha256": "1cc262c5cb47c7bc933aaed551d5cbc5b8ca078522deff67989162a2e90d2992"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/06_soul_harvest_effects/manifest.json",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/06_soul_harvest_effects/manifest.json",
+      "bytes": 7645,
+      "sha256": "7e234b13b520409bbab7f7976cb2f443f3af1b138d8c0cecefef53157365cfe5"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/06_soul_harvest_effects/prompts.txt",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/06_soul_harvest_effects/prompts.txt",
+      "bytes": 6574,
+      "sha256": "09356626041e11b8901abf927193e11738b771a6ea5135052037dc413be7c8d3"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/06_soul_harvest_effects/README.txt",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/06_soul_harvest_effects/README.txt",
+      "bytes": 1432,
+      "sha256": "aa2e485bb2b0b26ac2020deeaf8ca479ed3b0a9ca79e7410bc09a89eebb3dbd4"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/06_soul_harvest_effects/soul_orb/soul_orb_01.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/06_soul_harvest_effects/soul_orb/soul_orb_01.png",
+      "bytes": 56629,
+      "sha256": "5010eb9d4fe9d49c0e06239d8c1da1669b5fdee5c161fac9e0830f0d90968eea"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/06_soul_harvest_effects/soul_orb/soul_orb_02.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/06_soul_harvest_effects/soul_orb/soul_orb_02.png",
+      "bytes": 63003,
+      "sha256": "c9ac4ad822c5b39cf7828049220974f5ea35b20c7a70b58be908e94272cb11f0"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/06_soul_harvest_effects/soul_orb/soul_orb_03.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/06_soul_harvest_effects/soul_orb/soul_orb_03.png",
+      "bytes": 63822,
+      "sha256": "f6590a5a3333eea64be551fa6d3b2540ad549efeef2f6823989e109c22985e02"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/06_soul_harvest_effects/soul_orb/soul_orb_04.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/06_soul_harvest_effects/soul_orb/soul_orb_04.png",
+      "bytes": 62530,
+      "sha256": "99dbbe9e3968216e2b33880ab68cce4a06e2f3a8b5139506d36033ab29d28422"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/06_soul_harvest_effects/soul_orb/soul_orb_05.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/06_soul_harvest_effects/soul_orb/soul_orb_05.png",
+      "bytes": 56929,
+      "sha256": "028c7d6f78400224857568f2a1d8012bd3c4c25553f6f61f9aaa22cc138cfb91"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/06_soul_harvest_effects/soul_orb/soul_orb_06.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/06_soul_harvest_effects/soul_orb/soul_orb_06.png",
+      "bytes": 62404,
+      "sha256": "7bbe18a3cc8e0bdf6adeae2af191908c30285fa62ab9da231aad83f1476aed75"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/06_soul_harvest_effects/soul_orb/soul_orb_07.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/06_soul_harvest_effects/soul_orb/soul_orb_07.png",
+      "bytes": 63241,
+      "sha256": "3c5df86499fd8b93136eb6aea64f6acc793a970ab9bec1427a4db55562d35236"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/06_soul_harvest_effects/soul_orb/soul_orb_08.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/06_soul_harvest_effects/soul_orb/soul_orb_08.png",
+      "bytes": 61191,
+      "sha256": "2c023583b53d6d707d3185368a081cd4827683226e6cef85dcb0153beb0490f5"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/06_soul_harvest_effects/soul_orb/soul_orb_atlas.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/06_soul_harvest_effects/soul_orb/soul_orb_atlas.png",
+      "bytes": 475549,
+      "sha256": "2910cfce88655d65fe4738c0b4e82e92d9d5d5a859c1b0aeeee03cb268db7ec8"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/06_soul_harvest_effects/soul_orb/soul_orb_source_sheet.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/06_soul_harvest_effects/soul_orb/soul_orb_source_sheet.png",
+      "bytes": 544931,
+      "sha256": "e255f30d03182d0a8f6eaa59f9c55e61252e626150f17d4af8712ba39cb452c2"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/06_soul_harvest_effects/soul_travel/soul_travel_01.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/06_soul_harvest_effects/soul_travel/soul_travel_01.png",
+      "bytes": 37391,
+      "sha256": "0e7f15b72ae41eec0471774948ce2de75bb965ab01d5504ae4d9969bce687d56"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/06_soul_harvest_effects/soul_travel/soul_travel_02.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/06_soul_harvest_effects/soul_travel/soul_travel_02.png",
+      "bytes": 62664,
+      "sha256": "4c0608fdbb78b3209a7e274d0d16f15780093194f0bbe6e44906d82a707bd42f"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/06_soul_harvest_effects/soul_travel/soul_travel_03.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/06_soul_harvest_effects/soul_travel/soul_travel_03.png",
+      "bytes": 78013,
+      "sha256": "71d10627fb37fe15486f47dfcfe7eb20d9fbf78b85c6892d3401319f75bc33f7"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/06_soul_harvest_effects/soul_travel/soul_travel_04.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/06_soul_harvest_effects/soul_travel/soul_travel_04.png",
+      "bytes": 74112,
+      "sha256": "e56c395a35825b5014291529b3c39e65cb5298853ad5c37b13ae64255332ad13"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/06_soul_harvest_effects/soul_travel/soul_travel_05.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/06_soul_harvest_effects/soul_travel/soul_travel_05.png",
+      "bytes": 68681,
+      "sha256": "8f55328aa0e9a51e6366ebefaa221ce31602da486814580089f839ab7d0d8eaa"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/06_soul_harvest_effects/soul_travel/soul_travel_06.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/06_soul_harvest_effects/soul_travel/soul_travel_06.png",
+      "bytes": 65809,
+      "sha256": "cb2ba9da868a6942de49cdab6f1e623180af25693c635d7b676e2271e03f0dda"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/06_soul_harvest_effects/soul_travel/soul_travel_07.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/06_soul_harvest_effects/soul_travel/soul_travel_07.png",
+      "bytes": 54591,
+      "sha256": "4218e6e87253027eba902ae4d48fed6a9be82a814ee691ad52f4d7055f944702"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/06_soul_harvest_effects/soul_travel/soul_travel_08.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/06_soul_harvest_effects/soul_travel/soul_travel_08.png",
+      "bytes": 44335,
+      "sha256": "d5285c0f3cc119c52621faf52b6096d7c89f20cda005a02a3c0430110f209199"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/06_soul_harvest_effects/soul_travel/soul_travel_atlas.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/06_soul_harvest_effects/soul_travel/soul_travel_atlas.png",
+      "bytes": 466619,
+      "sha256": "2e1cb74d8382388d90e3388281de913f0e30fdf734c81cfdef492eb53b671990"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/06_soul_harvest_effects/soul_travel/soul_travel_source_sheet.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/06_soul_harvest_effects/soul_travel/soul_travel_source_sheet.png",
+      "bytes": 598538,
+      "sha256": "27b0f3cd655e4ff10cc7cb51639754cdb16f5c4ff8a76be8b15bbd131d176d21"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/06_soul_harvest_effects/verification.txt",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/06_soul_harvest_effects/verification.txt",
+      "bytes": 262,
+      "sha256": "8a2b4e298aa009fcad09cb720cc8d2383f06d6e7b943af5ef0b2ce0edb6aa95d"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/07_spectral_erosion_body/manifest.json",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/07_spectral_erosion_body/manifest.json",
+      "bytes": 1895,
+      "sha256": "b60f70301d95ae2e3634a73bd9820a1f20d78645c32ca715dc81125febafc668"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/07_spectral_erosion_body/prompts.txt",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/07_spectral_erosion_body/prompts.txt",
+      "bytes": 228,
+      "sha256": "231c6730fed0c7275def6056a4655da649dccbdb7df49418e17d5781a25dfe40"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/07_spectral_erosion_body/README.txt",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/07_spectral_erosion_body/README.txt",
+      "bytes": 1018,
+      "sha256": "aad36564eaf5266e18c183c15a3142e3e2d14579a84043144cc34f63ba9a9f16"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/07_spectral_erosion_body/spectral_erosion_01.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/07_spectral_erosion_body/spectral_erosion_01.png",
+      "bytes": 241574,
+      "sha256": "cf2e21cdaa5517ae7f0072b22317376ebcc182c452040a7567e7dc15def2f8af"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/07_spectral_erosion_body/spectral_erosion_02.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/07_spectral_erosion_body/spectral_erosion_02.png",
+      "bytes": 234551,
+      "sha256": "f5bfbaa62b354077a5a34845b822af3592769cdcdd159b90f13abb437a4b945f"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/07_spectral_erosion_body/spectral_erosion_03.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/07_spectral_erosion_body/spectral_erosion_03.png",
+      "bytes": 234903,
+      "sha256": "77e04bc5cf5878f5db084f3b05c6d16555c8b0b6f46909c3b6b78f1ce073f816"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/07_spectral_erosion_body/spectral_erosion_04.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/07_spectral_erosion_body/spectral_erosion_04.png",
+      "bytes": 233267,
+      "sha256": "138558ebc9129122c10affdccee304a2e687afc2be86afb339048f60683ae724"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/07_spectral_erosion_body/spectral_erosion_05.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/07_spectral_erosion_body/spectral_erosion_05.png",
+      "bytes": 240259,
+      "sha256": "65a51b4d4d6c1fc139ad22d390c5c3a0d99411ddcd5aa5c6aaa38feb25f6d8d1"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/07_spectral_erosion_body/spectral_erosion_06.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/07_spectral_erosion_body/spectral_erosion_06.png",
+      "bytes": 238003,
+      "sha256": "eec23219119613b96ce412ee0545944f5e6025ab6be7de210def26c414f8f5a2"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/07_spectral_erosion_body/spectral_erosion_07.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/07_spectral_erosion_body/spectral_erosion_07.png",
+      "bytes": 239656,
+      "sha256": "e57388c2c28f05c9cfc66c8d7bd051a517e655b10ea6dc752f6786846e2b2e63"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/07_spectral_erosion_body/spectral_erosion_08.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/07_spectral_erosion_body/spectral_erosion_08.png",
+      "bytes": 237284,
+      "sha256": "b25870e5a158a90233ecdb8d636dafb5ddb1ff55c9a81bf2edcab33564acb846"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/07_spectral_erosion_body/spectral_erosion_atlas.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/07_spectral_erosion_body/spectral_erosion_atlas.png",
+      "bytes": 1887749,
+      "sha256": "0e10f1661da9235bf2ec6a73ccb00d9e70e1e7aebfab964650a4570ed69a1821"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/07_spectral_erosion_body/spectral_erosion_source_sheet.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/07_spectral_erosion_body/spectral_erosion_source_sheet.png",
+      "bytes": 2176201,
+      "sha256": "256be6b5168040fd307c9507b6a5bcd7c84e6338efd03c7ba67e4ce781be70b5"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/08_spectral_erosion_effects/damage_pulse/damage_pulse_01.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/08_spectral_erosion_effects/damage_pulse/damage_pulse_01.png",
+      "bytes": 79544,
+      "sha256": "c5fb3b80ac9a8bc689bfc87dbc7eabd3bb19a2e3ac974b996afaa0fbc69d3e19"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/08_spectral_erosion_effects/damage_pulse/damage_pulse_02.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/08_spectral_erosion_effects/damage_pulse/damage_pulse_02.png",
+      "bytes": 118049,
+      "sha256": "36b15a68eaa5ce323d1e248b83bfa68afb81f7141d1cda9f640c4d08380fad11"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/08_spectral_erosion_effects/damage_pulse/damage_pulse_03.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/08_spectral_erosion_effects/damage_pulse/damage_pulse_03.png",
+      "bytes": 150676,
+      "sha256": "711f59ca83a5b7fd3520a1d2268e4566abea58b8717b2cc436ef25486eea363b"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/08_spectral_erosion_effects/damage_pulse/damage_pulse_04.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/08_spectral_erosion_effects/damage_pulse/damage_pulse_04.png",
+      "bytes": 170562,
+      "sha256": "36878d248e91caad1d23bd8b984bda77759243c38a9052f9ddbb227fd3d624a8"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/08_spectral_erosion_effects/damage_pulse/damage_pulse_05.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/08_spectral_erosion_effects/damage_pulse/damage_pulse_05.png",
+      "bytes": 141434,
+      "sha256": "f819f4252424f288adc8deff45329a86bfca0cc94abe9882bf92156a7966cff5"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/08_spectral_erosion_effects/damage_pulse/damage_pulse_06.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/08_spectral_erosion_effects/damage_pulse/damage_pulse_06.png",
+      "bytes": 95374,
+      "sha256": "1bbaa9f0968a2d5bcb271ac170a61d189ec5631acb3348cf303a7be7352e5535"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/08_spectral_erosion_effects/damage_pulse/damage_pulse_07.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/08_spectral_erosion_effects/damage_pulse/damage_pulse_07.png",
+      "bytes": 68145,
+      "sha256": "638306f859db52643fe8ed3c31117521d1d95d912516b39aa30acb803bf2573d"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/08_spectral_erosion_effects/damage_pulse/damage_pulse_08.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/08_spectral_erosion_effects/damage_pulse/damage_pulse_08.png",
+      "bytes": 42119,
+      "sha256": "ef5a8dcb9d2a30b55753ff2c9103a472b586bc41af6a06c39023ecb89f35fee4"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/08_spectral_erosion_effects/damage_pulse/damage_pulse_atlas.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/08_spectral_erosion_effects/damage_pulse/damage_pulse_atlas.png",
+      "bytes": 876042,
+      "sha256": "bf649bf45861588e42300e1578c5b621b3041fa450dff302c601774e61c83262"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/08_spectral_erosion_effects/damage_pulse/damage_pulse_source_sheet.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/08_spectral_erosion_effects/damage_pulse/damage_pulse_source_sheet.png",
+      "bytes": 1044084,
+      "sha256": "0f69d582dcedb73b31c506c5d3a09f79dc63cff28fc79fcc0d938a640288b074"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/08_spectral_erosion_effects/ghost_hand/ghost_hand_01.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/08_spectral_erosion_effects/ghost_hand/ghost_hand_01.png",
+      "bytes": 93807,
+      "sha256": "8f099425be66678e924b753f722f6e760abe1b6bac4138b1087be231e903cb2b"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/08_spectral_erosion_effects/ghost_hand/ghost_hand_02.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/08_spectral_erosion_effects/ghost_hand/ghost_hand_02.png",
+      "bytes": 115207,
+      "sha256": "ecd6bc37689df5434de7d50f3e5685c11e54b1ed99703c8e4f128e630001cceb"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/08_spectral_erosion_effects/ghost_hand/ghost_hand_03.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/08_spectral_erosion_effects/ghost_hand/ghost_hand_03.png",
+      "bytes": 141953,
+      "sha256": "e81d183b0275cd0f5d6e9fbdc092a0bb533b66c0cd2d2813bf347bab7aadee6b"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/08_spectral_erosion_effects/ghost_hand/ghost_hand_04.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/08_spectral_erosion_effects/ghost_hand/ghost_hand_04.png",
+      "bytes": 177845,
+      "sha256": "d5d7fb8dac5541f437e30e910f12a3e70478c88500abf5a2ba42aa98ada61940"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/08_spectral_erosion_effects/ghost_hand/ghost_hand_05.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/08_spectral_erosion_effects/ghost_hand/ghost_hand_05.png",
+      "bytes": 161362,
+      "sha256": "ee0f8d7cc8217225948d866f9a0397e84be99ce405a9681287f5ab660610fb44"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/08_spectral_erosion_effects/ghost_hand/ghost_hand_06.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/08_spectral_erosion_effects/ghost_hand/ghost_hand_06.png",
+      "bytes": 136329,
+      "sha256": "25fd24271e1987a174b7bbe4e0cf579c530f08411b799c82a32b235e3280ee70"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/08_spectral_erosion_effects/ghost_hand/ghost_hand_07.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/08_spectral_erosion_effects/ghost_hand/ghost_hand_07.png",
+      "bytes": 109929,
+      "sha256": "6db6dbeb64f963d18b4b324b72cb03ceb33e842de406ba7c5a57c389b8c5275c"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/08_spectral_erosion_effects/ghost_hand/ghost_hand_08.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/08_spectral_erosion_effects/ghost_hand/ghost_hand_08.png",
+      "bytes": 86400,
+      "sha256": "3439dd68fad4e133685d43a31fe1f48362b8b327fcad1f469f81243b3695d36d"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/08_spectral_erosion_effects/ghost_hand/ghost_hand_atlas.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/08_spectral_erosion_effects/ghost_hand/ghost_hand_atlas.png",
+      "bytes": 1019352,
+      "sha256": "2626866cecf80c5be79a8270957f843b7c6482975086ddf92f3e465abe37ad90"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/08_spectral_erosion_effects/ghost_hand/ghost_hand_source_sheet.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/08_spectral_erosion_effects/ghost_hand/ghost_hand_source_sheet.png",
+      "bytes": 1197148,
+      "sha256": "dc4bf7f1a48b24605d7d8b855b3d08683302615b1ad278e295da30a635c199ab"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/08_spectral_erosion_effects/manifest.json",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/08_spectral_erosion_effects/manifest.json",
+      "bytes": 9239,
+      "sha256": "bb4ef0b58ae6156646a176b77066d5f39d18b389d76327a0d1fe7316dd5aa64a"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/08_spectral_erosion_effects/mist_spread/mist_spread_01.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/08_spectral_erosion_effects/mist_spread/mist_spread_01.png",
+      "bytes": 40743,
+      "sha256": "4e00d1193f0a17957f76e11cda16c600a05fc8d46f0fee63281baf4c52d5e355"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/08_spectral_erosion_effects/mist_spread/mist_spread_02.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/08_spectral_erosion_effects/mist_spread/mist_spread_02.png",
+      "bytes": 67626,
+      "sha256": "5c88de72ccb9612391bd00e4efa16e77fe105937d0907040c6388e295f738c38"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/08_spectral_erosion_effects/mist_spread/mist_spread_03.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/08_spectral_erosion_effects/mist_spread/mist_spread_03.png",
+      "bytes": 85968,
+      "sha256": "437eb2047383504a3c51c124590981e3a7af066b3c0c63ae250c9bd68437e806"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/08_spectral_erosion_effects/mist_spread/mist_spread_04.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/08_spectral_erosion_effects/mist_spread/mist_spread_04.png",
+      "bytes": 112088,
+      "sha256": "0045b7ec918460820d4d78a7e7cb7339e623fb60012c1857ac6685519429f711"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/08_spectral_erosion_effects/mist_spread/mist_spread_05.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/08_spectral_erosion_effects/mist_spread/mist_spread_05.png",
+      "bytes": 123835,
+      "sha256": "833ec7078960d4e4e2f31b3a706a5b15fa00c1bab17fba37a209c19f39b4ecce"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/08_spectral_erosion_effects/mist_spread/mist_spread_06.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/08_spectral_erosion_effects/mist_spread/mist_spread_06.png",
+      "bytes": 141839,
+      "sha256": "ac7a4eefb451cbd8af84ebdf7d182bfd57815ceec64fe85fe211fd8c97030e26"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/08_spectral_erosion_effects/mist_spread/mist_spread_07.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/08_spectral_erosion_effects/mist_spread/mist_spread_07.png",
+      "bytes": 158748,
+      "sha256": "4294b55e0527101995ce4ad78e362d0d832a33f585b0da9e4beb9beb48296f8b"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/08_spectral_erosion_effects/mist_spread/mist_spread_08.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/08_spectral_erosion_effects/mist_spread/mist_spread_08.png",
+      "bytes": 167813,
+      "sha256": "f9dc39b2f4da554a4a2c450a753ca865091ce62831f9b19fe486de0d53750cce"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/08_spectral_erosion_effects/mist_spread/mist_spread_atlas.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/08_spectral_erosion_effects/mist_spread/mist_spread_atlas.png",
+      "bytes": 883820,
+      "sha256": "bf1fd978507ad845865aae1107f43ce48d60d6b8fd8a7c1b7501be7fadaf39ad"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/08_spectral_erosion_effects/mist_spread/mist_spread_source_sheet.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/08_spectral_erosion_effects/mist_spread/mist_spread_source_sheet.png",
+      "bytes": 1061475,
+      "sha256": "e74427d60fe8e99882fde66ca6a294b7529c98fb01062278d3836e4203d3aa9b"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/08_spectral_erosion_effects/prompts.txt",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/08_spectral_erosion_effects/prompts.txt",
+      "bytes": 7747,
+      "sha256": "714581ba91dabdafd7408cb02fcea8cad0cfae7b6b5e288274288e8a29988494"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/08_spectral_erosion_effects/README.txt",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/08_spectral_erosion_effects/README.txt",
+      "bytes": 1359,
+      "sha256": "029f7f1f5b0cfab343ccc324c53cfab42a7f6f7b1c6266b89963b5708797d234"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/08_spectral_erosion_effects/sustained/sustained_01.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/08_spectral_erosion_effects/sustained/sustained_01.png",
+      "bytes": 123553,
+      "sha256": "1d64888558524e4a3913fd5f4d32bd196ec1f1bcc6eed1aa1bee9c02c316ca98"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/08_spectral_erosion_effects/sustained/sustained_02.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/08_spectral_erosion_effects/sustained/sustained_02.png",
+      "bytes": 137169,
+      "sha256": "ee38726598497536a6cc0b9588bcf46b105eb1477837d1430cbc8f2c6d9f6787"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/08_spectral_erosion_effects/sustained/sustained_03.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/08_spectral_erosion_effects/sustained/sustained_03.png",
+      "bytes": 139557,
+      "sha256": "2440601980aa7b388da4d55f60d057e6d9cf69516a08625ce0e44b60f9c90634"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/08_spectral_erosion_effects/sustained/sustained_04.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/08_spectral_erosion_effects/sustained/sustained_04.png",
+      "bytes": 134154,
+      "sha256": "1393e5e0bbfd2d3e106383e4d2f46381fcea7732d03808415075b0013494b595"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/08_spectral_erosion_effects/sustained/sustained_05.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/08_spectral_erosion_effects/sustained/sustained_05.png",
+      "bytes": 135323,
+      "sha256": "f5c4b44c897ec443ae7ae8401fea48b93b67cfc7351c90c188df2c980a861677"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/08_spectral_erosion_effects/sustained/sustained_06.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/08_spectral_erosion_effects/sustained/sustained_06.png",
+      "bytes": 132908,
+      "sha256": "15e9b0a18c4982f780e8bb9f0abb0fe40dd38ab61cefa6ff3042e5e7af2ffa63"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/08_spectral_erosion_effects/sustained/sustained_07.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/08_spectral_erosion_effects/sustained/sustained_07.png",
+      "bytes": 124841,
+      "sha256": "e6af564c9b73ecab2c88d3ffbf02fe0efaadad43b49b7a73a7f103c64b0a8278"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/08_spectral_erosion_effects/sustained/sustained_08.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/08_spectral_erosion_effects/sustained/sustained_08.png",
+      "bytes": 119857,
+      "sha256": "b7401f26d68e3a05b3f3efc557236970949f4f26344fc5e38fc2243dd8c16386"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/08_spectral_erosion_effects/sustained/sustained_atlas.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/08_spectral_erosion_effects/sustained/sustained_atlas.png",
+      "bytes": 1023693,
+      "sha256": "f905e429ee836ef81ac9dcc85be609aaca75bfd1eb86fabc29ae8dce69b20580"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/08_spectral_erosion_effects/sustained/sustained_source_sheet.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/08_spectral_erosion_effects/sustained/sustained_source_sheet.png",
+      "bytes": 1160337,
+      "sha256": "5ec60a24536e1b7bb56dada826e6702a841d676163e70bd85b328e3665f18154"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/08_spectral_erosion_effects/verification.txt",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/08_spectral_erosion_effects/verification.txt",
+      "bytes": 327,
+      "sha256": "dec41c6f57be55de6aeb41edbd4afe8644991ecf6b59ea17de5b05d0a234e614"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/09_underworld_breath_body/manifest.json",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/09_underworld_breath_body/manifest.json",
+      "bytes": 1889,
+      "sha256": "29576a379c6f70f5beee458fb7de7029d06dc617333818b2cf5af1cc74cbc26f"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/09_underworld_breath_body/prompts.txt",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/09_underworld_breath_body/prompts.txt",
+      "bytes": 2553,
+      "sha256": "a3c497348bd99f36c574f86c4efb962689d18858d7cb41afc0f0eef746cfcbb2"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/09_underworld_breath_body/README.txt",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/09_underworld_breath_body/README.txt",
+      "bytes": 1063,
+      "sha256": "3706772da069a584581c29206638f327b35d54d0e5df0fc73c8e750ac57d5636"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/09_underworld_breath_body/underworld_breath_01.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/09_underworld_breath_body/underworld_breath_01.png",
+      "bytes": 160993,
+      "sha256": "b9fa7f23e7ef29a9d0f50c58ccd10e70696f36240a11653785894c1d95f47cd0"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/09_underworld_breath_body/underworld_breath_02.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/09_underworld_breath_body/underworld_breath_02.png",
+      "bytes": 164330,
+      "sha256": "9b77ae61eec477a5a5a517c24dbfbffc823c41389a81f617031771c600a27d12"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/09_underworld_breath_body/underworld_breath_03.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/09_underworld_breath_body/underworld_breath_03.png",
+      "bytes": 169584,
+      "sha256": "83bc7fceae1b361beac8511962ca4784a7e86e2cf87fa6c45b138e19de3d8a5f"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/09_underworld_breath_body/underworld_breath_04.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/09_underworld_breath_body/underworld_breath_04.png",
+      "bytes": 159116,
+      "sha256": "f9d8abb731e79b93de80e629f2f1587184412d29c07089dd2412d27b0459de8a"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/09_underworld_breath_body/underworld_breath_05.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/09_underworld_breath_body/underworld_breath_05.png",
+      "bytes": 161195,
+      "sha256": "06c1675fea3e010e7df42bd715f4a8023e397580222c0fbf752026bf88e116f2"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/09_underworld_breath_body/underworld_breath_06.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/09_underworld_breath_body/underworld_breath_06.png",
+      "bytes": 164275,
+      "sha256": "f0c780ff8f6a929d3e9c01d04c07eb208910fd6180431824848725d33767b6c1"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/09_underworld_breath_body/underworld_breath_07.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/09_underworld_breath_body/underworld_breath_07.png",
+      "bytes": 164818,
+      "sha256": "ba22311578c9aebb10a4442c5c829735ec9046f110b93945021739a39ac095d6"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/09_underworld_breath_body/underworld_breath_08.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/09_underworld_breath_body/underworld_breath_08.png",
+      "bytes": 164862,
+      "sha256": "0828750912186d3b5eeb9e4186bc4ebbf0d7f2368bd5484a2e4f99a17e61c787"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/09_underworld_breath_body/underworld_breath_atlas.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/09_underworld_breath_body/underworld_breath_atlas.png",
+      "bytes": 1298165,
+      "sha256": "529558e8eaa78eda101f673f3ecc78b315c2ccf4d4e0db7e006ce00c552350a8"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/09_underworld_breath_body/underworld_breath_source_sheet.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/09_underworld_breath_body/underworld_breath_source_sheet.png",
+      "bytes": 1466468,
+      "sha256": "f74f5aa384f6ec4a81d77f444818d275e8a37a6a031c93ad82975ea9c21f13fc"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/10_underworld_breath_effects/endpoint/endpoint_01.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/10_underworld_breath_effects/endpoint/endpoint_01.png",
+      "bytes": 70369,
+      "sha256": "3b5270c4f206be1542c9d77c6b1e10dae9d6ba8f7c3a0dcbd9e0453ba00c7dc4"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/10_underworld_breath_effects/endpoint/endpoint_02.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/10_underworld_breath_effects/endpoint/endpoint_02.png",
+      "bytes": 115003,
+      "sha256": "a60d0b64be787e4c52506ec92cd61285dda15167a1f42bd5a22435558d7aa1a5"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/10_underworld_breath_effects/endpoint/endpoint_03.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/10_underworld_breath_effects/endpoint/endpoint_03.png",
+      "bytes": 136119,
+      "sha256": "d94cd60f98dba9d1f3f3dc7f8fb0e68225b1075e50517c82d794693f04adde78"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/10_underworld_breath_effects/endpoint/endpoint_04.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/10_underworld_breath_effects/endpoint/endpoint_04.png",
+      "bytes": 170087,
+      "sha256": "14f8f0711318b47c28a10c071b5fe07b4784658f1074461f50f46d1ae4186135"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/10_underworld_breath_effects/endpoint/endpoint_05.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/10_underworld_breath_effects/endpoint/endpoint_05.png",
+      "bytes": 130363,
+      "sha256": "eb328fdffce7fe96e61e4065bce4c6b51a4e57845084e1e6d1c42022acc6db29"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/10_underworld_breath_effects/endpoint/endpoint_06.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/10_underworld_breath_effects/endpoint/endpoint_06.png",
+      "bytes": 107164,
+      "sha256": "78ff95ba780af31a11f2a3c668cd4f2a045f1c0c4e461a24fa3de24ac375fa60"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/10_underworld_breath_effects/endpoint/endpoint_07.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/10_underworld_breath_effects/endpoint/endpoint_07.png",
+      "bytes": 83567,
+      "sha256": "c239032218cca662ebec5657e3cdfa06afc3e171f92750822458c1a09c75950a"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/10_underworld_breath_effects/endpoint/endpoint_08.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/10_underworld_breath_effects/endpoint/endpoint_08.png",
+      "bytes": 35779,
+      "sha256": "ab9890a3cf70ba9da39fb60cb477e7f05db05e823f3ef3f31148b221a806a271"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/10_underworld_breath_effects/endpoint/endpoint_atlas.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/10_underworld_breath_effects/endpoint/endpoint_atlas.png",
+      "bytes": 841586,
+      "sha256": "547c73a2b06586c1e2d05b05706d8f36be87100c9ac39cd69330216cb0366d0d"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/10_underworld_breath_effects/endpoint/endpoint_source_sheet.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/10_underworld_breath_effects/endpoint/endpoint_source_sheet.png",
+      "bytes": 1132411,
+      "sha256": "7057efecdead8de4578e57bd1ce2518ba91fb56773dbb9032afa9073c0b55f27"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/10_underworld_breath_effects/initial_burst/initial_burst_01.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/10_underworld_breath_effects/initial_burst/initial_burst_01.png",
+      "bytes": 30688,
+      "sha256": "d65ceb4291ed72b5eaf06924c314bb78c2528a69d329c9dca5efed71184a0ff2"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/10_underworld_breath_effects/initial_burst/initial_burst_02.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/10_underworld_breath_effects/initial_burst/initial_burst_02.png",
+      "bytes": 46475,
+      "sha256": "9fdae212062d31c91d1b7c325c674147e7545286fc7b5155bc6f08f02a35135d"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/10_underworld_breath_effects/initial_burst/initial_burst_03.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/10_underworld_breath_effects/initial_burst/initial_burst_03.png",
+      "bytes": 74953,
+      "sha256": "2947d467008f972ab7b5196826177671a3d6fcc455bed25ef3aac7d2a5504839"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/10_underworld_breath_effects/initial_burst/initial_burst_04.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/10_underworld_breath_effects/initial_burst/initial_burst_04.png",
+      "bytes": 111299,
+      "sha256": "cc5462b50dcb90ef5b13373cac113bfffe07f059c76f88d6dc2e836ec45048a7"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/10_underworld_breath_effects/initial_burst/initial_burst_05.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/10_underworld_breath_effects/initial_burst/initial_burst_05.png",
+      "bytes": 141416,
+      "sha256": "07ad4a1e6a6b7d1ddfc9de19ccaa6eebcfac44d98eff84866b686d1e12207305"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/10_underworld_breath_effects/initial_burst/initial_burst_06.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/10_underworld_breath_effects/initial_burst/initial_burst_06.png",
+      "bytes": 163066,
+      "sha256": "8213c9b0775f91a522242c5f1e2d4a18a8933736a4151cd454cfdfef12cd6a18"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/10_underworld_breath_effects/initial_burst/initial_burst_07.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/10_underworld_breath_effects/initial_burst/initial_burst_07.png",
+      "bytes": 156754,
+      "sha256": "e90242ce536a6cafb53e4652281544c1f62b2f930093a47c6b18e7c02b92318e"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/10_underworld_breath_effects/initial_burst/initial_burst_08.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/10_underworld_breath_effects/initial_burst/initial_burst_08.png",
+      "bytes": 155888,
+      "sha256": "dbf8aded295c824ed696f1acd2b730e229eaa86a5ae5877f367c8e50d44bdd7f"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/10_underworld_breath_effects/initial_burst/initial_burst_atlas.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/10_underworld_breath_effects/initial_burst/initial_burst_atlas.png",
+      "bytes": 873744,
+      "sha256": "ba4c7507efe739b3b170e6759efab407ec896e86aa4f3e4d2bcfdafcfe13e476"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/10_underworld_breath_effects/initial_burst/initial_burst_source_sheet.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/10_underworld_breath_effects/initial_burst/initial_burst_source_sheet.png",
+      "bytes": 948341,
+      "sha256": "2263f21fee139ef97a52861a29e1cfef8b19bee8437cbcb0313af29a4669d073"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/10_underworld_breath_effects/manifest.json",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/10_underworld_breath_effects/manifest.json",
+      "bytes": 11286,
+      "sha256": "3f2d2ef4b935514286c4c9bafa040c651fb20a88ab2607e6b2e92e8f24b51fbf"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/10_underworld_breath_effects/mouth_charge/mouth_charge_01.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/10_underworld_breath_effects/mouth_charge/mouth_charge_01.png",
+      "bytes": 104023,
+      "sha256": "54ed4c46d76788f4e8a545c32d6b261d9d3e0116cdfb206aa54ac87111a1f920"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/10_underworld_breath_effects/mouth_charge/mouth_charge_02.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/10_underworld_breath_effects/mouth_charge/mouth_charge_02.png",
+      "bytes": 137936,
+      "sha256": "512fe72733b11e85230575cf9da643adbeef44bda78690309849141bacb2e385"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/10_underworld_breath_effects/mouth_charge/mouth_charge_03.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/10_underworld_breath_effects/mouth_charge/mouth_charge_03.png",
+      "bytes": 153675,
+      "sha256": "cf8b737a75209d613c77043727fddc1cdc9c9b6adb26e0f819cac9455daec8f6"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/10_underworld_breath_effects/mouth_charge/mouth_charge_04.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/10_underworld_breath_effects/mouth_charge/mouth_charge_04.png",
+      "bytes": 154419,
+      "sha256": "87870989499ff2a1d0d3a9572c69603adf5e5d9194faadba40e4e5369e35cf3c"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/10_underworld_breath_effects/mouth_charge/mouth_charge_05.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/10_underworld_breath_effects/mouth_charge/mouth_charge_05.png",
+      "bytes": 163282,
+      "sha256": "d7bd7cbc29b3a1bdeda4ebe0d92a93a952b68761e1361daad12bcd30df2e5e9f"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/10_underworld_breath_effects/mouth_charge/mouth_charge_06.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/10_underworld_breath_effects/mouth_charge/mouth_charge_06.png",
+      "bytes": 164106,
+      "sha256": "e884787d2ffd3fc93948fc1dba0c445468838c81357cf53723ee04d8bba89827"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/10_underworld_breath_effects/mouth_charge/mouth_charge_07.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/10_underworld_breath_effects/mouth_charge/mouth_charge_07.png",
+      "bytes": 111493,
+      "sha256": "9ae7f3241ded339b5ea7ebb9b9e38bfc74348725f9961429fa64801394372187"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/10_underworld_breath_effects/mouth_charge/mouth_charge_08.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/10_underworld_breath_effects/mouth_charge/mouth_charge_08.png",
+      "bytes": 65281,
+      "sha256": "8e51e41436048067d64dc2fccf38015d4c60521670cb9e90af1e32c6ec2df52a"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/10_underworld_breath_effects/mouth_charge/mouth_charge_atlas.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/10_underworld_breath_effects/mouth_charge/mouth_charge_atlas.png",
+      "bytes": 1053297,
+      "sha256": "684a18f53fd071424e548dcef9216dd7268439035bd1f9d8257d6bb102636531"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/10_underworld_breath_effects/mouth_charge/mouth_charge_source_sheet.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/10_underworld_breath_effects/mouth_charge/mouth_charge_source_sheet.png",
+      "bytes": 1340115,
+      "sha256": "929c6534e8729b986e56386f2300763f6055a6712d9bcbb2a0885b0b191ea0b4"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/10_underworld_breath_effects/prompts.txt",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/10_underworld_breath_effects/prompts.txt",
+      "bytes": 7981,
+      "sha256": "ea0da32d2d5c23c56d16252bc1fd88ac790fbf9cd069cc34dc06f30d2083cb21"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/10_underworld_breath_effects/README.txt",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/10_underworld_breath_effects/README.txt",
+      "bytes": 1474,
+      "sha256": "2dbc19f04024e4d55d862586c7ef565b97857766377d7d5dbfad3992a58c8b09"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/10_underworld_breath_effects/residual_mist/residual_mist_01.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/10_underworld_breath_effects/residual_mist/residual_mist_01.png",
+      "bytes": 109140,
+      "sha256": "2d4ad0d6a49f81abee319fd824890a51856fd31444a7491e335faf94c1a1021f"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/10_underworld_breath_effects/residual_mist/residual_mist_02.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/10_underworld_breath_effects/residual_mist/residual_mist_02.png",
+      "bytes": 89270,
+      "sha256": "4e8c3e7697ae420e2f10865e08ee053d03296cb379b332ab0f609c96d8745304"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/10_underworld_breath_effects/residual_mist/residual_mist_03.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/10_underworld_breath_effects/residual_mist/residual_mist_03.png",
+      "bytes": 74802,
+      "sha256": "6bd0ebb6fdbe155efcaa489fb3fef7eca82ff6ca2dbb0197482d27e2946ad7c2"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/10_underworld_breath_effects/residual_mist/residual_mist_04.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/10_underworld_breath_effects/residual_mist/residual_mist_04.png",
+      "bytes": 59576,
+      "sha256": "97d9e760637bb2939aa354c617057fd078b6cbc03c5754c636b6a7109e49f1f9"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/10_underworld_breath_effects/residual_mist/residual_mist_05.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/10_underworld_breath_effects/residual_mist/residual_mist_05.png",
+      "bytes": 43165,
+      "sha256": "4dc9320d439464b3cf45c6c684e5e4b741631f3521bb3c1937a4c9d14a11cfef"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/10_underworld_breath_effects/residual_mist/residual_mist_06.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/10_underworld_breath_effects/residual_mist/residual_mist_06.png",
+      "bytes": 27667,
+      "sha256": "27919264dfcc307bfbfcacdd127e0f319311e47ebe2447dd7fc1a4b5cd7d92d4"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/10_underworld_breath_effects/residual_mist/residual_mist_07.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/10_underworld_breath_effects/residual_mist/residual_mist_07.png",
+      "bytes": 13813,
+      "sha256": "4b0cc78d2e4924b69d7ba39b1d73f1f9ac959818430166d25ecaf6c6bc2567fe"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/10_underworld_breath_effects/residual_mist/residual_mist_08.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/10_underworld_breath_effects/residual_mist/residual_mist_08.png",
+      "bytes": 9049,
+      "sha256": "2fefb5d76a0449f48e6b450380bca4a137ce2ed4e34c402cfabcb52c929142b5"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/10_underworld_breath_effects/residual_mist/residual_mist_atlas.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/10_underworld_breath_effects/residual_mist/residual_mist_atlas.png",
+      "bytes": 423645,
+      "sha256": "289966cbce2fb4091b83d4b63e91d4effac6022df8bbc3914b4cc5cd2db406ed"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/10_underworld_breath_effects/residual_mist/residual_mist_source_sheet.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/10_underworld_breath_effects/residual_mist/residual_mist_source_sheet.png",
+      "bytes": 489219,
+      "sha256": "3ac1194544f83071ce72ff11b7c78ec4b555d7260292e81efc30f4a9c9542c9d"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/10_underworld_breath_effects/soul_flow/soul_flow_01.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/10_underworld_breath_effects/soul_flow/soul_flow_01.png",
+      "bytes": 63886,
+      "sha256": "b6b6ae55e5f7199269401c1f26710f4642caed0ee21357e09082d6b861f47335"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/10_underworld_breath_effects/soul_flow/soul_flow_02.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/10_underworld_breath_effects/soul_flow/soul_flow_02.png",
+      "bytes": 85991,
+      "sha256": "812fca46a7eee40c198deb6d0601b60854cc09deef5e139da992f9361957502e"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/10_underworld_breath_effects/soul_flow/soul_flow_03.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/10_underworld_breath_effects/soul_flow/soul_flow_03.png",
+      "bytes": 107242,
+      "sha256": "3ec4277340235ab210fe115ca25b8ce2708be4aa46b6d4937de504f97a44e263"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/10_underworld_breath_effects/soul_flow/soul_flow_04.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/10_underworld_breath_effects/soul_flow/soul_flow_04.png",
+      "bytes": 129934,
+      "sha256": "b0592bddc636b8b8bc6a87fb27f2cd8980da0a4b2c221dcbf59b3971a8a0968e"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/10_underworld_breath_effects/soul_flow/soul_flow_05.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/10_underworld_breath_effects/soul_flow/soul_flow_05.png",
+      "bytes": 112180,
+      "sha256": "28487761e1111a8f4e7eb2d0cc78fe880b3bafab23b8735e19b10574739e2758"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/10_underworld_breath_effects/soul_flow/soul_flow_06.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/10_underworld_breath_effects/soul_flow/soul_flow_06.png",
+      "bytes": 105915,
+      "sha256": "69ec1aa87277fd34b2f90c8412ad156c741f4ec1e0d78098cc835f2ef209bb80"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/10_underworld_breath_effects/soul_flow/soul_flow_07.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/10_underworld_breath_effects/soul_flow/soul_flow_07.png",
+      "bytes": 84848,
+      "sha256": "dd77154cc00a4a98ded62f211058bf87e172499bff4aff9875435d4c96a92d48"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/10_underworld_breath_effects/soul_flow/soul_flow_08.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/10_underworld_breath_effects/soul_flow/soul_flow_08.png",
+      "bytes": 52792,
+      "sha256": "cce79de5de431833f9af5f31ed8553380b6fb4d19e8fb6ae40e20d70f4038b21"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/10_underworld_breath_effects/soul_flow/soul_flow_atlas.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/10_underworld_breath_effects/soul_flow/soul_flow_atlas.png",
+      "bytes": 733296,
+      "sha256": "b5132e231064b5ed009de41b00e2315740b0508a963561fdc52c96df3ec528ee"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/10_underworld_breath_effects/soul_flow/soul_flow_source_sheet.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/10_underworld_breath_effects/soul_flow/soul_flow_source_sheet.png",
+      "bytes": 935881,
+      "sha256": "3150068c53998f76d97aca4d1156a6080fef7330318d7b6de255095a4bd63d66"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/10_underworld_breath_effects/sustained_stream/sustained_stream_01.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/10_underworld_breath_effects/sustained_stream/sustained_stream_01.png",
+      "bytes": 126849,
+      "sha256": "b737084f1c46a9cb5c36b1b8899a5db559eacd8ab7a0ae4dc98e1cb0e6578b25"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/10_underworld_breath_effects/sustained_stream/sustained_stream_02.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/10_underworld_breath_effects/sustained_stream/sustained_stream_02.png",
+      "bytes": 140092,
+      "sha256": "036b13a52079fea57a2160234744e1f3a41f0db94bdf42165d6faa4e850b9a6f"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/10_underworld_breath_effects/sustained_stream/sustained_stream_03.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/10_underworld_breath_effects/sustained_stream/sustained_stream_03.png",
+      "bytes": 134235,
+      "sha256": "0f11a73e776c6d650edb90c008026c32e1bcb95f811f90f5b584801b93faf732"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/10_underworld_breath_effects/sustained_stream/sustained_stream_04.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/10_underworld_breath_effects/sustained_stream/sustained_stream_04.png",
+      "bytes": 130195,
+      "sha256": "3d831d37f2d73302f791bfd80e72b826ef62e7f0d8094d5e10cf16bed8508b95"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/10_underworld_breath_effects/sustained_stream/sustained_stream_05.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/10_underworld_breath_effects/sustained_stream/sustained_stream_05.png",
+      "bytes": 133979,
+      "sha256": "b3d49a62e3ac8c837e9ece8401f6360de87c7b65e98ec1e4e341038cd901a92f"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/10_underworld_breath_effects/sustained_stream/sustained_stream_06.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/10_underworld_breath_effects/sustained_stream/sustained_stream_06.png",
+      "bytes": 132484,
+      "sha256": "1ad032354268a419ea81dc2f8b897d07cad6dd4fc33f6cc86b670074455285f6"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/10_underworld_breath_effects/sustained_stream/sustained_stream_07.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/10_underworld_breath_effects/sustained_stream/sustained_stream_07.png",
+      "bytes": 134514,
+      "sha256": "340719b36bbae8837ab5eb9943032c9188e7539c9f0719aa4369f63cede403d7"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/10_underworld_breath_effects/sustained_stream/sustained_stream_08.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/10_underworld_breath_effects/sustained_stream/sustained_stream_08.png",
+      "bytes": 127258,
+      "sha256": "89d844fc97cf46047aba9aa9b1ee1cc5d71234010f322f3b7904788f5757b411"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/10_underworld_breath_effects/sustained_stream/sustained_stream_atlas.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/10_underworld_breath_effects/sustained_stream/sustained_stream_atlas.png",
+      "bytes": 1046249,
+      "sha256": "7dc8b1390ca54b917bbd4c47e9383f034cf3049bd76858e6a1fbc626dedeea1b"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/10_underworld_breath_effects/sustained_stream/sustained_stream_source_sheet.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/10_underworld_breath_effects/sustained_stream/sustained_stream_source_sheet.png",
+      "bytes": 1146856,
+      "sha256": "457a001675bb7c2bd423a7e18cd9771224994ee923e3d3dc89bbdc2fd43984a1"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/10_underworld_breath_effects/verification.txt",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/10_underworld_breath_effects/verification.txt",
+      "bytes": 405,
+      "sha256": "addcd40d40b12c1dae92d5094d88804dd6e74240bd5ec45f121a09886ebfdc84"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/11_march_of_the_dead_body/manifest.json",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/11_march_of_the_dead_body/manifest.json",
+      "bytes": 1918,
+      "sha256": "e9a6d54efe3a7acf979011a6ebabc51f2b4f6fa0f5fd06cf4e8d1924b41d6115"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/11_march_of_the_dead_body/march_of_the_dead_01.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/11_march_of_the_dead_body/march_of_the_dead_01.png",
+      "bytes": 153586,
+      "sha256": "b7ed8e4037ab178da2985c3f376d19e60736896bcdf67d9bd1ce814004e77625"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/11_march_of_the_dead_body/march_of_the_dead_02.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/11_march_of_the_dead_body/march_of_the_dead_02.png",
+      "bytes": 158679,
+      "sha256": "3899952beffdef1524f3fe8e7ae0e32d491416d31fb93a4cc6443265309333c6"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/11_march_of_the_dead_body/march_of_the_dead_03.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/11_march_of_the_dead_body/march_of_the_dead_03.png",
+      "bytes": 162721,
+      "sha256": "a5489643000e33fbb767fa3f01ab1be7549a19b5d82a0a0834c5feb3166c5ae5"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/11_march_of_the_dead_body/march_of_the_dead_04.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/11_march_of_the_dead_body/march_of_the_dead_04.png",
+      "bytes": 176199,
+      "sha256": "8ee125a2bb40da9d13df2d7f0b3b7878d1489e7f6c3e0d121c9db6556c07859c"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/11_march_of_the_dead_body/march_of_the_dead_05.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/11_march_of_the_dead_body/march_of_the_dead_05.png",
+      "bytes": 175933,
+      "sha256": "d7268baa2e7f639815f7f433eb5649d47b95fcf399aa5f02a62bb465db20cf6e"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/11_march_of_the_dead_body/march_of_the_dead_06.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/11_march_of_the_dead_body/march_of_the_dead_06.png",
+      "bytes": 192576,
+      "sha256": "32db371cf5f389996dad9c5d67be0dca11c33b507b52dce42215cb438615e054"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/11_march_of_the_dead_body/march_of_the_dead_07.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/11_march_of_the_dead_body/march_of_the_dead_07.png",
+      "bytes": 168079,
+      "sha256": "3173f6792cf0c481dbfe15750ec12edf70f29c2af8ee8c72b51e11aa65578783"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/11_march_of_the_dead_body/march_of_the_dead_08.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/11_march_of_the_dead_body/march_of_the_dead_08.png",
+      "bytes": 161164,
+      "sha256": "ecf51fc1717c605733ec41c1d857d69420f3feb34a49c5e6e24b92dfdb39ee23"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/11_march_of_the_dead_body/march_of_the_dead_atlas.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/11_march_of_the_dead_body/march_of_the_dead_atlas.png",
+      "bytes": 1343072,
+      "sha256": "da88094360cddfe936c344084368c43555bf84ce79d9ab8fd7fdb1414f9b375d"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/11_march_of_the_dead_body/march_of_the_dead_source_sheet.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/11_march_of_the_dead_body/march_of_the_dead_source_sheet.png",
+      "bytes": 1547556,
+      "sha256": "35376b94974f34e4c2558e6de7424dd6e7a3dbb9f916a6d77b98b5c488b0fbf2"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/11_march_of_the_dead_body/prompts.txt",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/11_march_of_the_dead_body/prompts.txt",
+      "bytes": 2388,
+      "sha256": "bb2d71c16c1b66507ace73dd01c8b0e9616d2f9719d8d83b6feb01170f86361a"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/11_march_of_the_dead_body/README.txt",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/11_march_of_the_dead_body/README.txt",
+      "bytes": 977,
+      "sha256": "e1df60d43d2632583bcc9d0cc6defcdcf3953928f6f301936ed554334687aa9f"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/12_march_of_the_dead_effects/aftermath/aftermath_01.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/12_march_of_the_dead_effects/aftermath/aftermath_01.png",
+      "bytes": 133795,
+      "sha256": "0c6e10627546955c93b73d163608b2dbcc5beee9f155fe0e7d8f48e5aac31db6"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/12_march_of_the_dead_effects/aftermath/aftermath_02.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/12_march_of_the_dead_effects/aftermath/aftermath_02.png",
+      "bytes": 130784,
+      "sha256": "5ff4c68c81a7abd40fb8eb07583e8b20175deb906f6c3f73b57d37169736c928"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/12_march_of_the_dead_effects/aftermath/aftermath_03.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/12_march_of_the_dead_effects/aftermath/aftermath_03.png",
+      "bytes": 120143,
+      "sha256": "c84ad34c434bfc1c6ab7852191d1d579e5c3c83a89d2d15efc65ea366af96749"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/12_march_of_the_dead_effects/aftermath/aftermath_04.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/12_march_of_the_dead_effects/aftermath/aftermath_04.png",
+      "bytes": 100190,
+      "sha256": "138f44a6ba72ba2b1a77f704885eef3e0b1752d62247403bb517e17dd7683f21"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/12_march_of_the_dead_effects/aftermath/aftermath_05.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/12_march_of_the_dead_effects/aftermath/aftermath_05.png",
+      "bytes": 40617,
+      "sha256": "d0412536a5326c329490405bce893f229f5ade7b5a8d33807826de45c879446b"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/12_march_of_the_dead_effects/aftermath/aftermath_06.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/12_march_of_the_dead_effects/aftermath/aftermath_06.png",
+      "bytes": 35845,
+      "sha256": "01a7413ed4195fdde962ec2f80120d830110d4138d93d2dbc669364c17f0db4f"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/12_march_of_the_dead_effects/aftermath/aftermath_07.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/12_march_of_the_dead_effects/aftermath/aftermath_07.png",
+      "bytes": 27049,
+      "sha256": "412e7468b23ba063dc73a9cf011425380578efcba057563a9d6db044bc8eb054"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/12_march_of_the_dead_effects/aftermath/aftermath_08.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/12_march_of_the_dead_effects/aftermath/aftermath_08.png",
+      "bytes": 20478,
+      "sha256": "b73c51ed9eb68502e6bf6e54eb1847b19c959a305467d003339f79df6db20f3c"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/12_march_of_the_dead_effects/aftermath/aftermath_atlas.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/12_march_of_the_dead_effects/aftermath/aftermath_atlas.png",
+      "bytes": 612307,
+      "sha256": "31b2dcfbe46fdfc341b3acc3a6a244933dab357845dc6a3e77e647e10d0885d3"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/12_march_of_the_dead_effects/aftermath/aftermath_source_sheet.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/12_march_of_the_dead_effects/aftermath/aftermath_source_sheet.png",
+      "bytes": 783332,
+      "sha256": "68d8007b1b9a050a3d0a97760567f79390353442b9c39eb8f5f0ce1e7d8652fd"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/12_march_of_the_dead_effects/army_emergence/army_emergence_01.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/12_march_of_the_dead_effects/army_emergence/army_emergence_01.png",
+      "bytes": 58581,
+      "sha256": "f2fe2a3321db18ee638235578bb09e6c51f06339e600074369f318b6a1c126c1"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/12_march_of_the_dead_effects/army_emergence/army_emergence_02.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/12_march_of_the_dead_effects/army_emergence/army_emergence_02.png",
+      "bytes": 68627,
+      "sha256": "a93fd3250906e2678fa2dda1b2baf51003d93848fb042ce73bcda511ffd14557"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/12_march_of_the_dead_effects/army_emergence/army_emergence_03.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/12_march_of_the_dead_effects/army_emergence/army_emergence_03.png",
+      "bytes": 89435,
+      "sha256": "b5159964c30e3e472965a830a93ae9d7835abedfd2def467ad7382595d072b57"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/12_march_of_the_dead_effects/army_emergence/army_emergence_04.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/12_march_of_the_dead_effects/army_emergence/army_emergence_04.png",
+      "bytes": 95692,
+      "sha256": "a00b4e4ac4d281499b21bad9af0cef98c14663087645de8dffdfc911506a201c"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/12_march_of_the_dead_effects/army_emergence/army_emergence_05.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/12_march_of_the_dead_effects/army_emergence/army_emergence_05.png",
+      "bytes": 99048,
+      "sha256": "930a2cbad2096e70bcd58a010df1e543bcd9b47d352eb6eb0b2088674df0fcbc"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/12_march_of_the_dead_effects/army_emergence/army_emergence_06.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/12_march_of_the_dead_effects/army_emergence/army_emergence_06.png",
+      "bytes": 104209,
+      "sha256": "9011d8dd1400a60e9a47e68112d0ea342fcd2b2eee7fa9a10487bf095a26f0cc"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/12_march_of_the_dead_effects/army_emergence/army_emergence_07.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/12_march_of_the_dead_effects/army_emergence/army_emergence_07.png",
+      "bytes": 108565,
+      "sha256": "32f0622a512b77b91c0904b1a2bff71477dceb46916017a2ffc351ddd2a1a74a"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/12_march_of_the_dead_effects/army_emergence/army_emergence_08.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/12_march_of_the_dead_effects/army_emergence/army_emergence_08.png",
+      "bytes": 116380,
+      "sha256": "4e81104dbf5218e02779276366979b442f11cc438cee24e39bf9bcd511a721ef"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/12_march_of_the_dead_effects/army_emergence/army_emergence_atlas.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/12_march_of_the_dead_effects/army_emergence/army_emergence_atlas.png",
+      "bytes": 725006,
+      "sha256": "7694de2c967d2b18642ec1fd15609ee550474b1143c29e67ce51cc2c28feee06"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/12_march_of_the_dead_effects/army_emergence/army_emergence_source_sheet.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/12_march_of_the_dead_effects/army_emergence/army_emergence_source_sheet.png",
+      "bytes": 854396,
+      "sha256": "c90e1b902c0bf882a7ee8e691ce11e4dec94dc29babb422fb70c83df8af32c1b"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/12_march_of_the_dead_effects/final_impact/final_impact_01.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/12_march_of_the_dead_effects/final_impact/final_impact_01.png",
+      "bytes": 54137,
+      "sha256": "93e4b5c482cd761fbf5a005806c156032f079f7e86def27c8994f317e4e13ccc"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/12_march_of_the_dead_effects/final_impact/final_impact_02.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/12_march_of_the_dead_effects/final_impact/final_impact_02.png",
+      "bytes": 84480,
+      "sha256": "2a128af578bdc914e368bbe248f4b1345eabd2a47e5c4206333dcd3842bca1c4"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/12_march_of_the_dead_effects/final_impact/final_impact_03.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/12_march_of_the_dead_effects/final_impact/final_impact_03.png",
+      "bytes": 154676,
+      "sha256": "7505f78a3207a8ef16a4bb456d7a15fa359c79e4b61b0e515f4365858f01d5bf"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/12_march_of_the_dead_effects/final_impact/final_impact_04.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/12_march_of_the_dead_effects/final_impact/final_impact_04.png",
+      "bytes": 245862,
+      "sha256": "591ec415e2457b972702e8684e413d7ed006b236a2cd2ab580e8c717fadaadd6"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/12_march_of_the_dead_effects/final_impact/final_impact_05.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/12_march_of_the_dead_effects/final_impact/final_impact_05.png",
+      "bytes": 137834,
+      "sha256": "d1b234bb16dfa24543dda65b16410c001bb22df4d9da18426d90b354d897d942"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/12_march_of_the_dead_effects/final_impact/final_impact_06.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/12_march_of_the_dead_effects/final_impact/final_impact_06.png",
+      "bytes": 65099,
+      "sha256": "95c8338d78547ef448104b6f3617a2a9db74bb1027d4d4dea75d4397329d2b11"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/12_march_of_the_dead_effects/final_impact/final_impact_07.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/12_march_of_the_dead_effects/final_impact/final_impact_07.png",
+      "bytes": 42269,
+      "sha256": "67370edafb0e1b7c834d5b0e8a996c229d631d7bb66e534f0e3c386f833387ad"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/12_march_of_the_dead_effects/final_impact/final_impact_08.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/12_march_of_the_dead_effects/final_impact/final_impact_08.png",
+      "bytes": 23950,
+      "sha256": "c13d49d67da9aaeaf75109688321d42ed163b933e01197c4b7c242acbf5fc1de"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/12_march_of_the_dead_effects/final_impact/final_impact_atlas.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/12_march_of_the_dead_effects/final_impact/final_impact_atlas.png",
+      "bytes": 823667,
+      "sha256": "81bbd87090c731c1b0da7c01c971863e12b54ece504abd7939adc73bb6c24df4"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/12_march_of_the_dead_effects/final_impact/final_impact_source_sheet.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/12_march_of_the_dead_effects/final_impact/final_impact_source_sheet.png",
+      "bytes": 984636,
+      "sha256": "18a9b6a8be71243867077a1bb6717256f69a5e615f366cbf2b6351da70896454"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/12_march_of_the_dead_effects/manifest.json",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/12_march_of_the_dead_effects/manifest.json",
+      "bytes": 13052,
+      "sha256": "c8e9f7fe52f1193ad0e445a4310c56767a84312bd8ed338b6b5f91e0d7ead177"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/12_march_of_the_dead_effects/prompts.txt",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/12_march_of_the_dead_effects/prompts.txt",
+      "bytes": 9543,
+      "sha256": "bd8ec40274459da898fe43ddfd494db9046a7b29e05f04c885d99f84391ef5f6"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/12_march_of_the_dead_effects/README.txt",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/12_march_of_the_dead_effects/README.txt",
+      "bytes": 1472,
+      "sha256": "eaf527f91f15de5c18722bb16a8a6fc47157cd8e9cca187d9b8c2cd5436ca991"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/12_march_of_the_dead_effects/ritual/ritual_01.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/12_march_of_the_dead_effects/ritual/ritual_01.png",
+      "bytes": 84417,
+      "sha256": "296b57a4c67e07b2e4185ad555c87df0628cb926dd1997d820651b0fa99a542b"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/12_march_of_the_dead_effects/ritual/ritual_02.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/12_march_of_the_dead_effects/ritual/ritual_02.png",
+      "bytes": 119650,
+      "sha256": "347bba97e78ce739a05ffffe0624fd002277522cb76e3eb15070a147e8bcbb57"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/12_march_of_the_dead_effects/ritual/ritual_03.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/12_march_of_the_dead_effects/ritual/ritual_03.png",
+      "bytes": 154233,
+      "sha256": "5be30f2ee8c9534a692f3541e4494f88944f6fdd6a21b200bc457ab7567ac564"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/12_march_of_the_dead_effects/ritual/ritual_04.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/12_march_of_the_dead_effects/ritual/ritual_04.png",
+      "bytes": 193970,
+      "sha256": "f117c9a35f230aa614d5f190818c2c99555ec58fed78117c7dbf76663527291c"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/12_march_of_the_dead_effects/ritual/ritual_05.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/12_march_of_the_dead_effects/ritual/ritual_05.png",
+      "bytes": 225899,
+      "sha256": "8d354b571e733ce3ab86aab62b2373cffd94e479eecff7027e709849b2259938"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/12_march_of_the_dead_effects/ritual/ritual_06.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/12_march_of_the_dead_effects/ritual/ritual_06.png",
+      "bytes": 187573,
+      "sha256": "a07791aaf5db79a245f9917846b84f2cf6abddfabfbe372f3e8831286cbe59af"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/12_march_of_the_dead_effects/ritual/ritual_07.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/12_march_of_the_dead_effects/ritual/ritual_07.png",
+      "bytes": 133867,
+      "sha256": "ffbe15b769e7afe71d704b23313eb7c6ab2e591a705c26494edefdf9426b8daf"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/12_march_of_the_dead_effects/ritual/ritual_08.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/12_march_of_the_dead_effects/ritual/ritual_08.png",
+      "bytes": 86381,
+      "sha256": "f1868b292551e0b30671d91b478ad8c1300f3e796e2115919a7b42d87992256d"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/12_march_of_the_dead_effects/ritual/ritual_atlas.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/12_march_of_the_dead_effects/ritual/ritual_atlas.png",
+      "bytes": 1195650,
+      "sha256": "3339c6e0f0f8e3b765d1a91fb7da8f0787ffa4a16084f64ed688611d342fbb23"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/12_march_of_the_dead_effects/ritual/ritual_source_sheet.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/12_march_of_the_dead_effects/ritual/ritual_source_sheet.png",
+      "bytes": 1492192,
+      "sha256": "cd2f892722dd5ec4c6aa049230778af9a172b8fc7f83e3fd618ba755584e039a"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/12_march_of_the_dead_effects/soul_eruption/soul_eruption_01.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/12_march_of_the_dead_effects/soul_eruption/soul_eruption_01.png",
+      "bytes": 42932,
+      "sha256": "98281e58dd82a32ba64e9d2e341a43ab116cacbd043d62d0af6783f27736d1c6"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/12_march_of_the_dead_effects/soul_eruption/soul_eruption_02.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/12_march_of_the_dead_effects/soul_eruption/soul_eruption_02.png",
+      "bytes": 82981,
+      "sha256": "579699d234b9e5283ef456c3a31049ce51a6021fb7993bcf51ede45f450b70d0"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/12_march_of_the_dead_effects/soul_eruption/soul_eruption_03.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/12_march_of_the_dead_effects/soul_eruption/soul_eruption_03.png",
+      "bytes": 113945,
+      "sha256": "4a7e234761441627122dedc34cf53441ea270afecc117005c5cd96b996a671e9"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/12_march_of_the_dead_effects/soul_eruption/soul_eruption_04.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/12_march_of_the_dead_effects/soul_eruption/soul_eruption_04.png",
+      "bytes": 156324,
+      "sha256": "d14b9c0cba97f85e8ba82236a98c781461bbdbcab3ddcdc04a43b7e1a06768c1"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/12_march_of_the_dead_effects/soul_eruption/soul_eruption_05.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/12_march_of_the_dead_effects/soul_eruption/soul_eruption_05.png",
+      "bytes": 115343,
+      "sha256": "d3ca1c055932ca46ac16b66a3ffddbc0f93d034b677a54c31c505639a8044e7f"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/12_march_of_the_dead_effects/soul_eruption/soul_eruption_06.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/12_march_of_the_dead_effects/soul_eruption/soul_eruption_06.png",
+      "bytes": 73162,
+      "sha256": "0361d270443062eab2d985453c0bb3fc6d1985de3855bc4b8a83496494007e92"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/12_march_of_the_dead_effects/soul_eruption/soul_eruption_07.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/12_march_of_the_dead_effects/soul_eruption/soul_eruption_07.png",
+      "bytes": 46857,
+      "sha256": "97065844d0d8bd128500f3608ac7cc0b3584aff3975ce9fa59895ddce8ad67d2"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/12_march_of_the_dead_effects/soul_eruption/soul_eruption_08.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/12_march_of_the_dead_effects/soul_eruption/soul_eruption_08.png",
+      "bytes": 19974,
+      "sha256": "8326fd7b30165aa95c3b26729f2e6c788097dc56bc0631a22f5bf669f2d2afe5"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/12_march_of_the_dead_effects/soul_eruption/soul_eruption_atlas.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/12_march_of_the_dead_effects/soul_eruption/soul_eruption_atlas.png",
+      "bytes": 655472,
+      "sha256": "16ee71bbd80151cfcdb69ae98aa48f42958b1f0aa89642c4a6ed54a9c704c92c"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/12_march_of_the_dead_effects/soul_eruption/soul_eruption_source_sheet.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/12_march_of_the_dead_effects/soul_eruption/soul_eruption_source_sheet.png",
+      "bytes": 758386,
+      "sha256": "1cc29d9603baf0402ff6e2b448549a5f7096f7449e10f2a4d75b12e8b436014a"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/12_march_of_the_dead_effects/spectral_crown/spectral_crown_01.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/12_march_of_the_dead_effects/spectral_crown/spectral_crown_01.png",
+      "bytes": 104643,
+      "sha256": "4cf0800b32157b76de3597114156c1d1b250de0907f4a41a8c12b259081d774f"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/12_march_of_the_dead_effects/spectral_crown/spectral_crown_02.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/12_march_of_the_dead_effects/spectral_crown/spectral_crown_02.png",
+      "bytes": 130414,
+      "sha256": "cb9b7b48ce80e32d775e07fc2a946258e72d2d3b89f618ed64342df5afc76280"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/12_march_of_the_dead_effects/spectral_crown/spectral_crown_03.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/12_march_of_the_dead_effects/spectral_crown/spectral_crown_03.png",
+      "bytes": 167176,
+      "sha256": "5d365e0447f22fb5cd210b7a1723d8f2a50ee5587f6d89d83c34ce760d523c30"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/12_march_of_the_dead_effects/spectral_crown/spectral_crown_04.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/12_march_of_the_dead_effects/spectral_crown/spectral_crown_04.png",
+      "bytes": 180412,
+      "sha256": "481328363d0462dabd16ac6c87f80b73d7ed166836d7525836328cc5410ea25b"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/12_march_of_the_dead_effects/spectral_crown/spectral_crown_05.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/12_march_of_the_dead_effects/spectral_crown/spectral_crown_05.png",
+      "bytes": 189290,
+      "sha256": "43dc9a99bb19e2c4edd5075af96ae63a2a6b977210278cf394bc26a0c2e579a6"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/12_march_of_the_dead_effects/spectral_crown/spectral_crown_06.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/12_march_of_the_dead_effects/spectral_crown/spectral_crown_06.png",
+      "bytes": 199071,
+      "sha256": "7eb9797b84c53fc0e0f0411e7198ec4e781d6c2b7544ffb10604a3a5d521aaca"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/12_march_of_the_dead_effects/spectral_crown/spectral_crown_07.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/12_march_of_the_dead_effects/spectral_crown/spectral_crown_07.png",
+      "bytes": 177905,
+      "sha256": "0b5eb440871959755446fa40909921a6c90b34549c73546efdadc9921481a9b6"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/12_march_of_the_dead_effects/spectral_crown/spectral_crown_08.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/12_march_of_the_dead_effects/spectral_crown/spectral_crown_08.png",
+      "bytes": 123895,
+      "sha256": "991ed42e72b84b264e990eb8e6a4f26bd7d57d87e41275d0038b062f65c3784d"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/12_march_of_the_dead_effects/spectral_crown/spectral_crown_atlas.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/12_march_of_the_dead_effects/spectral_crown/spectral_crown_atlas.png",
+      "bytes": 1272399,
+      "sha256": "e7392e7dcb6f077d2521441d8094f3cfef502c73ec27a30bc91b328f6b08249e"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/12_march_of_the_dead_effects/spectral_crown/spectral_crown_source_sheet.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/12_march_of_the_dead_effects/spectral_crown/spectral_crown_source_sheet.png",
+      "bytes": 1650824,
+      "sha256": "2b424261e631889f8fb5ecbf37e47dad4ea0882d0794ec2a207457737360fe9f"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/12_march_of_the_dead_effects/spirit_charge/spirit_charge_01.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/12_march_of_the_dead_effects/spirit_charge/spirit_charge_01.png",
+      "bytes": 82418,
+      "sha256": "d189d6d53d65a46e29717dfe185fa1e79002f4691eace9dedcbcba035552e8e4"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/12_march_of_the_dead_effects/spirit_charge/spirit_charge_02.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/12_march_of_the_dead_effects/spirit_charge/spirit_charge_02.png",
+      "bytes": 96631,
+      "sha256": "1522880cb5f2561ccb2d18892c2958486a77d9695c2851fc4afc252ce594665f"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/12_march_of_the_dead_effects/spirit_charge/spirit_charge_03.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/12_march_of_the_dead_effects/spirit_charge/spirit_charge_03.png",
+      "bytes": 109046,
+      "sha256": "90a3cb3b9c020694d4d05f93585e2582d4e6e18348d9118fdef78812f37a77fa"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/12_march_of_the_dead_effects/spirit_charge/spirit_charge_04.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/12_march_of_the_dead_effects/spirit_charge/spirit_charge_04.png",
+      "bytes": 116197,
+      "sha256": "4cc3062928780922eef329785c751f36a1ec940f4412faf43c1b3ff0bbaf22db"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/12_march_of_the_dead_effects/spirit_charge/spirit_charge_05.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/12_march_of_the_dead_effects/spirit_charge/spirit_charge_05.png",
+      "bytes": 110467,
+      "sha256": "128a504ca35d84f2d1b5b2d155bbcfca0670d61ef00db7253e9c161d04b6b2d7"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/12_march_of_the_dead_effects/spirit_charge/spirit_charge_06.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/12_march_of_the_dead_effects/spirit_charge/spirit_charge_06.png",
+      "bytes": 106294,
+      "sha256": "10528723c1ddab8f5cf96dd6a6b8b6a50f7cdcb2ca81b4330f48187507c350ed"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/12_march_of_the_dead_effects/spirit_charge/spirit_charge_07.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/12_march_of_the_dead_effects/spirit_charge/spirit_charge_07.png",
+      "bytes": 94863,
+      "sha256": "725762c7d8bab106ffedfb22100f0a5114078913b2a216b45c318924abb8f9a7"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/12_march_of_the_dead_effects/spirit_charge/spirit_charge_08.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/12_march_of_the_dead_effects/spirit_charge/spirit_charge_08.png",
+      "bytes": 86587,
+      "sha256": "aa181e7d3989d96ed2e357f1de8eb2501f01799f0a4a3e7da24de35da7929e94"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/12_march_of_the_dead_effects/spirit_charge/spirit_charge_atlas.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/12_march_of_the_dead_effects/spirit_charge/spirit_charge_atlas.png",
+      "bytes": 788118,
+      "sha256": "292bfed15ebaa0595116b1b745641d6bcd3ed109a29de306b8f1f6fc91ef9463"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/12_march_of_the_dead_effects/spirit_charge/spirit_charge_source_sheet.png",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/12_march_of_the_dead_effects/spirit_charge/spirit_charge_source_sheet.png",
+      "bytes": 947155,
+      "sha256": "2c042aeab8b1e9bb88e00d404bb5c0cad99fc0d658b89cbb7b8a448aa372c934"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/12_march_of_the_dead_effects/verification.txt",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/12_march_of_the_dead_effects/verification.txt",
+      "bytes": 457,
+      "sha256": "8c66393d776b2c23b56ea22521c5ff0a76a0e6590da71a553fffb50d934f773d"
+    },
+    {
+      "source_path": "그림자드래곤/망령용/README.md",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/original/README.md",
+      "bytes": 1609,
+      "sha256": "764f2e44f3ca8c4d209b16d278ac8c605e07687699360209d5ca479c9e886e15"
+    },
+    {
+      "source_path": "docs/REVENANT_DRAGON_ADDITIONAL_SKILL_CONCEPTS.md",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/concept-notes/REVENANT_DRAGON_ADDITIONAL_SKILL_CONCEPTS.md",
+      "bytes": 4515,
+      "sha256": "355c4151636fd30c6b53612009c84465db7bccf032936ea84027cc1bc1d50227"
+    },
+    {
+      "source_path": "docs/REVENANT_DRAGON_SKILL_CONCEPTS_SET2.md",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/concept-notes/REVENANT_DRAGON_SKILL_CONCEPTS_SET2.md",
+      "bytes": 2229,
+      "sha256": "c4d16d0170ce89596430fcff7c124099222cc6bcec6abc5b072c6f453c0ae8e0"
+    },
+    {
+      "source_path": "docs/REVENANT_DRAGON_SKILL_CONCEPTS_SET3.md",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/concept-notes/REVENANT_DRAGON_SKILL_CONCEPTS_SET3.md",
+      "bytes": 2359,
+      "sha256": "e0869ba318a207899026aeb403927ca36ab4073511f1a8a83df46358878c8a6d"
+    },
+    {
+      "source_path": "docs/REVENANT_DRAGON_SKILL_CONCEPTS_SET4.md",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/concept-notes/REVENANT_DRAGON_SKILL_CONCEPTS_SET4.md",
+      "bytes": 1110,
+      "sha256": "388b43024f01e9e6517caebe16690cdb2d656b443bb18ba56e8be79d7ecbeb3d"
+    },
+    {
+      "source_path": "docs/REVENANT_DRAGON_SKILL_CONCEPTS_SET5.md",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/concept-notes/REVENANT_DRAGON_SKILL_CONCEPTS_SET5.md",
+      "bytes": 1363,
+      "sha256": "4769f6f77c72dc5a6033037da1ac7fc2f75033c892fb40b3ecaf684923104a1f"
+    },
+    {
+      "source_path": "docs/REVENANT_DRAGON_SKILL_CONCEPTS_SET6.md",
+      "destination_path": "assets/references/revenant-dragon/recovered-2026-11-16/concept-notes/REVENANT_DRAGON_SKILL_CONCEPTS_SET6.md",
+      "bytes": 1408,
+      "sha256": "a5db2beff144159ddd4b460c8fee9de7991dbbeb7817e49cb00a9463ef6c87ef"
+    }
+  ]
+}

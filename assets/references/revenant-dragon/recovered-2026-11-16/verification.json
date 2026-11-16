@@ -1,0 +1,4443 @@
+{
+  "copied_files_verified_byte_identical": 407,
+  "png_decoded": 358,
+  "images": [
+    {
+      "path": "original/01_basic_attack_body/melee/melee_01.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ]
+    },
+    {
+      "path": "original/01_basic_attack_body/melee/melee_02.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ]
+    },
+    {
+      "path": "original/01_basic_attack_body/melee/melee_03.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ]
+    },
+    {
+      "path": "original/01_basic_attack_body/melee/melee_04.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ]
+    },
+    {
+      "path": "original/01_basic_attack_body/melee/melee_05.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ]
+    },
+    {
+      "path": "original/01_basic_attack_body/melee/melee_06.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ]
+    },
+    {
+      "path": "original/01_basic_attack_body/melee/melee_07.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ]
+    },
+    {
+      "path": "original/01_basic_attack_body/melee/melee_08.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ]
+    },
+    {
+      "path": "original/01_basic_attack_body/melee/melee_sheet.png",
+      "size": [
+        1774,
+        887
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ]
+    },
+    {
+      "path": "original/01_basic_attack_body/ranged/ranged_01.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ]
+    },
+    {
+      "path": "original/01_basic_attack_body/ranged/ranged_02.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ]
+    },
+    {
+      "path": "original/01_basic_attack_body/ranged/ranged_03.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ]
+    },
+    {
+      "path": "original/01_basic_attack_body/ranged/ranged_04.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ]
+    },
+    {
+      "path": "original/01_basic_attack_body/ranged/ranged_05.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ]
+    },
+    {
+      "path": "original/01_basic_attack_body/ranged/ranged_06.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ]
+    },
+    {
+      "path": "original/01_basic_attack_body/ranged/ranged_07.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ]
+    },
+    {
+      "path": "original/01_basic_attack_body/ranged/ranged_08.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ]
+    },
+    {
+      "path": "original/01_basic_attack_body/ranged/ranged_sheet.png",
+      "size": [
+        1774,
+        887
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ]
+    },
+    {
+      "path": "original/02_basic_attack_effects/claw_hit/claw_hit_01.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        245
+      ]
+    },
+    {
+      "path": "original/02_basic_attack_effects/claw_hit/claw_hit_02.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        253
+      ]
+    },
+    {
+      "path": "original/02_basic_attack_effects/claw_hit/claw_hit_03.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        253
+      ]
+    },
+    {
+      "path": "original/02_basic_attack_effects/claw_hit/claw_hit_04.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        250
+      ]
+    },
+    {
+      "path": "original/02_basic_attack_effects/claw_hit/claw_hit_05.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        242
+      ]
+    },
+    {
+      "path": "original/02_basic_attack_effects/claw_hit/claw_hit_06.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        233
+      ]
+    },
+    {
+      "path": "original/02_basic_attack_effects/claw_hit/claw_hit_07.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        191
+      ]
+    },
+    {
+      "path": "original/02_basic_attack_effects/claw_hit/claw_hit_08.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        28
+      ]
+    },
+    {
+      "path": "original/02_basic_attack_effects/claw_hit/claw_hit_atlas.png",
+      "size": [
+        1776,
+        888
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        253
+      ]
+    },
+    {
+      "path": "original/02_basic_attack_effects/claw_hit/claw_hit_source_sheet.png",
+      "size": [
+        1774,
+        887
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        253
+      ]
+    },
+    {
+      "path": "original/02_basic_attack_effects/claw_slash/claw_slash_01.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        249
+      ]
+    },
+    {
+      "path": "original/02_basic_attack_effects/claw_slash/claw_slash_02.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        252
+      ]
+    },
+    {
+      "path": "original/02_basic_attack_effects/claw_slash/claw_slash_03.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        252
+      ]
+    },
+    {
+      "path": "original/02_basic_attack_effects/claw_slash/claw_slash_04.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        253
+      ]
+    },
+    {
+      "path": "original/02_basic_attack_effects/claw_slash/claw_slash_05.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        252
+      ]
+    },
+    {
+      "path": "original/02_basic_attack_effects/claw_slash/claw_slash_06.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        231
+      ]
+    },
+    {
+      "path": "original/02_basic_attack_effects/claw_slash/claw_slash_07.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        91
+      ]
+    },
+    {
+      "path": "original/02_basic_attack_effects/claw_slash/claw_slash_08.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        34
+      ]
+    },
+    {
+      "path": "original/02_basic_attack_effects/claw_slash/claw_slash_atlas.png",
+      "size": [
+        1776,
+        888
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        253
+      ]
+    },
+    {
+      "path": "original/02_basic_attack_effects/claw_slash/claw_slash_source_sheet.png",
+      "size": [
+        1774,
+        887
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        253
+      ]
+    },
+    {
+      "path": "original/02_basic_attack_effects/projectile_impact/projectile_impact_01.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        251
+      ]
+    },
+    {
+      "path": "original/02_basic_attack_effects/projectile_impact/projectile_impact_02.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        253
+      ]
+    },
+    {
+      "path": "original/02_basic_attack_effects/projectile_impact/projectile_impact_03.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        253
+      ]
+    },
+    {
+      "path": "original/02_basic_attack_effects/projectile_impact/projectile_impact_04.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        253
+      ]
+    },
+    {
+      "path": "original/02_basic_attack_effects/projectile_impact/projectile_impact_05.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        250
+      ]
+    },
+    {
+      "path": "original/02_basic_attack_effects/projectile_impact/projectile_impact_06.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        229
+      ]
+    },
+    {
+      "path": "original/02_basic_attack_effects/projectile_impact/projectile_impact_07.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        245
+      ]
+    },
+    {
+      "path": "original/02_basic_attack_effects/projectile_impact/projectile_impact_08.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        109
+      ]
+    },
+    {
+      "path": "original/02_basic_attack_effects/projectile_impact/projectile_impact_atlas.png",
+      "size": [
+        1776,
+        888
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        253
+      ]
+    },
+    {
+      "path": "original/02_basic_attack_effects/projectile_impact/projectile_impact_source_sheet.png",
+      "size": [
+        1774,
+        887
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        253
+      ]
+    },
+    {
+      "path": "original/02_basic_attack_effects/projectile_travel/projectile_travel_01.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        253
+      ]
+    },
+    {
+      "path": "original/02_basic_attack_effects/projectile_travel/projectile_travel_02.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        253
+      ]
+    },
+    {
+      "path": "original/02_basic_attack_effects/projectile_travel/projectile_travel_03.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        253
+      ]
+    },
+    {
+      "path": "original/02_basic_attack_effects/projectile_travel/projectile_travel_04.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        253
+      ]
+    },
+    {
+      "path": "original/02_basic_attack_effects/projectile_travel/projectile_travel_05.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        253
+      ]
+    },
+    {
+      "path": "original/02_basic_attack_effects/projectile_travel/projectile_travel_06.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        253
+      ]
+    },
+    {
+      "path": "original/02_basic_attack_effects/projectile_travel/projectile_travel_07.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        253
+      ]
+    },
+    {
+      "path": "original/02_basic_attack_effects/projectile_travel/projectile_travel_08.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        253
+      ]
+    },
+    {
+      "path": "original/02_basic_attack_effects/projectile_travel/projectile_travel_atlas.png",
+      "size": [
+        1776,
+        888
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        253
+      ]
+    },
+    {
+      "path": "original/02_basic_attack_effects/projectile_travel/projectile_travel_source_sheet.png",
+      "size": [
+        1774,
+        887
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        253
+      ]
+    },
+    {
+      "path": "original/03_spirit_pierce_body/spirit_pierce_01.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ]
+    },
+    {
+      "path": "original/03_spirit_pierce_body/spirit_pierce_02.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ]
+    },
+    {
+      "path": "original/03_spirit_pierce_body/spirit_pierce_03.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ]
+    },
+    {
+      "path": "original/03_spirit_pierce_body/spirit_pierce_04.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ]
+    },
+    {
+      "path": "original/03_spirit_pierce_body/spirit_pierce_05.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ]
+    },
+    {
+      "path": "original/03_spirit_pierce_body/spirit_pierce_06.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ]
+    },
+    {
+      "path": "original/03_spirit_pierce_body/spirit_pierce_07.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ]
+    },
+    {
+      "path": "original/03_spirit_pierce_body/spirit_pierce_08.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ]
+    },
+    {
+      "path": "original/03_spirit_pierce_body/spirit_pierce_atlas.png",
+      "size": [
+        1776,
+        888
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ]
+    },
+    {
+      "path": "original/03_spirit_pierce_body/spirit_pierce_source_sheet.png",
+      "size": [
+        1774,
+        887
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ]
+    },
+    {
+      "path": "original/04_spirit_pierce_effects/charge/charge_01.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        233
+      ]
+    },
+    {
+      "path": "original/04_spirit_pierce_effects/charge/charge_02.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        250
+      ]
+    },
+    {
+      "path": "original/04_spirit_pierce_effects/charge/charge_03.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        252
+      ]
+    },
+    {
+      "path": "original/04_spirit_pierce_effects/charge/charge_04.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        253
+      ]
+    },
+    {
+      "path": "original/04_spirit_pierce_effects/charge/charge_05.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        253
+      ]
+    },
+    {
+      "path": "original/04_spirit_pierce_effects/charge/charge_06.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        253
+      ]
+    },
+    {
+      "path": "original/04_spirit_pierce_effects/charge/charge_07.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        253
+      ]
+    },
+    {
+      "path": "original/04_spirit_pierce_effects/charge/charge_08.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        244
+      ]
+    },
+    {
+      "path": "original/04_spirit_pierce_effects/charge/charge_atlas.png",
+      "size": [
+        1776,
+        888
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        253
+      ]
+    },
+    {
+      "path": "original/04_spirit_pierce_effects/charge/charge_source_sheet.png",
+      "size": [
+        1774,
+        887
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        253
+      ]
+    },
+    {
+      "path": "original/04_spirit_pierce_effects/piercing_attack/piercing_attack_01.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        252
+      ]
+    },
+    {
+      "path": "original/04_spirit_pierce_effects/piercing_attack/piercing_attack_02.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        252
+      ]
+    },
+    {
+      "path": "original/04_spirit_pierce_effects/piercing_attack/piercing_attack_03.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        252
+      ]
+    },
+    {
+      "path": "original/04_spirit_pierce_effects/piercing_attack/piercing_attack_04.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        253
+      ]
+    },
+    {
+      "path": "original/04_spirit_pierce_effects/piercing_attack/piercing_attack_05.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        251
+      ]
+    },
+    {
+      "path": "original/04_spirit_pierce_effects/piercing_attack/piercing_attack_06.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        250
+      ]
+    },
+    {
+      "path": "original/04_spirit_pierce_effects/piercing_attack/piercing_attack_07.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        242
+      ]
+    },
+    {
+      "path": "original/04_spirit_pierce_effects/piercing_attack/piercing_attack_08.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        231
+      ]
+    },
+    {
+      "path": "original/04_spirit_pierce_effects/piercing_attack/piercing_attack_atlas.png",
+      "size": [
+        1776,
+        888
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        253
+      ]
+    },
+    {
+      "path": "original/04_spirit_pierce_effects/piercing_attack/piercing_attack_source_sheet.png",
+      "size": [
+        1774,
+        887
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        253
+      ]
+    },
+    {
+      "path": "original/04_spirit_pierce_effects/soul_crack/soul_crack_01.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        248
+      ]
+    },
+    {
+      "path": "original/04_spirit_pierce_effects/soul_crack/soul_crack_02.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        253
+      ]
+    },
+    {
+      "path": "original/04_spirit_pierce_effects/soul_crack/soul_crack_03.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        253
+      ]
+    },
+    {
+      "path": "original/04_spirit_pierce_effects/soul_crack/soul_crack_04.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        253
+      ]
+    },
+    {
+      "path": "original/04_spirit_pierce_effects/soul_crack/soul_crack_05.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        251
+      ]
+    },
+    {
+      "path": "original/04_spirit_pierce_effects/soul_crack/soul_crack_06.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        252
+      ]
+    },
+    {
+      "path": "original/04_spirit_pierce_effects/soul_crack/soul_crack_07.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        243
+      ]
+    },
+    {
+      "path": "original/04_spirit_pierce_effects/soul_crack/soul_crack_08.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        235
+      ]
+    },
+    {
+      "path": "original/04_spirit_pierce_effects/soul_crack/soul_crack_atlas.png",
+      "size": [
+        1776,
+        888
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        253
+      ]
+    },
+    {
+      "path": "original/04_spirit_pierce_effects/soul_crack/soul_crack_source_sheet.png",
+      "size": [
+        1774,
+        887
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        253
+      ]
+    },
+    {
+      "path": "original/04_spirit_pierce_effects/target_impact/target_impact_01.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        249
+      ]
+    },
+    {
+      "path": "original/04_spirit_pierce_effects/target_impact/target_impact_02.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        252
+      ]
+    },
+    {
+      "path": "original/04_spirit_pierce_effects/target_impact/target_impact_03.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        253
+      ]
+    },
+    {
+      "path": "original/04_spirit_pierce_effects/target_impact/target_impact_04.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        253
+      ]
+    },
+    {
+      "path": "original/04_spirit_pierce_effects/target_impact/target_impact_05.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        251
+      ]
+    },
+    {
+      "path": "original/04_spirit_pierce_effects/target_impact/target_impact_06.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        253
+      ]
+    },
+    {
+      "path": "original/04_spirit_pierce_effects/target_impact/target_impact_07.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        240
+      ]
+    },
+    {
+      "path": "original/04_spirit_pierce_effects/target_impact/target_impact_08.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        240
+      ]
+    },
+    {
+      "path": "original/04_spirit_pierce_effects/target_impact/target_impact_atlas.png",
+      "size": [
+        1776,
+        888
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        253
+      ]
+    },
+    {
+      "path": "original/04_spirit_pierce_effects/target_impact/target_impact_source_sheet.png",
+      "size": [
+        1774,
+        887
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        253
+      ]
+    },
+    {
+      "path": "original/05_soul_harvest_body/soul_harvest_01.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ]
+    },
+    {
+      "path": "original/05_soul_harvest_body/soul_harvest_02.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ]
+    },
+    {
+      "path": "original/05_soul_harvest_body/soul_harvest_03.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ]
+    },
+    {
+      "path": "original/05_soul_harvest_body/soul_harvest_04.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ]
+    },
+    {
+      "path": "original/05_soul_harvest_body/soul_harvest_05.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ]
+    },
+    {
+      "path": "original/05_soul_harvest_body/soul_harvest_06.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ]
+    },
+    {
+      "path": "original/05_soul_harvest_body/soul_harvest_07.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ]
+    },
+    {
+      "path": "original/05_soul_harvest_body/soul_harvest_08.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ]
+    },
+    {
+      "path": "original/05_soul_harvest_body/soul_harvest_atlas.png",
+      "size": [
+        1776,
+        888
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ]
+    },
+    {
+      "path": "original/05_soul_harvest_body/soul_harvest_source_sheet.png",
+      "size": [
+        1774,
+        887
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ]
+    },
+    {
+      "path": "original/06_soul_harvest_effects/absorption/absorption_01.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        251
+      ]
+    },
+    {
+      "path": "original/06_soul_harvest_effects/absorption/absorption_02.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        251
+      ]
+    },
+    {
+      "path": "original/06_soul_harvest_effects/absorption/absorption_03.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        252
+      ]
+    },
+    {
+      "path": "original/06_soul_harvest_effects/absorption/absorption_04.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        253
+      ]
+    },
+    {
+      "path": "original/06_soul_harvest_effects/absorption/absorption_05.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        253
+      ]
+    },
+    {
+      "path": "original/06_soul_harvest_effects/absorption/absorption_06.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        252
+      ]
+    },
+    {
+      "path": "original/06_soul_harvest_effects/absorption/absorption_07.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        242
+      ]
+    },
+    {
+      "path": "original/06_soul_harvest_effects/absorption/absorption_08.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        169
+      ]
+    },
+    {
+      "path": "original/06_soul_harvest_effects/absorption/absorption_atlas.png",
+      "size": [
+        1776,
+        888
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        253
+      ]
+    },
+    {
+      "path": "original/06_soul_harvest_effects/absorption/absorption_source_sheet.png",
+      "size": [
+        1774,
+        887
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        253
+      ]
+    },
+    {
+      "path": "original/06_soul_harvest_effects/empowerment/empowerment_01.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        249
+      ]
+    },
+    {
+      "path": "original/06_soul_harvest_effects/empowerment/empowerment_02.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        252
+      ]
+    },
+    {
+      "path": "original/06_soul_harvest_effects/empowerment/empowerment_03.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        253
+      ]
+    },
+    {
+      "path": "original/06_soul_harvest_effects/empowerment/empowerment_04.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        253
+      ]
+    },
+    {
+      "path": "original/06_soul_harvest_effects/empowerment/empowerment_05.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        253
+      ]
+    },
+    {
+      "path": "original/06_soul_harvest_effects/empowerment/empowerment_06.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        252
+      ]
+    },
+    {
+      "path": "original/06_soul_harvest_effects/empowerment/empowerment_07.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        241
+      ]
+    },
+    {
+      "path": "original/06_soul_harvest_effects/empowerment/empowerment_08.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        170
+      ]
+    },
+    {
+      "path": "original/06_soul_harvest_effects/empowerment/empowerment_atlas.png",
+      "size": [
+        1776,
+        888
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        253
+      ]
+    },
+    {
+      "path": "original/06_soul_harvest_effects/empowerment/empowerment_source_sheet.png",
+      "size": [
+        1774,
+        887
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        253
+      ]
+    },
+    {
+      "path": "original/06_soul_harvest_effects/soul_orb/soul_orb_01.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        254
+      ]
+    },
+    {
+      "path": "original/06_soul_harvest_effects/soul_orb/soul_orb_02.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        253
+      ]
+    },
+    {
+      "path": "original/06_soul_harvest_effects/soul_orb/soul_orb_03.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        253
+      ]
+    },
+    {
+      "path": "original/06_soul_harvest_effects/soul_orb/soul_orb_04.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ]
+    },
+    {
+      "path": "original/06_soul_harvest_effects/soul_orb/soul_orb_05.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        254
+      ]
+    },
+    {
+      "path": "original/06_soul_harvest_effects/soul_orb/soul_orb_06.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        254
+      ]
+    },
+    {
+      "path": "original/06_soul_harvest_effects/soul_orb/soul_orb_07.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        253
+      ]
+    },
+    {
+      "path": "original/06_soul_harvest_effects/soul_orb/soul_orb_08.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        253
+      ]
+    },
+    {
+      "path": "original/06_soul_harvest_effects/soul_orb/soul_orb_atlas.png",
+      "size": [
+        1776,
+        888
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ]
+    },
+    {
+      "path": "original/06_soul_harvest_effects/soul_orb/soul_orb_source_sheet.png",
+      "size": [
+        1774,
+        887
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ]
+    },
+    {
+      "path": "original/06_soul_harvest_effects/soul_travel/soul_travel_01.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        253
+      ]
+    },
+    {
+      "path": "original/06_soul_harvest_effects/soul_travel/soul_travel_02.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        253
+      ]
+    },
+    {
+      "path": "original/06_soul_harvest_effects/soul_travel/soul_travel_03.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        253
+      ]
+    },
+    {
+      "path": "original/06_soul_harvest_effects/soul_travel/soul_travel_04.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        253
+      ]
+    },
+    {
+      "path": "original/06_soul_harvest_effects/soul_travel/soul_travel_05.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        253
+      ]
+    },
+    {
+      "path": "original/06_soul_harvest_effects/soul_travel/soul_travel_06.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        252
+      ]
+    },
+    {
+      "path": "original/06_soul_harvest_effects/soul_travel/soul_travel_07.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        250
+      ]
+    },
+    {
+      "path": "original/06_soul_harvest_effects/soul_travel/soul_travel_08.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        245
+      ]
+    },
+    {
+      "path": "original/06_soul_harvest_effects/soul_travel/soul_travel_atlas.png",
+      "size": [
+        1776,
+        888
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        253
+      ]
+    },
+    {
+      "path": "original/06_soul_harvest_effects/soul_travel/soul_travel_source_sheet.png",
+      "size": [
+        1774,
+        887
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        253
+      ]
+    },
+    {
+      "path": "original/07_spectral_erosion_body/spectral_erosion_01.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ]
+    },
+    {
+      "path": "original/07_spectral_erosion_body/spectral_erosion_02.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ]
+    },
+    {
+      "path": "original/07_spectral_erosion_body/spectral_erosion_03.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ]
+    },
+    {
+      "path": "original/07_spectral_erosion_body/spectral_erosion_04.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ]
+    },
+    {
+      "path": "original/07_spectral_erosion_body/spectral_erosion_05.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ]
+    },
+    {
+      "path": "original/07_spectral_erosion_body/spectral_erosion_06.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ]
+    },
+    {
+      "path": "original/07_spectral_erosion_body/spectral_erosion_07.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ]
+    },
+    {
+      "path": "original/07_spectral_erosion_body/spectral_erosion_08.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ]
+    },
+    {
+      "path": "original/07_spectral_erosion_body/spectral_erosion_atlas.png",
+      "size": [
+        1776,
+        888
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ]
+    },
+    {
+      "path": "original/07_spectral_erosion_body/spectral_erosion_source_sheet.png",
+      "size": [
+        1774,
+        887
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ]
+    },
+    {
+      "path": "original/08_spectral_erosion_effects/damage_pulse/damage_pulse_01.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        224
+      ]
+    },
+    {
+      "path": "original/08_spectral_erosion_effects/damage_pulse/damage_pulse_02.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        249
+      ]
+    },
+    {
+      "path": "original/08_spectral_erosion_effects/damage_pulse/damage_pulse_03.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        252
+      ]
+    },
+    {
+      "path": "original/08_spectral_erosion_effects/damage_pulse/damage_pulse_04.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        254
+      ]
+    },
+    {
+      "path": "original/08_spectral_erosion_effects/damage_pulse/damage_pulse_05.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        249
+      ]
+    },
+    {
+      "path": "original/08_spectral_erosion_effects/damage_pulse/damage_pulse_06.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        228
+      ]
+    },
+    {
+      "path": "original/08_spectral_erosion_effects/damage_pulse/damage_pulse_07.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        198
+      ]
+    },
+    {
+      "path": "original/08_spectral_erosion_effects/damage_pulse/damage_pulse_08.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        129
+      ]
+    },
+    {
+      "path": "original/08_spectral_erosion_effects/damage_pulse/damage_pulse_atlas.png",
+      "size": [
+        1776,
+        888
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        254
+      ]
+    },
+    {
+      "path": "original/08_spectral_erosion_effects/damage_pulse/damage_pulse_source_sheet.png",
+      "size": [
+        1774,
+        887
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        254
+      ]
+    },
+    {
+      "path": "original/08_spectral_erosion_effects/ghost_hand/ghost_hand_01.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        254
+      ]
+    },
+    {
+      "path": "original/08_spectral_erosion_effects/ghost_hand/ghost_hand_02.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        253
+      ]
+    },
+    {
+      "path": "original/08_spectral_erosion_effects/ghost_hand/ghost_hand_03.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        253
+      ]
+    },
+    {
+      "path": "original/08_spectral_erosion_effects/ghost_hand/ghost_hand_04.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ]
+    },
+    {
+      "path": "original/08_spectral_erosion_effects/ghost_hand/ghost_hand_05.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        253
+      ]
+    },
+    {
+      "path": "original/08_spectral_erosion_effects/ghost_hand/ghost_hand_06.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        253
+      ]
+    },
+    {
+      "path": "original/08_spectral_erosion_effects/ghost_hand/ghost_hand_07.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        253
+      ]
+    },
+    {
+      "path": "original/08_spectral_erosion_effects/ghost_hand/ghost_hand_08.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        253
+      ]
+    },
+    {
+      "path": "original/08_spectral_erosion_effects/ghost_hand/ghost_hand_atlas.png",
+      "size": [
+        1776,
+        888
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ]
+    },
+    {
+      "path": "original/08_spectral_erosion_effects/ghost_hand/ghost_hand_source_sheet.png",
+      "size": [
+        1774,
+        887
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ]
+    },
+    {
+      "path": "original/08_spectral_erosion_effects/mist_spread/mist_spread_01.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        254
+      ]
+    },
+    {
+      "path": "original/08_spectral_erosion_effects/mist_spread/mist_spread_02.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        254
+      ]
+    },
+    {
+      "path": "original/08_spectral_erosion_effects/mist_spread/mist_spread_03.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ]
+    },
+    {
+      "path": "original/08_spectral_erosion_effects/mist_spread/mist_spread_04.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ]
+    },
+    {
+      "path": "original/08_spectral_erosion_effects/mist_spread/mist_spread_05.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ]
+    },
+    {
+      "path": "original/08_spectral_erosion_effects/mist_spread/mist_spread_06.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        253
+      ]
+    },
+    {
+      "path": "original/08_spectral_erosion_effects/mist_spread/mist_spread_07.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        254
+      ]
+    },
+    {
+      "path": "original/08_spectral_erosion_effects/mist_spread/mist_spread_08.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ]
+    },
+    {
+      "path": "original/08_spectral_erosion_effects/mist_spread/mist_spread_atlas.png",
+      "size": [
+        1776,
+        888
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ]
+    },
+    {
+      "path": "original/08_spectral_erosion_effects/mist_spread/mist_spread_source_sheet.png",
+      "size": [
+        1774,
+        887
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ]
+    },
+    {
+      "path": "original/08_spectral_erosion_effects/sustained/sustained_01.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        254
+      ]
+    },
+    {
+      "path": "original/08_spectral_erosion_effects/sustained/sustained_02.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ]
+    },
+    {
+      "path": "original/08_spectral_erosion_effects/sustained/sustained_03.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ]
+    },
+    {
+      "path": "original/08_spectral_erosion_effects/sustained/sustained_04.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ]
+    },
+    {
+      "path": "original/08_spectral_erosion_effects/sustained/sustained_05.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ]
+    },
+    {
+      "path": "original/08_spectral_erosion_effects/sustained/sustained_06.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        254
+      ]
+    },
+    {
+      "path": "original/08_spectral_erosion_effects/sustained/sustained_07.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        253
+      ]
+    },
+    {
+      "path": "original/08_spectral_erosion_effects/sustained/sustained_08.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ]
+    },
+    {
+      "path": "original/08_spectral_erosion_effects/sustained/sustained_atlas.png",
+      "size": [
+        1776,
+        888
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ]
+    },
+    {
+      "path": "original/08_spectral_erosion_effects/sustained/sustained_source_sheet.png",
+      "size": [
+        1774,
+        887
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ]
+    },
+    {
+      "path": "original/09_underworld_breath_body/underworld_breath_01.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ]
+    },
+    {
+      "path": "original/09_underworld_breath_body/underworld_breath_02.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ]
+    },
+    {
+      "path": "original/09_underworld_breath_body/underworld_breath_03.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ]
+    },
+    {
+      "path": "original/09_underworld_breath_body/underworld_breath_04.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ]
+    },
+    {
+      "path": "original/09_underworld_breath_body/underworld_breath_05.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ]
+    },
+    {
+      "path": "original/09_underworld_breath_body/underworld_breath_06.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ]
+    },
+    {
+      "path": "original/09_underworld_breath_body/underworld_breath_07.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ]
+    },
+    {
+      "path": "original/09_underworld_breath_body/underworld_breath_08.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ]
+    },
+    {
+      "path": "original/09_underworld_breath_body/underworld_breath_atlas.png",
+      "size": [
+        1776,
+        888
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ]
+    },
+    {
+      "path": "original/09_underworld_breath_body/underworld_breath_source_sheet.png",
+      "size": [
+        1774,
+        887
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ]
+    },
+    {
+      "path": "original/10_underworld_breath_effects/endpoint/endpoint_01.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ]
+    },
+    {
+      "path": "original/10_underworld_breath_effects/endpoint/endpoint_02.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        253
+      ]
+    },
+    {
+      "path": "original/10_underworld_breath_effects/endpoint/endpoint_03.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        253
+      ]
+    },
+    {
+      "path": "original/10_underworld_breath_effects/endpoint/endpoint_04.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        254
+      ]
+    },
+    {
+      "path": "original/10_underworld_breath_effects/endpoint/endpoint_05.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        253
+      ]
+    },
+    {
+      "path": "original/10_underworld_breath_effects/endpoint/endpoint_06.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        247
+      ]
+    },
+    {
+      "path": "original/10_underworld_breath_effects/endpoint/endpoint_07.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        214
+      ]
+    },
+    {
+      "path": "original/10_underworld_breath_effects/endpoint/endpoint_08.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        24
+      ]
+    },
+    {
+      "path": "original/10_underworld_breath_effects/endpoint/endpoint_atlas.png",
+      "size": [
+        1776,
+        888
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ]
+    },
+    {
+      "path": "original/10_underworld_breath_effects/endpoint/endpoint_source_sheet.png",
+      "size": [
+        1774,
+        887
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ]
+    },
+    {
+      "path": "original/10_underworld_breath_effects/initial_burst/initial_burst_01.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        242
+      ]
+    },
+    {
+      "path": "original/10_underworld_breath_effects/initial_burst/initial_burst_02.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        251
+      ]
+    },
+    {
+      "path": "original/10_underworld_breath_effects/initial_burst/initial_burst_03.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        252
+      ]
+    },
+    {
+      "path": "original/10_underworld_breath_effects/initial_burst/initial_burst_04.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        252
+      ]
+    },
+    {
+      "path": "original/10_underworld_breath_effects/initial_burst/initial_burst_05.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        253
+      ]
+    },
+    {
+      "path": "original/10_underworld_breath_effects/initial_burst/initial_burst_06.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        253
+      ]
+    },
+    {
+      "path": "original/10_underworld_breath_effects/initial_burst/initial_burst_07.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        253
+      ]
+    },
+    {
+      "path": "original/10_underworld_breath_effects/initial_burst/initial_burst_08.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        253
+      ]
+    },
+    {
+      "path": "original/10_underworld_breath_effects/initial_burst/initial_burst_atlas.png",
+      "size": [
+        1776,
+        888
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        253
+      ]
+    },
+    {
+      "path": "original/10_underworld_breath_effects/initial_burst/initial_burst_source_sheet.png",
+      "size": [
+        1774,
+        887
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        253
+      ]
+    },
+    {
+      "path": "original/10_underworld_breath_effects/mouth_charge/mouth_charge_01.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        246
+      ]
+    },
+    {
+      "path": "original/10_underworld_breath_effects/mouth_charge/mouth_charge_02.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        250
+      ]
+    },
+    {
+      "path": "original/10_underworld_breath_effects/mouth_charge/mouth_charge_03.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        253
+      ]
+    },
+    {
+      "path": "original/10_underworld_breath_effects/mouth_charge/mouth_charge_04.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        253
+      ]
+    },
+    {
+      "path": "original/10_underworld_breath_effects/mouth_charge/mouth_charge_05.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        253
+      ]
+    },
+    {
+      "path": "original/10_underworld_breath_effects/mouth_charge/mouth_charge_06.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        253
+      ]
+    },
+    {
+      "path": "original/10_underworld_breath_effects/mouth_charge/mouth_charge_07.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        253
+      ]
+    },
+    {
+      "path": "original/10_underworld_breath_effects/mouth_charge/mouth_charge_08.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        251
+      ]
+    },
+    {
+      "path": "original/10_underworld_breath_effects/mouth_charge/mouth_charge_atlas.png",
+      "size": [
+        1776,
+        888
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        253
+      ]
+    },
+    {
+      "path": "original/10_underworld_breath_effects/mouth_charge/mouth_charge_source_sheet.png",
+      "size": [
+        1774,
+        887
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        253
+      ]
+    },
+    {
+      "path": "original/10_underworld_breath_effects/residual_mist/residual_mist_01.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        253
+      ]
+    },
+    {
+      "path": "original/10_underworld_breath_effects/residual_mist/residual_mist_02.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        253
+      ]
+    },
+    {
+      "path": "original/10_underworld_breath_effects/residual_mist/residual_mist_03.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        250
+      ]
+    },
+    {
+      "path": "original/10_underworld_breath_effects/residual_mist/residual_mist_04.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        231
+      ]
+    },
+    {
+      "path": "original/10_underworld_breath_effects/residual_mist/residual_mist_05.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        237
+      ]
+    },
+    {
+      "path": "original/10_underworld_breath_effects/residual_mist/residual_mist_06.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        236
+      ]
+    },
+    {
+      "path": "original/10_underworld_breath_effects/residual_mist/residual_mist_07.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        215
+      ]
+    },
+    {
+      "path": "original/10_underworld_breath_effects/residual_mist/residual_mist_08.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        176
+      ]
+    },
+    {
+      "path": "original/10_underworld_breath_effects/residual_mist/residual_mist_atlas.png",
+      "size": [
+        1776,
+        888
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        253
+      ]
+    },
+    {
+      "path": "original/10_underworld_breath_effects/residual_mist/residual_mist_source_sheet.png",
+      "size": [
+        1774,
+        887
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        253
+      ]
+    },
+    {
+      "path": "original/10_underworld_breath_effects/soul_flow/soul_flow_01.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        243
+      ]
+    },
+    {
+      "path": "original/10_underworld_breath_effects/soul_flow/soul_flow_02.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        252
+      ]
+    },
+    {
+      "path": "original/10_underworld_breath_effects/soul_flow/soul_flow_03.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        253
+      ]
+    },
+    {
+      "path": "original/10_underworld_breath_effects/soul_flow/soul_flow_04.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        253
+      ]
+    },
+    {
+      "path": "original/10_underworld_breath_effects/soul_flow/soul_flow_05.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        251
+      ]
+    },
+    {
+      "path": "original/10_underworld_breath_effects/soul_flow/soul_flow_06.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        244
+      ]
+    },
+    {
+      "path": "original/10_underworld_breath_effects/soul_flow/soul_flow_07.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        238
+      ]
+    },
+    {
+      "path": "original/10_underworld_breath_effects/soul_flow/soul_flow_08.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        79
+      ]
+    },
+    {
+      "path": "original/10_underworld_breath_effects/soul_flow/soul_flow_atlas.png",
+      "size": [
+        1776,
+        888
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        253
+      ]
+    },
+    {
+      "path": "original/10_underworld_breath_effects/soul_flow/soul_flow_source_sheet.png",
+      "size": [
+        1774,
+        887
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        253
+      ]
+    },
+    {
+      "path": "original/10_underworld_breath_effects/sustained_stream/sustained_stream_01.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        253
+      ]
+    },
+    {
+      "path": "original/10_underworld_breath_effects/sustained_stream/sustained_stream_02.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ]
+    },
+    {
+      "path": "original/10_underworld_breath_effects/sustained_stream/sustained_stream_03.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        253
+      ]
+    },
+    {
+      "path": "original/10_underworld_breath_effects/sustained_stream/sustained_stream_04.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        253
+      ]
+    },
+    {
+      "path": "original/10_underworld_breath_effects/sustained_stream/sustained_stream_05.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        253
+      ]
+    },
+    {
+      "path": "original/10_underworld_breath_effects/sustained_stream/sustained_stream_06.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ]
+    },
+    {
+      "path": "original/10_underworld_breath_effects/sustained_stream/sustained_stream_07.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        253
+      ]
+    },
+    {
+      "path": "original/10_underworld_breath_effects/sustained_stream/sustained_stream_08.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ]
+    },
+    {
+      "path": "original/10_underworld_breath_effects/sustained_stream/sustained_stream_atlas.png",
+      "size": [
+        1776,
+        888
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ]
+    },
+    {
+      "path": "original/10_underworld_breath_effects/sustained_stream/sustained_stream_source_sheet.png",
+      "size": [
+        1774,
+        887
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ]
+    },
+    {
+      "path": "original/11_march_of_the_dead_body/march_of_the_dead_01.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ]
+    },
+    {
+      "path": "original/11_march_of_the_dead_body/march_of_the_dead_02.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ]
+    },
+    {
+      "path": "original/11_march_of_the_dead_body/march_of_the_dead_03.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ]
+    },
+    {
+      "path": "original/11_march_of_the_dead_body/march_of_the_dead_04.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ]
+    },
+    {
+      "path": "original/11_march_of_the_dead_body/march_of_the_dead_05.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ]
+    },
+    {
+      "path": "original/11_march_of_the_dead_body/march_of_the_dead_06.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ]
+    },
+    {
+      "path": "original/11_march_of_the_dead_body/march_of_the_dead_07.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ]
+    },
+    {
+      "path": "original/11_march_of_the_dead_body/march_of_the_dead_08.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ]
+    },
+    {
+      "path": "original/11_march_of_the_dead_body/march_of_the_dead_atlas.png",
+      "size": [
+        1776,
+        888
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ]
+    },
+    {
+      "path": "original/11_march_of_the_dead_body/march_of_the_dead_source_sheet.png",
+      "size": [
+        1774,
+        887
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ]
+    },
+    {
+      "path": "original/12_march_of_the_dead_effects/aftermath/aftermath_01.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        253
+      ]
+    },
+    {
+      "path": "original/12_march_of_the_dead_effects/aftermath/aftermath_02.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        251
+      ]
+    },
+    {
+      "path": "original/12_march_of_the_dead_effects/aftermath/aftermath_03.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        246
+      ]
+    },
+    {
+      "path": "original/12_march_of_the_dead_effects/aftermath/aftermath_04.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        228
+      ]
+    },
+    {
+      "path": "original/12_march_of_the_dead_effects/aftermath/aftermath_05.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        218
+      ]
+    },
+    {
+      "path": "original/12_march_of_the_dead_effects/aftermath/aftermath_06.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        238
+      ]
+    },
+    {
+      "path": "original/12_march_of_the_dead_effects/aftermath/aftermath_07.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        63
+      ]
+    },
+    {
+      "path": "original/12_march_of_the_dead_effects/aftermath/aftermath_08.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        205
+      ]
+    },
+    {
+      "path": "original/12_march_of_the_dead_effects/aftermath/aftermath_atlas.png",
+      "size": [
+        1776,
+        888
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        253
+      ]
+    },
+    {
+      "path": "original/12_march_of_the_dead_effects/aftermath/aftermath_source_sheet.png",
+      "size": [
+        1774,
+        887
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        253
+      ]
+    },
+    {
+      "path": "original/12_march_of_the_dead_effects/army_emergence/army_emergence_01.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        252
+      ]
+    },
+    {
+      "path": "original/12_march_of_the_dead_effects/army_emergence/army_emergence_02.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ]
+    },
+    {
+      "path": "original/12_march_of_the_dead_effects/army_emergence/army_emergence_03.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ]
+    },
+    {
+      "path": "original/12_march_of_the_dead_effects/army_emergence/army_emergence_04.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ]
+    },
+    {
+      "path": "original/12_march_of_the_dead_effects/army_emergence/army_emergence_05.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ]
+    },
+    {
+      "path": "original/12_march_of_the_dead_effects/army_emergence/army_emergence_06.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ]
+    },
+    {
+      "path": "original/12_march_of_the_dead_effects/army_emergence/army_emergence_07.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ]
+    },
+    {
+      "path": "original/12_march_of_the_dead_effects/army_emergence/army_emergence_08.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ]
+    },
+    {
+      "path": "original/12_march_of_the_dead_effects/army_emergence/army_emergence_atlas.png",
+      "size": [
+        1776,
+        888
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ]
+    },
+    {
+      "path": "original/12_march_of_the_dead_effects/army_emergence/army_emergence_source_sheet.png",
+      "size": [
+        1774,
+        887
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ]
+    },
+    {
+      "path": "original/12_march_of_the_dead_effects/final_impact/final_impact_01.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        254
+      ]
+    },
+    {
+      "path": "original/12_march_of_the_dead_effects/final_impact/final_impact_02.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        253
+      ]
+    },
+    {
+      "path": "original/12_march_of_the_dead_effects/final_impact/final_impact_03.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        253
+      ]
+    },
+    {
+      "path": "original/12_march_of_the_dead_effects/final_impact/final_impact_04.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        254
+      ]
+    },
+    {
+      "path": "original/12_march_of_the_dead_effects/final_impact/final_impact_05.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        251
+      ]
+    },
+    {
+      "path": "original/12_march_of_the_dead_effects/final_impact/final_impact_06.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        245
+      ]
+    },
+    {
+      "path": "original/12_march_of_the_dead_effects/final_impact/final_impact_07.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        162
+      ]
+    },
+    {
+      "path": "original/12_march_of_the_dead_effects/final_impact/final_impact_08.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        169
+      ]
+    },
+    {
+      "path": "original/12_march_of_the_dead_effects/final_impact/final_impact_atlas.png",
+      "size": [
+        1776,
+        888
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        254
+      ]
+    },
+    {
+      "path": "original/12_march_of_the_dead_effects/final_impact/final_impact_source_sheet.png",
+      "size": [
+        1774,
+        887
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        254
+      ]
+    },
+    {
+      "path": "original/12_march_of_the_dead_effects/ritual/ritual_01.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        221
+      ]
+    },
+    {
+      "path": "original/12_march_of_the_dead_effects/ritual/ritual_02.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        249
+      ]
+    },
+    {
+      "path": "original/12_march_of_the_dead_effects/ritual/ritual_03.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        251
+      ]
+    },
+    {
+      "path": "original/12_march_of_the_dead_effects/ritual/ritual_04.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        252
+      ]
+    },
+    {
+      "path": "original/12_march_of_the_dead_effects/ritual/ritual_05.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        253
+      ]
+    },
+    {
+      "path": "original/12_march_of_the_dead_effects/ritual/ritual_06.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        253
+      ]
+    },
+    {
+      "path": "original/12_march_of_the_dead_effects/ritual/ritual_07.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        249
+      ]
+    },
+    {
+      "path": "original/12_march_of_the_dead_effects/ritual/ritual_08.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        187
+      ]
+    },
+    {
+      "path": "original/12_march_of_the_dead_effects/ritual/ritual_atlas.png",
+      "size": [
+        1776,
+        888
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        253
+      ]
+    },
+    {
+      "path": "original/12_march_of_the_dead_effects/ritual/ritual_source_sheet.png",
+      "size": [
+        1774,
+        887
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        253
+      ]
+    },
+    {
+      "path": "original/12_march_of_the_dead_effects/soul_eruption/soul_eruption_01.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        253
+      ]
+    },
+    {
+      "path": "original/12_march_of_the_dead_effects/soul_eruption/soul_eruption_02.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        253
+      ]
+    },
+    {
+      "path": "original/12_march_of_the_dead_effects/soul_eruption/soul_eruption_03.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        253
+      ]
+    },
+    {
+      "path": "original/12_march_of_the_dead_effects/soul_eruption/soul_eruption_04.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        253
+      ]
+    },
+    {
+      "path": "original/12_march_of_the_dead_effects/soul_eruption/soul_eruption_05.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        253
+      ]
+    },
+    {
+      "path": "original/12_march_of_the_dead_effects/soul_eruption/soul_eruption_06.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        252
+      ]
+    },
+    {
+      "path": "original/12_march_of_the_dead_effects/soul_eruption/soul_eruption_07.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        252
+      ]
+    },
+    {
+      "path": "original/12_march_of_the_dead_effects/soul_eruption/soul_eruption_08.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        249
+      ]
+    },
+    {
+      "path": "original/12_march_of_the_dead_effects/soul_eruption/soul_eruption_atlas.png",
+      "size": [
+        1776,
+        888
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        253
+      ]
+    },
+    {
+      "path": "original/12_march_of_the_dead_effects/soul_eruption/soul_eruption_source_sheet.png",
+      "size": [
+        1774,
+        887
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        253
+      ]
+    },
+    {
+      "path": "original/12_march_of_the_dead_effects/spectral_crown/spectral_crown_01.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        244
+      ]
+    },
+    {
+      "path": "original/12_march_of_the_dead_effects/spectral_crown/spectral_crown_02.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        249
+      ]
+    },
+    {
+      "path": "original/12_march_of_the_dead_effects/spectral_crown/spectral_crown_03.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        253
+      ]
+    },
+    {
+      "path": "original/12_march_of_the_dead_effects/spectral_crown/spectral_crown_04.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        253
+      ]
+    },
+    {
+      "path": "original/12_march_of_the_dead_effects/spectral_crown/spectral_crown_05.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        253
+      ]
+    },
+    {
+      "path": "original/12_march_of_the_dead_effects/spectral_crown/spectral_crown_06.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        253
+      ]
+    },
+    {
+      "path": "original/12_march_of_the_dead_effects/spectral_crown/spectral_crown_07.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        250
+      ]
+    },
+    {
+      "path": "original/12_march_of_the_dead_effects/spectral_crown/spectral_crown_08.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        242
+      ]
+    },
+    {
+      "path": "original/12_march_of_the_dead_effects/spectral_crown/spectral_crown_atlas.png",
+      "size": [
+        1776,
+        888
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        253
+      ]
+    },
+    {
+      "path": "original/12_march_of_the_dead_effects/spectral_crown/spectral_crown_source_sheet.png",
+      "size": [
+        1774,
+        887
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        253
+      ]
+    },
+    {
+      "path": "original/12_march_of_the_dead_effects/spirit_charge/spirit_charge_01.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        253
+      ]
+    },
+    {
+      "path": "original/12_march_of_the_dead_effects/spirit_charge/spirit_charge_02.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ]
+    },
+    {
+      "path": "original/12_march_of_the_dead_effects/spirit_charge/spirit_charge_03.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        253
+      ]
+    },
+    {
+      "path": "original/12_march_of_the_dead_effects/spirit_charge/spirit_charge_04.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        253
+      ]
+    },
+    {
+      "path": "original/12_march_of_the_dead_effects/spirit_charge/spirit_charge_05.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        253
+      ]
+    },
+    {
+      "path": "original/12_march_of_the_dead_effects/spirit_charge/spirit_charge_06.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        253
+      ]
+    },
+    {
+      "path": "original/12_march_of_the_dead_effects/spirit_charge/spirit_charge_07.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        253
+      ]
+    },
+    {
+      "path": "original/12_march_of_the_dead_effects/spirit_charge/spirit_charge_08.png",
+      "size": [
+        444,
+        444
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ]
+    },
+    {
+      "path": "original/12_march_of_the_dead_effects/spirit_charge/spirit_charge_atlas.png",
+      "size": [
+        1776,
+        888
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ]
+    },
+    {
+      "path": "original/12_march_of_the_dead_effects/spirit_charge/spirit_charge_source_sheet.png",
+      "size": [
+        1774,
+        887
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ]
+    }
+  ],
+  "existing_identical_files": [
+    {
+      "recovered": "assets/references/revenant-dragon/recovered-2026-11-16/original/01_basic_attack_body/manifest.json",
+      "existing": [
+        "assets/references/revenant-dragon/work-2026-11-14/basic_attack/manifest.json"
+      ]
+    },
+    {
+      "recovered": "assets/references/revenant-dragon/recovered-2026-11-16/original/01_basic_attack_body/melee/melee_01.png",
+      "existing": [
+        "assets/references/revenant-dragon/work-2026-11-14/basic_attack/melee/melee_01.png"
+      ]
+    },
+    {
+      "recovered": "assets/references/revenant-dragon/recovered-2026-11-16/original/01_basic_attack_body/melee/melee_02.png",
+      "existing": [
+        "assets/references/revenant-dragon/work-2026-11-14/basic_attack/melee/melee_02.png"
+      ]
+    },
+    {
+      "recovered": "assets/references/revenant-dragon/recovered-2026-11-16/original/01_basic_attack_body/melee/melee_03.png",
+      "existing": [
+        "assets/references/revenant-dragon/work-2026-11-14/basic_attack/melee/melee_03.png"
+      ]
+    },
+    {
+      "recovered": "assets/references/revenant-dragon/recovered-2026-11-16/original/01_basic_attack_body/melee/melee_04.png",
+      "existing": [
+        "assets/references/revenant-dragon/work-2026-11-14/basic_attack/melee/melee_04.png"
+      ]
+    },
+    {
+      "recovered": "assets/references/revenant-dragon/recovered-2026-11-16/original/01_basic_attack_body/melee/melee_05.png",
+      "existing": [
+        "assets/references/revenant-dragon/work-2026-11-14/basic_attack/melee/melee_05.png"
+      ]
+    },
+    {
+      "recovered": "assets/references/revenant-dragon/recovered-2026-11-16/original/01_basic_attack_body/melee/melee_06.png",
+      "existing": [
+        "assets/references/revenant-dragon/work-2026-11-14/basic_attack/melee/melee_06.png"
+      ]
+    },
+    {
+      "recovered": "assets/references/revenant-dragon/recovered-2026-11-16/original/01_basic_attack_body/melee/melee_07.png",
+      "existing": [
+        "assets/references/revenant-dragon/work-2026-11-14/basic_attack/melee/melee_07.png"
+      ]
+    },
+    {
+      "recovered": "assets/references/revenant-dragon/recovered-2026-11-16/original/01_basic_attack_body/melee/melee_08.png",
+      "existing": [
+        "assets/references/revenant-dragon/work-2026-11-14/basic_attack/melee/melee_08.png"
+      ]
+    },
+    {
+      "recovered": "assets/references/revenant-dragon/recovered-2026-11-16/original/01_basic_attack_body/ranged/ranged_01.png",
+      "existing": [
+        "assets/references/revenant-dragon/work-2026-11-14/basic_attack/ranged/ranged_01.png"
+      ]
+    },
+    {
+      "recovered": "assets/references/revenant-dragon/recovered-2026-11-16/original/01_basic_attack_body/ranged/ranged_02.png",
+      "existing": [
+        "assets/references/revenant-dragon/work-2026-11-14/basic_attack/ranged/ranged_02.png"
+      ]
+    },
+    {
+      "recovered": "assets/references/revenant-dragon/recovered-2026-11-16/original/01_basic_attack_body/ranged/ranged_03.png",
+      "existing": [
+        "assets/references/revenant-dragon/work-2026-11-14/basic_attack/ranged/ranged_03.png"
+      ]
+    },
+    {
+      "recovered": "assets/references/revenant-dragon/recovered-2026-11-16/original/01_basic_attack_body/ranged/ranged_04.png",
+      "existing": [
+        "assets/references/revenant-dragon/work-2026-11-14/basic_attack/ranged/ranged_04.png"
+      ]
+    },
+    {
+      "recovered": "assets/references/revenant-dragon/recovered-2026-11-16/original/01_basic_attack_body/ranged/ranged_05.png",
+      "existing": [
+        "assets/references/revenant-dragon/work-2026-11-14/basic_attack/ranged/ranged_05.png"
+      ]
+    },
+    {
+      "recovered": "assets/references/revenant-dragon/recovered-2026-11-16/original/01_basic_attack_body/ranged/ranged_06.png",
+      "existing": [
+        "assets/references/revenant-dragon/work-2026-11-14/basic_attack/ranged/ranged_06.png"
+      ]
+    },
+    {
+      "recovered": "assets/references/revenant-dragon/recovered-2026-11-16/original/01_basic_attack_body/ranged/ranged_07.png",
+      "existing": [
+        "assets/references/revenant-dragon/work-2026-11-14/basic_attack/ranged/ranged_07.png"
+      ]
+    },
+    {
+      "recovered": "assets/references/revenant-dragon/recovered-2026-11-16/original/01_basic_attack_body/ranged/ranged_08.png",
+      "existing": [
+        "assets/references/revenant-dragon/work-2026-11-14/basic_attack/ranged/ranged_08.png"
+      ]
+    },
+    {
+      "recovered": "assets/references/revenant-dragon/recovered-2026-11-16/original/03_spirit_pierce_body/manifest.json",
+      "existing": [
+        "assets/references/revenant-dragon/work-2026-11-14/spirit_pierce_manifest.json"
+      ]
+    },
+    {
+      "recovered": "assets/references/revenant-dragon/recovered-2026-11-16/original/03_spirit_pierce_body/spirit_pierce_atlas.png",
+      "existing": [
+        "assets/references/revenant-dragon/work-2026-11-14/spirit_pierce_atlas.png"
+      ]
+    },
+    {
+      "recovered": "assets/references/revenant-dragon/recovered-2026-11-16/original/05_soul_harvest_body/manifest.json",
+      "existing": [
+        "assets/references/revenant-dragon/work-2026-11-14/soul_harvest_manifest.json"
+      ]
+    },
+    {
+      "recovered": "assets/references/revenant-dragon/recovered-2026-11-16/original/05_soul_harvest_body/soul_harvest_atlas.png",
+      "existing": [
+        "assets/references/revenant-dragon/work-2026-11-14/soul_harvest_atlas.png"
+      ]
+    },
+    {
+      "recovered": "assets/references/revenant-dragon/recovered-2026-11-16/original/07_spectral_erosion_body/manifest.json",
+      "existing": [
+        "assets/references/revenant-dragon/work-2026-11-14/spectral_erosion_manifest.json"
+      ]
+    },
+    {
+      "recovered": "assets/references/revenant-dragon/recovered-2026-11-16/original/07_spectral_erosion_body/spectral_erosion_atlas.png",
+      "existing": [
+        "assets/references/revenant-dragon/work-2026-11-14/spectral_erosion_atlas.png"
+      ]
+    }
+  ],
+  "scope": "File integrity only; no animation or visual approval"
+}
