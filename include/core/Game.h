@@ -114,6 +114,9 @@ public:
     void setCharScale(float s);
     bool powerSave() const { return save_.powerSave; }
     void setPowerSave(bool on);
+    // v1.9: 작업표시줄 꾸미기
+    bool taskbarSkin() const { return save_.taskbarSkin; }
+    void setTaskbarSkin(bool on);
     // v1.0: 메뉴 창은 키보드 조작과 상관없이 마우스로 열고 닫는다.
     bool menuOpen() const { return save_.menuOpen; }
     void setMenuOpen(bool on);

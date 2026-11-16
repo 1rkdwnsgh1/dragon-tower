@@ -28,6 +28,7 @@ enum class UiAction {
     SetMotion,        // arg = AnimState. 고른 모션을 다음 입력까지 유지
     ClearMotion,      // 모션 고정 풀기
     TogglePowerSave,  // 조용할 때 프레임 줄이기
+    ToggleTaskbarSkin,  // v1.9: 작업표시줄 꾸미기
     SetKeepRange,     // 싸울 때 유지할 간격. arg = 0 근접 / 1 중간 / 2 바깥
     ToggleMenu,       // 메뉴 창 열고 닫기(키보드 조작과 무관)
     OpenStable,       // 드래곤 관리창 열기
@@ -197,7 +198,16 @@ public:
     size_t uiCacheCount() const { return pieceCache_.size(); }
     size_t uiCacheBytes() const { return pieceCacheBytes_; }
 
+    // v1.9: 이번 프레임에 실제로 그린 상태창·메뉴 창의 네모.
+    // 끌어서 옮길 때 화면 밖으로 나가지 않게 App 이 이 크기로 자른다.
+    // 그리는 쪽만 잘라 두면 저장되는 좌표는 화면 밖 값이라, 가장자리에서 손이 떨어졌다 붙으면
+    // 창이 튀어 보였다(v1.8 까지의 증상).
+    Gdiplus::RectF lastCardRect() const { return lastCardRect_; }
+    Gdiplus::RectF lastMenuRect() const { return lastMenuRect_; }
+
 private:
+    Gdiplus::RectF lastCardRect_{0.f, 0.f, 0.f, 0.f};
+    Gdiplus::RectF lastMenuRect_{0.f, 0.f, 0.f, 0.f};
     std::unique_ptr<Gdiplus::FontFamily> family_;
     std::map<int, std::unique_ptr<Gdiplus::Font>> fonts_;
     float width_ = 0.f;

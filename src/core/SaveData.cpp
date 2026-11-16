@@ -106,6 +106,7 @@ std::string serializeSave(const SaveData& s) {
     o << "ui.menuScale=" << s.menuScale << "\n";
     o << "ui.charScale=" << s.charScale << "\n";
     o << "ui.powerSave=" << (s.powerSave ? 1 : 0) << "\n";
+    o << "ui.taskbarSkin=" << (s.taskbarSkin ? 1 : 0) << "\n";
     o << "ui.menuOpen=" << (s.menuOpen ? 1 : 0) << "\n";
     o << "ui.menuTab=" << s.menuTab << "\n";
     o << "bestFloor=" << s.bestFloor << "\n";
@@ -192,6 +193,7 @@ bool deserializeSave(const std::string& text, SaveData& out) {
         else if (key == "ui.menuScale") s.menuScale = std::clamp(toFloat(val, 1.f), cfg::kMenuScaleMin, cfg::kMenuScaleMax);
         else if (key == "ui.charScale") s.charScale = std::clamp(toFloat(val, 1.f), cfg::kCharScaleMin, cfg::kCharScaleMax);
         else if (key == "ui.powerSave") s.powerSave = toInt(val, 0) != 0;
+        else if (key == "ui.taskbarSkin") s.taskbarSkin = toInt(val, 1) != 0;
         else if (key == "ui.menuOpen") s.menuOpen = toInt(val, 0) != 0;
         else if (key == "ui.menuTab") s.menuTab = std::clamp(toInt(val, 0), 0, 1);
         else if (key == "huntMode") {

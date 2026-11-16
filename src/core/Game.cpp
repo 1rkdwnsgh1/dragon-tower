@@ -136,6 +136,12 @@ void Game::setPowerSave(bool on) {
     saveRequested_ = true;
 }
 
+void Game::setTaskbarSkin(bool on) {
+    if (save_.taskbarSkin == on) return;
+    save_.taskbarSkin = on;
+    saveRequested_ = true;
+}
+
 RectF Game::arena() const {
     float w = std::min(cfg::kArenaWidth, desktop_.w - 40.f);
     float h = std::min(cfg::kArenaHeight, desktop_.h - 140.f);
