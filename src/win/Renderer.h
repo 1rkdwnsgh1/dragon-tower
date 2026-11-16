@@ -97,6 +97,9 @@ private:
     // piece()는 그렸으면 true. 9조각으로 늘릴 여백이 0이면 통째로 늘린다.
     bool piece(Gdiplus::Graphics& g, const char* name, const Gdiplus::RectF& r, float alpha = 1.f,
                Gdiplus::RectF* content = nullptr);
+    // #50: 같은 크기·투명도의 조각은 한 번만 합성해 두고 다시 붙인다(piece 가 부른다).
+    bool cachedPiece(Gdiplus::Graphics& g, const UiPiece& p, const Gdiplus::RectF& r, float alpha,
+                     Gdiplus::RectF* content);
     void panel(Gdiplus::Graphics& g, const Gdiplus::RectF& r, uint8_t alpha = 236);
     void button(Gdiplus::Graphics& g, std::vector<UiButton>& out, const RenderContext& ctx, const Gdiplus::RectF& r,
                 const std::string& label, UiAction action, int arg = 0, bool enabled = true, bool selected = false,
@@ -163,6 +166,16 @@ private:
     // 한 프레임 동안 쓸 스킨. drawOverlay 시작에서 정한다.
     const Sprites* sprites_ = nullptr;
     std::string skin_ = "default";
+
+    // #50: 합성해 둔 UI 조각. 원본 그림·화면 픽셀 크기·투명도·맞춤 방식이 같으면 다시 쓴다.
+    struct PieceCacheEntry {
+        const Gdiplus::Bitmap* src = nullptr;
+        int w = 0, h = 0, alpha = 0, fit = 0;
+        bool ok = false;
+        Gdiplus::RectF content;  // 합성본 안에서의 내용 영역(논리 좌표, 왼쪽 위 기준)
+        std::unique_ptr<Gdiplus::Bitmap> bmp;
+    };
+    std::vector<PieceCacheEntry> pieceCache_;
 };
 
 }  // namespace dt::win

@@ -40,8 +40,10 @@ void Game::init(const SaveData& save, const RectF& desktop) {
 void Game::setDesktopBounds(const RectF& desktop) {
     desktop_ = desktop;
     if (!inTowerFlow()) {
-        world_.setBounds(desktop_);
-        world_.dragon().pos = desktop_.clampPoint(world_.dragon().pos, cfg::kDragonRadius);
+        // #47: 화면 크기가 바뀌어도 "아래쪽에만" 설정을 지킨다(전에는 사냥 중에도 화면 전체로 풀렸다).
+        RectF b = save_.confineToBand ? battleBand() : desktop_;
+        world_.setBounds(b);
+        world_.dragon().pos = b.clampPoint(world_.dragon().pos, cfg::kDragonRadius);
     }
 }
 
@@ -57,9 +59,8 @@ void Game::setConfineToBand(bool on) {
     if (save_.confineToBand == on) return;
     save_.confineToBand = on;
     saveRequested_ = true;
-    // 사냥 중에는 이미 띠 안에서 싸우고 있으므로 설정만 저장한다.
-    // 사냥을 멈출 때 이 설정에 따라 띠에 남을지 화면 전체로 돌아갈지 정해진다.
-    if (!hunting_ && !inTowerFlow() && save_.hasDragon) {
+    // #47(2026-11-16): 사냥 중에도 바로 적용한다. 켜면 띠로 날아 내려가고, 끄면 화면 전체에서 싸운다.
+    if (!inTowerFlow() && save_.hasDragon) {
         if (on) {
             // v1.0: 순간이동시키지 않고 날아서 내려간다.
             world_.beginConfine(battleBand());
@@ -526,11 +527,7 @@ void Game::startHunt() {
     hunting_ = true;
     waveActive_ = false;
     waveNumber_ = 0;
-    // 전투는 맨 아래 띠에서만 일어난다. 드래곤을 띠 안으로 내려 세운다.
-    world_.cancelConfine();
-    world_.setBounds(battleBand());
-    world_.dragon().pos = battleBand().clampPoint(world_.dragon().pos, cfg::kDragonRadius);
-    world_.dragon().groundY = world_.dragon().pos.y;
+    enterBattleArea();
     breakTimer_ = 1.5f;
     notify(std::string(combatModeName(save_.huntMode)) + " 모드로 사냥을 시작합니다.", kGood, 2.5f);
 }
@@ -543,10 +540,24 @@ void Game::confirmAutoWarning() {
     if (pendingAutoStart_ && !hunting_) {
         hunting_ = true;
         waveActive_ = false;
+        enterBattleArea();
         breakTimer_ = 1.5f;
     }
     pendingAutoStart_ = false;
     notify("자동 사냥 중입니다. 자동 사냥에서도 드래곤이 죽을 수 있습니다.", kWarn, 4.f);
+}
+
+// #47(2026-11-16 사용자 결정): 싸우는 자리는 "아래쪽에만" 설정을 따른다.
+// 켜면 맨 아래 띠로 내려 세우고, 끄면 드래곤이 있던 자리 그대로 화면 전체에서 싸운다.
+void Game::enterBattleArea() {
+    world_.cancelConfine();
+    if (save_.confineToBand) {
+        world_.setBounds(battleBand());
+        world_.dragon().pos = battleBand().clampPoint(world_.dragon().pos, cfg::kDragonRadius);
+    } else {
+        world_.setBounds(desktop_);
+    }
+    world_.dragon().groundY = world_.dragon().pos.y;
 }
 
 void Game::stopHunt(const std::string& reason) {
@@ -594,6 +605,13 @@ void Game::spawnWave() {
         float margin = std::min(30.f, band.h * 0.25f);
         float lo = band.y + margin, hi = band.bottom() - margin;
         if (lo > hi) lo = hi = band.y + band.h * 0.5f;
+        if (!save_.confineToBand) {
+            // #47: 화면 전체에서 싸울 때는 드래곤이 있는 높이 근처로 들어온다.
+            float dy = world_.dragon().pos.y;
+            lo = std::max(desktop_.y + 30.f, dy - 80.f);
+            hi = std::min(desktop_.bottom() - 30.f, dy + 80.f);
+            if (lo > hi) lo = hi = std::clamp(dy, desktop_.y, desktop_.bottom());
+        }
         float y = rng_.uniform(lo, hi);
         world_.spawnEnemy(randomMelee(), lv, {x, y});
     }

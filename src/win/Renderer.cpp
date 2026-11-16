@@ -113,6 +113,7 @@ bool Renderer::init() {
 }
 
 void Renderer::shutdown() {
+    pieceCache_.clear();  // GDI+ 를 끄기 전에 합성해 둔 그림을 먼저 놓는다
     fonts_.clear();
     family_.reset();
 }
@@ -179,7 +180,7 @@ static const float kMinArtScale = 0.55f;  // 이보다 더 줄여야 하면 그�
 
 // 한 조각을 목적지에 맞춰 그린다. content 에는 글자를 놓아도 되는 안쪽 영역을 돌려준다.
 // 그리지 않았으면 false (부르는 쪽에서 도형으로 그린다).
-static bool drawPiece(Graphics& g, const UiPiece& p, const RectF& dst, float alpha, RectF* content) {
+static bool drawPieceRaw(Graphics& g, const UiPiece& p, const RectF& dst, float alpha, RectF* content) {
     ImageAttributes ia;
     ColorMatrix cm = {{{1.f, 0.f, 0.f, 0.f, 0.f},
                        {0.f, 1.f, 0.f, 0.f, 0.f},
@@ -257,7 +258,60 @@ bool Renderer::piece(Graphics& g, const char* name, const RectF& r, float alpha,
     if (!sprites_) return false;
     UiPiece p = sprites_->ui(skin_, name);
     if (!p.valid()) return false;
-    return drawPiece(g, p, r, alpha, content);
+    return cachedPiece(g, p, r, alpha, content);
+}
+
+bool Renderer::cachedPiece(Graphics& g, const UiPiece& p, const RectF& dst, float alpha, RectF* content) {
+    // #50: 관리창·스킬창 같은 큰 창의 틀(원본 1109×1382)을 매 프레임 9조각으로 줄여 그리면 비싸다
+    // (투명도 행렬까지 붙어 GDI+ 의 느린 길로 간다). 같은 크기·투명도로 그린 결과를 화면 픽셀 크기
+    // 그대로 한 장 만들어 두고, 다음 프레임부터는 그 한 장만 붙인다.
+    if (dst.Width <= 0.f || dst.Height <= 0.f) return false;
+    Matrix m;
+    g.GetTransform(&m);
+    REAL el[6] = {1.f, 0.f, 0.f, 1.f, 0.f, 0.f};
+    m.GetElements(el);
+    const float s = std::max(0.01f, std::fabs(el[0]));  // 화면 배율(DPI)
+    const int pw = static_cast<int>(std::lround(dst.Width * s));
+    const int ph = static_cast<int>(std::lround(dst.Height * s));
+    if (pw <= 0 || ph <= 0 || static_cast<long long>(pw) * ph > 8LL * 1024 * 1024)
+        return drawPieceRaw(g, p, dst, alpha, content);  // 이상하게 크면 예전처럼 바로 그린다
+    const int a = static_cast<int>(std::lround(std::clamp(alpha, 0.f, 1.f) * 255.f));
+    const int fit = static_cast<int>(p.fit);
+    PieceCacheEntry* hit = nullptr;
+    for (PieceCacheEntry& e : pieceCache_) {
+        if (e.src == p.bmp && e.w == pw && e.h == ph && e.alpha == a && e.fit == fit) {
+            hit = &e;
+            break;
+        }
+    }
+    if (!hit) {
+        if (pieceCache_.size() >= 48) pieceCache_.clear();  // 창 크기를 끌어 바꾸는 동안 쌓이지 않게
+        PieceCacheEntry e;
+        e.src = p.bmp;
+        e.w = pw;
+        e.h = ph;
+        e.alpha = a;
+        e.fit = fit;
+        e.bmp = std::make_unique<Bitmap>(pw, ph, PixelFormat32bppPARGB);
+        {
+            Graphics cg(e.bmp.get());
+            cg.SetCompositingMode(CompositingModeSourceCopy);
+            cg.Clear(Color(0, 0, 0, 0));
+            cg.SetCompositingMode(CompositingModeSourceOver);
+            cg.SetInterpolationMode(InterpolationModeHighQualityBicubic);  // 한 번만 하므로 좋은 품질로
+            cg.ScaleTransform(s, s);
+            RectF c(0.f, 0.f, dst.Width, dst.Height);
+            e.ok = drawPieceRaw(cg, p, RectF(0.f, 0.f, dst.Width, dst.Height), alpha, &c);
+            e.content = c;
+        }
+        pieceCache_.push_back(std::move(e));
+        hit = &pieceCache_.back();
+    }
+    if (!hit->ok) return false;
+    if (content)
+        *content = RectF(dst.X + hit->content.X, dst.Y + hit->content.Y, hit->content.Width, hit->content.Height);
+    g.DrawImage(hit->bmp.get(), dst, 0.f, 0.f, static_cast<REAL>(pw), static_cast<REAL>(ph), UnitPixel);
+    return true;
 }
 
 void Renderer::panel(Graphics& g, const RectF& r, uint8_t alpha) {
@@ -368,11 +422,8 @@ void Renderer::drawOverlay(Graphics& g, const Game& game, const Sprites& sprites
     height_ = game.desktopBounds().h;
     Screen sc = game.screen();
 
-    if (ctx.inputEnabled) {
-        // 키보드를 받는 중이라는 표시로 화면을 아주 살짝 어둡게 한다(싸우는 중이고 자동이 아닐 때).
-        SolidBrush tint(Color(30, 0, 0, 0));
-        g.FillRectangle(&tint, 0.f, 0.f, width_, height_);
-    }
+    // #48: 키보드를 받는 동안 화면 전체를 살짝 어둡게 하던 표시를 없앴다. 바탕화면 전투를 시작하면
+    // 키보드가 저절로 켜져서(syncKeyboard) 화면 전체에 필터를 씌운 것처럼 보였다.
 
     if (game.inTowerFlow()) {
         RectF a(game.arena().x, game.arena().y, game.arena().w, game.arena().h);
@@ -641,6 +692,8 @@ void Renderer::drawEnemy(Graphics& g, const Enemy& e, const Sprites& sprites, fl
     const EnemyDef& ed = edef;
     bool isBoss = ed.role == EnemyRole::Boss;
     float height = e.radius * 2.6f * charScale;
+    // #49: 그림(시트·한 장 그림)은 발을 판정 원의 아래 끝(pos.y + 반지름)에 맞춘다. 드래곤과 같은 까닭이다.
+    const float artY = e.pos.y + e.radius + bob - (240.f / 256.f - 0.5f) * height;
 
     SolidBrush sh(Color(70, 0, 0, 0));
     g.FillEllipse(&sh, x - e.radius, e.pos.y + e.radius * 0.9f, e.radius * 2.f, e.radius * 0.5f);
@@ -664,7 +717,7 @@ void Renderer::drawEnemy(Graphics& g, const Enemy& e, const Sprites& sprites, fl
         const AnimDef& ad = ed.anims[static_cast<int>(st)];
         const float kAnchorFrac = 240.f / 256.f;
         float k = ad.renderScale;
-        float cyAdj = y - (kAnchorFrac - 0.5f) * height * (k - 1.f);
+        float cyAdj = artY - (kAnchorFrac - 0.5f) * height * (k - 1.f);
         drawSheetFrame(g, sh2, animFrame(time, ad.fps, sh2.frames, ad.loop), x, cyAdj, height * k, flip, flash, 1.f);
         drawnBySheet = true;
     }
@@ -672,7 +725,7 @@ void Renderer::drawEnemy(Graphics& g, const Enemy& e, const Sprites& sprites, fl
     if (drawnBySheet) {
         // 시트로 이미 그렸다
     } else if (bmp) {
-        drawSprite(g, bmp, x, y, height, flip, flash, 1.f);
+        drawSprite(g, bmp, x, artY, height, flip, flash, 1.f);
     } else if (!isBoss) {
         float r = e.radius;
         uint32_t c = flash > 0.f ? 0xFFF0E0FF : 0xFF8E5BD8;
@@ -717,8 +770,11 @@ void Renderer::drawEnemy(Graphics& g, const Enemy& e, const Sprites& sprites, fl
     // 체력 바(보스는 탑 HUD에 크게 표시)
     if (!isBoss) {
         float w = 56.f;
-        bar(g, RectF(x - w * 0.5f, e.pos.y - e.radius - 18.f, w, 7.f), e.hp / e.maxHp, 0xFFFF6B6B);
-        text(g, "Lv." + std::to_string(e.level), x, e.pos.y - e.radius - 36.f, 12.f, 0xFFE0D0FF, 1, false, true);
+        // 그림이 있으면 그림 위에, 도형이면 예전 자리에
+        float barY = (drawnBySheet || bmp) ? std::min(e.pos.y - e.radius - 18.f, artY - height * 0.5f - 10.f)
+                                           : e.pos.y - e.radius - 18.f;
+        bar(g, RectF(x - w * 0.5f, barY, w, 7.f), e.hp / e.maxHp, 0xFFFF6B6B);
+        text(g, "Lv." + std::to_string(e.level), x, barY - 18.f, 12.f, 0xFFE0D0FF, 1, false, true);
     }
 }
 
@@ -793,12 +849,16 @@ void Renderer::drawWorld(Graphics& g, const Game& game, const Sprites& sprites, 
                 g.DrawLine(&streak, d.pos.x + sx * 40.f, yy, d.pos.x + sx * (70.f + 10.f * std::sin(time * 20.f + i)), yy);
             }
         }
-        drawDragon(g, d, sprites, time, d.pos.x, d.pos.y, cfg::kDragonRadius * 3.f * cs, false);
+        // #49: 시트의 발(240/256 줄)을 판정 원의 아래 끝(pos.y + 반지름)에 맞춘다. 전에는 그림 가운데를
+        // pos 에 두어 발이 그보다 아래로 내려갔고(캐릭터를 키울수록 더), 맨 아래 띠에서는 작업 표시줄
+        // 밑으로 잘렸다. 판정·이동은 그대로이고 그림만 발 기준으로 선다.
+        const float dh = cfg::kDragonRadius * 3.f * cs;
+        const float dcy = d.pos.y + cfg::kDragonRadius - (240.f / 256.f - 0.5f) * dh;
+        drawDragon(g, d, sprites, time, d.pos.x, dcy, dh, false);
+        const float dTop = dcy - dh * 0.5f;
         float bw = 74.f;
-        bar(g, RectF(d.pos.x - bw * 0.5f, d.pos.y - cfg::kDragonRadius * 1.5f * cs - 22.f, bw, 8.f),
-            d.hp / d.stats.maxHp, kHpC);
-        text(g, "Lv." + std::to_string(game.dragonRecord().level), d.pos.x,
-             d.pos.y - cfg::kDragonRadius * 1.5f * cs - 42.f,
+        bar(g, RectF(d.pos.x - bw * 0.5f, dTop - 22.f, bw, 8.f), d.hp / d.stats.maxHp, kHpC);
+        text(g, "Lv." + std::to_string(game.dragonRecord().level), d.pos.x, dTop - 42.f,
              13.f, 0xFFFFF3C4, 1, true, true);
     }
 
