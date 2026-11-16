@@ -7,6 +7,9 @@ name=망령룡
 role=저주
 desc=풍화된 골격에 청록 영혼이 흐른다. 지속 피해로 적을 갉아낸다.
 color=FF3FBFA8
+; v1.9: 작업표시줄 꾸미기용 스킨. assets/ui/revenant/ 에 taskbar.png 만 있고
+; 나머지 UI 조각은 default 에서 물려받는다.
+ui_skin=revenant
 
 hp=105
 atk=12

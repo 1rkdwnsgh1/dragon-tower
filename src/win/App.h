@@ -60,6 +60,10 @@ private:
     void showBalloon(const std::string& title, const std::string& body, bool warning);
     void pumpAlerts();
     bool startDrag(float lx, float ly);  // 상태창·메뉴·드래곤 끌기 시작
+    // v1.9: 끌어 옮긴 창이 화면 밖으로 나가지 않게 자른다(drawn 은 이번 프레임에 그린 네모)
+    Vec2 clampToDesktop(Vec2 p, const Gdiplus::RectF& drawn) const;
+    void updateTaskbarSkin();            // v1.9: 작업표시줄 꾸미기 창을 따라다니게 한다
+    void setUserHidden(bool on);         // v1.9: Ctrl+Alt+D / 트레이로 전부 숨기기
 
     HINSTANCE inst_ = nullptr;
     HWND overlay_ = nullptr;
@@ -70,6 +74,15 @@ private:
     bool running_ = false;
     bool inputEnabled_ = false;
     bool hidden_ = false;
+    // v1.9: 사람이 직접 숨긴 상태(Ctrl+Alt+D·트레이). 다른 앱 전체화면 때문에 숨는 것과 구분한다.
+    // 하나로 쓰면 전체화면 감시(0.25초마다)가 사람이 숨긴 것을 바로 되살려 버린다(v1.8 까지의 버그).
+    bool userHidden_ = false;
+    // v1.9: 작업표시줄 꾸미기 창(별도 레이어 창, 클릭은 항상 통과시킨다)
+    HWND taskbar_ = nullptr;
+    Surface taskbarSurf_;
+    RECT taskbarRect_{};
+    std::string taskbarSkinKey_;   // 지금 그려 둔 스킨. 드래곤을 바꾸면 다시 그린다
+    bool taskbarDrawn_ = false;
     float time_ = 0.f;
     float fullscreenTimer_ = 0.f;
     float topmostTimer_ = 0.f;

@@ -1167,6 +1167,7 @@ void Renderer::drawStatusCard(Graphics& g, const Game& game, const Sprites& spri
     rx = std::clamp(rx, 0.f, std::max(0.f, width_ - cardW));
     ry = std::clamp(ry, 0.f, std::max(0.f, height_ - cardH));
     RectF r(rx, ry, cardW, cardH);
+    lastCardRect_ = r;  // v1.9: App 이 끌기 범위를 자를 때 쓴다
     panel(g, r, 224);
 
     // 제목 줄은 끌기 손잡이다. 오른쪽 끝에 접기 버튼이 있다.
@@ -1342,6 +1343,7 @@ void Renderer::drawMenu(Graphics& g, const Game& game, const RenderContext& ctx,
     mx = std::clamp(mx, 0.f, std::max(0.f, width_ - mw));
     my = std::clamp(my, 0.f, std::max(0.f, height_ - mh));
     RectF r(mx, my, mw, mh);
+    lastMenuRect_ = r;  // v1.9: App 이 끌기 범위를 자를 때 쓴다
     panel(g, r, 236);
     float x = r.X + 16.f * s;
     float w = r.Width - 32.f * s;
@@ -1440,6 +1442,15 @@ void Renderer::drawMenu(Graphics& g, const Game& game, const RenderContext& ctx,
         paragraph(g, "노트북에서 배터리가 걱정되면 켜세요. 드래곤이 움직이는 동안에는 줄이지 않습니다.",
                   RectF(x, y, w, 34.f * s), 11.f * s, kSub);
         y += 40.f * s;
+
+        // v1.9: 작업표시줄 꾸미기. 스킨에 taskbar.png 가 있는 드래곤에서만 효과가 있다.
+        toggle(g, out, ctx, RectF(x, y, w, 26.f * s), "작업표시줄 꾸미기", game.taskbarSkin(),
+               UiAction::ToggleTaskbarSkin, 0, true);
+        y += 32.f * s;
+        paragraph(g, "선택한 드래곤에 맞춰 작업표시줄에 띠를 덮습니다. 클릭은 그대로 통과하지만 "
+                     "시작 단추와 아이콘이 가려 보일 수 있습니다.",
+                  RectF(x, y, w, 46.f * s), 11.f * s, kSub);
+        y += 52.f * s;
 
         button(g, out, ctx, RectF(x, y, w, 38.f * s),
                "드래곤 관리 (" + std::to_string(game.stable().size()) + "/" + std::to_string(cfg::kMaxStable) + ")",
