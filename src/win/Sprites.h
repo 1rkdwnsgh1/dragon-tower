@@ -54,6 +54,10 @@ public:
     // 없으면 bmp == nullptr 이고, 그리는 쪽이 공용 attack 시트로 대신한다.
     Sheet skillSheet(const std::string& speciesKey, const std::string& motion) const;
 
+    // v1.6 스킬 효과 시트(assets/dragons/<키>/fx_<fx>.png).
+    // 없으면 bmp == nullptr 이고, 그리는 쪽이 예전처럼 도형(FxType)으로 대신 그린다.
+    Sheet fxSheet(const std::string& speciesKey, const std::string& fxKey) const;
+
     // UI 스킨 조각을 찾는다. 스킨에 없으면 default 에서 찾고, 그래도 없으면 bmp == nullptr.
     // 그림이 없으면 렌더러가 예전처럼 도형으로 그린다.
     UiPiece ui(const std::string& skinKey, const std::string& name) const;
@@ -77,6 +81,8 @@ private:
                        const std::string& label);
     // v1.4 그 종의 스킬이 쓰는 skill_*.png 를 모두 읽는다.
     void loadSkillSheets(const std::filesystem::path& dir, const SpeciesDef& def, const std::string& label);
+    // v1.6 그 종의 스킬이 fx= 로 적어 둔 fx_*.png 를 모두 읽는다.
+    void loadFxSheets(const std::filesystem::path& dir, const SpeciesDef& def, const std::string& label);
 
     struct UiData {
         std::unique_ptr<Gdiplus::Bitmap> bmp;

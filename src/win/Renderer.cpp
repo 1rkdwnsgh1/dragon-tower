@@ -647,7 +647,8 @@ void Renderer::drawEnemy(Graphics& g, const Enemy& e, const Sprites& sprites, fl
 void Renderer::drawWorld(Graphics& g, const Game& game, const Sprites& sprites, const RenderContext& ctx) {
     const World& w = game.world();
     float time = ctx.time;
-    uint32_t spColor = speciesDef(w.dragon().species).color;
+    const SpeciesDef& dragonSp = speciesDef(w.dragon().species);
+    uint32_t spColor = dragonSp.color;
 
     // 지속 피해 장판
     for (const DotZone& z : w.dots()) {
@@ -695,6 +696,10 @@ void Renderer::drawWorld(Graphics& g, const Game& game, const Sprites& sprites, 
     const float cs = game.charScale();
     for (const Enemy& e : w.enemies()) drawEnemy(g, e, sprites, time, cs);
 
+    // v1.6: 본체 뒤 효과(fx_front=0)를 드래곤보다 먼저 그린다.
+    // 지금은 fx= 를 적은 스킬이 하나도 없어서 이 층에 걸리는 효과가 없다 — 화면은 그대로다.
+    drawFx(g, w, sprites, dragonSp, cs, false);
+
     const DragonActor& d = w.dragon();
     if (d.alive && game.hasDragon()) {
         if (d.shieldTime > 0.f) {
@@ -727,7 +732,7 @@ void Renderer::drawWorld(Graphics& g, const Game& game, const Sprites& sprites, 
         fillCircle(g, p.pos.x, p.pos.y, r * 0.45f, Color(255, 255, 255, 255));
     }
 
-    drawFx(g, w);
+    drawFx(g, w, sprites, dragonSp, cs, true);
 
     for (const FloatText& t : w.texts()) {
         float a = 1.f - std::clamp((t.t - t.duration * 0.6f) / (t.duration * 0.4f), 0.f, 1.f);
@@ -736,8 +741,76 @@ void Renderer::drawWorld(Graphics& g, const Game& game, const Sprites& sprites, 
     }
 }
 
-void Renderer::drawFx(Graphics& g, const World& w) {
+// Fx::key 와 같은 fx= 를 적은 스킬을 찾는다. 시트의 재생 설정(fxAnim)이 거기에 있다.
+// 같은 fx 이름을 여러 스킬이 쓰면 먼저 적힌 쪽의 설정을 쓴다 — 시트도 한 장만 읽으므로 같다.
+static const SkillDef* findSkillByFx(const SpeciesDef& sp, const std::string& fxKey) {
+    for (const SkillDef& s : sp.skills) {
+        if (s.fx == fxKey) return &s;
+    }
+    return nullptr;
+}
+
+// v1.6 스프라이트 효과 한 장. 시트가 없으면 false 를 돌려주고, 부르는 쪽이 도형으로 그린다.
+//
+// 크기·위치 기준 (이 회차가 정했다 — PR 본문 참고)
+//  - 기준 높이는 **드래곤 본체와 같다**: cfg::kDragonRadius * 3 * charScale.
+//    거기에 fx_scale(본체 대비 배율) 과 [fx.anim] 의 render_scale 을 곱한다.
+//    그래서 fx_scale=1 이면 효과가 본체와 같은 높이로 그려진다.
+//  - 중심은 Fx::a (발동 지점)이고 fx_offset_y 만큼 세로로 옮긴다(위가 음수, px).
+//  - 좌우 뒤집기는 하지 않는다. 효과는 본체 방향을 따르지 않는다(아래·좌우 대칭을 가정).
+//
+// 단계별 보이기 — 시간을 직접 나누지 않고 Fx::phase()/phaseProgress() 를 쓴다.
+//  발동: 0.55 → 1.0 배로 커지며 옅은 데서 또렷해진다
+//  지속: 1.0 배, 그대로
+//  잔류: 1.0 → 1.18 배로 조금 더 퍼지며 사라진다
+static void fxPhaseLook(const Fx& f, float& k, float& alpha) {
+    const float q = f.phaseProgress();
+    switch (f.phase()) {
+        case FxPhase::Windup:
+            k = 0.55f + 0.45f * q;
+            alpha = 0.35f + 0.65f * q;
+            break;
+        case FxPhase::Hold:
+            k = 1.f;
+            alpha = 1.f;
+            break;
+        case FxPhase::Tail:
+            k = 1.f + 0.18f * q;
+            alpha = 1.f - q;
+            break;
+    }
+}
+
+bool Renderer::drawFxSheet(Graphics& g, const Fx& f, const Sprites& sprites, const SpeciesDef& sp, float charScale) {
+    Sheet sh = sprites.fxSheet(sp.key, f.key);
+    if (!sh.bmp || sh.frames <= 0 || sh.frameH <= 0) return false;  // 시트가 없다 — 도형으로 그린다
+
+    const SkillDef* sk = findSkillByFx(sp, f.key);
+    AnimDef ad;  // 스킬을 못 찾는 일은 없어야 하지만, 못 찾으면 AnimDef 기본값으로 그린다
+    if (sk) ad = sk->fxAnim;
+
+    float k = 1.f, alpha = 1.f;
+    fxPhaseLook(f, k, alpha);
+    if (alpha <= 0.004f) return true;  // 다 사라졌다. 그리지 않아도 이 층에서 처리한 것이다
+
+    float base = cfg::kDragonRadius * 3.f * charScale;
+    float h = base * f.scale * ad.renderScale * k;
+    if (h <= 0.5f) return true;
+    float cx = f.a.x;
+    float cy = f.a.y + f.offsetY;
+    float wpx = h * static_cast<float>(sh.frameW) / static_cast<float>(sh.frameH);
+    float half = std::max(wpx, h) * 0.5f;
+    markRegion(RectF(cx - half, cy - half, half * 2.f, half * 2.f), 4.f);
+    drawSheetFrame(g, sh, animFrame(f.t, ad.fps, sh.frames, ad.loop), cx, cy, h, false, 0.f, alpha);
+    return true;
+}
+
+void Renderer::drawFx(Graphics& g, const World& w, const Sprites& sprites, const SpeciesDef& sp, float charScale,
+                      bool inFront) {
     for (const Fx& f : w.fx()) {
+        if (f.inFront != inFront) continue;  // 이 층이 아니다
+        // v1.6: 시트가 있으면 스프라이트로 그리고, 없으면 아래 도형 분기로 내려간다.
+        if (!f.key.empty() && drawFxSheet(g, f, sprites, sp, charScale)) continue;
         float p = std::clamp(f.t / std::max(0.01f, f.duration), 0.f, 1.f);
         float fade = 1.f - p;
         switch (f.type) {
