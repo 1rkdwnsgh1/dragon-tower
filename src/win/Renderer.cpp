@@ -264,7 +264,7 @@ static bool drawPieceRaw(Graphics& g, const UiPiece& p, const RectF& dst, float 
 // 붙일 때 또 배율이 먹어 다시 리샘플되고(느리고 흐리다) 캐시한 의미가 없다.
 bool Renderer::drawPieceCached(Graphics& g, const UiPiece& p, const RectF& dst, float alpha, float scale,
                                RectF* content) {
-    if (!cfg::kUiPieceCache || scale <= 0.f || !p.bmp) return drawPiece(g, p, dst, alpha, content);
+    if (!cfg::kUiPieceCache || scale <= 0.f || !p.bmp) return drawPieceRaw(g, p, dst, alpha, content);
     if (dst.Width <= 0.f || dst.Height <= 0.f) return false;
 
     // 왼쪽 위와 오른쪽 아래를 각각 반올림해서 폭을 낸다. 가장자리가 어긋나지 않는다.
@@ -275,7 +275,7 @@ bool Renderer::drawPieceCached(Graphics& g, const UiPiece& p, const RectF& dst, 
     if (devW <= 0 || devH <= 0) return false;
     // 화면만 한 조각은 캐시해 봐야 이득이 없고 메모리만 먹는다. 그냥 그린다.
     if (static_cast<size_t>(devW) * devH > cfg::kUiPieceCacheMaxPixels)
-        return drawPiece(g, p, dst, alpha, content);
+        return drawPieceRaw(g, p, dst, alpha, content);
 
     PieceKey key;
     key.bmp = p.bmp;
@@ -299,7 +299,7 @@ bool Renderer::drawPieceCached(Graphics& g, const UiPiece& p, const RectF& dst, 
         }
         PieceEntry e;
         auto cached = std::make_unique<Bitmap>(devW, devH, PixelFormat32bppPARGB);
-        if (cached->GetLastStatus() != Ok) return drawPiece(g, p, dst, alpha, content);
+        if (cached->GetLastStatus() != Ok) return drawPieceRaw(g, p, dst, alpha, content);
         {
             Graphics cg(cached.get());
             // 목적지와 같은 품질로 그려야 결과가 같다.
@@ -310,7 +310,7 @@ bool Renderer::drawPieceCached(Graphics& g, const UiPiece& p, const RectF& dst, 
             cg.SetInterpolationMode(InterpolationModeBilinear);
             RectF local(0.f, 0.f, static_cast<float>(devW), static_cast<float>(devH));
             RectF contentDev = local;
-            e.drawn = drawPiece(cg, p, local, alpha, &contentDev);
+            e.drawn = drawPieceRaw(cg, p, local, alpha, &contentDev);
             e.contentDev = contentDev;
         }
         if (e.drawn) {
