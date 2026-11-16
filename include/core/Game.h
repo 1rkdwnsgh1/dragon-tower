@@ -200,6 +200,7 @@ public:
 
 private:
     EnemyKind randomMelee();
+    void enterBattleArea();  // #47: 전투를 시작할 때 "아래쪽에만" 설정에 따라 싸울 영역을 정한다
     void spawnWave();
     int waveNumber_ = 0;  // 이번 전투에서 보낸 웨이브 수
     void spawnTowerFloor();
