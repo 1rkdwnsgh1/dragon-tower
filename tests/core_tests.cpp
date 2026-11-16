@@ -1149,9 +1149,11 @@ static void testDefenseBattle() {
         if (!e.entering) someoneEntered = true;
     CHECK(someoneEntered || g.world().enemies().empty() || g.world().enemies().front().pos.x > before);
 
-    // 전투를 끄면 다시 바탕화면 전체를 돌아다닌다
+    // 전투를 끄면 "아래쪽에만"(켜짐)대로 띠에 머물고, 설정을 끄면 다시 바탕화면 전체를 돌아다닌다
     g.stopHunt("테스트");
     CHECK(!g.hunting());
+    CHECK(g.world().bounds().h <= cfg::kBandHeight + 0.01f);
+    g.setConfineToBand(false);
     CHECK(g.world().bounds().h > cfg::kBandHeight + 1.f);
 }
 
