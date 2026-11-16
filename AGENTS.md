@@ -26,6 +26,8 @@
 
 새 문서를 추가하면 이 목록에도 추가한다.
 
+- `assets/references/revenant-dragon/recovered-2026-11-16/README.md`: 잘못 업로드된 저장소에서 복구한 망령룡 6종 모션·효과 및 원본 기획 메모 6개 색인. 그 아래 `original/README.md`와 `concept-notes/*.md`는 원본 보존 문서이며 현행 규칙이 아니다.
+
 ## 문서 수정 규칙
 
 - 같은 결정이나 규칙은 한 곳에만 적는다. 다른 곳에서 필요하면 한 줄 요약과 링크로 참조한다.
