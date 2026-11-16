@@ -72,7 +72,7 @@
 |---|---|---|---|---|---|
 | 0 | **완료** (PR #63, 2026-11-16 21:05) | 에셋 | — | 원본 이미지 main 병합 | — |
 | 1 | **완료 — CI 불가, 머지 대기** (PR #69) | 도구 | `tools/fx-preview` | FX 합성 미리보기 도구 | 0 |
-| 2 | 대기 | win | `feat/fx-facing-and-offset` | FX 좌우 뒤집기 + `fx_offset_x` + **보정값에 `charScale` 곱하기** | 1 |
+| 2 | 진행 중 (23:08) | win | `feat/fx-facing-and-offset` | FX 좌우 뒤집기 + `fx_offset_x` + **보정값에 `charScale` 곱하기** | 1 |
 | 3 | 대기 | 데이터 | `assets/revenant-skill-fx` | 11/15 결정 적용 + FX 시트 3장 + `fx=` 배선 | 2 |
 
 ### 1번 — FX 합성 미리보기 도구 (`tools/fx_preview.py`)
