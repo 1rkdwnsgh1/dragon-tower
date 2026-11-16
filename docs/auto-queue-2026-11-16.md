@@ -63,6 +63,13 @@
   `fx_preview.py` 세 배율(0.5/1.0/10.0) 열 3개가 동일 — `charScale` 곱이 들어가 있고 좌우 뒤집기도 맞다.
   **대기 항목이 없다. 큐는 비었다.**
 
+- **2026-11-17 02:10 회차 확인**: Actions 여전히 멈춤(run 43903541821 `build`: core-linux·windows 둘 다
+  step 0개 실패 / 43903541114 `quality`: quality step 0개 실패). 머지하지 않았다. PR #69·#70·#71 그대로 열림.
+  `assets/revenant-skill-fx` 기준 **검증 5단계 전부 로컬 통과**: ctest 2/2, `check_win_build.sh` 문법 통과
+  (mingw-w64 는 이 회차에서도 다시 설치해야 했다 — `apt-get update` 먼저), `check_sheets.py` 시트 7개 문제 없음,
+  `asset_check` 경고 없음, `fx_preview.py` 출력에서 claw·pierce·breath 3개 x 좌우 2방향 모두 0.5/1.0/10.0
+  세 열이 동일 — `charScale` 곱과 좌우 뒤집기 정상. **대기 항목 없음, 큐는 비었다.**
+
 **이 문서의 이 절과 PR #66 자체는 CI 없이 main 에 들어갔다**(사람이 2026-11-16 21:38 허용).
 문서 변경이라 로컬 검증으로 갈음했다. 코드·데이터 항목에는 이 예외를 적용하지 않는다.
 
