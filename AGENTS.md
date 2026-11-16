@@ -23,6 +23,7 @@
 - `docs/team-ai-prompt.md`: 팀원이 쓰는 AI 도구의 프로젝트 지침에 붙여넣을 요약 (이 문서와 `CLAUDE.md`의 요약이므로, 어긋나면 이쪽 둘이 기준)
 - `docs/characters/revenant-dragon-skills-v1.md`: 망령룡 스킬 V1 후보, 현행 구조와의 차이, 기술 설계·순서 승인 대기 사항
 - `docs/characters/revenant-dragon-zone-skills.md`: 망령룡의 장판 스킬 둘(저주의 안개·망령의 침식)이 겹치는 정도와 정리 선택지 세 가지 (사람 결정 대기)
+- `docs/characters/revenant-dragon-skill-concepts.md`: 망령룡 추가 스킬 1컷 콘셉트 시트 7장과 기술 콘셉트 60종 목록, 사용자의 시각 선호 기록 (제작 승인·스킬 확정 아님)
 
 새 문서를 추가하면 이 목록에도 추가한다.
 

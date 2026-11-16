@@ -1,0 +1,245 @@
+{
+  "recorded": "2026-11-16",
+  "purpose": "망령룡 추가 스킬 1컷 시각 기획 자료(이미지 7장 + 프롬프트 원문 7개) 원본 보관",
+  "status": "기획 참고 자료. 제작 승인·스킬 확정·게임 적용 아님",
+  "source_folder_on_pc": "C:\\Users\\kccistc\\Desktop\\드래곤 타워\\gpt 작업용 레퍼런스\\망령용\\스킬 추가 기획",
+  "zip_handoff": "DRAGON_TOWER_REVENANT_CLAUDE_HANDOFF.zip (1~6차 이미지 사본과 인덱스/CSV 포함)",
+  "filename_change": "PC 원본 파일 14개는 모두 확장자가 없었다. 내용은 그대로 두고 이미지에 .png, 프롬프트에 .txt만 붙였다. 그 외 이름은 원본과 같다.",
+  "totals": {
+    "sets": 7,
+    "skill_concepts": 60,
+    "images": 7,
+    "prompts": 7
+  },
+  "catalog": "../../../../docs/characters/revenant-dragon-skill-concepts.md",
+  "sets": [
+    {
+      "set": 1,
+      "grid": "4열 x 2행",
+      "panel_count": 8,
+      "image": {
+        "file": "스킬 추가 기획 1컷 이미지 1.png",
+        "original_name_on_pc": "스킬 추가 기획 1컷 이미지 1",
+        "original_name_had_no_extension": true,
+        "bytes": 2700341,
+        "sha256": "0c356058be2bcef93eb996aab8ef2515da3d7c4d7f1c15ebfec22fc68bccc617",
+        "pixel_size": [
+          1774,
+          887
+        ],
+        "pixel_sha256": "6a4fb0a664b8fcd702a61b3d712a6a06791f2579fc25f4da98ab58829fe83c9c",
+        "matches_pc_original_sha256": true
+      },
+      "prompt": {
+        "file": "스킬 추가 기획 1컷 이미지 1 프롬프트.txt",
+        "original_name_on_pc": "스킬 추가 기획 1컷 이미지 1 프롬프트",
+        "original_name_had_no_extension": true,
+        "bytes": 3828,
+        "sha256": "0b6829d3b6ab3ccd1e74ad8770ac21b0426de5bebbd8de28a7f4f964cdc09b14",
+        "matches_pc_original_sha256": true
+      },
+      "zip_handoff_comparison": {
+        "zip_file": "revenant_skill_sheet_set1.png",
+        "bytes_identical": false,
+        "pixels_identical": true,
+        "zip_bytes": 3454267,
+        "note": "ZIP 사본은 화소는 같고 바이트는 다른 재인코딩본. 로컬 원본을 보관본으로 채택했다."
+      }
+    },
+    {
+      "set": 2,
+      "grid": "4열 x 2행",
+      "panel_count": 8,
+      "image": {
+        "file": "스킬 추가 기획 1컷 이미지 2.png",
+        "original_name_on_pc": "스킬 추가 기획 1컷 이미지 2",
+        "original_name_had_no_extension": true,
+        "bytes": 2670114,
+        "sha256": "37ac1e0c07b46df56286f06a3ea76f28b8ca4f21b3b97e72a4406ec447524dfd",
+        "pixel_size": [
+          1774,
+          887
+        ],
+        "pixel_sha256": "3c643ed410f4c3404b15dfa0df38c3c6b22548ba6d828edac63ae7c5f472daed",
+        "matches_pc_original_sha256": true
+      },
+      "prompt": {
+        "file": "스킬 추가 기획 1컷 이미지 2 프롬프트.txt",
+        "original_name_on_pc": "스킬 추가 기획 1컷 이미지 2 프롬프트",
+        "original_name_had_no_extension": true,
+        "bytes": 11307,
+        "sha256": "4c61f755c1b1e87081e7e8eb11dd3570342febc833e4185dcf838175cae81878",
+        "matches_pc_original_sha256": true
+      },
+      "zip_handoff_comparison": {
+        "zip_file": "revenant_skill_sheet_set2.png",
+        "bytes_identical": false,
+        "pixels_identical": true,
+        "zip_bytes": 3432459,
+        "note": "ZIP 사본은 화소는 같고 바이트는 다른 재인코딩본. 로컬 원본을 보관본으로 채택했다."
+      }
+    },
+    {
+      "set": 3,
+      "grid": "4열 x 2행",
+      "panel_count": 8,
+      "image": {
+        "file": "스킬 추가 기획 1컷 이미지 3.png",
+        "original_name_on_pc": "스킬 추가 기획 1컷 이미지 3",
+        "original_name_had_no_extension": true,
+        "bytes": 2612214,
+        "sha256": "f49746bafcf844d3706331b2978e5026b9562a91a40427c2346930b6b8e2425e",
+        "pixel_size": [
+          1774,
+          887
+        ],
+        "pixel_sha256": "143eeb1a8c3e2363d553d3889de91bae768c46e5aa270eb3c2c647a6c9cb19f4",
+        "matches_pc_original_sha256": true
+      },
+      "prompt": {
+        "file": "스킬 추가 기획 1컷 이미지 3 프롬프트.txt",
+        "original_name_on_pc": "스킬 추가 기획 1컷 이미지 3 프롬프트",
+        "original_name_had_no_extension": true,
+        "bytes": 11683,
+        "sha256": "3383151ad05765e6963aa0ae28c48553c4d4505884e46b0769442c011f1c0c40",
+        "matches_pc_original_sha256": true
+      },
+      "zip_handoff_comparison": {
+        "zip_file": "revenant_skill_sheet_set3.png",
+        "bytes_identical": false,
+        "pixels_identical": true,
+        "zip_bytes": 3400484,
+        "note": "ZIP 사본은 화소는 같고 바이트는 다른 재인코딩본. 로컬 원본을 보관본으로 채택했다."
+      }
+    },
+    {
+      "set": 4,
+      "grid": "4열 x 2행",
+      "panel_count": 8,
+      "image": {
+        "file": "스킬 추가 기획 1컷 이미지 4.png",
+        "original_name_on_pc": "스킬 추가 기획 1컷 이미지 4",
+        "original_name_had_no_extension": true,
+        "bytes": 2811749,
+        "sha256": "30174c308d3cc2e702ca304faee108d661f38f1d8e596c4e8551fd5ef0746653",
+        "pixel_size": [
+          1774,
+          887
+        ],
+        "pixel_sha256": "722ac33ab04f844005dde84dc29bfc368bc8506cfb35ebcf10eef8fc6cc4823c",
+        "matches_pc_original_sha256": true
+      },
+      "prompt": {
+        "file": "스킬 추가 기획 1컷 이미지 4 프롬프트.txt",
+        "original_name_on_pc": "스킬 추가 기획 1컷 이미지 4 프롬프트",
+        "original_name_had_no_extension": true,
+        "bytes": 15345,
+        "sha256": "9d87930ddbd140b1bd9d2bd1536e2d94292ae4f7c6480b35e9beced923204bad",
+        "matches_pc_original_sha256": true
+      },
+      "zip_handoff_comparison": {
+        "zip_file": "revenant_skill_sheet_set4.png",
+        "bytes_identical": false,
+        "pixels_identical": true,
+        "zip_bytes": 3563489,
+        "note": "ZIP 사본은 화소는 같고 바이트는 다른 재인코딩본. 로컬 원본을 보관본으로 채택했다."
+      }
+    },
+    {
+      "set": 5,
+      "grid": "5열 x 2행",
+      "panel_count": 10,
+      "image": {
+        "file": "스킬 추가 기획 1컷 이미지 5.png",
+        "original_name_on_pc": "스킬 추가 기획 1컷 이미지 5",
+        "original_name_had_no_extension": true,
+        "bytes": 2841513,
+        "sha256": "5e38de27a73302e4e0d144b93369a622bfe8bd008a435feff3abb33550faf374",
+        "pixel_size": [
+          1983,
+          793
+        ],
+        "pixel_sha256": "826fa31e8f6d58ccb88b733b0c3f0ef6a565bf3d8abaa1aacaf495541107a4d7",
+        "matches_pc_original_sha256": true
+      },
+      "prompt": {
+        "file": "스킬 추가 기획 1컷 이미지 5 프롬프트.txt",
+        "original_name_on_pc": "스킬 추가 기획 1컷 이미지 5 프롬프트",
+        "original_name_had_no_extension": true,
+        "bytes": 16794,
+        "sha256": "94879edc25d35519b3a87e0082807de5b301b34186918584bfe675b6d698975a",
+        "matches_pc_original_sha256": true
+      },
+      "zip_handoff_comparison": {
+        "zip_file": "revenant_skill_sheet_set5.png",
+        "bytes_identical": false,
+        "pixels_identical": true,
+        "zip_bytes": 3600138,
+        "note": "ZIP 사본은 화소는 같고 바이트는 다른 재인코딩본. 로컬 원본을 보관본으로 채택했다."
+      }
+    },
+    {
+      "set": 6,
+      "grid": "5열 x 2행",
+      "panel_count": 10,
+      "image": {
+        "file": "스킬 추가 기획 1컷 이미지 6.png",
+        "original_name_on_pc": "스킬 추가 기획 1컷 이미지 6",
+        "original_name_had_no_extension": true,
+        "bytes": 2898357,
+        "sha256": "38db562c1aacdae0b9c95d4b6c9df13e3b1943a6458d84e9dab4f440f1c95b1d",
+        "pixel_size": [
+          1983,
+          793
+        ],
+        "pixel_sha256": "78710dda60150847c3d832735c4d78a951340008be2bd8b6fc49b7b90ec58995",
+        "matches_pc_original_sha256": true
+      },
+      "prompt": {
+        "file": "스킬 추가 기획 1컷 이미지 6 프롬프트.txt",
+        "original_name_on_pc": "스킬 추가 기획 1컷 이미지 6 프롬프트",
+        "original_name_had_no_extension": true,
+        "bytes": 15556,
+        "sha256": "ee965d15d5f3738bf8d271b235eba4d375d25fabdf2b76085040fbb811f5ec8a",
+        "matches_pc_original_sha256": true
+      },
+      "zip_handoff_comparison": {
+        "zip_file": "revenant_skill_sheet_set6.png",
+        "bytes_identical": false,
+        "pixels_identical": true,
+        "zip_bytes": 3645609,
+        "note": "ZIP 사본은 화소는 같고 바이트는 다른 재인코딩본. 로컬 원본을 보관본으로 채택했다."
+      }
+    },
+    {
+      "set": 7,
+      "grid": "4열 x 2행",
+      "panel_count": 8,
+      "image": {
+        "file": "스킬 추가 기획 1컷 이미지 7.png",
+        "original_name_on_pc": "스킬 추가 기획 1컷 이미지 7",
+        "original_name_had_no_extension": true,
+        "bytes": 2927830,
+        "sha256": "403485826df403eaa6df5ce35ec47a4954f937ac0e64191f798cec3149f6fb33",
+        "pixel_size": [
+          1774,
+          887
+        ],
+        "pixel_sha256": "d857d22cd413fa54fea9e974d22fb6439d6caec064c179aa6e7ad7aab8968b78",
+        "matches_pc_original_sha256": true
+      },
+      "prompt": {
+        "file": "스킬 추가 기획 1컷 이미지 7 프롬프트.txt",
+        "original_name_on_pc": "스킬 추가 기획 1컷 이미지 7 프롬프트",
+        "original_name_had_no_extension": true,
+        "bytes": 17118,
+        "sha256": "a34ca865ba225e1fc4581bf1a3b5badfd8bcce7c8ca15ce902214a68cbb8dcb5",
+        "matches_pc_original_sha256": true
+      },
+      "zip_handoff_comparison": {
+        "zip_file": null,
+        "note": "ZIP 인계 묶음에 없음. 로컬 원본만 존재한다."
+      }
+    }
+  ]
+}
