@@ -164,6 +164,27 @@ bool App::init(HINSTANCE inst) {
     int more = static_cast<int>(scan.warnings.size() + sprites_.warnings().size()) - warned;
     if (more > 0) game_.notify("경고 " + std::to_string(more) + "건이 더 있습니다.", 0xFFFFD166, 10.f);
 
+    // 종이 하나도 없으면 게임을 할 수 없다. 이때 **반드시** 왜 그런지 알려야 한다.
+    //
+    // v1.5에서 내장 4종을 지운 뒤로 종은 전부 assets/dragons/ 에서 온다. 그래서 assets 폴더가
+    // exe 옆에 없으면 드래곤이 0마리인 채로 켜진다. 그런데 loadDragonFolders 는 폴더가 아예
+    // 없으면 경고도 없이 조용히 돌아오고(warnings 가 빈다), newSpecies 도 0이라 위의 알림이
+    // 하나도 뜨지 않았다 — 화면이 그냥 비어 보여서 "드래곤이 사라졌다"로 읽힌다.
+    // 실제로 exe 만 들어 있는 압축을 받아서 그렇게 됐다.
+    if (speciesCount() == 0) {
+        std::error_code dec;
+        const bool dirMissing = !std::filesystem::is_directory(assetDir / "dragons", dec);
+        if (dirMissing) {
+            game_.notify("assets 폴더를 찾지 못했습니다. dragon_tower.exe 와 같은 폴더에 "
+                         "assets 폴더가 있어야 합니다.", 0xFFFF6B6B, 600.f);
+            game_.notify("배포본(DragonTower-windows)을 압축 푼 폴더 그대로 실행해 주세요. "
+                         "exe 만 따로 옮기면 드래곤을 읽을 수 없습니다.", 0xFFFFD166, 600.f);
+        } else {
+            game_.notify("assets/dragons 에서 드래곤을 하나도 읽지 못했습니다. "
+                         "폴더마다 dragon.txt 가 있어야 합니다.", 0xFFFF6B6B, 600.f);
+        }
+    }
+
     ShowWindow(overlay_, SW_SHOWNOACTIVATE);
     // 처음 선택 화면이면 바로 고를 수 있도록 입력을 켠다.
     setInputEnabled(game_.needsInput());
