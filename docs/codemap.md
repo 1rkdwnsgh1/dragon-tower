@@ -62,6 +62,7 @@ tests/                     코어 규칙 검증
 | 프레임 시간 측정(계산) | `include/core/FrameStats.h` | 단계별 평균·최대. 플랫폼 무관 |
 | 프레임 시간 측정(시계·토글) | `src/win/FrameProfiler.{h,cpp}` | 트레이 메뉴로 켠다. 기본 꺼짐 |
 | 프레임 측정 표시 | `Renderer::drawFrameStats` | 왼쪽 위 표. 켜 둔 동안만 |
+| UI 조각 캐시 | `Renderer::drawPieceCached` | 장치 픽셀로 미리 그려 1:1 로 붙인다. `cfg::kUiPieceCache` |
 | 스킬 파일 유무 표 | `tools/asset_check.cpp` | 스킬마다 아이콘·본체 모션·효과 시트. 표 정렬은 `displayWidth`·`pad` (한글 두 칸) |
 | Windows 코드를 리눅스에서 컴파일 | `tools/check_win_build.sh` | mingw-w64. 푸시 전에 9초. [설명](quality-tools.md) |
 | 정적 분석(기준선과 비교) | `tools/check_static.py` | cppcheck + clang-tidy. 기준선은 `tools/static-baseline.txt` |

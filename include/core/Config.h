@@ -1,6 +1,8 @@
 // 조정 가능한 임시 수치. 기획서에 적힌 대로 모든 값은 플레이 테스트 후 바꾼다.
 #pragma once
 
+#include <cstddef>
+
 namespace dt::cfg {
 
 // 성장
@@ -74,6 +76,14 @@ constexpr int kMidBossEvery = 5;            // 5의 배수는 중간 보스(10�
 constexpr int kFieldBossEvery = 10;         // 10의 배수는 필드 보스(파티)
 constexpr int kFieldBossLevelPerFloor = 5;  // 필드 보스 입장: 출전 드래곤 각각 층 × 5 레벨 이하
 constexpr int kFieldBossPartySize = 4;
+// v1.8 UI 조각 캐시(큐 12번). 그린 결과를 장치 픽셀 크기로 캐시해 매 프레임 다시 줄이지 않는다.
+// 끄면 예전처럼 매번 그린다 — 눈에 보이는 차이가 나면 이것부터 꺼서 확인한다.
+// 측정과 이유는 docs/implementation-notes.md "프레임 시간 측정" 참고.
+constexpr bool kUiPieceCache = true;
+constexpr size_t kUiPieceCacheMaxEntries = 256;             // 항목 수 한도(넘으면 통째로 비운다)
+constexpr size_t kUiPieceCacheMaxBytes = size_t{64} * 1024 * 1024;  // 64MB
+constexpr size_t kUiPieceCacheMaxPixels = size_t{1920} * 1080;  // 이보다 큰 조각은 캐시하지 않는다
+
 // 바탕화면 디펜스 전투(v0.5). 전투는 화면 맨 아래 띠에서만 일어난다.
 // 띠 높이는 "드래곤이 전투 중에 움직일 수 있는 세로 폭"이다. 그림은 바닥선 위로 그려지므로
 // 띠보다 커도 잘리지 않는다. v0.7의 150은 떠 있는 느낌이라 50으로 내렸다.

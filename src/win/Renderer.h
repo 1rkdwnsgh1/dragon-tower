@@ -2,6 +2,7 @@
 #pragma once
 
 #include <map>
+#include <tuple>
 #include <memory>
 #include <string>
 #include <vector>
@@ -66,6 +67,9 @@ struct RenderContext {
     float time = 0.f;      // 애니메이션용 누적 시간
     float mouseX = -1.f;   // 논리 좌표
     float mouseY = -1.f;
+    // 화면 배율(DPI). UI 조각 캐시가 장치 픽셀 크기로 미리 그리는 데 쓴다.
+    // 1 이 아니면 논리 좌표와 실제 픽셀 수가 다르다.
+    float scale = 1.f;
 };
 
 // 한 프레임에 그린 것들의 위치. 어디서 클릭을 받을지(나머지는 통과)와
@@ -156,10 +160,49 @@ private:
                       const DragonActor& d, int skillIndex,
                       const Gdiplus::RectF& b, int level, const std::string& cornerLabel);
 
+    // --- UI 조각 캐시 (큐 12번) ---------------------------------------------
+    // drawPiece 는 (그림, 목적지 크기, 투명도)의 **순수 함수**다 — 위치는 평행이동일 뿐이다.
+    // 그래서 결과를 장치 픽셀 크기로 한 번 그려 두고 다음부터는 1:1 로 붙이기만 한다.
+    // 상태를 추적하지 않으므로 **UI 가 낡을 위험이 없다**(같은 입력이면 같은 그림이다).
+    //
+    // 왜 필요한가: panel.png 가 1109x1382 인데 9조각이라 한 번 그릴 때 DrawImage 가 9번이고,
+    // 전부 ColorMatrix 를 써서 GDI+ 의 빠른 경로를 못 탄다. 스킬 창은 줄이 7개라
+    // 한 프레임에 DrawImage 가 70번이 넘었다. 측정은 implementation-notes.md 참고.
+    struct PieceKey {
+        const Gdiplus::Bitmap* bmp = nullptr;
+        int fit = 0;
+        int l = 0, t = 0, r = 0, b = 0;  // 9조각 테두리
+        int devW = 0, devH = 0;          // 장치 픽셀 크기
+        int alphaQ = 0;                  // 투명도(0~255로 양자화)
+        bool operator<(const PieceKey& o) const {
+            return std::tie(bmp, fit, l, t, r, b, devW, devH, alphaQ) <
+                   std::tie(o.bmp, o.fit, o.l, o.t, o.r, o.b, o.devW, o.devH, o.alphaQ);
+        }
+    };
+    struct PieceEntry {
+        std::unique_ptr<Gdiplus::Bitmap> bmp;  // 없으면 "그리지 않는다"는 결과를 캐시한 것
+        Gdiplus::RectF contentDev{};           // 캐시 원점 기준 장치 픽셀
+        bool drawn = false;
+    };
+    std::map<PieceKey, PieceEntry> pieceCache_;
+    size_t pieceCacheBytes_ = 0;
+
+    // 캐시를 거쳐 조각을 그린다. 캐시가 꺼져 있거나 쓸 수 없으면 예전처럼 바로 그린다.
+    bool drawPieceCached(Gdiplus::Graphics& g, const UiPiece& p, const Gdiplus::RectF& dst, float alpha,
+                         float scale, Gdiplus::RectF* content);
+
+public:
+    // 측정 표시에 쓴다(캐시가 실제로 쌓이는지 사람이 볼 수 있게).
+    size_t uiCacheCount() const { return pieceCache_.size(); }
+    size_t uiCacheBytes() const { return pieceCacheBytes_; }
+
+private:
     std::unique_ptr<Gdiplus::FontFamily> family_;
     std::map<int, std::unique_ptr<Gdiplus::Font>> fonts_;
     float width_ = 0.f;
     float height_ = 0.f;
+    // 이번 프레임의 화면 배율. drawOverlay 시작에서 ctx.scale 로 정한다(UI 조각 캐시가 쓴다).
+    float scale_ = 1.f;
     // 한 프레임 동안 쓸 스킨. drawOverlay 시작에서 정한다.
     const Sprites* sprites_ = nullptr;
     std::string skin_ = "default";
