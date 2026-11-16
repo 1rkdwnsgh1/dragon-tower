@@ -26,6 +26,10 @@ jobs:
           New-Item -ItemType Directory -Force dist/DragonTower | Out-Null
           Copy-Item build/Release/dragon_tower.exe dist/DragonTower/
           Copy-Item -Recurse assets dist/DragonTower/assets
+          # 묶음에 넣는 에셋 기준(2026-11-16): 게임이 읽는 것만 넣고 작업용 원본은 뺀다.
+          # assets/references 는 329MB(assets 전체 349MB의 94%)라 넣으면 묶음이 통째로 커지고
+          # 비공개 저장소의 Actions 저장 공간을 혼자 다 쓴다. quality.yml 과 같은 규칙이다.
+          Remove-Item -Recurse -Force dist/DragonTower/assets/references -ErrorAction SilentlyContinue
           Copy-Item README.md dist/DragonTower/
 
       # 비공개 저장소는 Actions 저장 공간이 작다(2026-11-16 가득 차서 업로드가 실패했다).
