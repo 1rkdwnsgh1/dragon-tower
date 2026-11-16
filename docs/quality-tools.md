@@ -154,6 +154,37 @@ gcovr --root . --filter 'src/core/' --txt --sort uncovered-number build-cov
 
 ---
 
+## 7. `tools/fx_preview.py` — 본체 위에 효과를 합성해 본다
+
+`check_sheets.py` 는 시트 **한 장**이 격자에 맞는지만 본다. 이 도구는 **합성 결과**를 본다 —
+`fx_scale`·`fx_offset_x`·`fx_offset_y` 를 적었을 때 효과가 본체 어디에 어떤 크기로 붙는지다.
+
+이 환경은 `src/win` 을 **컴파일만 하고 실행하지 못한다.** 그래서 수치를 적어도 맞는지 볼
+방법이 없었다. 이 도구가 `Renderer::drawFxSheet` 와 **같은 계산**을 파이썬으로 다시 해서
+한 장의 PNG 로 낸다.
+
+```bash
+# dragon.txt 에서 fx= 가 적힌 스킬을 전부 본다
+python3 tools/fx_preview.py --dragon revenant --char-scale 0.5,1.0,10.0 --out /tmp/fx.png
+
+# 시트를 직접 지정해서 수치만 바꿔 가며 본다
+python3 tools/fx_preview.py --body assets/dragons/revenant/skill_pierce.png \
+    --fx assets/dragons/revenant/fx_pierce.png \
+    --fx-scale 1.8 --fx-offset-x 130 --body-render-scale 1.04 --out /tmp/fx.png
+```
+
+- 가로는 **캐릭터 배율 세 가지**(기본 0.5 / 1.0 / 10.0), 세로는 **효과 x 좌우 두 방향**이다.
+- 보정값은 "100% 기준 px" 이고 그리는 쪽에서 `charScale` 을 곱하므로, **세 칸이 서로 똑같이
+  보여야 맞다.** 한 칸이라도 위치가 다르면 곱셈이 빠진 것이다(크기 1000%에서 머리 위 보정이
+  몸통에 파묻히는 그 버그다).
+- `--phase windup|hold|tail` 로 세 단계의 크기·투명도를 바꿔 본다(`fxPhaseLook` 과 같은 값).
+- 그림 안 글자는 **ASCII 로만** 쓴다. 이 환경에 한글 TTF 가 없어 한글은 네모로 나온다.
+  설명은 PR 본문과 이 문서에 쓴다.
+
+**주의**: 2026-11-16 현재 `Renderer::drawFxSheet` 는 보정값에 `charScale` 을 곱하지 않고
+좌우 뒤집기도 하지 않는다. 이 도구는 **고쳐질 쪽**(자동 큐 2번 항목) 기준으로 만들었으므로,
+그 작업이 들어가기 전에는 이 그림과 실제 화면이 다르다.
+
 ## CI (`.github/workflows/quality.yml`)
 
 **이 저장소는 비공개라 Actions 분이 유한하다.** 그래서:
