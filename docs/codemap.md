@@ -97,7 +97,10 @@ tests/                     코어 규칙 검증
 | 스킬 효과(FX) 설정 | `assets/dragons/<키>/dragon.txt` | `fx=`, `fx_front=`, `fx_scale=` ([사용법](../assets/dragons/README.md)) |
 | 효과의 세 단계(발동·지속·잔류) | `src/core/World.cpp` | `Fx::phase`, `Fx::phaseProgress`, `addSkillFx` |
 | 효과 단계 기본 길이·개수 상한 | `include/core/Config.h` | `kFxWindup`, `kFxHold`, `kFxTail`, `kMaxFx` |
-| 효과를 도형으로 그리기 | `src/win/Renderer.cpp` | `drawFx` (시트 그리기는 아직 없다) |
+| 효과를 도형으로 그리기 | `src/win/Renderer.cpp` | `drawFx` (시트가 없는 효과) |
+| 효과를 스프라이트로 그리기 | `src/win/Renderer.cpp` | `drawFxSheet`, `fxPhaseLook`, `findSkillByFx` |
+| 효과 시트 읽기 (`fx_<이름>.png`) | `src/win/Sprites.cpp` | `loadFxSheets`/`fxSheet` |
+| 효과의 앞·뒤 층 나누기 | `src/win/Renderer.cpp` | `drawWorld` 가 `drawFx` 를 두 번 부른다(뒤→앞) |
 | 스킬 칸 수·모션 유지 시간 | `include/core/Species.h`, `include/core/Config.h` | `kSkillSlots`, `cfg::kSkillMotionHold` |
 | 적 행동과 공격 예고 | `src/core/World.cpp` | `updateEnemies`, `resolveZone` |
 | 애니메이션 상태 전환 | `src/core/World.cpp` | `updateDragonAnim`, `setDragonAnim` |

@@ -50,6 +50,7 @@ void Sprites::load(const std::filesystem::path& assetDir) {
         }
         loadSheetsFor(dir, def.anims, def.key, "dragons/" + def.key);
         loadSkillSheets(dir, def, "dragons/" + def.key);  // v1.4 스킬 전용 모션
+        loadFxSheets(dir, def, "dragons/" + def.key);     // v1.6 스킬 효과
     }
 
     // UI 스킨 폴더 (v0.9)
@@ -111,6 +112,31 @@ void Sprites::loadSkillSheets(const std::filesystem::path& dir, const SpeciesDef
         std::string file = "skill_" + sk.motion + ".png";
         loadSheetFile(dir / file, sk.motionAnim, key, label + "/" + file);
     }
+}
+
+// v1.6: 스킬마다 fx= 로 적어 둔 이름의 효과 시트를 읽는다. 규칙은 skill_*.png 와 같다 —
+// 같은 이름을 여러 스킬이 함께 써도 한 번만 읽고, 파일이 없으면 조용히 넘어간다.
+// 그러면 그리는 쪽이 예전처럼 도형으로 그려서 깨진 그림이 나오지 않는다.
+void Sprites::loadFxSheets(const std::filesystem::path& dir, const SpeciesDef& def, const std::string& label) {
+    for (const SkillDef& sk : def.skills) {
+        if (sk.fx.empty()) continue;
+        std::string key = def.key + "/fx_" + sk.fx;
+        if (sheets_.count(key) != 0) continue;  // 다른 스킬이 이미 읽었다
+        std::string file = "fx_" + sk.fx + ".png";
+        loadSheetFile(dir / file, sk.fxAnim, key, label + "/" + file);
+    }
+}
+
+Sheet Sprites::fxSheet(const std::string& speciesKey, const std::string& fxKey) const {
+    Sheet out;
+    if (fxKey.empty()) return out;
+    auto it = sheets_.find(speciesKey + "/fx_" + fxKey);
+    if (it == sheets_.end()) return out;
+    out.bmp = it->second.bmp.get();
+    out.frames = it->second.frames;
+    out.frameW = it->second.frameW;
+    out.frameH = it->second.frameH;
+    return out;
 }
 
 Sheet Sprites::skillSheet(const std::string& speciesKey, const std::string& motion) const {

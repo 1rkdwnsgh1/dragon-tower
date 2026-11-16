@@ -112,7 +112,14 @@ private:
     // 시트의 한 칸만 그린다. frame은 0부터.
     void drawSheetFrame(Gdiplus::Graphics& g, const Sheet& sh, int frame, float cx, float cy, float height, bool flip,
                         float flash, float alpha);
-    void drawFx(Gdiplus::Graphics& g, const World& w);
+    // v1.6: 효과를 한 층만 그린다. inFront 가 false 면 본체 뒤 효과(Fx::inFront == false)만,
+    // true 면 본체 위 효과만 그린다 — 그래서 드래곤 앞뒤로 두 번 부른다.
+    // sp·charScale 은 스프라이트 효과의 크기 기준(본체 크기)과 fx_ 시트를 찾는 데 쓴다.
+    void drawFx(Gdiplus::Graphics& g, const World& w, const Sprites& sprites, const SpeciesDef& sp,
+                float charScale, bool inFront);
+    // 효과 하나를 fx_<key>.png 시트로 그린다. 시트가 없으면 false — 부르는 쪽이 도형으로 그린다.
+    bool drawFxSheet(Gdiplus::Graphics& g, const Fx& f, const Sprites& sprites, const SpeciesDef& sp,
+                     float charScale);
 
     void drawStatusCard(Gdiplus::Graphics& g, const Game& game, const Sprites& sprites, const RenderContext& ctx,
                         std::vector<UiButton>& out);
