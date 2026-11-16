@@ -44,11 +44,14 @@ jobs:
           rm -rf dist/play/DragonTower/assets/references
           cp README.md dist/play/DragonTower/
 
+      # 저장 공간 절약: PR 쪽에서는 올리지 않고 3일만 보관한다(build.yml 주석 참고).
       - uses: actions/upload-artifact@v4
+        if: github.event_name != 'pull_request'
         with:
           name: dragon-tower-mingw-play
           path: dist/play/DragonTower
           if-no-files-found: error
+          retention-days: 3
 
       # --- 2. 새니타이저 (ASan + UBSan) ---
       # 테스트가 "통과"해도 그 안에서 메모리를 잘못 건드리고 있을 수 있다.
@@ -88,6 +91,7 @@ jobs:
           name: sheet-contact-sheet
           path: sheet-contact.png
           if-no-files-found: warn
+          retention-days: 7
 
       # --- 5. 커버리지 (막지는 않고 숫자만 남긴다) ---
       - name: 커버리지
