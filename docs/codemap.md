@@ -70,6 +70,7 @@ tests/                     코어 규칙 검증
 | Windows 코드를 리눅스에서 컴파일 | `tools/check_win_build.sh` | mingw-w64. 푸시 전에 9초. [설명](quality-tools.md) |
 | 정적 분석(기준선과 비교) | `tools/check_static.py` | cppcheck + clang-tidy. 기준선은 `tools/static-baseline.txt` |
 | 스프라이트 시트 격자·크기 검사 | `tools/check_sheets.py` | `--out` 으로 대조표 PNG. 격자 나누기와 그려지는 크기 |
+| FX 합성 미리보기(본체+효과, 배율 3종) | `tools/fx_preview.py` | `--dragon` 또는 `--body`+`--fx`. [설명](quality-tools.md) |
 | 파서 퍼저 | `tests/fuzz/` | `-DDRAGON_BUILD_FUZZERS=ON` (Clang). dragon.txt·enemy.txt·저장 파일 |
 | 품질 CI | `.github/workflows/quality.yml` | 새니타이저·정적 분석·시트·커버리지. 퍼징은 주 1회 |
 | 수치 시뮬레이션 | `tests/balance_sim.cpp` | `main` 에서 에셋을 먼저 읽는다. 탑 층별은 `floorsMode`·`floorsRun`·`climb`, 자동 사냥 생존은 `autoMode`·`autoRun`·`autoPrint` |
@@ -101,11 +102,13 @@ tests/                     코어 규칙 검증
 | 키 1~4와 자동 전투의 스킬 선택 | `src/core/World.cpp` | `slotSkill`, `slotReady`, `dragonAi`의 `castSkills` |
 | 스킬 관리창 그리기 | `src/win/Renderer.cpp` | `drawSkills`, `drawSkillBox` |
 | 스킬별 본체 모션 | `src/win/Sprites.cpp`, `src/win/Renderer.cpp` | `loadSkillSheets`/`skillSheet`, `drawDragon`의 `skillMotion` |
-| 스킬 효과(FX) 설정 | `assets/dragons/<키>/dragon.txt` | `fx=`, `fx_front=`, `fx_scale=` ([사용법](../assets/dragons/README.md)) |
+| 스킬 효과(FX) 설정 | `assets/dragons/<키>/dragon.txt` | `fx=`, `fx_front=`, `fx_scale=`, `fx_offset_x=`, `fx_offset_y=` ([사용법](../assets/dragons/README.md)) |
+| 망령룡 효과 시트 | `assets/dragons/revenant/fx_pierce.png`·`fx_claw.png`·`fx_breath.png` | 8프레임 256칸. 출처는 같은 폴더 `CREDITS.md` |
+| 그림자룡 효과 시트 | `assets/dragons/shadow/fx_claw.png`·`fx_breath.png` | 9·11프레임 256칸. 출처는 같은 폴더 `CREDITS.md` |
 | 효과의 세 단계(발동·지속·잔류) | `src/core/World.cpp` | `Fx::phase`, `Fx::phaseProgress`, `addSkillFx` |
 | 효과 단계 기본 길이·개수 상한 | `include/core/Config.h` | `kFxWindup`, `kFxHold`, `kFxTail`, `kMaxFx` |
 | 효과를 도형으로 그리기 | `src/win/Renderer.cpp` | `drawFx` (시트가 없는 효과) |
-| 효과를 스프라이트로 그리기 | `src/win/Renderer.cpp` | `drawFxSheet`, `fxPhaseLook`, `findSkillByFx` |
+| 효과를 스프라이트로 그리기 | `src/win/Renderer.cpp` | `drawFxSheet`(좌우 뒤집기·`fx_offset_x`·보정값×`charScale`), `fxPhaseLook`, `findSkillByFx` |
 | 효과 시트 읽기 (`fx_<이름>.png`) | `src/win/Sprites.cpp` | `loadFxSheets`/`fxSheet` |
 | 효과의 앞·뒤 층 나누기 | `src/win/Renderer.cpp` | `drawWorld` 가 `drawFx` 를 두 번 부른다(뒤→앞) |
 | 스킬 칸 수·모션 유지 시간 | `include/core/Species.h`, `include/core/Config.h` | `kSkillSlots`, `cfg::kSkillMotionHold` |

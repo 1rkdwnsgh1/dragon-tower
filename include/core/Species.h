@@ -94,7 +94,9 @@ struct SkillDef {
     std::string fx;
     bool fxInFront = true;  // 본체 위에 그리는가. false면 본체 뒤
     float fxScale = 1.f;    // 효과 크기 배율
-    float fxOffsetY = 0.f;  // 본체 기준 세로 보정(px, 위가 음수)
+    // 보정값은 "100% 기준 px"다 — 그릴 때 charScale 을 곱한다(보기 크기 설정과 같이 커진다).
+    float fxOffsetX = 0.f;  // 본체 기준 가로 보정(100% 기준 px, 바라보는 쪽이 양수)
+    float fxOffsetY = 0.f;  // 본체 기준 세로 보정(100% 기준 px, 위가 음수)
     // 발동 → 지속 → 잔류 세 단계의 길이(초). 0이면 cfg::kFx... 기본값을 쓴다.
     float fxWindup = 0.f;
     float fxHold = 0.f;
