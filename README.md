@@ -4,20 +4,16 @@
 
 Windows 바탕화면에서 드래곤을 육성하고 탑에 도전하는 게임입니다. 주 언어는 C++이며 게임 엔진은 사용하지 않습니다. 소리 없이 진행합니다.
 
-- [통합 기획서](docs/game-design.md)
-- [망령룡 캐릭터 기획: 확정 외형과 2D 제작 방향](docs/characters/revenant-dragon.md)
-- [망령룡 스킬 기획 V1 — 콘셉트 제안·기술 설계 대기](docs/characters/revenant-dragon-skills-v1.md)
-- [망령룡 제작 진행사항과 작업 자료 (2026-11-13)](docs/characters/revenant-dragon-progress.md)
-- [복구한 망령룡 스킬 6종 모션·이펙트와 관련 기획](assets/references/revenant-dragon/recovered-2026-11-16/README.md)
-- [개발 로드맵과 체크포인트](docs/roadmap.md)
-- [구현 메모: 임시로 정한 사항과 확인할 것](docs/implementation-notes.md)
-- [이미지 자료 규격과 생성 요청 예시](assets/README.md)
-- [캐릭터 이미지·애니메이션·스킬 적용 기획 (드래곤 추가 구조)](docs/character-pipeline.md)
-- [**드래곤 추가·그림 넣기 사용법**](assets/dragons/README.md)
-- [**적 추가·그림 넣기 사용법**](assets/enemies/README.md)
-- [버전별 바뀐 점](docs/changelog.md)
-- [**코드 지도: 무엇이 어디에 있나**](docs/codemap.md)
-- [AI 작업 비용 기록과 개선](docs/ai-workflow-notes.md)
+## 문서
+
+**문서 목록은 [docs/INDEX.md](docs/INDEX.md) 한 곳에 있다.** 작업별로 무엇을 읽어야 하는지도 거기 있다.
+(목록을 README·`CLAUDE.md`·`AGENTS.md` 세 곳에 나눠 두었더니 서로 달라져서 한 곳으로 모았다.)
+
+처음 왔다면 이 순서로 본다.
+
+1. [docs/STATE.md](docs/STATE.md) — 지금 상태와 막혀 있는 것
+2. [docs/game-design.md](docs/game-design.md) — 통합 기획서 (규칙의 기준)
+3. [docs/INDEX.md](docs/INDEX.md) — 나머지 전부
 
 ## 지금 할 수 있는 것(첫 수직 단면)
 

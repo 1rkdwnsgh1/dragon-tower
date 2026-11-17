@@ -270,7 +270,7 @@ cp -r assets /tmp/a && sed -i 's/^speed=95/speed=180/' /tmp/a/enemies/goblin/ene
 
 **`cfg::kAutoExpCapEnabled` 는 값도 스위치도 건드리지 않는다.** (가)의 `exp_scale` 은 획득
 경험치에 곱하는 값이고 상한 계산과 **다른 자리**다 — 상한을 다시 켤 때 둘이 겹치지 않는지는
-그때 확인할 일로 남긴다([`implementation-notes.md`](implementation-notes.md) 에 적었다).
+그때 확인할 일로 남긴다([`implementation-notes.md`](../implementation-notes.md) 에 적었다).
 
 ---
 

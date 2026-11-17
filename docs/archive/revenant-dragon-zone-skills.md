@@ -118,7 +118,7 @@ Shield·Haste·Zone·PassiveStat·PassiveOnKill 열뿐이고, 기절은 포효�
 것뿐이다). 그래서 이 길은 **코어 작업이 따라붙는다.**
 
 - **얻는 것**: 레벨 3·5가 각각 다른 일을 한다. "저주 축적"이라는
-  [스킬 기획 V1](revenant-dragon-skills-v1.md)의 정체성에 가장 가깝다. 스킬 개수가 줄지 않는다.
+  [스킬 기획 V1](../characters/revenant-dragon-skills-v1.md)의 정체성에 가장 가깝다. 스킬 개수가 줄지 않는다.
 - **잃는 것**: 분류가 `문서`에서 **`코어`로 올라간다**(새 `SkillKind`, 적 쪽 상태 저장, 그리기).
   약화 수치는 또 전부 새 임시값이 되어 다시 검증해야 한다. 적의 수치를 깎는 스킬은
   **체감 난이도를 바꾸므로** 자동 세션이 혼자 정하면 안 되는 자리에 들어간다.
@@ -128,7 +128,7 @@ Shield·Haste·Zone·PassiveStat·PassiveOnKill 열뿐이고, 기절은 포효�
 침식을 남기고 안개를 지운다(또는 안개를 Lv5의 침식 수치로 올려 하나로 만든다). 비는 레벨에
 장판이 아닌 스킬을 새로 넣는다. 지금 망령룡에 **없는** 분류는 `Heal`·`Shield`·`Haste`·`Dash`·
 `PassiveStat` 다섯이고, 다섯 다 **이미 코드에 있어 `dragon.txt` 만으로 넣을 수 있다.**
-[스킬 기획 V1](revenant-dragon-skills-v1.md)이 적어 둔 후보 중 **망계의 숨결**(전방 광역 →
+[스킬 기획 V1](../characters/revenant-dragon-skills-v1.md)이 적어 둔 후보 중 **망계의 숨결**(전방 광역 →
 `Line`)이 코드로 바로 되는 쪽이다.
 
 - **얻는 것**: 중복이 사라지고 레벨마다 다른 보상이 남는다. **분류가 `데이터` 에 머물러**

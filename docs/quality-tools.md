@@ -197,3 +197,21 @@ python3 tools/fx_preview.py --body assets/dragons/revenant/skill_pierce.png \
   찾은 입력은 Actions 캐시에 쌓여 다음 회차가 이어 간다.
 
 분이 모자라면 `on: push` 를 `on: pull_request` 로 줄이는 것이 첫 번째 조정이다.
+
+## 7. `tools/check_docs.py` — 문서 링크와 색인
+
+문서 규칙("같은 것은 한 곳에만", "새 문서는 색인에 추가")은 사람 손으로 지켜지지 않았다.
+목록이 README·`CLAUDE.md`·`AGENTS.md` 세 곳에 갈라져 서로 달라졌고, 문서를 `archive/` 로
+옮겼을 때 안쪽 링크가 깨진 채 남았다. 그래서 기계가 잡을 수 있는 둘만 검사로 만들었다.
+
+```bash
+python3 tools/check_docs.py
+```
+
+1. **깨진 상대 링크** — 문서를 옮기고 링크를 안 고친 것
+2. **`docs/INDEX.md` 미등재** — 색인에 없어서 아무도 찾지 못하는 `docs/` 문서
+
+`assets/references/**/recovered-*/` 는 복구한 원본 보존 문서라 검사에서 뺀다(고치지 않는 것이 목적).
+`docs/archive/` 는 링크만 검사하고 색인 등재는 요구하지 않는다.
+
+CI 에서 가장 먼저 돈다 — 1초이고 설치가 필요 없다.
