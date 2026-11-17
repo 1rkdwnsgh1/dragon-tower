@@ -55,6 +55,68 @@
 - Actions 가 정상으로 돌아왔으면(step 이 실제로 실행되고 통과) 원래 규칙대로 머지한다.
   밀린 PR 은 **표의 순서대로**(1 → 2 → 3) 머지해야 한다 — 뒤 항목이 앞 항목에 의존한다.
 
+- **2026-11-17 01:10 회차 확인**: Actions 는 여전히 멈춰 있다(`build`·`quality` 모두 step 0개 실패,
+  run 43893911426/43893911244). 머지하지 않았다. PR #69·#70·#71 은 그대로 열려 있다.
+  `assets/revenant-skill-fx`(#69·#70 포함) 기준으로 **검증 5단계 전부 로컬 통과**:
+  ctest 2/2, `check_win_build.sh` 문법 통과(mingw-w64 를 이 회차에서 설치해야 했다 — 세션마다 없다),
+  `check_sheets.py` 시트 7개 문제 없음, `asset_check` 경고 없음,
+  `fx_preview.py` 세 배율(0.5/1.0/10.0) 열 3개가 동일 — `charScale` 곱이 들어가 있고 좌우 뒤집기도 맞다.
+  **대기 항목이 없다. 큐는 비었다.**
+
+- **2026-11-17 02:10 회차 확인**: Actions 여전히 멈춤(run 43903541821 `build`: core-linux·windows 둘 다
+  step 0개 실패 / 43903541114 `quality`: quality step 0개 실패). 머지하지 않았다. PR #69·#70·#71 그대로 열림.
+  `assets/revenant-skill-fx` 기준 **검증 5단계 전부 로컬 통과**: ctest 2/2, `check_win_build.sh` 문법 통과
+  (mingw-w64 는 이 회차에서도 다시 설치해야 했다 — `apt-get update` 먼저), `check_sheets.py` 시트 7개 문제 없음,
+  `asset_check` 경고 없음, `fx_preview.py` 출력에서 claw·pierce·breath 3개 x 좌우 2방향 모두 0.5/1.0/10.0
+  세 열이 동일 — `charScale` 곱과 좌우 뒤집기 정상. **대기 항목 없음, 큐는 비었다.**
+
+- **2026-11-17 03:05 회차 확인**: Actions 여전히 멈춤(run 43914503268 `quality`: quality step 0개 실패 /
+  43914503199 `build`: core-linux·windows 둘 다 step 0개 실패). 머지하지 않았다. PR #69·#70·#71 그대로 열림.
+  `assets/revenant-skill-fx` 기준 **검증 5단계 전부 로컬 통과**: ctest 2/2, `check_win_build.sh` 문법 통과
+  (mingw-w64 는 이번에도 세션에 없어 다시 설치했다 — 세 회차 연속이다), `check_sheets.py` 시트 7개 문제 없음,
+  `asset_check` 경고 없음, `fx_preview.py` 출력(1266x2108)을 직접 열어 확인 — claw·pierce·breath 3개 x 좌우 2방향
+  6행 모두 0.5/1.0/10.0 세 열의 그림이 동일하고, 왼쪽 지향 행에서 FX 가 본체 반대편으로 뒤집혀 있다.
+  `charScale` 곱과 좌우 뒤집기 정상. **대기 항목 없음, 큐는 비었다.**
+
+- **2026-11-17 04:05 회차 확인**: Actions 여전히 멈춤(run 43925017757 `build`: core-linux·windows 둘 다
+  step 0개 실패 / 43925017826 `quality`: quality step 0개 실패, fuzz skipped — 03:05 회차 이후 새로 돈 run 은 없다).
+  머지하지 않았다. PR #69·#70·#71 그대로 열림.
+  `assets/revenant-skill-fx`(5b9414a) 기준 **검증 5단계 전부 로컬 통과**: ctest 2/2, `check_win_build.sh` 문법 통과
+  (mingw-w64 는 이번에도 세션에 없어 다시 설치했다 — **네 회차 연속**이다. 세션 이미지에 넣든지 큐 문서에
+  `apt-get install mingw-w64` 를 회차 절차로 못박는 편이 낫다), `check_sheets.py` 시트 7개 문제 없음,
+  `asset_check` 경고 없음, `fx_preview.py` 출력(1266x2108)을 직접 열어 확인 — claw·pierce·breath 3개 x 좌우 2방향
+  6행 모두 0.5/1.0/10.0 세 열의 그림이 완전히 동일(`charScale` 곱 정상)하고, 왼쪽 지향 3행에서 FX 가
+  본체 반대편으로 뒤집혀 있다. **대기 항목 없음, 큐는 비었다.**
+
+- **2026-11-17 05:05 회차 확인**: Actions 여전히 멈춤(run 43935522627 `build`: core-linux·windows 둘 다
+  step 0개 실패 / 43935522720 `quality`: quality step 0개 실패, fuzz skipped — 19:04 UTC 에 새로 돌았지만 증상 동일).
+  머지하지 않았다. PR #69·#70·#71 그대로 열림.
+  `assets/revenant-skill-fx`(5b9414a) 기준 **검증 5단계 전부 로컬 통과**: ctest 2/2, `check_win_build.sh` 문법 통과
+  (mingw-w64 를 이번에도 설치해야 했다 — **다섯 회차 연속**. 세션 이미지에 넣거나 회차 절차에 못박을 것),
+  `check_sheets.py` 시트 7개 문제 없음, `asset_check` 경고 없음,
+  `fx_preview.py` 출력(1266x2108)을 직접 열어 확인 — claw·pierce·breath 3개 x 좌우 2방향 6행 모두
+  0.5/1.0/10.0 세 열의 그림이 완전히 동일(`charScale` 곱 정상)하고, 왼쪽 지향 3행에서 FX 가 본체 반대편으로
+  뒤집혀 있다(발톱은 머리 앞, 관통은 몸 앞 화살, 숨결은 입에서 뻗는 줄기). **대기 항목 없음, 큐는 비었다.**
+
+- **2026-11-17 06:05 회차 확인**: Actions 여전히 멈춤(20:04 UTC 에 새 run 이 돌았으나 증상 동일 —
+  43945924765 `build`: core-linux·windows 둘 다 step 0개 실패 / 43945924807 `quality`: quality step 0개 실패,
+  fuzz skipped). 머지하지 않았다. PR #69·#70·#71 그대로 열림.
+  `assets/revenant-skill-fx`(5b9414a) 기준 **검증 5단계 전부 로컬 통과**: ctest 2/2, `check_win_build.sh` 문법 통과
+  (mingw-w64 를 이번에도 설치해야 했다 — **여섯 회차 연속**), `check_sheets.py` 시트 7개 문제 없음,
+  `asset_check` 경고 없음, `fx_preview.py` 출력(1266x2108)을 직접 열어 확인 — claw·pierce·breath 3개 x 좌우 2방향
+  6행 모두 0.5/1.0/10.0 세 열의 그림이 완전히 동일(`charScale` 곱 정상)하고, 왼쪽 지향 3행에서 FX 가
+  본체 반대편으로 뒤집혀 있다. **대기 항목 없음, 큐는 비었다.**
+
+- **2026-11-17 07:05 회차 확인**: Actions 여전히 멈춤(21:04 UTC 에 새 run 이 돌았으나 증상 동일 —
+  43956268870 `build`: core-linux·windows 둘 다 step 0개 실패 / 43956270020 `quality`: quality step 0개 실패,
+  fuzz skipped). 머지하지 않았다. PR #69·#70·#71 그대로 열림.
+  `assets/revenant-skill-fx`(5b9414a) 기준 **검증 5단계 전부 로컬 통과**: ctest 2/2, `check_win_build.sh` 문법 통과
+  (mingw-w64 를 이번에도 설치해야 했다 — **일곱 회차 연속**), `check_sheets.py` 시트 7개 문제 없음,
+  `asset_check` 경고 없음, `fx_preview.py` 출력(1266x2108)을 직접 열어 확인 — claw·pierce·breath 3개 x 좌우 2방향
+  6행 모두 0.5/1.0/10.0 세 열의 그림이 완전히 동일(`charScale` 곱 정상)하고, 왼쪽 지향 3행에서 FX 가
+  본체 반대편으로 뒤집혀 있다(발톱은 머리 앞, 관통은 몸 앞 화살, 숨결은 입에서 뻗는 줄기).
+  **대기 항목 없음, 큐는 비었다.** 종료 시각(08:00 KST)까지 남은 회차는 한 번뿐이다.
+
 **이 문서의 이 절과 PR #66 자체는 CI 없이 main 에 들어갔다**(사람이 2026-11-16 21:38 허용).
 문서 변경이라 로컬 검증으로 갈음했다. 코드·데이터 항목에는 이 예외를 적용하지 않는다.
 
@@ -71,9 +133,9 @@
 | # | 상태 | 분류 | 브랜치 | 할 일 | 의존 |
 |---|---|---|---|---|---|
 | 0 | **완료** (PR #63, 2026-11-16 21:05) | 에셋 | — | 원본 이미지 main 병합 | — |
-| 1 | 진행 중 (22:05) | 도구 | `tools/fx-preview` | FX 합성 미리보기 도구 | 0 |
-| 2 | 대기 | win | `feat/fx-facing-and-offset` | FX 좌우 뒤집기 + `fx_offset_x` + **보정값에 `charScale` 곱하기** | 1 |
-| 3 | 대기 | 데이터 | `assets/revenant-skill-fx` | 11/15 결정 적용 + FX 시트 3장 + `fx=` 배선 | 2 |
+| 1 | **완료 — CI 불가, 머지 대기** (PR #69) | 도구 | `tools/fx-preview` | FX 합성 미리보기 도구 | 0 |
+| 2 | **완료 — CI 불가, 머지 대기** (PR #70) | win | `feat/fx-facing-and-offset` | FX 좌우 뒤집기 + `fx_offset_x` + **보정값에 `charScale` 곱하기** | 1 |
+| 3 | **완료 — CI 불가, 머지 대기** (PR #71) | 데이터 | `assets/revenant-skill-fx` | 11/15 결정 적용 + FX 시트 3장 + `fx=` 배선 | 2 |
 
 ### 1번 — FX 합성 미리보기 도구 (`tools/fx_preview.py`)
 
