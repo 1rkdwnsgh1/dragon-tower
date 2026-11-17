@@ -56,7 +56,10 @@ def md_files() -> list[Path]:
     for p in ROOT.rglob("*.md"):
         rel = p.relative_to(ROOT)
         parts = rel.parts
-        if ".git" in parts or parts[0:1] == ("build",):
+        # build/·dist/·build-cc/ 는 .gitignore 된 빌드 산출물이다. dist/ 는
+        # check_win_build.sh --link 가 만드는데, 거기 복사된 README 의 상대 링크가
+        # 저장소 기준으로는 전부 깨져 보여 검사가 19건 실패로 끝난다(2026-11-17).
+        if ".git" in parts or parts[0:1] in (("build",), ("dist",), ("build-cc",)):
             continue
         # assets/references/**/recovered-*/ 는 잘못 업로드된 저장소에서 복구한 원본이다.
         # 원본 그대로 두는 것이 목적이므로 링크가 깨져 있어도 고치지 않는다.
