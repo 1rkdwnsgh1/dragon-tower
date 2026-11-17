@@ -41,6 +41,32 @@ Windows 바탕화면에서 드래곤을 육성하고 탑에 도전하는 게임�
 
 GitHub의 **Actions** 탭 → 최근 `build` 실행 → 아래쪽 **Artifacts**의 `DragonTower-windows`를 받아 압축을 풀고 `dragon_tower.exe`를 실행합니다. `assets` 폴더는 실행 파일 옆에 두어야 합니다.
 
+## 받아오기 — `GIT_LFS_SKIP_SMUDGE=1` 를 붙일 것
+
+```bash
+GIT_LFS_SKIP_SMUDGE=1 git clone https://github.com/1rkdwnsgh1/dragon-tower
+```
+
+**빌드·실행·배포 묶음 만들기는 전부 이대로 됩니다.** 게임이 읽는 스프라이트 시트
+(`assets/dragons/`, `assets/enemies/`)는 일반 파일이고, 두 워크플로 모두 배포 묶음에서
+`assets/references` 를 빼기 때문이다.
+
+이 변수를 붙이는 이유는 대역폭이다. `assets/references/revenant-dragon/work-2026-11-13/` 의
+**파츠 분리 백업 14개(합계 285.7MB)만 Git LFS** 로 추적한다. LFS 는 저장소에 132바이트짜리
+포인터만 두고 실물은 GitHub 의 별도 서버에 두는데, **git-lfs 가 깔린 컴퓨터에서 평범하게
+`git clone` 하면 그 285.7MB 가 자동으로 따라온다.** 무료 LFS 대역폭은 월 1GiB 이고
+**저장소 소유자 계정에서만** 깎이므로(fork·pull 포함), clone 세 번이면 그 달 할당이 끝난다.
+초과하면 과금이 아니라 차단이고, `git lfs pull` 이 "over its data quota" 로 실패한다.
+
+### 원본 에셋을 고칠 때만 실물을 받는다
+
+스프라이트 시트를 원본에서 다시 만들 때(`tools/make_sheet.py` 의 입력이 그 zip 안의
+`FINAL_FRAMES` 다)만 필요하다. 285MB 전체가 아니라 **쓸 파일만** 받는다.
+
+```bash
+git lfs pull --include="**/REVENANT_IDLE_FINAL_V1.zip"
+```
+
 ## 직접 빌드
 
 Windows, C++17, CMake 3.20 이상, Visual Studio 2019 이상(데스크톱 C++ 워크로드)이 필요합니다. 그래픽은 Windows에 기본으로 들어 있는 Win32 API와 GDI+만 사용하므로 별도 라이브러리를 설치하지 않습니다.
