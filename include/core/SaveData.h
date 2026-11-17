@@ -48,7 +48,8 @@ struct SaveData {
     float menuScale = 1.f;        // 메뉴 창 크기 배수
     float charScale = 1.f;        // 드래곤·적 크기 배수. 2026-11-17부터 판정에도 쓴다(Config.h 참고)
     bool powerSave = false;       // 조용할 때 다시 그리는 횟수를 줄인다(노트북 절전)
-    // v1.9: 작업표시줄을 드래곤 스킨으로 꾸민다. 스킨에 taskbar.png 가 있을 때만 쓰인다.
+    // v1.9: 작업표시줄 둘레를 드래곤 스킨으로 꾸민다. 스킨에 taskbar.png 가 있을 때만 쓰인다.
+    // 2026-11-17(#77): 작업표시줄을 덮지 않고 바로 바깥쪽에 그린다. 저장 형식은 그대로다.
     // 모르는 키는 무시되므로 이전 저장 파일과 호환된다.
     bool taskbarSkin = true;
     bool menuOpen = false;        // v1.0 메뉴 창을 펼쳐 두었는가(키보드 조작과 무관하게 열린다)
