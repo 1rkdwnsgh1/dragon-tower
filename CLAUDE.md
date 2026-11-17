@@ -23,6 +23,9 @@
 - `tests/` — 핵심 규칙(경험치 상한, 영구 사망 등) 검증 자료
 
 ## 빌드와 실행
+받아올 때는 `GIT_LFS_SKIP_SMUDGE=1 git clone ...` 을 쓴다 — 빌드·배포에 LFS 실물은 필요 없고,
+평범한 clone 은 백업 285MB 를 받아 월 LFS 대역폭(1GiB)을 깎는다 ([README](README.md#받아오기--git_lfs_skip_smudge1-를-붙일-것)).
+
 ```powershell
 cmake -S . -B build
 cmake --build build

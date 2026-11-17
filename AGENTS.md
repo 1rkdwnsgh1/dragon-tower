@@ -21,6 +21,7 @@
 - `docs/ai-workflow-notes.md`: AI 작업 비용 기록과 개선, 이 환경에서 안 되는 것
 - `docs/auto-queue.md`: 예약된 AI 세션이 집어 가는 작업 큐와 진행 상태 (2026-11-15 20:00 종료)
 - `docs/auto-queue-2026-11-16.md`: 망령룡 스킬 이펙트 적용 큐 (2026-11-16 22:00 ~ 11-17 08:00, 1시간 간격)
+- `docs/token-notes-2026-11-16.md`: 토큰 절약 조사 메모 — 실측, 그날 생긴 문제 6건과 해결책, 기법 8개, 더 조사할 질문
 - `docs/team-ai-prompt.md`: 팀원이 쓰는 AI 도구의 프로젝트 지침에 붙여넣을 요약 (이 문서와 `CLAUDE.md`의 요약이므로, 어긋나면 이쪽 둘이 기준)
 - `docs/characters/revenant-dragon-skills-v1.md`: 망령룡 스킬 V1 후보, 현행 구조와의 차이, 기술 설계·순서 승인 대기 사항
 - `docs/characters/revenant-dragon-zone-skills.md`: 망령룡의 장판 스킬 둘(저주의 안개·망령의 침식)이 겹치는 정도와 정리 선택지 세 가지 (사람 결정 대기)
