@@ -253,3 +253,15 @@ name=영혼 수확
 desc=적을 쓰러뜨릴 때 영혼을 거두어 최대 체력의 6%를 회복한다.
 kind=PassiveOnKill
 power=0.06
+; 처치 연출(2026-11-17). soul_orb 9장 + soul_travel 9장을 18장으로 이었다.
+; 쓰러진 적 자리에서 영혼이 솟는다. **체력이 가득 차 회복량이 0이면 뜨지 않는다** —
+; 기존 회복 연출과 같은 조건이다. 늘 띄우려면 코어에서 조건을 바꿔야 한다.
+fx=harvest
+fx_scale=0.8
+fx_offset_x=0
+fx_offset_y=0
+fx_fps=12
+fx_frame_w=256
+fx_windup=0.15
+fx_hold=0.9
+fx_tail=0.45

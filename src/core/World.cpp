@@ -479,7 +479,9 @@ void World::onEnemyKilled(Vec2 at) {
         d.hp = std::min(d.stats.maxHp, d.hp + d.stats.maxHp * s.power);
         float healed = d.hp - before;
         if (healed >= 1.f) {
-            addFx(FxType::Heal, at, d.pos, 44.f, 0.5f, sp.color | 0xFF000000);
+            // 2026-11-17: fx= 를 적은 처치 패시브면 그 시트를, 아니면 전처럼 도형을 띄운다.
+            // 자리는 쓰러진 적(at)이다 — 영혼이 거기서 솟는다.
+            addSkillFx(s, FxType::Heal, at, d.pos, 44.f, 0.5f, sp.color | 0xFF000000);
             addText("+" + intText(healed), d.pos - Vec2{0.f, 64.f}, kColorHeal, 14.f, 0.7f);
         }
     }
