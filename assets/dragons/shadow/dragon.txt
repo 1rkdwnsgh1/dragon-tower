@@ -133,6 +133,21 @@ cooldown=12
 motion=barrier
 motion_fps=10
 motion_frame_w=256
+; 효과 그림(2026-11-17). 생성 12칸 + 유지 12칸을 **한 시트 24장**으로 이었다.
+; 효과 길이는 코드가 아니라 아래 세 값의 합으로 정해진다(World::addSkillFx) — 보호막
+; 지속(duration=3.5)과 맞췄다. 8fps 로 24장이 3.0초, 남은 0.5초는 잔류로 흐려진다.
+; 흡수(shadow_04_barrier_absorb)는 '피해를 막은 순간'에 띄울 자리가 없어 넣지 않았다.
+fx=barrier
+fx_scale=1.35
+fx_offset_x=18
+fx_offset_y=-4
+; 투명도(fx_alpha)는 그 기능이 들어오는 PR #83 이 머지된 뒤에 넣는다 — 지금 적으면
+; "모르는 키" 경고가 난다. 장막은 본체 위에 겹치므로 0.5 안팎이 필요할 것이다.
+fx_fps=8
+fx_frame_w=256
+fx_windup=1.0
+fx_hold=2.0
+fx_tail=0.5
 
 [skill.3]
 name=심연의 송곳니
