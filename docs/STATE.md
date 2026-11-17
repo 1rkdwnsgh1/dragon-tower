@@ -5,7 +5,7 @@
 
 작업을 끝낼 때 이 문서를 같은 PR 에서 고친다. **낡은 상태 문서는 없는 것보다 해롭다.**
 
-최종 갱신: 2026-11-17 (처치 패시브 효과)
+최종 갱신: 2026-11-17 (스킬 효과 그림 일곱 건 병합, 남은 일 정리)
 
 ---
 
@@ -15,10 +15,10 @@
 |---|---|
 | 버전 | **v1.9** (플레이 가능) |
 | 저장소 | **공개(public)** — 2026-11-17 전환 |
-| CI | **정상** (2026-11-17 01:12 `main` build·quality 통과) |
+| CI | **정상** (2026-11-17 16:10 `main` build·quality 통과) |
 | 자동 작업 큐 | **없음** — 두 큐 모두 종료 (11-15 20:00, 11-17 08:00) |
 | 열린 PR | **없음** |
-| 알려진 문제 | **0건** — [known-issues.md](known-issues.md) 세 건 모두 고쳤다 ([#77](https://github.com/1rkdwnsgh1/dragon-tower/issues/77) → #82, [#78](https://github.com/1rkdwnsgh1/dragon-tower/issues/78) → #80, [#79](https://github.com/1rkdwnsgh1/dragon-tower/issues/79) → #83). Windows 확인이 남아 있다 |
+| 알려진 문제 | **1건** — [known-issues.md](known-issues.md) 4번 `make_sheet.py` 가 칸을 꽉 채우는 그림에 안 맞는다(우회 있음). 1~3번은 고쳤다 ([#77](https://github.com/1rkdwnsgh1/dragon-tower/issues/77) → #82, [#78](https://github.com/1rkdwnsgh1/dragon-tower/issues/78) → #80, [#79](https://github.com/1rkdwnsgh1/dragon-tower/issues/79) → #83). **Windows 확인 59~78번이 남아 있다** |
 
 ## 운영 방식
 
@@ -39,8 +39,10 @@
 | 망령룡 스킬 수치·판정 프레임·기술 설계 승인 | 사람 | [characters/revenant-dragon-skills-v1.md 8장](characters/revenant-dragon-skills-v1.md) |
 | 자동 사냥 사망 위험의 허용 수준 | 사람 | [game-design.md 10장](game-design.md#10-확정-사항과-남은-미결정-사항) |
 | 스킬 자동 채움을 끌 수 있게 할지 | 사람 (보류 — 칸을 비워 두고 싶은 사람이 실제로 있는지 먼저 본다) | [decisions.md D](decisions.md#d-망령룡-장판-스킬-중복-2026-11-15) |
-| **FX 투명도를 전역으로 둘지 스킬마다 둘지** — `dragon.txt` 키가 늘어난다 | 사람 | [known-issues.md 3번](known-issues.md) |
 | 작업표시줄 띠가 바탕화면을 얼마나 먹어도 되는지 (지금은 작업표시줄과 같은 높이) | 사람 | [known-issues.md 1번](known-issues.md) |
+| **낙인(중첩)·궁극기(충전) 기능을 만들지** — 그림 4장은 있는데 **게임에 그 개념 자체가 없다**(`SkillKind` 10종에 없고 기획서에 한 글자도 없다). 새 전투 메커니즘 설계다 | 사람 | [characters/revenant-dragon-skill-concepts.md](characters/revenant-dragon-skill-concepts.md) |
+| **죽음의 행렬을 자동으로 할지 수동으로 할지, 영혼을 소모할지** — 정해져야 그림 6장을 붙인다 | 사람 | [characters/revenant-dragon-skills-v1.md](characters/revenant-dragon-skills-v1.md) |
+| **영혼 수확 연출을 체력이 가득 찼을 때도 띄울지** — 지금은 회복량이 0이면 연출도 없다(기존 회복 연출 조건 그대로) | 사람 | [windows-checklist.md 78번](windows-checklist.md) |
 | 드래곤 첫 제작 목표 종 수 (2명 기준으로 다시 정해야 한다) | 사람 | [character-pipeline.md 1장](character-pipeline.md) |
 
 ## 순서가 걸려 있는 것 — 앞 작업이 끝나야 집는다
@@ -50,6 +52,8 @@
 | 깊이감 축 C (사냥터 고르기) | **탑 10층** | [decisions.md C](decisions.md#c-깊이감-축-c--자동-사냥-2026-11-15) |
 | 깊이감 축 B (탑 진입 변주) | **탑 10층 + 층별 보상** | [decisions.md B](decisions.md#b-깊이감-축-b--탑-진입-변주-2026-11-15) |
 | 탑 100층 T2~T8 | T1 완료(2026-11-15) | [tower-100-design.md 6장](tower-100-design.md#6-단계-계획-브랜치-하나--pr-하나) |
+| **스킬 효과 수치 조정**(`fx_alpha`·`fx_scale`·`fx_offset_*`·단계 길이·띠 높이) | **Windows 확인 59~78번** | 이 환경에서는 `src/win` 을 실행할 수 없어 수치가 맞는지 볼 수 없다 |
+| **낙인·궁극기·죽음의 행렬 그림 붙이기** | **위 기획 결정 세 건** | 그림만으로는 못 붙인다 |
 
 ## 사람이 Windows 에서 확인할 것
 
