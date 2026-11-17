@@ -17,8 +17,8 @@
 | 저장소 | **공개(public)** — 2026-11-17 전환 |
 | CI | **정상** (2026-11-17 01:12 `main` build·quality 통과) |
 | 자동 작업 큐 | **없음** — 두 큐 모두 종료 (11-15 20:00, 11-17 08:00) |
-| 열린 PR | **#81** 작업표시줄 띠를 바깥쪽으로 (win — 팀원 검토 대상) |
-| 알려진 문제 | **1건** — [known-issues.md](known-issues.md) 효과 투명도 [#79](https://github.com/1rkdwnsgh1/dragon-tower/issues/79). [#78](https://github.com/1rkdwnsgh1/dragon-tower/issues/78) 크기-사거리는 #80, [#77](https://github.com/1rkdwnsgh1/dragon-tower/issues/77) 작업표시줄은 #81 에서 고쳤다 |
+| 열린 PR | **#82** 작업표시줄 띠를 바깥쪽으로 (win — 팀원 검토 대상) |
+| 알려진 문제 | **1건** — [known-issues.md](known-issues.md) 효과 투명도 [#79](https://github.com/1rkdwnsgh1/dragon-tower/issues/79). [#78](https://github.com/1rkdwnsgh1/dragon-tower/issues/78) 크기-사거리는 #80, [#77](https://github.com/1rkdwnsgh1/dragon-tower/issues/77) 작업표시줄은 #82 에서 고쳤다 |
 
 ## 운영 방식
 
