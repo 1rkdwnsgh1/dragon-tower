@@ -130,6 +130,16 @@ cooldown=4
 power=2.0
 range=380
 ; 원거리 기본 공격과 같은 동작이므로 전용 모션 없이 attack 시트를 쓴다
+; 효과 그림(2026-11-17). 발사체는 두 장을 쓴다 — fx= 는 날아가는 동안 발사체를 따라다니고
+; (반복 재생), fx_impact= 는 맞는 순간 한 번 터진다. 세 단계 값은 맞을 때만 쓰인다.
+fx=bolt
+fx_impact=bolt_hit
+fx_scale=0.55
+fx_fps=14
+fx_frame_w=256
+fx_windup=0.06
+fx_hold=0.12
+fx_tail=0.10
 
 ; 2026-11-15 결정으로 침식과 합쳤다 — 수치를 침식 쪽(cooldown 12 / power 1.3 /
 ; radius 140 / range 340 / duration 5)으로 올렸다. 수치는 전부 임시값이고
@@ -148,6 +158,20 @@ power=1.3
 radius=140
 range=340
 duration=5
+; 효과 그림(2026-11-17). 08_spectral_erosion 의 퍼짐 10칸 + 유지 8칸을 한 시트 18장으로 이었다.
+; 침식이 안개로 합쳐졌으므로(2026-11-15 결정) 그 그림이 곧 안개의 그림이다.
+; 세 단계의 합이 duration(5)과 같아야 한다 — 안 맞추면 잔류가 장판보다 오래 남는다.
+; 땅에 깔리는 것이라 본체 뒤에 그린다(fx_front=no) — 안개 속 적이 안 보이면 곤란하다.
+fx=fog
+fx_front=no
+fx_scale=2.75
+fx_offset_x=0
+fx_offset_y=0
+fx_fps=4
+fx_frame_w=256
+fx_windup=1.2
+fx_hold=3.0
+fx_tail=0.8
 
 [skill.3]
 name=망령의 포효
@@ -178,6 +202,8 @@ motion_render_scale=1.04
 ; FX(v1.6): fx_<이름>.png. 보정값은 100% 기준 px 이고 바라보는 쪽이 양수다.
 ; 8프레임을 세 단계 합(0.10+0.22+0.15=0.47초)에 맞춰 fx_fps = 8 / 0.47 ~= 17 로 역산했다.
 fx=claw
+; 효과가 본체를 덮어 드래곤이 잘 안 보였다(#79). 임시값 — 눈으로 보고 조정한다.
+fx_alpha=0.75
 ; 미리보기(tools/fx_preview.py --fx-frame 3)로 보고 조정했다. 큐 표의 임시값 1.0 은 발톱이
 ; 드래곤을 통째로 덮어 머리가 가려졌다 -> 0.7 로 줄이고 앞으로 더 밀었다(45 -> 60).
 fx_scale=0.7
@@ -206,6 +232,8 @@ motion_frame_w=256
 motion_render_scale=1.04
 ; 8프레임을 세 단계 합(0.15+0.35+0.20=0.70초)에 맞춰 fx_fps = 8 / 0.70 ~= 11 로 역산했다.
 fx=pierce
+; 효과가 본체를 덮어 드래곤이 잘 안 보였다(#79). 임시값 — 눈으로 보고 조정한다.
+fx_alpha=0.7
 fx_scale=1.8
 fx_offset_x=130
 ; 시트 칸은 바닥(y=240/256) 기준으로 그림이 아래쪽에 모여 있다. 가운데에 맞춰 그려지므로
@@ -235,6 +263,8 @@ power=2.6
 range=300
 radius=70
 fx=breath
+; 효과가 본체를 덮어 드래곤이 잘 안 보였다(#79). 임시값 — 눈으로 보고 조정한다.
+fx_alpha=0.65
 fx_scale=2.2
 fx_offset_x=170
 ; 숨결은 그림이 칸 높이의 61% 라 같은 계산으로 약 30px 올린다(위 관통 주석 참고).

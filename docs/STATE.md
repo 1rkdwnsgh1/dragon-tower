@@ -17,8 +17,8 @@
 | 저장소 | **공개(public)** — 2026-11-17 전환 |
 | CI | **정상** (2026-11-17 01:12 `main` build·quality 통과) |
 | 자동 작업 큐 | **없음** — 두 큐 모두 종료 (11-15 20:00, 11-17 08:00) |
-| 열린 PR | **#82** 작업표시줄 · **#83** 효과 투명도 · **#84** 어스름 장막 · **#85** 장판 효과 · **#86** 발사체 효과 · **#87** 처치 패시브 효과 |
-| 알려진 문제 | **2건** — [known-issues.md](known-issues.md) (작업표시줄 가림 [#77](https://github.com/1rkdwnsgh1/dragon-tower/issues/77), 효과 투명도 [#79](https://github.com/1rkdwnsgh1/dragon-tower/issues/79)). 크기-사거리 [#78](https://github.com/1rkdwnsgh1/dragon-tower/issues/78) 은 #80 에서 고쳤다 |
+| 열린 PR | **없음** |
+| 알려진 문제 | **0건** — [known-issues.md](known-issues.md) 세 건 모두 고쳤다 ([#77](https://github.com/1rkdwnsgh1/dragon-tower/issues/77) → #82, [#78](https://github.com/1rkdwnsgh1/dragon-tower/issues/78) → #80, [#79](https://github.com/1rkdwnsgh1/dragon-tower/issues/79) → #83). Windows 확인이 남아 있다 |
 
 ## 운영 방식
 
@@ -40,6 +40,7 @@
 | 자동 사냥 사망 위험의 허용 수준 | 사람 | [game-design.md 10장](game-design.md#10-확정-사항과-남은-미결정-사항) |
 | 스킬 자동 채움을 끌 수 있게 할지 | 사람 (보류 — 칸을 비워 두고 싶은 사람이 실제로 있는지 먼저 본다) | [decisions.md D](decisions.md#d-망령룡-장판-스킬-중복-2026-11-15) |
 | **FX 투명도를 전역으로 둘지 스킬마다 둘지** — `dragon.txt` 키가 늘어난다 | 사람 | [known-issues.md 3번](known-issues.md) |
+| 작업표시줄 띠가 바탕화면을 얼마나 먹어도 되는지 (지금은 작업표시줄과 같은 높이) | 사람 | [known-issues.md 1번](known-issues.md) |
 | 드래곤 첫 제작 목표 종 수 (2명 기준으로 다시 정해야 한다) | 사람 | [character-pipeline.md 1장](character-pipeline.md) |
 
 ## 순서가 걸려 있는 것 — 앞 작업이 끝나야 집는다
