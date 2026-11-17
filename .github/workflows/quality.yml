@@ -33,7 +33,7 @@ jobs:
       # 링크가 깨진 채 남았다. 기계가 잡을 수 있는 것만 검사한다(링크·색인·archive 역류·STATE 갱신).
       #
       # PR 에서는 STATE.md 갱신까지 본다. merge-base 가 필요해서 base 브랜치를 얕게 받아 온다.
-      # 상태가 정말 안 바뀐 PR 은 커밋 메시지에 [state-skip] 을 넣는다.
+      # 상태가 정말 안 바뀐 PR 은 커밋 메시지에 `State-Skip: <이유>` 줄을 넣는다.
       - name: 문서 링크·색인·STATE 검사
         run: |
           if [ "${{ github.event_name }}" = "pull_request" ]; then

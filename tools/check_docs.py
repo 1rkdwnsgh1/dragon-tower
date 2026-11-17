@@ -14,7 +14,8 @@
     python3 tools/check_docs.py                      # 1~3
     python3 tools/check_docs.py --pr-base origin/main  # 1~4 (CI 의 PR 검사)
 
-STATE 검사를 건너뛰어야 하는 PR(에셋만 바꿈, 오타 수정 등)은 커밋 메시지에 `[state-skip]` 을 넣는다.
+STATE 검사를 건너뛰어야 하는 PR(에셋만 바꿈, 오타 수정 등)은 커밋 메시지에
+`State-Skip: <이유>` 줄을 넣는다 — 줄 머리에 와야 한다.
 """
 from __future__ import annotations
 
@@ -149,8 +150,12 @@ def check_state_updated(pr_base: str) -> list[str]:
     changed = [p for p in _git("diff", "--name-only", f"{merge_base}..HEAD").split("\n") if p]
     messages = _git("log", "--format=%B", f"{merge_base}..HEAD")
 
-    if "[state-skip]" in messages:
-        print("STATE 검사: 커밋 메시지의 [state-skip] 로 건너뛴다")
+    # 탈출구는 git trailer 형식의 독립된 줄이어야 한다. 처음에는 본문 어디든 `[state-skip]` 이
+    # 있으면 건너뛰게 했는데, **탈출구를 설명하는 커밋 메시지가 스스로 검사를 껐다.**
+    # 줄 머리의 `State-Skip:` + 이유로 바꿔서 산문에 우연히 걸리지 않게 했고, 이유를 적게 만들었다.
+    skip = re.search(r"^State-Skip:[ \t]*(\S.*)$", messages, re.MULTILINE)
+    if skip:
+        print(f"STATE 검사: 건너뛴다 — {skip.group(1).strip()}")
         return []
     if "docs/STATE.md" in changed:
         return []
@@ -172,7 +177,7 @@ def check_state_updated(pr_base: str) -> list[str]:
         "docs/STATE.md 를 고치지 않았다 — 이 PR 은 "
         f"{len(relevant)}개 파일을 바꾼다 (예: {', '.join(relevant[:3])})\n"
         "      버전·CI·열린 PR·막혀 있는 것·순서 제약 중 바뀐 것을 반영하고 '최종 갱신' 날짜를 고친다.\n"
-        "      상태가 정말 그대로라면 커밋 메시지에 [state-skip] 을 넣는다."
+        "      상태가 정말 그대로라면 커밋 메시지에 `State-Skip: <이유>` 줄을 넣는다."
     ]
 
 

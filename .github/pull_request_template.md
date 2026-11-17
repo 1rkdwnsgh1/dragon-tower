@@ -8,7 +8,7 @@
 - [ ] `src/win` 을 고쳤으면 `tools/check_win_build.sh --link`
 - [ ] 문서를 옮기거나 추가했으면 `python3 tools/check_docs.py`
 - [ ] **`docs/STATE.md` 갱신** — 버전·CI·열린 PR·막혀 있는 것·순서 제약 중 바뀐 것과 '최종 갱신' 날짜
-      <br>상태가 정말 그대로라면 커밋 메시지에 `[state-skip]` 을 넣는다 (CI 가 검사한다)
+      <br>상태가 정말 그대로라면 커밋 메시지에 `State-Skip: <이유>` 줄을 넣는다 (CI 가 검사한다)
 - [ ] 결정이 생겼으면 `docs/decisions.md` 에 한 줄, 게임 규칙이면 `docs/game-design.md` 10장
 
 ## 작업 중 생긴 문제
