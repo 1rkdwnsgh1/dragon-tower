@@ -25,6 +25,7 @@ tests/                     코어 규칙 검증
 | 레벨 곡선, 자동 경험치 상한 | `src/core/Progression.cpp` | `expToNext`, `autoExpCap` |
 | 종 추가·조회 방식 | `src/core/Species.cpp` | `registry`, `registerOrUpdateSpecies` |
 | 적 종류·능력치·행동 | `assets/enemies/<키>/enemy.txt` | (코드 아님) |
+| 탑 100층용 대기 그림(게임이 읽지 않음) | `assets/enemies/_tower/<키>/` | T4 에서 `assets/enemies/<키>/` 로 옮긴다([안내](../assets/enemies/_tower/README.md)) |
 | 내장 적 4종의 기본값 | `src/core/Enemy.cpp` | `makeSlime`, `makeGoblin`, `makeOgre`, `makeLich` |
 | 적 추가·조회 방식 | `src/core/Enemy.cpp` | `registerOrUpdateEnemy`, `defaultMelee`, `defaultBoss` |
 | `enemy.txt` 읽는 규칙 | `src/core/DragonData.cpp` | `parseEnemyText`, `loadEnemyFolders` |

@@ -9,6 +9,8 @@ name=정예 고블린 궁수
 role=melee
 desc=거리를 두고 활을 쏜다. 붙으면 약하다.
 color=FFC9D98A
+; 2026-11-16 새 그림은 오른쪽을 본다(기본값 left 와 반대).
+art_facing=right
 art_from=goblin
 
 hp=34
@@ -33,28 +35,36 @@ windup=1.10
 attack_cooldown=2.6
 
 ; ---- 애니메이션 ----
+; 2026-11-16 새 그림(12프레임, 오른쪽 지향)으로 바꿨다. 다섯 시트가 같은 배율이라
+; 동작마다 render_scale 로 맞출 필요가 없다.
+; 새 고블린은 칸 안에 작게 들어가 있어(공격 때 창을 앞으로 뻗기 때문) 예전 크기에 맞춰
+; 모든 동작을 1.2배로 그린다.
 [anim.idle]
 fps=6
 loop=yes
 frame_w=256
+render_scale=1.2
 
 [anim.move]
 fps=8
 loop=yes
 frame_w=256
+render_scale=1.2
 
 [anim.attack]
 fps=8
 loop=no
 frame_w=256
-render_scale=1.01
+render_scale=1.2
 
 [anim.hit]
 fps=8
 loop=no
 frame_w=256
+render_scale=1.2
 
 [anim.death]
 fps=6
 loop=no
 frame_w=256
+render_scale=1.2

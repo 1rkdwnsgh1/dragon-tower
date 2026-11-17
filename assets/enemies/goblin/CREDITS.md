@@ -2,13 +2,10 @@
 
 | 파일 | 원본 | 변환 |
 |---|---|---|
-| `idle.png` `move.png` `hit.png` `death.png` | 이전 프로젝트 `kospher123-sys/dragon_` 의 `public/img/monsters-desk.png` (goblin 행) | `tools/make_sheet.py --mirror` 한 번 |
-| `attack.png` | 같은 저장소 `public/img/monsters.png` (goblin 행 2~3열) | 같은 도구, 따로 변환 후 `render_scale`로 크기 보정 |
+| `idle.png` `move.png` `attack.png` `hit.png` `death.png` | 사용자가 준 몬스터 생성본(2026-11-16) `monsters-12frames` 의 `고블린` 아틀라스(12열 × 5행, 1942×809) | 알파 덩어리를 칸마다 나눠 가로 한 줄 256×256 시트로, 발을 (128, 240)에 맞춤. 60칸 공통 배율 |
 
-같은 팀이 이전에 만든 자료를 옮겨 왔다. 생성형 AI로 만든 그림이다.
-원본은 왼쪽 지향이라 `--mirror`로 뒤집었다.
-
-## 주의
-
-`attack.png`는 다른 시트에서 왔고 원본 칸 크기가 달라, `enemy.txt`의 `render_scale`로 크기를 맞췄다.
-값을 바꾸려면 대기 동작과 나란히 놓고 몸 크기를 비교해 정한다.
+- 제작: OpenAI built-in imagegen(사용자가 Codex로 생성). 생성형 AI 그림이다.
+- 프롬프트: 원본 묶음의 `manifest.json`.
+- 원본이 오른쪽을 보므로 뒤집지 않았다. `enemy.txt` 에 `art_facing=right`.
+- 원본 칸이 작아(약 162px) 칸에 맞추며 확대했다. 화면에서 크게 그리면 조금 흐릴 수 있다.
+- 예전 그림(이전 프로젝트 `kospher123-sys/dragon_` 에서 옮긴 것)은 이 PR 에서 교체했다. 기록은 git 이력에 있다.
