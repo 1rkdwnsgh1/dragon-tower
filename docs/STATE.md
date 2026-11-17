@@ -5,7 +5,7 @@
 
 작업을 끝낼 때 이 문서를 같은 PR 에서 고친다. **낡은 상태 문서는 없는 것보다 해롭다.**
 
-최종 갱신: 2026-11-17 (어스름 장막 효과)
+최종 갱신: 2026-11-17 (장판 효과)
 
 ---
 
@@ -17,7 +17,7 @@
 | 저장소 | **공개(public)** — 2026-11-17 전환 |
 | CI | **정상** (2026-11-17 01:12 `main` build·quality 통과) |
 | 자동 작업 큐 | **없음** — 두 큐 모두 종료 (11-15 20:00, 11-17 08:00) |
-| 열린 PR | **#85** 장판 효과 · **#86** 발사체 효과 · **#87** 처치 패시브 효과 |
+| 열린 PR | **#86** 발사체 효과 · **#87** 처치 패시브 효과 |
 | 알려진 문제 | **0건** — [known-issues.md](known-issues.md) 세 건 모두 고쳤다 ([#77](https://github.com/1rkdwnsgh1/dragon-tower/issues/77) → #82, [#78](https://github.com/1rkdwnsgh1/dragon-tower/issues/78) → #80, [#79](https://github.com/1rkdwnsgh1/dragon-tower/issues/79) → #83). Windows 확인이 남아 있다 |
 
 ## 운영 방식
