@@ -5,7 +5,7 @@
 
 작업을 끝낼 때 이 문서를 같은 PR 에서 고친다. **낡은 상태 문서는 없는 것보다 해롭다.**
 
-최종 갱신: 2026-11-17 (크기 비례 판정)
+최종 갱신: 2026-11-17 (효과 투명도)
 
 ---
 
@@ -39,7 +39,6 @@
 | 망령룡 스킬 수치·판정 프레임·기술 설계 승인 | 사람 | [characters/revenant-dragon-skills-v1.md 8장](characters/revenant-dragon-skills-v1.md) |
 | 자동 사냥 사망 위험의 허용 수준 | 사람 | [game-design.md 10장](game-design.md#10-확정-사항과-남은-미결정-사항) |
 | 스킬 자동 채움을 끌 수 있게 할지 | 사람 (보류 — 칸을 비워 두고 싶은 사람이 실제로 있는지 먼저 본다) | [decisions.md D](decisions.md#d-망령룡-장판-스킬-중복-2026-11-15) |
-| **FX 투명도를 전역으로 둘지 스킬마다 둘지** — `dragon.txt` 키가 늘어난다 | 사람 | [known-issues.md 3번](known-issues.md) |
 | 드래곤 첫 제작 목표 종 수 (2명 기준으로 다시 정해야 한다) | 사람 | [character-pipeline.md 1장](character-pipeline.md) |
 
 ## 순서가 걸려 있는 것 — 앞 작업이 끝나야 집는다
