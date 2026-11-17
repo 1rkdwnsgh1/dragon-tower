@@ -91,13 +91,31 @@ render_scale=1.04
 ; 1774x887 이라 444 칸으로 정확히 나뉘지 않는다 -> 낱장 프레임 폴더를 쓸 것.
 ; 나머지 셋의 _atlas.png 는 1776x888 이라 격자로 잘라도 같은 결과가 나온다(확인함).
 
+; 스킬 효과(FX) 시트 세 장을 만든 명령(2026-11-16, 자동 큐 3번).
+; 원본은 assets/references/revenant-dragon/recovered-2026-11-16/original 의 낱장 8프레임이고
+; 왼쪽 지향이라 --mirror 로 뒤집었다. 각 폴더에는 _atlas.png·_source_sheet.png 가 섞여 있어
+; **낱장 8장만 따로 모아서** 돌렸다(섞인 채로 돌리면 시트가 프레임 10장으로 잡힌다).
+;   for k in pierce claw breath; do
+;     python tools/make_sheet.py --set fx_$k=<낱장 8장 폴더> \
+;       --mirror --cell 256 --ratio 0.95 -o assets/dragons/revenant
+;   done
+; 본체 시트와 달리 --ref·--ratio 로 몸 크기에 맞추지 않고 **한 장씩 따로** 돌렸다 —
+; FX 는 본체 높이 기준 fx_scale 로 맞추므로 칸을 꽉 쓰는 쪽이 낫고, 세 효과는 서로
+; 크기를 맞출 이유가 없다. 셋 다 8프레임 / 2048x256 / frame_w=256 이고, 가로가 긴 그림이라
+; 칸 높이의 31%(관통)·93%(발톱)·61%(숨결)까지만 찼다(가로 폭이 먼저 칸에 닿는다).
+
 ; ---------------------------------------------------------------------------
 ; 스킬 (v1.4)
 ; level= 을 적지 않으면 "아직 비어 있는 가장 낮은 레벨"이 순서대로 배정된다.
 ; 1~3번은 v0.2부터 있던 임시 스킬이라 레벨을 그대로 두었다(PR #6의 "기존 임시 스킬을
 ; 새 V1로 개명·교체하지 않는다"를 따른다). 4번 이후가 이번에 더한 것이다.
 ; 결과: Lv1 영혼 탄 / Lv2 망자의 발톱 / Lv3 저주의 안개 / Lv4 혼령 관통 /
-;       Lv5 망령의 침식 / Lv6 망령의 포효 / Lv7 영혼 수확(패시브)
+;       Lv5 망계의 숨결 / Lv6 망령의 포효 / Lv7 영혼 수확(패시브)
+;
+; 2026-11-15 결정(docs/characters/revenant-dragon-zone-skills.md 7절): 저주의 안개와
+; 망령의 침식을 **합친다.** 안개(skill.2)를 남겨 침식의 수치로 올리고, 비는 skill.6 자리에
+; 망계의 숨결(Line)을 넣었다. 안개를 지우지 않은 이유는 지우면 스킬 인덱스가 밀려
+; 저장 파일의 장착 칸이 어긋나기 때문이다.
 ;
 ; motion= 은 스킬을 쓸 때 재생할 전용 본체 모션이다. 파일은 skill_<motion>.png.
 ; 적지 않으면 공용 attack 시트로 그려진다.
@@ -113,16 +131,21 @@ power=2.0
 range=380
 ; 원거리 기본 공격과 같은 동작이므로 전용 모션 없이 attack 시트를 쓴다
 
+; 2026-11-15 결정으로 침식과 합쳤다 — 수치를 침식 쪽(cooldown 12 / power 1.3 /
+; radius 140 / range 340 / duration 5)으로 올렸다. 수치는 전부 임시값이고
+; tests/balance_sim.cpp 로 다시 재서 조정한다.
+; fx= 는 아직 주지 않는다 — Zone 은 지속이 길어 3단계 FX 를 맞추는 설계가 먼저다
+; (docs/implementation-notes.md 의 기존 결정). 큐 8번에서 함께 본다.
 [skill.2]
 name=저주의 안개
-desc=적 위치에 안개를 깔아 계속 피해를 준다.
+desc=적 위치에 짙은 안개를 넓게 깔아 계속 갉아낸다.
 kind=Zone
 level=3
-cooldown=9
-power=1.0
-radius=100
-range=360
-duration=4
+cooldown=12
+power=1.3
+radius=140
+range=340
+duration=5
 
 [skill.3]
 name=망령의 포효
@@ -148,6 +171,20 @@ motion=melee
 motion_fps=11
 motion_frame_w=256
 motion_render_scale=1.04
+; FX(v1.6): fx_<이름>.png. 보정값은 100% 기준 px 이고 바라보는 쪽이 양수다.
+; 8프레임을 세 단계 합(0.10+0.22+0.15=0.47초)에 맞춰 fx_fps = 8 / 0.47 ~= 17 로 역산했다.
+fx=claw
+; 미리보기(tools/fx_preview.py --fx-frame 3)로 보고 조정했다. 큐 표의 임시값 1.0 은 발톱이
+; 드래곤을 통째로 덮어 머리가 가려졌다 -> 0.7 로 줄이고 앞으로 더 밀었다(45 -> 60).
+fx_scale=0.7
+fx_offset_x=60
+; 발톱 그림은 칸을 거의 꽉 채워(93%) 칸 중심과 그림 중심이 거의 같다 -> 세로 보정은 조금만
+fx_offset_y=-8
+fx_fps=17
+fx_frame_w=256
+fx_windup=0.10
+fx_hold=0.22
+fx_tail=0.15
 
 [skill.5]
 name=혼령 관통
@@ -161,20 +198,44 @@ motion=pierce
 motion_fps=12
 motion_frame_w=256
 motion_render_scale=1.04
+; 8프레임을 세 단계 합(0.15+0.35+0.20=0.70초)에 맞춰 fx_fps = 8 / 0.70 ~= 11 로 역산했다.
+fx=pierce
+fx_scale=1.8
+fx_offset_x=130
+; 시트 칸은 바닥(y=240/256) 기준으로 그림이 아래쪽에 모여 있다. 가운데에 맞춰 그려지므로
+; 그대로 두면 효과가 발밑으로 내려간다 -> 칸 안 그림 중심만큼 올린다.
+; 관통은 그림이 칸 높이의 31% 라 ((240 - 0.31*256/2)/256 - 0.5) * (base*1.8) = 약 52px.
+fx_offset_y=-52
+fx_fps=11
+fx_frame_w=256
+fx_windup=0.15
+fx_hold=0.35
+fx_tail=0.20
 
+; 2026-11-15 결정으로 망령의 침식(Zone)이 안개와 합쳐져 없어지고, 그 자리에
+; 망계의 숨결(Line)이 들어왔다. 수치는 전부 임시값이다 — 관통(power 3.0 / cooldown 9)보다
+; 세고 느린 "강력한 일반 스킬"로 두었다(docs/characters/revenant-dragon-skills-v1.md 3절).
+; 전용 본체 모션은 아직 없어 공용 attack 시트로 그려진다. 침식용 skill_erosion.png 는
+; 당장 쓰이지 않지만 지우지 않고 둔다(안개에 모션을 줄 때 쓸 수 있다).
+; 8프레임을 세 단계 합(0.18+0.45+0.25=0.88초)에 맞춰 fx_fps = 8 / 0.88 ~= 9 로 역산했다.
 [skill.6]
-name=망령의 침식
-desc=저주의 안개를 넓게 흘려 적을 갉아낸다.
-kind=Zone
-cooldown=12
-power=1.3
-radius=140
-range=340
-duration=5
-motion=erosion
-motion_fps=8
-motion_frame_w=256
-motion_render_scale=1.04
+name=망계의 숨결
+desc=턱을 열어 전방으로 거대한 영혼 격류를 쏟아낸다.
+kind=Line
+cooldown=14
+power=2.6
+range=300
+radius=70
+fx=breath
+fx_scale=2.2
+fx_offset_x=170
+; 숨결은 그림이 칸 높이의 61% 라 같은 계산으로 약 30px 올린다(위 관통 주석 참고).
+fx_offset_y=-30
+fx_fps=9
+fx_frame_w=256
+fx_windup=0.18
+fx_hold=0.45
+fx_tail=0.25
 
 ; 패시브 — 장착 칸을 쓰지 않는다. 해제되면 항상 적용된다.
 ; 본체 모션(skill_harvest.png)은 변환해 두었지만 패시브는 발동 모션이 없어 아직 쓰이지 않는다.

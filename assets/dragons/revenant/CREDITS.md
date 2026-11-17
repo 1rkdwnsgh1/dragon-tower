@@ -37,8 +37,24 @@ python tools/make_sheet.py --mirror -o assets/dragons/revenant \
 
 이 패키지도 검수 전 자료다. 새 패키지의 날개막이 기존 대기보다 덜 손상돼 보이는 점은 검수에서 확인해야 한다.
 
+## 2026-11-16 추가 (자동 큐 3번) — 스킬 효과(FX) 시트
+
+| 파일 | 원본 (`references/revenant-dragon/recovered-2026-11-16/original/`) |
+|---|---|
+| `fx_pierce.png` | `04_spirit_pierce_effects/piercing_attack/piercing_attack_01..08.png` (혼령 관통) |
+| `fx_claw.png` | `02_basic_attack_effects/claw_slash/claw_slash_01..08.png` (망자의 발톱) |
+| `fx_breath.png` | `10_underworld_breath_effects/sustained_stream/sustained_stream_01..08.png` (망계의 숨결) |
+
+셋 다 낱장 8프레임을 `tools/make_sheet.py --mirror --cell 256 --ratio 0.95` 로 **한 장씩 따로**
+변환했다(본체 시트와 달리 서로 크기를 맞추지 않는다 — 이유는 `dragon.txt` 주석에 있다).
+원본 폴더에는 `_atlas.png`·`_source_sheet.png` 가 함께 들어 있어 폴더째 넘기면 프레임이
+10장으로 잡힌다. **낱장 8장만 따로 모아 넘길 것.**
+
+이 패키지도 검수 전 자료다.
+
 ## 아직 없는 것
 
 - `hit.png` `death.png` — 제작 전. 지금은 `idle.png`로 대신 그려진다.
-- 스킬 효과(FX) — 효과 전용 그리기 코드가 없어 원본만 보관 중이다.
+- 스킬 효과(FX) — 위 세 장(관통·발톱·숨결)은 넣었다. 나머지(영혼 수확·침식·죽음의 행렬·영혼 탄)는
+  발동 경로나 설계가 아직 없어 원본만 보관 중이다.
 - 영혼 안개(`SOUL_MIST`) — 별도 레이어 합성이 필요해 현재 구조로는 쓸 수 없다.
