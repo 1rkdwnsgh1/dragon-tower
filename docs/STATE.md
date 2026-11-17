@@ -17,8 +17,8 @@
 | 저장소 | **공개(public)** — 2026-11-17 전환 |
 | CI | **정상** (2026-11-17 01:12 `main` build·quality 통과) |
 | 자동 작업 큐 | **없음** — 두 큐 모두 종료 (11-15 20:00, 11-17 08:00) |
-| 열린 PR | **#80** 크기 비례 판정 (코어 — 팀원 검토 대상) |
-| 알려진 문제 | **2건** — [known-issues.md](known-issues.md) (작업표시줄 가림 [#77](https://github.com/1rkdwnsgh1/dragon-tower/issues/77), 효과 투명도 [#79](https://github.com/1rkdwnsgh1/dragon-tower/issues/79)). 크기-사거리 [#78](https://github.com/1rkdwnsgh1/dragon-tower/issues/78) 은 #80 에서 고쳤다 |
+| 열린 PR | **#82** 작업표시줄 띠를 바깥쪽으로 · **#83** 효과 투명도 `fx_alpha` (둘 다 win — 팀원 검토 대상) |
+| 알려진 문제 | **0건** — [known-issues.md](known-issues.md) 세 건 모두 고쳤다 ([#77](https://github.com/1rkdwnsgh1/dragon-tower/issues/77) → #82, [#78](https://github.com/1rkdwnsgh1/dragon-tower/issues/78) → #80, [#79](https://github.com/1rkdwnsgh1/dragon-tower/issues/79) → #83). Windows 확인이 남아 있다 |
 
 ## 운영 방식
 
