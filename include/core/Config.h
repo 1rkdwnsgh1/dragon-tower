@@ -98,7 +98,10 @@ constexpr float kMenuScaleMax = 1.6f;
 constexpr float kMenuScaleStep = 0.1f;
 // v1.4: 메뉴 모서리를 끌 때 배수 1.0이 바뀌는 데 필요한 픽셀 수. 클수록 천천히 바뀐다.
 constexpr float kMenuScaleDragPx = 420.f;
-constexpr float kCharScaleMin = 0.5f;   // 캐릭터 크기는 보기 전용이다. 판정 크기는 바뀌지 않는다
+// 캐릭터 크기는 2026-11-17부터 **판정에도** 쓴다(그전에는 보기 전용이었다).
+// 몸 반지름(드래곤·몬스터)과 몬스터 공격 사거리는 항상 따라 커지고,
+// 스킬 판정 반경은 `scale_with_size` 를 켠 스킬만 커진다. 스킬 사거리는 커지지 않는다.
+constexpr float kCharScaleMin = 0.5f;
 // v1.9: 상한을 2.0 → 10.0(1000%)으로 올렸다. 그림만 커지고 맞는 거리·공격 범위는 그대로다.
 // 아주 크게 키우면 드래곤이 화면 밖으로 삐져나와 보이는데, 서 있는 자리(판정)는 화면 안이라 정상이다.
 constexpr float kCharScaleMax = 10.0f;

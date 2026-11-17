@@ -140,6 +140,8 @@ range=380
 name=저주의 안개
 desc=적 위치에 짙은 안개를 넓게 깔아 계속 갉아낸다.
 kind=Zone
+; 몸집이 커지면 판정 반경도 같이 커진다(2026-11-17). 사거리는 커지지 않는다.
+scale_with_size=yes
 level=3
 cooldown=12
 power=1.3
@@ -151,6 +153,8 @@ duration=5
 name=망령의 포효
 desc=주변 적에게 피해를 주고 잠시 기절시킨다.
 kind=Burst
+; 몸집이 커지면 판정 반경도 같이 커진다(2026-11-17). 사거리는 커지지 않는다.
+scale_with_size=yes
 level=6
 cooldown=10
 power=1.8
@@ -190,6 +194,8 @@ fx_tail=0.15
 name=혼령 관통
 desc=영혼 창을 응축해 앞의 적을 꿰뚫는다.
 kind=Line
+; 몸집이 커지면 판정 반경도 같이 커진다(2026-11-17). 사거리는 커지지 않는다.
+scale_with_size=yes
 cooldown=9
 power=3.0
 range=360
@@ -222,6 +228,8 @@ fx_tail=0.20
 name=망계의 숨결
 desc=턱을 열어 전방으로 거대한 영혼 격류를 쏟아낸다.
 kind=Line
+; 몸집이 커지면 판정 반경도 같이 커진다(2026-11-17). 사거리는 커지지 않는다.
+scale_with_size=yes
 cooldown=14
 power=2.6
 range=300

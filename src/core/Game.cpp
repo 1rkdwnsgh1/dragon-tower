@@ -25,6 +25,7 @@ void Game::init(const SaveData& save, const RectF& desktop) {
     desktop_ = desktop;
     world_.setBounds(desktop_);
     world_.setKeepRange(save_.keepRange);  // 저장해 둔 간격을 이어서 쓴다
+    world_.setSizeScale(save_.charScale);  // 저장해 둔 보기 크기를 판정에도 쓴다
     addingDragon_ = false;
     if (save_.hasDragon) {
         const DragonRecord& d = save_.dragon;
@@ -114,6 +115,7 @@ void Game::setCharScale(float s) {
     float v = std::clamp(s, cfg::kCharScaleMin, cfg::kCharScaleMax);
     if (save_.charScale == v) return;
     save_.charScale = v;
+    world_.setSizeScale(v);  // 판정 크기도 같이 바뀐다(2026-11-17)
     saveRequested_ = true;
 }
 

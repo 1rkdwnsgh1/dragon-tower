@@ -46,7 +46,7 @@ struct SaveData {
     float menuX = -1.f;           // 메뉴 창 왼쪽 위 좌표. -1이면 기본 위치
     float menuY = -1.f;
     float menuScale = 1.f;        // 메뉴 창 크기 배수
-    float charScale = 1.f;        // 화면에 보이는 드래곤·적 크기 배수(보기 전용, 판정은 그대로)
+    float charScale = 1.f;        // 드래곤·적 크기 배수. 2026-11-17부터 판정에도 쓴다(Config.h 참고)
     bool powerSave = false;       // 조용할 때 다시 그리는 횟수를 줄인다(노트북 절전)
     // v1.9: 작업표시줄을 드래곤 스킨으로 꾸민다. 스킨에 taskbar.png 가 있을 때만 쓰인다.
     // 모르는 키는 무시되므로 이전 저장 파일과 호환된다.

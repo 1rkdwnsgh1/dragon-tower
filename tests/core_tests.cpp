@@ -1922,6 +1922,39 @@ static void testActiveDragonHpSaved() {
     CHECK(g2.world().dragon().hp < maxHp * 0.5f);
 }
 
+
+// 보기 크기가 판정에도 쓰이는지 (2026-11-17)
+// - scale_with_size 를 켠 스킬만 반경이 커진다
+// - 사거리(range)는 켜도 커지지 않는다
+// - 100% 에서는 예전과 완전히 같아야 한다(균형이 바뀌면 안 된다)
+static void testSizeScaledHitbox() {
+    std::printf("[size-scaled-hitbox]\n");
+    std::string text =
+        "[dragon]\nname=크기시험\n"
+        "[skill.1]\nname=넓어지는장판\nkind=Burst\nradius=100\nrange=200\nscale_with_size=yes\n"
+        "[skill.2]\nname=그대로장판\nkind=Burst\nradius=100\nrange=200\n";
+    DragonParseResult r = parseDragonText(text, "sizetest", nullptr);
+    // 파서가 뒤에 기본 스킬을 채우므로 개수는 2개 이상이면 된다
+    CHECK(r.def.skills.size() >= 2);
+    CHECK(r.def.skills[0].scaleWithSize == true);
+    CHECK(r.def.skills[1].scaleWithSize == false);
+
+    World w;
+    CHECK(std::fabs(w.sizeScale() - 1.f) < 0.001f);  // 기본은 100%
+    // 100% 에서는 둘 다 적힌 값 그대로다 — 기존 균형이 바뀌지 않는다
+    CHECK(std::fabs(w.skillRadius(r.def.skills[0]) - 100.f) < 0.01f);
+    CHECK(std::fabs(w.skillRadius(r.def.skills[1]) - 100.f) < 0.01f);
+
+    w.setSizeScale(3.f);
+    CHECK(std::fabs(w.skillRadius(r.def.skills[0]) - 300.f) < 0.01f);  // 켠 쪽만 커진다
+    CHECK(std::fabs(w.skillRadius(r.def.skills[1]) - 100.f) < 0.01f);  // 끈 쪽은 그대로
+    // 사거리는 어느 쪽도 커지지 않는다
+    CHECK(std::fabs(r.def.skills[0].range - 200.f) < 0.01f);
+
+    w.setSizeScale(0.f);   // 잘못된 값은 100% 로 되돌린다
+    CHECK(std::fabs(w.sizeScale() - 1.f) < 0.001f);
+}
+
 static void testSkillMotionParse() {
     std::printf("[skill-motion]\n");
     std::string text =
@@ -2324,6 +2357,7 @@ int main(int argc, char** argv) {
     testPassiveSkills();
     testAutoUsesEquippedOnly();
     testSkillMotionParse();
+    testSizeScaledHitbox();
     testActiveDragonHpSaved();
     testEnemyArtFromParse();
     testEnemyArtFromScanWarnings();

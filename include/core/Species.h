@@ -92,6 +92,11 @@ struct SkillDef {
     // 스킬 효과(FX) 스프라이트. assets/dragons/<키>/fx_<fx>.png
     // 비어 있으면 지금까지처럼 도형(FxType)만 그린다 — 기존 스킬은 아무것도 달라지지 않는다.
     std::string fx;
+    // ---- 아래는 2026-11-17에 더했다 ----
+    // 켜면 이 스킬의 판정 반경(radius)이 보기 크기(charScale)를 따라 커진다.
+    // 사거리(range)는 켜도 커지지 않는다 — 1000%에서 사거리가 10배가 되면 균형이 깨진다.
+    // 광역(Burst/Zone)과 효과 그림이 넓은 스킬에만 켠다.
+    bool scaleWithSize = false;
     bool fxInFront = true;  // 본체 위에 그리는가. false면 본체 뒤
     float fxScale = 1.f;    // 효과 크기 배율
     // 보정값은 "100% 기준 px"다 — 그릴 때 charScale 을 곱한다(보기 크기 설정과 같이 커진다).

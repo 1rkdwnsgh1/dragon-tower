@@ -25,6 +25,10 @@ constexpr uint32_t kColorHeal = 0xFF7CFF8A;
 
 World::World() = default;
 
+// 판정에 쓰는 몸 반지름. 보기 크기를 따라 커진다 — "겹쳐 보이면 맞는다"를 지키기 위해서다.
+// 그리기 쪽(Renderer)은 자기 몫으로 charScale 을 따로 곱하므로 여기서 e.radius 를 바꾸지 않는다.
+static inline float scaledBody(float r, float k) { return r * k; }
+
 void World::setupDragon(Species s, int level, float hp, Vec2 pos) {
     dragon_ = DragonActor{};
     dragon_.species = s;
@@ -361,14 +365,14 @@ bool World::castSkill(int i, bool aiChoice) {
         case SkillKind::Burst: {
             bool any = false;
             for (Enemy& e : enemies_)
-                if (e.alive && distance(e.pos, d.pos) <= s.radius + e.radius) any = true;
+                if (e.alive && distance(e.pos, d.pos) <= skillRadius(s) + scaledBody(e.radius, sizeScale_)) any = true;
             if (aiChoice && !any) return false;
             for (Enemy& e : enemies_) {
-                if (!e.alive || distance(e.pos, d.pos) > s.radius + e.radius) continue;
+                if (!e.alive || distance(e.pos, d.pos) > skillRadius(s) + scaledBody(e.radius, sizeScale_)) continue;
                 damageEnemy(e, d.stats.atk * s.power);
                 if (s.extra > 0.f) e.stun = std::max(e.stun, s.extra);
             }
-            addSkillFx(s, FxType::Ring, d.pos, d.pos, s.radius, 0.45f, sp.color);
+            addSkillFx(s, FxType::Ring, d.pos, d.pos, skillRadius(s), 0.45f, sp.color);
             break;
         }
         case SkillKind::Line: {
@@ -378,9 +382,9 @@ bool World::castSkill(int i, bool aiChoice) {
             Vec2 end = d.pos + dir * s.range;
             for (Enemy& e : enemies_) {
                 if (!e.alive) continue;
-                if (distancePointSegment(e.pos, d.pos, end) <= s.radius + e.radius) damageEnemy(e, d.stats.atk * s.power);
+                if (distancePointSegment(e.pos, d.pos, end) <= skillRadius(s) + scaledBody(e.radius, sizeScale_)) damageEnemy(e, d.stats.atk * s.power);
             }
-            addSkillFx(s, FxType::LineBlast, d.pos, end, s.radius, 0.45f, sp.color);
+            addSkillFx(s, FxType::LineBlast, d.pos, end, skillRadius(s), 0.45f, sp.color);
             break;
         }
         case SkillKind::Dash: {
@@ -391,7 +395,7 @@ bool World::castSkill(int i, bool aiChoice) {
             Vec2 end = bounds_.clampPoint(d.pos + dir * s.range, cfg::kDragonRadius);
             for (Enemy& e : enemies_) {
                 if (!e.alive) continue;
-                if (distancePointSegment(e.pos, d.pos, end) <= s.radius + e.radius) damageEnemy(e, d.stats.atk * s.power);
+                if (distancePointSegment(e.pos, d.pos, end) <= skillRadius(s) + scaledBody(e.radius, sizeScale_)) damageEnemy(e, d.stats.atk * s.power);
             }
             addSkillFx(s, FxType::Dash, d.pos, end, cfg::kDragonRadius, 0.35f, sp.color);
             const float dashDur = 0.2f;
@@ -434,7 +438,7 @@ bool World::castSkill(int i, bool aiChoice) {
             }
             DotZone z;
             z.pos = t->pos;
-            z.radius = s.radius;
+            z.radius = skillRadius(s);
             z.dps = d.stats.atk * s.power;
             z.remaining = s.duration;
             z.duration = s.duration;
@@ -717,8 +721,8 @@ void World::enemyAttack(Enemy& e) {
     if (enemyDef(e.kind).role != EnemyRole::Boss) {
         AttackZone z;
         z.shape = ZoneShape::Circle;
-        z.a = e.pos + dir * 36.f;
-        z.radius = cfg::kImpZoneRadius;
+        z.a = e.pos + dir * 36.f * sizeScale_;
+        z.radius = cfg::kImpZoneRadius * sizeScale_;
         z.windup = cfg::kImpWindup;
         z.damage = e.atk;
         z.ownerId = e.id;
@@ -739,8 +743,8 @@ void World::enemyAttack(Enemy& e) {
         AttackZone z;
         z.shape = ZoneShape::Line;
         z.a = e.pos;
-        z.b = e.pos + dir * cfg::kGuardianBeamLength;
-        z.radius = cfg::kGuardianBeamHalfWidth;
+        z.b = e.pos + dir * cfg::kGuardianBeamLength * sizeScale_;
+        z.radius = cfg::kGuardianBeamHalfWidth * sizeScale_;
         z.windup = 1.0f * k;
         z.damage = e.atk * 1.3f;
         z.ownerId = e.id;
@@ -752,7 +756,7 @@ void World::enemyAttack(Enemy& e) {
             z.shape = ZoneShape::Circle;
             Vec2 off = i == 0 ? Vec2{0.f, 0.f} : Vec2{rng_.uniform(-90.f, 90.f), rng_.uniform(-90.f, 90.f)};
             z.a = bounds_.clampPoint(dragon_.pos + off, 20.f);
-            z.radius = cfg::kGuardianMeteorRadius;
+            z.radius = cfg::kGuardianMeteorRadius * sizeScale_;
             z.windup = (1.0f + 0.3f * i) * k;
             z.damage = e.atk * 1.0f;
             z.ownerId = e.id;
@@ -763,7 +767,7 @@ void World::enemyAttack(Enemy& e) {
         AttackZone z;
         z.shape = ZoneShape::Circle;
         z.a = e.pos;
-        z.radius = cfg::kGuardianSlamRadius;
+        z.radius = cfg::kGuardianSlamRadius * sizeScale_;
         z.windup = 1.2f * k;
         z.damage = e.atk * 1.6f;
         z.ownerId = e.id;
@@ -816,7 +820,8 @@ void World::updateEnemies(float dt) {
         Vec2 to = dragon_.pos - e.pos;
         float dist = to.length();
         if (std::fabs(to.x) > 4.f) e.facing = to.x > 0.f ? 1.f : -1.f;
-        float attackRange = ed.attackRange;
+        // 몬스터도 몸집이 커지면 닿는 거리가 늘어난다(2026-11-17 사람 결정).
+        float attackRange = ed.attackRange * sizeScale_;
         float keepDist = attackRange * ed.keepRatio;
         if (dist <= attackRange && e.attackCd <= 0.f) {
             enemyAttack(e);
@@ -888,7 +893,7 @@ void World::resolveZone(const AttackZone& z, CombatMode mode) {
     else addFx(FxType::LineBlast, z.a, z.b, z.radius, 0.3f, 0xFFFF6040);
     if (!d.alive) return;
 
-    float reach = cfg::kDragonRadius * 0.4f;
+    float reach = cfg::kDragonRadius * 0.4f * sizeScale_;
     bool inside = z.shape == ZoneShape::Circle ? distance(d.pos, z.a) <= z.radius + reach
                                                : distancePointSegment(d.pos, z.a, z.b) <= z.radius + reach;
     if (!inside) return;
