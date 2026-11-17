@@ -108,6 +108,19 @@ cooldown=4.5
 motion=claw
 motion_fps=14
 motion_frame_w=256
+; 효과 그림(2026-11-17). 원본 shadow_02_claw_fx.png 는 4열x3행 12칸인데 비어 있는 3칸을
+; 빼고 9장만 썼다. 원본이 오른쪽 지향이라 --mirror 를 쓰지 않았다.
+fx=claw
+fx_scale=0.7
+fx_offset_x=60
+; 칸 바닥(y=240/256) 기준이라 그대로 두면 발밑으로 내려간다. 윤곽이 칸 높이의 79% 라
+; 계산상 -3 이면 칸 가운데에 온다. 미리보기로 보니 그대로가 발톱 궤적 위치로 맞았다.
+fx_offset_y=-3
+fx_fps=19
+fx_frame_w=256
+fx_windup=0.10
+fx_hold=0.22
+fx_tail=0.15
 
 [skill.2]
 name=어스름 장막
@@ -132,7 +145,8 @@ cooldown=10
 
 ; --- 여기부터 v1.4. 둘 다 임시안이고 팀 확인이 필요하다 ---
 ; 어둠의 숨결: 본체 모션 그림(shadow_01_body_breath)이 있어 바로 넣었다.
-; 숨결 효과(shadow_02_breath_fx)는 효과 전용 그리기가 생기면 함께 붙인다.
+; 숨결 효과(shadow_02_breath_fx)도 2026-11-17 에 붙였다(효과 전용 그리기가 v1.6 에 들어왔고
+; 좌우 뒤집기·charScale 보정이 2026-11-17 에 들어와 쓸 수 있게 됐다).
 
 [skill.4]
 name=어둠의 숨결
@@ -145,6 +159,19 @@ cooldown=11
 motion=breath
 motion_fps=12
 motion_frame_w=256
+; 효과 그림(2026-11-17). 원본 shadow_02_breath_fx.png 12칸 중 빈 1칸을 빼고 11장.
+fx=breath
+fx_scale=2.2
+fx_offset_x=120
+; 윤곽이 칸 높이의 54% 밖에 안 차서(가로가 긴 그림) 올려 줄 값이 크다.
+; 칸 가운데에 맞추는 계산값은 -38 인데 그러면 숨결이 배 아래로 나왔다. 미리보기로 보며
+; -72 까지 올리고 fx_offset_x 는 170 -> 120 으로 당겨 입에서 뿜는 모양을 맞췄다.
+fx_offset_y=-72
+fx_fps=12
+fx_frame_w=256
+fx_windup=0.18
+fx_hold=0.45
+fx_tail=0.25
 
 ; 패시브 — 장착 칸을 쓰지 않는다. 해제되면 항상 적용된다.
 ; 그림자룡은 회피로 버티는 쪽이라 회피를 올린다. 회피 상한(0.75)은 넘지 못한다.
