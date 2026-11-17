@@ -58,3 +58,14 @@ python tools/make_sheet.py --mirror -o assets/dragons/revenant \
 - 스킬 효과(FX) — 위 세 장(관통·발톱·숨결)은 넣었다. 나머지(영혼 수확·침식·죽음의 행렬·영혼 탄)는
   발동 경로나 설계가 아직 없어 원본만 보관 중이다.
 - 영혼 안개(`SOUL_MIST`) — 별도 레이어 합성이 필요해 현재 구조로는 쓸 수 없다.
+
+## 2026-11-17 추가 — 영혼 탄 효과 시트 둘
+
+| 파일 | 원본 | 프레임 | 언제 |
+|---|---|---|---|
+| `fx_bolt.png` | `02_basic_attack_effects/projectile_travel` | 9장 | 날아가는 동안 (반복) |
+| `fx_bolt_hit.png` | `02_basic_attack_effects/projectile_impact` | 8장 | 맞는 순간 (1회) |
+
+원본이 **왼쪽 지향**이라 좌우를 뒤집어 오른쪽 지향으로 만들었다(망령룡 다른 효과와 같다).
+안개와 같은 이유로 `make_sheet.py` 를 쓰지 않고 444 를 256 으로 그대로 줄여 이어 붙였다 —
+원본이 칸을 꽉 채워 도구의 윤곽 기반 배율이 맞지 않는다.
