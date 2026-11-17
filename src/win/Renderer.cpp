@@ -993,6 +993,8 @@ bool Renderer::drawFxSheet(Graphics& g, const Fx& f, const Sprites& sprites, con
 
     float k = 1.f, alpha = 1.f;
     fxPhaseLook(f, k, alpha);
+    // 스킬마다 정한 투명도를 곱한다(#79). 단계 흐름은 그대로 두고 전체만 옅게 한다.
+    if (sk) alpha *= std::clamp(sk->fxAlpha, 0.f, 1.f);
     if (alpha <= 0.004f) return true;  // 다 사라졌다. 그리지 않아도 이 층에서 처리한 것이다
 
     float base = cfg::kDragonRadius * 3.f * charScale;

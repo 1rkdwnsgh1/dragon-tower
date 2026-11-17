@@ -157,7 +157,8 @@ gcovr --root . --filter 'src/core/' --txt --sort uncovered-number build-cov
 ## 7. `tools/fx_preview.py` — 본체 위에 효과를 합성해 본다
 
 `check_sheets.py` 는 시트 **한 장**이 격자에 맞는지만 본다. 이 도구는 **합성 결과**를 본다 —
-`fx_scale`·`fx_offset_x`·`fx_offset_y` 를 적었을 때 효과가 본체 어디에 어떤 크기로 붙는지다.
+`fx_scale`·`fx_offset_x`·`fx_offset_y`·`fx_alpha` 를 적었을 때 효과가 본체 어디에 어떤 크기·
+진하기로 붙는지다.
 
 이 환경은 `src/win` 을 **컴파일만 하고 실행하지 못한다.** 그래서 수치를 적어도 맞는지 볼
 방법이 없었다. 이 도구가 `Renderer::drawFxSheet` 와 **같은 계산**을 파이썬으로 다시 해서
@@ -170,7 +171,7 @@ python3 tools/fx_preview.py --dragon revenant --char-scale 0.5,1.0,10.0 --out /t
 # 시트를 직접 지정해서 수치만 바꿔 가며 본다
 python3 tools/fx_preview.py --body assets/dragons/revenant/skill_pierce.png \
     --fx assets/dragons/revenant/fx_pierce.png \
-    --fx-scale 1.8 --fx-offset-x 130 --body-render-scale 1.04 --out /tmp/fx.png
+    --fx-scale 1.8 --fx-offset-x 130 --fx-alpha 0.7 --body-render-scale 1.04 --out /tmp/fx.png
 ```
 
 - 가로는 **캐릭터 배율 세 가지**(기본 0.5 / 1.0 / 10.0), 세로는 **효과 x 좌우 두 방향**이다.
