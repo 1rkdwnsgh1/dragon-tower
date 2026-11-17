@@ -974,12 +974,18 @@ bool Renderer::drawFxSheet(Graphics& g, const Fx& f, const Sprites& sprites, con
     float base = cfg::kDragonRadius * 3.f * charScale;
     float h = base * f.scale * ad.renderScale * k;
     if (h <= 0.5f) return true;
-    float cx = f.a.x;
-    float cy = f.a.y + f.offsetY;
+    // 보정값은 "100% 기준 px"다 — 그려지는 본체 크기에 맞추려면 charScale 을 곱한다.
+    // (안 곱하면 캐릭터 크기 10배에서 머리 위 보정이 몸통에 파묻힌다. cfg::kCharScaleMax = 10.0)
+    // 뒤집기는 드래곤의 facing 을 끌어오지 않고 Fx 의 발동점 a → 끝점 b 방향으로 판정한다.
+    // Burst 처럼 a == b 인 효과는 dirSign 이 +1 로 고정된다 — 방향 없는 원형이라 그게 맞다.
+    float dirSign = (f.b.x < f.a.x) ? -1.f : 1.f;
+    float cx = f.a.x + f.offsetX * charScale * dirSign;
+    float cy = f.a.y + f.offsetY * charScale;
     float wpx = h * static_cast<float>(sh.frameW) / static_cast<float>(sh.frameH);
     float half = std::max(wpx, h) * 0.5f;
     markRegion(RectF(cx - half, cy - half, half * 2.f, half * 2.f), 4.f);
-    drawSheetFrame(g, sh, animFrame(f.t, ad.fps, sh.frames, ad.loop), cx, cy, h, false, 0.f, alpha);
+    drawSheetFrame(g, sh, animFrame(f.t, ad.fps, sh.frames, ad.loop), cx, cy, h, /*flip=*/dirSign < 0.f, 0.f,
+                   alpha);
     return true;
 }
 
@@ -1167,6 +1173,7 @@ void Renderer::drawStatusCard(Graphics& g, const Game& game, const Sprites& spri
     rx = std::clamp(rx, 0.f, std::max(0.f, width_ - cardW));
     ry = std::clamp(ry, 0.f, std::max(0.f, height_ - cardH));
     RectF r(rx, ry, cardW, cardH);
+    lastCardRect_ = r;  // v1.9: App 이 끌기 범위를 자를 때 쓴다
     panel(g, r, 224);
 
     // 제목 줄은 끌기 손잡이다. 오른쪽 끝에 접기 버튼이 있다.
@@ -1342,6 +1349,7 @@ void Renderer::drawMenu(Graphics& g, const Game& game, const RenderContext& ctx,
     mx = std::clamp(mx, 0.f, std::max(0.f, width_ - mw));
     my = std::clamp(my, 0.f, std::max(0.f, height_ - mh));
     RectF r(mx, my, mw, mh);
+    lastMenuRect_ = r;  // v1.9: App 이 끌기 범위를 자를 때 쓴다
     panel(g, r, 236);
     float x = r.X + 16.f * s;
     float w = r.Width - 32.f * s;
@@ -1440,6 +1448,15 @@ void Renderer::drawMenu(Graphics& g, const Game& game, const RenderContext& ctx,
         paragraph(g, "노트북에서 배터리가 걱정되면 켜세요. 드래곤이 움직이는 동안에는 줄이지 않습니다.",
                   RectF(x, y, w, 34.f * s), 11.f * s, kSub);
         y += 40.f * s;
+
+        // v1.9: 작업표시줄 꾸미기. 스킨에 taskbar.png 가 있는 드래곤에서만 효과가 있다.
+        toggle(g, out, ctx, RectF(x, y, w, 26.f * s), "작업표시줄 꾸미기", game.taskbarSkin(),
+               UiAction::ToggleTaskbarSkin, 0, true);
+        y += 32.f * s;
+        paragraph(g, "선택한 드래곤에 맞춰 작업표시줄에 띠를 덮습니다. 클릭은 그대로 통과하지만 "
+                     "시작 단추와 아이콘이 가려 보일 수 있습니다.",
+                  RectF(x, y, w, 46.f * s), 11.f * s, kSub);
+        y += 52.f * s;
 
         button(g, out, ctx, RectF(x, y, w, 38.f * s),
                "드래곤 관리 (" + std::to_string(game.stable().size()) + "/" + std::to_string(cfg::kMaxStable) + ")",

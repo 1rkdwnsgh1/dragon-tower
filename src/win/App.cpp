@@ -22,6 +22,7 @@ namespace {
 constexpr UINT kTrayMsg = WM_APP + 1;
 constexpr UINT kTrayId = 1;
 constexpr int kHotkeyId = 1;
+constexpr int kHotkeyHideId = 2;  // v1.9: Ctrl+Alt+D 로 전부 숨기기
 constexpr int kMenuToggleInput = 100;
 constexpr int kMenuShowHide = 101;
 constexpr int kMenuResetPanel = 102;
@@ -197,9 +198,15 @@ bool App::init(HINSTANCE inst) {
     if (!RegisterHotKey(overlay_, kHotkeyId, MOD_CONTROL | MOD_SHIFT | MOD_NOREPEAT, 'D')) {
         game_.notify("Ctrl+Shift+D 단축키를 등록하지 못했습니다(다른 앱이 쓰는 중).", 0xFFFFD166, 6.f);
     }
+    // v1.9: Ctrl+Alt+D 는 드래곤과 UI 를 통째로 숨긴다. 숨어 있어도 자동 사냥은 계속 돈다.
+    // 등록에 실패해도 트레이 메뉴로 같은 일을 할 수 있으므로 알리기만 한다.
+    if (!RegisterHotKey(overlay_, kHotkeyHideId, MOD_CONTROL | MOD_ALT | MOD_NOREPEAT, 'D')) {
+        game_.notify("Ctrl+Alt+D 단축키를 등록하지 못했습니다(다른 앱이 쓰는 중). 트레이 메뉴를 쓰세요.",
+                     0xFFFFD166, 6.f);
+    }
     refreshTrayTip();
     if (!game_.hintShown()) {
-        game_.notify("창과 버튼은 마우스로 씁니다. 싸우기 시작하면 키보드를 받습니다. Ctrl+Shift+D는 메뉴입니다.", 0xFFAAD4FF, 12.f);
+        game_.notify("창과 버튼은 마우스로 씁니다. 싸우기 시작하면 키보드를 받습니다. Ctrl+Shift+D는 메뉴, Ctrl+Alt+D는 숨기기입니다.", 0xFFAAD4FF, 12.f);
         game_.markHintShown();
         saveNow();
     }
@@ -220,6 +227,12 @@ void App::layout() {
 
 void App::shutdown() {
     UnregisterHotKey(overlay_, kHotkeyId);
+    UnregisterHotKey(overlay_, kHotkeyHideId);
+    if (taskbar_) {
+        DestroyWindow(taskbar_);
+        taskbar_ = nullptr;
+    }
+    taskbarSurf_.destroy();
     destroyTray();
     overlaySurf_.destroy();
     renderer_.shutdown();
@@ -325,17 +338,98 @@ int App::run() {
     return 0;
 }
 
+// v1.9: 작업표시줄 꾸미기.
+// 오버레이 본체는 **작업 영역**(작업표시줄을 뺀 영역)만 덮으므로, 작업표시줄을 꾸미려면
+// 그 위에 겹치는 창이 따로 필요하다. 클릭은 항상 통과시키므로 시작 단추·트레이 아이콘은
+// 그대로 눌린다. 다만 **그림에 가려 보이지 않을 수는 있다** — 그래서 환경 설정에서 끌 수 있고,
+// 스킨에 taskbar.png 가 없으면 아무 일도 하지 않는다.
+//
+// 0.25초마다 불린다. 바뀐 게 없으면 맨 위로만 올리고 바로 돌아간다(그리기는 건너뛴다).
+void App::updateTaskbarSkin() {
+    HWND tray = FindWindowW(L"Shell_TrayWnd", nullptr);
+    std::string skin = game_.uiSkin();
+    UiPiece piece{};
+    bool want = game_.taskbarSkin() && tray != nullptr;
+    if (want) {
+        piece = sprites_.ui(skin, "taskbar");
+        want = piece.valid() && piece.bmp->GetWidth() > 0 && piece.bmp->GetHeight() > 0;
+    }
+    if (!want) {
+        if (taskbar_ && taskbarDrawn_) {
+            ShowWindow(taskbar_, SW_HIDE);
+            taskbarDrawn_ = false;
+            taskbarSkinKey_.clear();
+        }
+        return;
+    }
+
+    RECT r{};
+    if (!GetWindowRect(tray, &r)) return;
+    int w = r.right - r.left;
+    int h = r.bottom - r.top;
+    if (w <= 0 || h <= 0) return;
+
+    if (!taskbar_) {
+        // 본체와 같은 창 클래스를 쓰되 lpParam 을 넘기지 않는다 —
+        // 그래야 StaticProc 이 App 을 찾지 못하고 DefWindowProc 으로 흘려보낸다.
+        DWORD ex = WS_EX_LAYERED | WS_EX_TOPMOST | WS_EX_TOOLWINDOW | WS_EX_NOACTIVATE | WS_EX_TRANSPARENT;
+        taskbar_ = CreateWindowExW(ex, kWindowClass, L"Dragon Tower Taskbar", WS_POPUP, r.left, r.top, w, h,
+                                   nullptr, nullptr, inst_, nullptr);
+        if (!taskbar_) return;
+    }
+
+    bool same = taskbarDrawn_ && taskbarSkinKey_ == skin && r.left == taskbarRect_.left &&
+                r.top == taskbarRect_.top && r.right == taskbarRect_.right && r.bottom == taskbarRect_.bottom;
+    if (same) {
+        if (!hidden_) SetWindowPos(taskbar_, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
+        return;
+    }
+
+    if (taskbarSurf_.w != w || taskbarSurf_.h != h) {
+        if (!taskbarSurf_.create(w, h)) return;
+    }
+    {
+        Graphics g(taskbarSurf_.gbmp.get());
+        g.Clear(Color(0, 0, 0, 0));
+        g.SetInterpolationMode(InterpolationModeHighQualityBicubic);
+        g.SetPixelOffsetMode(PixelOffsetModeHalf);
+        // 띠는 작업표시줄 크기에 맞춰 늘린다. 가로로 긴 그림이라 세로가 많이 눌리지는 않는다.
+        g.DrawImage(piece.bmp, Rect(0, 0, w, h), 0, 0, static_cast<int>(piece.bmp->GetWidth()),
+                    static_cast<int>(piece.bmp->GetHeight()), UnitPixel);
+    }
+    taskbarRect_ = r;
+    taskbarSkinKey_ = skin;
+    taskbarSurf_.present(taskbar_, r.left, r.top);
+    SetWindowPos(taskbar_, HWND_TOPMOST, r.left, r.top, w, h, SWP_NOACTIVATE);
+    if (!hidden_) ShowWindow(taskbar_, SW_SHOWNOACTIVATE);
+    taskbarDrawn_ = true;
+}
+
 void App::updateFullscreenState() {
-    bool fs = isOtherAppFullscreen(overlay_, nullptr);
-    if (fs == hidden_) return;
-    hidden_ = fs;
+    // v1.9: 숨는 이유가 둘이다 — 다른 앱이 전체화면이거나, 사람이 직접 숨겼거나.
+    // 둘 중 하나라도 참이면 숨는다. 전에는 전체화면 여부만 보고 hidden_ 을 덮어써서,
+    // 사람이 트레이로 숨겨도 0.25초 뒤 감시가 다시 켜 버렸다.
+    bool want = isOtherAppFullscreen(overlay_, nullptr) || userHidden_;
+    if (want == hidden_) return;
+    hidden_ = want;
     if (hidden_) {
         // 숨김은 일시정지가 아니다. 자동 사냥은 계속 진행된다.
         ShowWindow(overlay_, SW_HIDE);
+        if (taskbar_) ShowWindow(taskbar_, SW_HIDE);
     } else {
         ShowWindow(overlay_, SW_SHOWNOACTIVATE);
         SetWindowPos(overlay_, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
-        }
+        if (taskbar_ && taskbarDrawn_) ShowWindow(taskbar_, SW_SHOWNOACTIVATE);
+    }
+}
+
+// v1.9: Ctrl+Alt+D 와 트레이 메뉴가 함께 쓴다. 숨겨도 게임은 계속 돈다.
+void App::setUserHidden(bool on) {
+    if (userHidden_ == on) return;
+    userHidden_ = on;
+    updateFullscreenState();   // 숨김 여부를 한 곳에서만 정한다
+    refreshTrayTip();
+    if (!on) game_.notify("다시 보입니다. Ctrl+Alt+D 로 숨길 수 있습니다.", 0xFFAAD4FF, 4.f);
 }
 
 void App::tick(float dt) {
@@ -344,6 +438,7 @@ void App::tick(float dt) {
     if (fullscreenTimer_ >= 0.25f) {
         fullscreenTimer_ = 0.f;
         updateFullscreenState();
+        updateTaskbarSkin();  // v1.9: 작업표시줄이 옮겨지거나 드래곤을 바꾸면 다시 그린다
     }
     topmostTimer_ += dt;
     if (topmostTimer_ >= 2.f && !hidden_) {
@@ -470,6 +565,10 @@ void App::doAction(const UiButton& b) {
         case UiAction::DragMenuSize:   // 끌기는 WM_LBUTTONDOWN 에서 시작한다
         case UiAction::DragCharSlider: break;
         case UiAction::TogglePowerSave: game_.setPowerSave(!game_.powerSave()); break;
+        case UiAction::ToggleTaskbarSkin:
+            game_.setTaskbarSkin(!game_.taskbarSkin());
+            updateTaskbarSkin();  // 켜고 끈 것이 바로 보이게 한다
+            break;
         case UiAction::ToggleMenu: game_.setMenuOpen(!game_.menuOpen()); break;
         case UiAction::OpenStable: game_.openStable(); break;
         case UiAction::CloseStable: game_.closeStable(); break;
@@ -624,7 +723,7 @@ void App::showTrayMenu() {
     if (!m) return;
     AppendMenuW(m, MF_STRING, kMenuToggleInput,
                 game_.menuOpen() ? L"메뉴 닫기 (Ctrl+Shift+D)" : L"메뉴 열기 (Ctrl+Shift+D)");
-    AppendMenuW(m, MF_STRING, kMenuShowHide, hidden_ ? L"드래곤 보이기" : L"드래곤 숨기기");
+    AppendMenuW(m, MF_STRING, kMenuShowHide, userHidden_ ? L"드래곤 보이기 (Ctrl+Alt+D)" : L"드래곤 숨기기 (Ctrl+Alt+D)");
     AppendMenuW(m, MF_SEPARATOR, 0, nullptr);
     AppendMenuW(m, MF_STRING, kMenuResetPanel, L"상태창 위치 되돌리기");
     // 큐 11번: 프레임 측정. 기본 꺼짐이고 켜 둔 동안만 왼쪽 위에 표가 뜬다.
@@ -638,6 +737,18 @@ void App::showTrayMenu() {
     TrackPopupMenu(m, TPM_RIGHTBUTTON | TPM_BOTTOMALIGN, p.x, p.y, 0, overlay_, nullptr);
     PostMessageW(overlay_, WM_NULL, 0, 0);
     DestroyMenu(m);
+}
+
+// v1.9: 창을 끌 때 화면 밖으로 나가지 않게 왼쪽 위 좌표를 자른다.
+// 그리는 쪽에서만 잘라 두면(v1.8 까지) 저장되는 좌표는 화면 밖 값이라, 마우스를 가장자리 너머로
+// 끌었다가 되돌릴 때 창이 손에서 떨어져 튀어 보였다. 저장되는 값 자체를 잘라야 한다.
+Vec2 App::clampToDesktop(Vec2 p, const Gdiplus::RectF& drawn) const {
+    const RectF& d = game_.desktopBounds();
+    float w = drawn.Width > 1.f ? drawn.Width : 1.f;
+    float h = drawn.Height > 1.f ? drawn.Height : 1.f;
+    p.x = std::clamp(p.x, d.x, std::max(d.x, d.x + d.w - w));
+    p.y = std::clamp(p.y, d.y, std::max(d.y, d.y + d.h - h));
+    return p;
 }
 
 bool App::startDrag(float lx, float ly) {
@@ -704,9 +815,11 @@ LRESULT App::handle(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
             mouseX_ = x / scale_;
             mouseY_ = y / scale_;
             if (drag_ == Drag::Panel) {
-                game_.setPanelPos({mouseX_ - dragDX_, mouseY_ - dragDY_});
+                game_.setPanelPos(clampToDesktop({mouseX_ - dragDX_, mouseY_ - dragDY_},
+                                                 renderer_.lastCardRect()));
             } else if (drag_ == Drag::Menu) {
-                game_.setMenuPos({mouseX_ - dragDX_, mouseY_ - dragDY_});
+                game_.setMenuPos(clampToDesktop({mouseX_ - dragDX_, mouseY_ - dragDY_},
+                                                renderer_.lastMenuRect()));
             } else if (drag_ == Drag::MenuSize) {
                 // v1.4: 오른쪽 아래 모서리를 끌어 메뉴 크기를 바꾼다
                 game_.setMenuScale(dragStartScale_ + (mouseX_ - dragDX_) / cfg::kMenuScaleDragPx);
@@ -777,6 +890,7 @@ LRESULT App::handle(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
         case WM_HOTKEY:
             // v1.4: 키보드 받기는 게임이 알아서 하므로, 단축키는 메뉴를 열고 닫는다.
             if (wp == kHotkeyId) game_.setMenuOpen(!game_.menuOpen());
+            else if (wp == kHotkeyHideId) setUserHidden(!userHidden_);
             return 0;
 
         case kTrayMsg:
@@ -788,8 +902,9 @@ LRESULT App::handle(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
             switch (LOWORD(wp)) {
                 case kMenuToggleInput: game_.setMenuOpen(!game_.menuOpen()); refreshTrayTip(); return 0;
                 case kMenuShowHide:
-                    hidden_ = !hidden_;
-                    ShowWindow(overlay_, hidden_ ? SW_HIDE : SW_SHOWNOACTIVATE);
+                    // v1.9: 숨김 여부는 setUserHidden 한 곳에서만 정한다.
+                    // 전에는 여기서 hidden_ 을 직접 뒤집어, 전체화면 감시가 0.25초 뒤 되돌려 버렸다.
+                    setUserHidden(!userHidden_);
                     refreshTrayTip();
                     return 0;
                 case kMenuResetPanel:

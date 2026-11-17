@@ -90,7 +90,8 @@ struct Fx {
     std::string key;      // fx_<key>.png. 비어 있으면 도형만
     bool inFront = true;  // 본체 위에 그리는가
     float scale = 1.f;
-    float offsetY = 0.f;
+    float offsetX = 0.f;  // 100% 기준 px. 바라보는 쪽이 양수 (그릴 때 charScale 을 곱한다)
+    float offsetY = 0.f;  // 100% 기준 px. 위가 음수
     float windup = 0.f, hold = 0.f, tail = 0.f;  // 세 단계 길이. 합이 duration 이다
     FxPhase phase() const;
     float phaseProgress() const;  // 지금 단계 안에서 0..1

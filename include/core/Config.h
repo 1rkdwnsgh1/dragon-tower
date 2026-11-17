@@ -99,7 +99,9 @@ constexpr float kMenuScaleStep = 0.1f;
 // v1.4: 메뉴 모서리를 끌 때 배수 1.0이 바뀌는 데 필요한 픽셀 수. 클수록 천천히 바뀐다.
 constexpr float kMenuScaleDragPx = 420.f;
 constexpr float kCharScaleMin = 0.5f;   // 캐릭터 크기는 보기 전용이다. 판정 크기는 바뀌지 않는다
-constexpr float kCharScaleMax = 2.0f;
+// v1.9: 상한을 2.0 → 10.0(1000%)으로 올렸다. 그림만 커지고 맞는 거리·공격 범위는 그대로다.
+// 아주 크게 키우면 드래곤이 화면 밖으로 삐져나와 보이는데, 서 있는 자리(판정)는 화면 안이라 정상이다.
+constexpr float kCharScaleMax = 10.0f;
 constexpr float kCharScaleStep = 0.1f;
 
 constexpr float kArenaWidth = 960.f;

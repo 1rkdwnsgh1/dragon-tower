@@ -3,9 +3,11 @@
 # build.yml 과 나누어 둔 이유: build.yml 은 "돌아가는가"를 보고, 이쪽은 "조용히 틀린 데가
 # 없는가"를 본다. 둘을 섞으면 실패 원인을 읽기 어렵다.
 #
-# **이 저장소는 비공개라 Actions 분이 유한하다.** 그래서 잡을 잘게 쪼개지 않고 하나로 묶었고
-# (잡마다 체크아웃·설치가 다시 돈다), 오래 걸리는 퍼징은 매 푸시가 아니라 주 1회와 수동으로만 돈다.
-# 전부 ubuntu 다 — windows 러너는 분이 2배로 계산된다.
+# 잡을 잘게 쪼개지 않고 하나로 묶었고(잡마다 체크아웃·설치가 다시 돈다), 오래 걸리는 퍼징은
+# 매 푸시가 아니라 주 1회와 수동으로만 돈다. 전부 ubuntu 다.
+#
+# 2026-11-17 저장소를 공개로 전환해 Actions 분 제한은 사라졌다(공개 저장소는 무료). 위 구성은
+# 그대로 두었다 — 분을 아끼려고 한 것이지만 실패 원인을 읽기 쉬운 쪽이기도 하다.
 name: quality
 
 on:
@@ -20,7 +22,26 @@ jobs:
   quality:
     runs-on: ubuntu-latest
     steps:
+      # STATE 검사가 merge-base 를 구해야 해서 얕은 체크아웃으로는 안 된다(실제로 1회 실패했다).
+      # fetch-depth: 0 은 173MB 전체를 매번 받으므로 100 으로 둔다 — PR 브랜치는 짧게 산다.
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 100
+
+      # --- 0. 문서 구조 (1초. 설치도 필요 없다) ---
+      # 문서 규칙이 사람 손으로는 안 지켜졌다 — 목록이 세 곳에 갈라져 서로 달라졌고, 문서를 옮기면
+      # 링크가 깨진 채 남았다. 기계가 잡을 수 있는 것만 검사한다(링크·색인·archive 역류·STATE 갱신).
+      #
+      # PR 에서는 STATE.md 갱신까지 본다. merge-base 가 필요해서 base 브랜치를 얕게 받아 온다.
+      # 상태가 정말 안 바뀐 PR 은 커밋 메시지에 `State-Skip: <이유>` 줄을 넣는다.
+      - name: 문서 링크·색인·STATE 검사
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            git fetch -q --depth=100 origin "${{ github.base_ref }}"
+            python3 tools/check_docs.py --pr-base "origin/${{ github.base_ref }}"
+          else
+            python3 tools/check_docs.py
+          fi
 
       - name: 도구 설치
         run: |
@@ -44,11 +65,18 @@ jobs:
           rm -rf dist/play/DragonTower/assets/references
           cp README.md dist/play/DragonTower/
 
+      # 저장 공간 절약: PR 쪽에서는 올리지 않고 3일만 보관한다(build.yml 주석 참고).
+      # 저장 공간이 가득 차면 이 단계만 실패하는데, 그러면 빌드·테스트가 다 통과했는데도
+      # main 이 빨갛게 된다(2026-11-16 실제로 그랬다). 업로드 실패는 코드 문제가 아니므로
+      # 검사 결과를 가리지 않게 한다. 묶음이 필요하면 공간을 비우고 다시 돌린다.
       - uses: actions/upload-artifact@v4
+        continue-on-error: true  # 저장 공간이 차도 검사 결과를 가리지 않는다
+        if: github.event_name != 'pull_request'
         with:
           name: dragon-tower-mingw-play
           path: dist/play/DragonTower
           if-no-files-found: error
+          retention-days: 3
 
       # --- 2. 새니타이저 (ASan + UBSan) ---
       # 테스트가 "통과"해도 그 안에서 메모리를 잘못 건드리고 있을 수 있다.
@@ -83,11 +111,13 @@ jobs:
         run: python3 tools/check_sheets.py --out sheet-contact.png
 
       - uses: actions/upload-artifact@v4
+        continue-on-error: true  # 저장 공간이 차도 검사 결과를 가리지 않는다
         if: always()
         with:
           name: sheet-contact-sheet
           path: sheet-contact.png
           if-no-files-found: warn
+          retention-days: 7
 
       # --- 5. 커버리지 (막지는 않고 숫자만 남긴다) ---
       - name: 커버리지
@@ -140,6 +170,7 @@ jobs:
       - name: 찾은 입력 올리기
         if: failure()
         uses: actions/upload-artifact@v4
+        continue-on-error: true  # 저장 공간이 차도 검사 결과를 가리지 않는다
         with:
           name: fuzz-crash-${{ matrix.target }}
           path: crashes/

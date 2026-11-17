@@ -246,6 +246,7 @@ DragonParseResult parseDragonText(const std::string& text, const std::string& fo
             else if (key == "fx") s.fx = val;
             else if (key == "fx_front") ok = parseBool(val, s.fxInFront);
             else if (key == "fx_scale") ok = parseFloat(val, s.fxScale);
+            else if (key == "fx_offset_x") ok = parseFloat(val, s.fxOffsetX);
             else if (key == "fx_offset_y") ok = parseFloat(val, s.fxOffsetY);
             else if (key == "fx_windup") ok = parseFloat(val, s.fxWindup);
             else if (key == "fx_hold") ok = parseFloat(val, s.fxHold);
@@ -301,6 +302,7 @@ DragonParseResult parseDragonText(const std::string& text, const std::string& fo
         s.fxAnim.loop = false;  // 효과도 1회 재생이다(지속 단계에서 멈춰 있는다)
         if (!(s.fxScale > 0.f)) s.fxScale = 1.f;
         s.fxScale = std::clamp(s.fxScale, 0.1f, 8.f);
+        s.fxOffsetX = std::clamp(s.fxOffsetX, -600.f, 600.f);
         s.fxOffsetY = std::clamp(s.fxOffsetY, -600.f, 600.f);
         // 단계는 0(기본값 쓰기)을 허용한다. 음수와 지나치게 긴 값만 막는다.
         s.fxWindup = std::clamp(s.fxWindup, 0.f, 5.f);

@@ -1,0 +1,212 @@
+Create ONE NEW high-resolution landscape concept sheet, exactly FOUR columns by TWO rows, eight equal panels, clean thin separators. Use case stylized-concept, professional hand-painted 2D fantasy idle RPG gameplay visualization. Reference 1 is the approved previous sheet: closely match its camera, dragon scale, composition, ground line, art style, environment, elegant small labels and palette. Replace ALL skills with eight new skills below. Reference 2 is absolute dragon anatomy/design reference: same ancient ivory ash-gray skeletal dragon with long articulated neck, elongated branching crowned horned skull, bright turquoise floating soul core in exposed ribs, spectral turquoise eyes and ghostfire, TWO huge bone wings with translucent cyan membranes and asymmetric damage, FOUR skeletal legs and claws, long bony spear-tip tail, ritual chains and worn ornaments. Mirror side reference to face RIGHT. Never redesign or make fleshy. Keep dragon fully readable LEFT in every panel, small dark enemies RIGHT. Same restrained dark ruined wasteland and muted stone ground, fixed SIDE gameplay camera. No cinematic perspective, 3D, photorealism, heavy HUD, extra title, or crossing panel edges. Moderate complexity for animation, turquoise pale cyan spectral white ash and smoky black, controlled glow and clean silhouettes. Maximal useful resolution approximately 4K landscape. Only small exact ENGLISH labels at bottom of cells.
+Read order top left to right then bottom left to right:
+1 "KING’S BONE LANCE": ONE giant ceremonial regal ivory bone spear descending from high above enemy half, ornate sharpened skeletal weapon, cyan infusion, just piercing ground at right with compact spectral shock burst. Original dragon controls from left.
+2 "RIBCAGE PRISON": HUGE curved bone ribs erupt around right-side enemy group and curl INWARD to form cage of an enormous beast. Some ribs still rising, others nearly close above trapped enemies. Cyan cracks and light between bars. Clearly curved enclosure, not straight spike forest.
+3 "GHOST LANTERNS": Several distinct lantern-shaped haunted objects floating between dragon and targets, dark antique frames surrounding turquoise spirit fire and wispy soul smoke. Loose drifting formation toward right, one or two compact spectral detonations by enemies. Readable intelligent cursed mines, not plain orbs.
+4 "SOULFALL LIGHTNING": Small spectral fissures overhead release MULTIPLE JAGGED branching turquoise lightning strikes onto right enemies, faint spirit silhouettes inside bolts, bright vertical ground impacts and splintering cyan ground energy. Original dragon clearly casting left.
+5 "RIVER OF SOULS": broad LOW HORIZONTAL flowing flood left to right along ground, translucent ghost faces and hands embedded in layered spectral current. Dragon core and open jaws channel stream. Keep dragon bones and feet readable through translucent low wave; avoid ordinary flame breath.
+6 "FUNERAL BELL": enormous translucent spectral FUNERAL BELL floating high center-right with clear flared bell silhouette and clapper, subtle runes, layered circular cyan sound rings radiate toward enemies. Dragon visible beneath/beside at left.
+7 "SPECTRAL WING CLEAVE": dragon mid wing-slash, cyan soul energy coats edges of its skeletal wings into curved blade edges. ONE or TWO huge sharp crescent slashes fly right to enemies, clean fast sweeping trajectory, not many projectiles or beam. Preserve wings and anatomy.
+8 "ASTRAL DRAGON CHARGE": physical skeletal dragon stays clearly visible at left while turquoise TRANSLUCENT full spirit-dragon projection tears free and lunges HORIZONTALLY ahead toward right enemies, stretched forward charging pose, wispy connecting soul tether from original chest. Ethereal extension, not permanent separate summon. No breath beam; attack itself is charging astral dragon.
+Prioritize exact character consistency, eight distinctly recognizable new effects and practical game readability, matching previous sheets.
+Full user brief:
+# DRAGON TOWER — REVENANT DRAGON
+## Third Necromantic Skill Sheet — In-Game Combat Visualization
+
+Create one high-resolution 4×2 concept sheet containing EIGHT distinct gameplay screenshots of the Revenant Dragon performing eight different necromantic skills.
+
+This image must match the same overall presentation style as the previously approved Revenant Dragon in-game skill sheets:
+- dark fantasy 2D side-view combat
+- the dragon on the LEFT, enemies on the RIGHT
+- fixed gameplay-like side camera
+- hand-painted 2D fantasy game art
+- readable combat effects suitable for a real game
+- dramatic but practical visual clarity
+- each panel showing a different skill as if captured mid-battle
+
+This is NOT a cinematic poster.  
+This is a gameplay skill visualization sheet for evaluating how the skills would look inside the game.
+
+## CHARACTER CONSISTENCY — MANDATORY
+
+Use the approved Revenant Dragon design consistently in all eight panels.
+
+Preserve:
+- ancient ivory and ash-gray skeletal body
+- long articulated neck and horned skull
+- bright turquoise spectral soul core floating in the ribcage
+- glowing turquoise eye sockets and ghostfire
+- enormous skeletal wings with translucent turquoise membranes
+- asymmetrical wing damage
+- four skeletal legs, claws, and a long bony tail
+- ancient ritual chains and worn ornaments
+
+Do not redesign the dragon.  
+Do not turn it into a fleshy dragon.  
+Do not change the core silhouette or proportions.
+
+## GAMEPLAY PRESENTATION RULES
+
+- side-view 2D combat scene
+- same battlefield type across all eight panels
+- ruined dark-fantasy wasteland background with muted stone ground
+- dragon always on the left side
+- enemy silhouettes or small enemy figures on the right side
+- the dragon remains clearly visible in every panel
+- effects must be spectacular but readable
+- use turquoise, pale cyan, spectral white, ash-gray, and dark smoky tones
+- moderate complexity suitable for eventual animation adaptation
+- no photorealism
+- no 3D CGI look
+- no cinematic perspective
+- no heavy HUD
+- include only small elegant skill-name labels for each panel
+
+---
+
+## PANEL 1 — KING’S BONE LANCE
+### 왕의 골창
+
+The Revenant Dragon summons a massive ceremonial bone spear high above the battlefield and drives it down toward the enemy area.
+
+The spear should look ancient, regal, and deadly, assembled from sharpened skeletal materials and infused with turquoise necromantic energy.
+
+Show the dramatic moment where the descending spear is about to strike or has just pierced the battlefield, creating a turquoise shock burst at the impact point.
+
+The dragon stands at the left controlling the attack.
+
+Keywords: Bone Lance, Royal Spear, Falling Bone Weapon, Necromantic Strike.
+
+---
+
+## PANEL 2 — RIBCAGE PRISON
+### 갈비뼈 감옥
+
+Huge skeletal ribs erupt from the ground around the enemies and curve inward like the bars of a giant bone cage.
+
+Some ribs are still rising, while others have nearly closed around the trapped targets.
+
+The structure should feel like the remains of an enormous beast forming a prison around the enemy group.
+
+Turquoise spectral energy glows along the base cracks and between the ribs.
+
+Keywords: Bone Cage, Rib Prison, Skeletal Enclosure, Capturing Structure.
+
+---
+
+## PANEL 3 — GHOST LANTERNS
+### 유령의 등불
+
+Several floating turquoise spirit lanterns appear in the air between the dragon and the enemies.
+
+They hover ominously in a loose formation, each glowing with ghostly inner fire and trailing wisps of soul smoke.
+
+Some lanterns are drifting toward enemies while one or two are exploding in small spectral bursts.
+
+The attack should feel like intelligent cursed mines or tracking spirit bombs.
+
+Keywords: Spirit Lanterns, Ghost Mines, Floating Souls, Homing Explosives.
+
+---
+
+## PANEL 4 — SOULFALL LIGHTNING
+### 혼령 낙뢰
+
+The Revenant Dragon opens spectral fissures in the sky, and jagged turquoise soul lightning crashes down onto the battlefield.
+
+The lightning should feel supernatural rather than elemental, mixed with descending ghostly energy and faint spirit silhouettes.
+
+Show multiple strikes landing around or on the enemies, with bright vertical impacts and splintering ground energy.
+
+The dragon is clearly summoning the phenomenon from the left side.
+
+Keywords: Soul Lightning, Spectral Thunder, Ghost Strike, Necromantic Storm.
+
+---
+
+## PANEL 5 — RIVER OF SOULS
+### 영혼의 강
+
+A rushing stream of ghostly spirits flows low across the battlefield from left to right like a supernatural flood.
+
+The soul current should contain many translucent faces, hands, and flowing spectral wisps, sweeping toward the enemies.
+
+The attack feels wide, relentless, and horizontal, as if the dead themselves are surging across the ground.
+
+The dragon channels the stream from its soul core and open jaws.
+
+Keywords: River of Souls, Spirit Flood, Soul Current, Ghostly Wave.
+
+---
+
+## PANEL 6 — FUNERAL BELL
+### 침묵의 종언
+
+A gigantic spectral funeral bell manifests above or slightly in front of the battlefield.
+
+The bell emits a powerful circular shockwave or layered sound-rings of turquoise energy that spread toward the enemies.
+
+The effect should suggest a devastating death tolling, with subtle runic light and ghostly resonance.
+
+The dragon remains visible beneath or beside the bell, commanding the spell.
+
+Keywords: Spectral Bell, Funeral Toll, Death Resonance, Sonic Necromancy.
+
+---
+
+## PANEL 7 — SPECTRAL WING CLEAVE
+### 사령익 참격
+
+The Revenant Dragon channels bright soul energy into the edges of its skeletal wings, transforming them into enormous crescent-like spectral blades.
+
+Show the dragon in the middle of a wing-slash attack, with one or more large turquoise crescent slashes flying toward the enemy side.
+
+The attack should feel elegant, fast, and sharp, clearly different from projectile spam or beam attacks.
+
+Keywords: Wing Blade, Crescent Slash, Spectral Cleave, Soul Edge.
+
+---
+
+## PANEL 8 — ASTRAL DRAGON CHARGE
+### 영체 이탈
+
+A ghostly astral form of the Revenant Dragon tears free from the physical skeleton and charges forward.
+
+The physical dragon body remains on the left, while a translucent turquoise spirit-dragon duplicate lunges ahead as the attack itself.
+
+The astral form should look like an ethereal extension or projected soul, not a separate permanent summon.
+
+Capture the dramatic moment where the spectral dragon rushes toward the enemies.
+
+Keywords: Astral Projection, Ghost Dragon Charge, Soul Separation, Spirit Assault.
+
+---
+
+## COMPOSITION RULES
+
+- exactly eight panels
+- arranged in four columns and two rows
+- equal panel sizes
+- thin clean borders between panels
+- one skill per panel
+- consistent dragon size, side-view angle, and battlefield scale
+- preserve the same visual language across all panels
+- every skill should be immediately recognizable and clearly different from the others
+- every panel should feel like a moment from a real playable game
+- effects should be suitable as references for later animation and skill production
+
+## QUALITY REQUIREMENTS
+
+High-quality 2D hand-painted dark fantasy game art.
+
+Beautiful skeletal anatomy, controlled turquoise spectral lighting, elegant ghostly effects, clean silhouettes, and practical gameplay readability.
+
+The final image should feel like a professional game-development skill concept sheet for the Revenant Dragon, matching the quality and visual appeal of the previously approved first and second eight-skill sheets.
+
+Priority:
+1. exact character consistency
+2. clear differentiation between the eight new skills
+3. strong in-game readability
+4. dark fantasy atmosphere
+5. practical reference value for future asset production
+

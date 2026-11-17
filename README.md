@@ -1,22 +1,19 @@
 # Dragon Tower (가제)
 
-현재 버전: **v1.6** ([바뀐 점](docs/changelog.md))
+현재 버전: **v1.9** ([바뀐 점](docs/changelog.md))
 
 Windows 바탕화면에서 드래곤을 육성하고 탑에 도전하는 게임입니다. 주 언어는 C++이며 게임 엔진은 사용하지 않습니다. 소리 없이 진행합니다.
 
-- [통합 기획서](docs/game-design.md)
-- [망령룡 캐릭터 기획: 확정 외형과 2D 제작 방향](docs/characters/revenant-dragon.md)
-- [망령룡 스킬 기획 V1 — 콘셉트 제안·기술 설계 대기](docs/characters/revenant-dragon-skills-v1.md)
-- [망령룡 제작 진행사항과 작업 자료 (2026-11-13)](docs/characters/revenant-dragon-progress.md)
-- [개발 로드맵과 체크포인트](docs/roadmap.md)
-- [구현 메모: 임시로 정한 사항과 확인할 것](docs/implementation-notes.md)
-- [이미지 자료 규격과 생성 요청 예시](assets/README.md)
-- [캐릭터 이미지·애니메이션·스킬 적용 기획 (드래곤 추가 구조)](docs/character-pipeline.md)
-- [**드래곤 추가·그림 넣기 사용법**](assets/dragons/README.md)
-- [**적 추가·그림 넣기 사용법**](assets/enemies/README.md)
-- [버전별 바뀐 점](docs/changelog.md)
-- [**코드 지도: 무엇이 어디에 있나**](docs/codemap.md)
-- [AI 작업 비용 기록과 개선](docs/ai-workflow-notes.md)
+## 문서
+
+**문서 목록은 [docs/INDEX.md](docs/INDEX.md) 한 곳에 있다.** 작업별로 무엇을 읽어야 하는지도 거기 있다.
+(목록을 README·`CLAUDE.md`·`AGENTS.md` 세 곳에 나눠 두었더니 서로 달라져서 한 곳으로 모았다.)
+
+처음 왔다면 이 순서로 본다.
+
+1. [docs/STATE.md](docs/STATE.md) — 지금 상태와 막혀 있는 것
+2. [docs/game-design.md](docs/game-design.md) — 통합 기획서 (규칙의 기준)
+3. [docs/INDEX.md](docs/INDEX.md) — 나머지 전부
 
 ## 지금 할 수 있는 것(첫 수직 단면)
 
@@ -39,6 +36,32 @@ Windows 바탕화면에서 드래곤을 육성하고 탑에 도전하는 게임�
 ## 실행
 
 GitHub의 **Actions** 탭 → 최근 `build` 실행 → 아래쪽 **Artifacts**의 `DragonTower-windows`를 받아 압축을 풀고 `dragon_tower.exe`를 실행합니다. `assets` 폴더는 실행 파일 옆에 두어야 합니다.
+
+## 받아오기 — `GIT_LFS_SKIP_SMUDGE=1` 를 붙일 것
+
+```bash
+GIT_LFS_SKIP_SMUDGE=1 git clone https://github.com/1rkdwnsgh1/dragon-tower
+```
+
+**빌드·실행·배포 묶음 만들기는 전부 이대로 됩니다.** 게임이 읽는 스프라이트 시트
+(`assets/dragons/`, `assets/enemies/`)는 일반 파일이고, 두 워크플로 모두 배포 묶음에서
+`assets/references` 를 빼기 때문이다.
+
+이 변수를 붙이는 이유는 대역폭이다. `assets/references/revenant-dragon/work-2026-11-13/` 의
+**파츠 분리 백업 14개(합계 285.7MB)만 Git LFS** 로 추적한다. LFS 는 저장소에 132바이트짜리
+포인터만 두고 실물은 GitHub 의 별도 서버에 두는데, **git-lfs 가 깔린 컴퓨터에서 평범하게
+`git clone` 하면 그 285.7MB 가 자동으로 따라온다.** 무료 LFS 대역폭은 월 1GiB 이고
+**저장소 소유자 계정에서만** 깎이므로(fork·pull 포함), clone 세 번이면 그 달 할당이 끝난다.
+초과하면 과금이 아니라 차단이고, `git lfs pull` 이 "over its data quota" 로 실패한다.
+
+### 원본 에셋을 고칠 때만 실물을 받는다
+
+스프라이트 시트를 원본에서 다시 만들 때(`tools/make_sheet.py` 의 입력이 그 zip 안의
+`FINAL_FRAMES` 다)만 필요하다. 285MB 전체가 아니라 **쓸 파일만** 받는다.
+
+```bash
+git lfs pull --include="**/REVENANT_IDLE_FINAL_V1.zip"
+```
 
 ## 직접 빌드
 
