@@ -9,13 +9,15 @@
 3. archive 역류 — 평시에 읽는 문서가 docs/archive/ 를 가리키는 것
    (archive 를 읽지 않기로 했는데 살아 있는 문서가 링크로 끌어오면 규칙이 무의미해진다)
 4. STATE.md 갱신 — 코드·문서를 고치는 PR 이 docs/STATE.md 를 함께 고쳤는지 (--pr-base 를 줄 때만)
+5. codemap.md 갱신 — src/·include/ 를 고치는 PR 이 docs/codemap.md 를 함께 고쳤는지 (같음)
 
 실행:
     python3 tools/check_docs.py                      # 1~3
-    python3 tools/check_docs.py --pr-base origin/main  # 1~4 (CI 의 PR 검사)
+    python3 tools/check_docs.py --pr-base origin/main  # 1~5 (CI 의 PR 검사)
 
-STATE 검사를 건너뛰어야 하는 PR(에셋만 바꿈, 오타 수정 등)은 커밋 메시지에
-`State-Skip: <이유>` 줄을 넣는다 — 줄 머리에 와야 한다.
+검사를 건너뛰어야 하는 PR 은 커밋 메시지에 trailer 를 넣는다 — 줄 머리에 와야 한다.
+    State-Skip: <이유>     (에셋만 바꿈, 오타 수정 등 상태가 그대로일 때)
+    Codemap-Skip: <이유>   (코드를 고쳤지만 무엇이 어디에 있는지는 안 바뀔 때)
 """
 from __future__ import annotations
 
@@ -130,25 +132,65 @@ def _git(*args: str) -> str:
     ).stdout
 
 
+def _pr_changes(pr_base: str, what: str) -> tuple[list[str], str] | None:
+    """base 와의 차이에서 (바뀐 파일 목록, 커밋 메시지 전문) 을 돌려준다.
+
+    얕은 체크아웃이면 공통 조상을 못 찾는다. 이것은 규칙 위반이 아니라 환경 문제이므로
+    막지 않고 경고만 하고 None 을 돌려준다 — 환경 문제로 PR 을 막으면 검사 자체를 지우게 된다.
+    """
+    merge_base = _git("merge-base", pr_base, "HEAD").strip()
+    if not merge_base:
+        print(
+            f"경고: {pr_base} 와의 공통 조상을 찾지 못해 {what} 검사를 건너뛴다.\n"
+            "      CI 라면 체크아웃의 fetch-depth 를 늘린다 (현재 100).",
+            file=sys.stderr,
+        )
+        return None
+    changed = [p for p in _git("diff", "--name-only", f"{merge_base}..HEAD").split("\n") if p]
+    return changed, _git("log", "--format=%B", f"{merge_base}..HEAD")
+
+
+def check_codemap_updated(pr_base: str) -> list[str]:
+    """코드를 고치는 PR 은 docs/codemap.md 를 함께 고쳐야 한다.
+
+    CLAUDE.md 에 "코드를 바꾸면 이 표도 같은 PR 에서 고친다"고 적혀 있지만 기계가 잡지 않아서
+    낡을 수 있었다. 코드 지도가 낡으면 다음 세션이 위치를 찾으려고 파일을 넓게 읽게 되고,
+    그게 바로 줄이려던 비용이다. STATE.md 검사와 같은 구조다.
+    """
+    pr = _pr_changes(pr_base, "codemap 갱신")
+    if pr is None:
+        return []
+    changed, messages = pr
+
+    skip = re.search(r"^Codemap-Skip:[ \t]*(\S.*)$", messages, re.MULTILINE)
+    if skip:
+        print(f"codemap 검사: 건너뛴다 — {skip.group(1).strip()}")
+        return []
+    if "docs/codemap.md" in changed:
+        return []
+
+    code = [p for p in changed if p.startswith(("src/", "include/"))]
+    if not code:
+        return []
+
+    return [
+        "docs/codemap.md 를 고치지 않았다 — 이 PR 은 코드 "
+        f"{len(code)}개 파일을 바꾼다 (예: {', '.join(code[:3])})\n"
+        "      무엇이 어디에 있는지 바뀌었으면 그 줄을 고친다. 지도가 낡으면 다음 작업이\n"
+        "      위치를 찾으려고 파일을 넓게 읽게 된다.\n"
+        "      지도에 영향이 없는 변경이라면 커밋 메시지에 `Codemap-Skip: <이유>` 줄을 넣는다."
+    ]
+
+
 def check_state_updated(pr_base: str) -> list[str]:
     """코드·문서를 고치는 PR 은 docs/STATE.md 를 함께 고쳐야 한다.
 
     낡은 상태 문서는 없는 것보다 해롭다. 규칙만 적어 두면 지켜지지 않으므로 검사로 만들었다.
     """
-    merge_base = _git("merge-base", pr_base, "HEAD").strip()
-    if not merge_base:
-        # 얕은 체크아웃이면 공통 조상을 못 찾는다. 이것은 규칙 위반이 아니라 환경 문제이므로
-        # 막지 않고 경고만 한다 — 환경 문제로 PR 을 막으면 검사 자체를 지우게 된다.
-        # 장기적인 방치는 아래 check_state_fresh() 의 날짜 검사가 잡는다.
-        print(
-            f"경고: {pr_base} 와의 공통 조상을 찾지 못해 STATE 갱신 검사를 건너뛴다.\n"
-            "      CI 라면 체크아웃의 fetch-depth 를 늘린다 (현재 100).",
-            file=sys.stderr,
-        )
+    pr = _pr_changes(pr_base, "STATE 갱신")
+    if pr is None:
         return []
-
-    changed = [p for p in _git("diff", "--name-only", f"{merge_base}..HEAD").split("\n") if p]
-    messages = _git("log", "--format=%B", f"{merge_base}..HEAD")
+    changed, messages = pr
 
     # 탈출구는 git trailer 형식의 독립된 줄이어야 한다. 처음에는 본문 어디든 `[state-skip]` 이
     # 있으면 건너뛰게 했는데, **탈출구를 설명하는 커밋 메시지가 스스로 검사를 껐다.**
@@ -215,6 +257,7 @@ def main() -> int:
     )
     if args.pr_base:
         problems += check_state_updated(args.pr_base)
+        problems += check_codemap_updated(args.pr_base)
     if problems:
         print(f"문서 검사 실패 — {len(problems)}건\n")
         for p in problems:
