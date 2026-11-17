@@ -136,7 +136,15 @@ def check_state_updated(pr_base: str) -> list[str]:
     """
     merge_base = _git("merge-base", pr_base, "HEAD").strip()
     if not merge_base:
-        return [f"STATE 검사: {pr_base} 와의 공통 조상을 찾지 못했다 (fetch-depth 를 늘려야 한다)"]
+        # 얕은 체크아웃이면 공통 조상을 못 찾는다. 이것은 규칙 위반이 아니라 환경 문제이므로
+        # 막지 않고 경고만 한다 — 환경 문제로 PR 을 막으면 검사 자체를 지우게 된다.
+        # 장기적인 방치는 아래 check_state_fresh() 의 날짜 검사가 잡는다.
+        print(
+            f"경고: {pr_base} 와의 공통 조상을 찾지 못해 STATE 갱신 검사를 건너뛴다.\n"
+            "      CI 라면 체크아웃의 fetch-depth 를 늘린다 (현재 100).",
+            file=sys.stderr,
+        )
+        return []
 
     changed = [p for p in _git("diff", "--name-only", f"{merge_base}..HEAD").split("\n") if p]
     messages = _git("log", "--format=%B", f"{merge_base}..HEAD")

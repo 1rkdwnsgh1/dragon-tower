@@ -22,7 +22,11 @@ jobs:
   quality:
     runs-on: ubuntu-latest
     steps:
+      # STATE 검사가 merge-base 를 구해야 해서 얕은 체크아웃으로는 안 된다(실제로 1회 실패했다).
+      # fetch-depth: 0 은 173MB 전체를 매번 받으므로 100 으로 둔다 — PR 브랜치는 짧게 산다.
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 100
 
       # --- 0. 문서 구조 (1초. 설치도 필요 없다) ---
       # 문서 규칙이 사람 손으로는 안 지켜졌다 — 목록이 세 곳에 갈라져 서로 달라졌고, 문서를 옮기면

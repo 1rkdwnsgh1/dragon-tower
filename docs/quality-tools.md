@@ -242,6 +242,8 @@ python3 tools/check_docs.py --pr-base origin/main
   `CMakeLists.txt` 를 고친 PR 이 `docs/STATE.md` 를 안 고치면 **실패**.
 - 상태가 정말 그대로인 PR(에셋만, 오타만)은 **커밋 메시지에 `[state-skip]`** 을 넣는다.
 - 별도로 `최종 갱신` 날짜가 **14일**(`STATE_STALE_DAYS`) 넘게 묵으면 푸시·PR 어디서든 실패한다.
+- 얕은 체크아웃에서 merge-base 를 못 구하면 **막지 않고 경고만** 한다(환경 문제로 PR 을 막으면
+  검사 자체를 지우게 된다). CI 체크아웃은 그래서 `fetch-depth: 100` 이다. 방치는 날짜 검사가 잡는다.
 
 탈출구를 둔 이유: 탈출구가 없는 검사는 급할 때 검사 자체를 지우게 된다. `[state-skip]` 은
 커밋 메시지에 남아서 **누가 언제 건너뛰었는지 보인다.**
