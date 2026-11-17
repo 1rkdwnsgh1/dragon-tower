@@ -363,11 +363,32 @@ void App::updateTaskbarSkin() {
         return;
     }
 
-    RECT r{};
-    if (!GetWindowRect(tray, &r)) return;
-    int w = r.right - r.left;
-    int h = r.bottom - r.top;
+    RECT tb{};
+    if (!GetWindowRect(tray, &tb)) return;
+    int w = tb.right - tb.left;
+    int h = tb.bottom - tb.top;
     if (w <= 0 || h <= 0) return;
+    // 세로로 선 작업표시줄(왼쪽·오른쪽 고정)에는 가로로 긴 띠가 맞지 않는다. 그릴 자리가 없으니 끈다.
+    if (h >= w) {
+        if (taskbar_ && taskbarDrawn_) {
+            ShowWindow(taskbar_, SW_HIDE);
+            taskbarDrawn_ = false;
+            taskbarSkinKey_.clear();
+        }
+        return;
+    }
+
+    // 2026-11-17 (#77): 작업표시줄 **위에 덮지 않고 바로 바깥쪽**에 띠를 그린다.
+    // 덮어 그리면 시작 버튼·앱 아이콘·트레이·시계가 가려진다. 작업표시줄은 다른 프로세스
+    // (explorer)의 창이고 Windows 11 은 그 안이 WinUI XAML 이라, 그 밑으로 파고드는 길이 없다
+    // (SetParent 는 성공해도 한 픽셀도 그려지지 않는다). 자리를 옮기는 것이 유일하게 확실한 길이다.
+    // 작업표시줄이 화면 위쪽에 붙어 있으면 띠도 아래쪽으로 간다.
+    HMONITOR mon = MonitorFromRect(&tb, MONITOR_DEFAULTTONEAREST);
+    MONITORINFO mi{};
+    mi.cbSize = sizeof(mi);
+    bool dockedTop = GetMonitorInfoW(mon, &mi) && tb.top <= mi.rcMonitor.top;
+    RECT r = dockedTop ? RECT{tb.left, tb.bottom, tb.right, tb.bottom + h}
+                       : RECT{tb.left, tb.top - h, tb.right, tb.top};
 
     if (!taskbar_) {
         // 본체와 같은 창 클래스를 쓰되 lpParam 을 넘기지 않는다 —
@@ -381,7 +402,8 @@ void App::updateTaskbarSkin() {
     bool same = taskbarDrawn_ && taskbarSkinKey_ == skin && r.left == taskbarRect_.left &&
                 r.top == taskbarRect_.top && r.right == taskbarRect_.right && r.bottom == taskbarRect_.bottom;
     if (same) {
-        if (!hidden_) SetWindowPos(taskbar_, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
+        // 드래곤 바로 아래에 둔다 — 띠가 드래곤·몬스터를 덮으면 안 된다.
+        if (!hidden_) SetWindowPos(taskbar_, overlay_, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
         return;
     }
 
@@ -393,14 +415,26 @@ void App::updateTaskbarSkin() {
         g.Clear(Color(0, 0, 0, 0));
         g.SetInterpolationMode(InterpolationModeHighQualityBicubic);
         g.SetPixelOffsetMode(PixelOffsetModeHalf);
-        // 띠는 작업표시줄 크기에 맞춰 늘린다. 가로로 긴 그림이라 세로가 많이 눌리지는 않는다.
-        g.DrawImage(piece.bmp, Rect(0, 0, w, h), 0, 0, static_cast<int>(piece.bmp->GetWidth()),
-                    static_cast<int>(piece.bmp->GetHeight()), UnitPixel);
+        // 비율을 지킨다(#77). 가로를 띠 너비에 맞추고, 세로가 넘치면 **가운데를 잘라** 쓴다.
+        // 예전에는 Rect(0,0,w,h) 로 늘려 그려서 가로로 길쭉하게 일그러졌다.
+        float iw = static_cast<float>(piece.bmp->GetWidth());
+        float ih = static_cast<float>(piece.bmp->GetHeight());
+        float sx = static_cast<float>(w) / iw;          // 가로를 꽉 채우는 배율
+        float drawH = ih * sx;
+        if (drawH > static_cast<float>(h)) {
+            float srcH = static_cast<float>(h) / sx;    // 띠에 들어갈 만큼만 원본에서 떼어 온다
+            float srcY = (ih - srcH) * 0.5f;
+            g.DrawImage(piece.bmp, Rect(0, 0, w, h), 0.f, srcY, iw, srcH, UnitPixel);
+        } else {
+            // 띠보다 납작하면 작업표시줄에 붙는 쪽으로 맞춘다(아래 고정이면 띠의 아래, 위 고정이면 위).
+            int top = dockedTop ? 0 : h - static_cast<int>(drawH + 0.5f);
+            g.DrawImage(piece.bmp, Rect(0, top, w, static_cast<int>(drawH + 0.5f)), 0.f, 0.f, iw, ih, UnitPixel);
+        }
     }
     taskbarRect_ = r;
     taskbarSkinKey_ = skin;
     taskbarSurf_.present(taskbar_, r.left, r.top);
-    SetWindowPos(taskbar_, HWND_TOPMOST, r.left, r.top, w, h, SWP_NOACTIVATE);
+    SetWindowPos(taskbar_, overlay_, r.left, r.top, w, h, SWP_NOACTIVATE);
     if (!hidden_) ShowWindow(taskbar_, SW_SHOWNOACTIVATE);
     taskbarDrawn_ = true;
 }

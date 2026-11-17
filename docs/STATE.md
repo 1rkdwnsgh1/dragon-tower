@@ -5,7 +5,7 @@
 
 작업을 끝낼 때 이 문서를 같은 PR 에서 고친다. **낡은 상태 문서는 없는 것보다 해롭다.**
 
-최종 갱신: 2026-11-17 (크기 비례 판정)
+최종 갱신: 2026-11-17 (작업표시줄 띠)
 
 ---
 
@@ -17,8 +17,8 @@
 | 저장소 | **공개(public)** — 2026-11-17 전환 |
 | CI | **정상** (2026-11-17 01:12 `main` build·quality 통과) |
 | 자동 작업 큐 | **없음** — 두 큐 모두 종료 (11-15 20:00, 11-17 08:00) |
-| 열린 PR | **#80** 크기 비례 판정 (코어 — 팀원 검토 대상) |
-| 알려진 문제 | **2건** — [known-issues.md](known-issues.md) (작업표시줄 가림 [#77](https://github.com/1rkdwnsgh1/dragon-tower/issues/77), 효과 투명도 [#79](https://github.com/1rkdwnsgh1/dragon-tower/issues/79)). 크기-사거리 [#78](https://github.com/1rkdwnsgh1/dragon-tower/issues/78) 은 #80 에서 고쳤다 |
+| 열린 PR | **#81** 작업표시줄 띠를 바깥쪽으로 (win — 팀원 검토 대상) |
+| 알려진 문제 | **1건** — [known-issues.md](known-issues.md) 효과 투명도 [#79](https://github.com/1rkdwnsgh1/dragon-tower/issues/79). [#78](https://github.com/1rkdwnsgh1/dragon-tower/issues/78) 크기-사거리는 #80, [#77](https://github.com/1rkdwnsgh1/dragon-tower/issues/77) 작업표시줄은 #81 에서 고쳤다 |
 
 ## 운영 방식
 
@@ -40,6 +40,7 @@
 | 자동 사냥 사망 위험의 허용 수준 | 사람 | [game-design.md 10장](game-design.md#10-확정-사항과-남은-미결정-사항) |
 | 스킬 자동 채움을 끌 수 있게 할지 | 사람 (보류 — 칸을 비워 두고 싶은 사람이 실제로 있는지 먼저 본다) | [decisions.md D](decisions.md#d-망령룡-장판-스킬-중복-2026-11-15) |
 | **FX 투명도를 전역으로 둘지 스킬마다 둘지** — `dragon.txt` 키가 늘어난다 | 사람 | [known-issues.md 3번](known-issues.md) |
+| 작업표시줄 띠가 바탕화면을 얼마나 먹어도 되는지 (지금은 작업표시줄과 같은 높이) | 사람 | [known-issues.md 1번](known-issues.md) |
 | 드래곤 첫 제작 목표 종 수 (2명 기준으로 다시 정해야 한다) | 사람 | [character-pipeline.md 1장](character-pipeline.md) |
 
 ## 순서가 걸려 있는 것 — 앞 작업이 끝나야 집는다
