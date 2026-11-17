@@ -1,18 +1,27 @@
 #!/usr/bin/env python3
 """문서 구조 검사.
 
-문서를 한 곳에만 적는 규칙은 사람이 지켜야 하는데, 실제로 안 지켜졌다 — 목록이
-README·CLAUDE.md·AGENTS.md 세 곳에 갈라져 서로 달라졌고, 문서를 추가할 때마다 한 곳씩 빠졌다.
-그래서 기계가 잡을 수 있는 두 가지만 검사한다.
+문서 규칙은 사람이 지켜야 하는데 실제로 안 지켜졌다 — 목록이 README·CLAUDE.md·AGENTS.md 세 곳에
+갈라져 서로 달라졌고, 문서를 옮기면 링크가 깨진 채 남았다. 그래서 기계가 잡을 수 있는 것만 검사한다.
 
 1. 깨진 상대 링크 — 문서를 옮기고 링크를 안 고친 것
 2. docs/ 의 문서가 docs/INDEX.md 에 등재되지 않은 것 — 색인에서 빠져 아무도 못 찾는 문서
+3. archive 역류 — 평시에 읽는 문서가 docs/archive/ 를 가리키는 것
+   (archive 를 읽지 않기로 했는데 살아 있는 문서가 링크로 끌어오면 규칙이 무의미해진다)
+4. STATE.md 갱신 — 코드·문서를 고치는 PR 이 docs/STATE.md 를 함께 고쳤는지 (--pr-base 를 줄 때만)
 
-실행: python3 tools/check_docs.py
+실행:
+    python3 tools/check_docs.py                      # 1~3
+    python3 tools/check_docs.py --pr-base origin/main  # 1~4 (CI 의 PR 검사)
+
+STATE 검사를 건너뛰어야 하는 PR(에셋만 바꿈, 오타 수정 등)은 커밋 메시지에 `[state-skip]` 을 넣는다.
 """
 from __future__ import annotations
 
+import argparse
+import datetime as dt
 import re
+import subprocess
 import sys
 from pathlib import Path
 from urllib.parse import unquote
@@ -22,6 +31,20 @@ LINK = re.compile(r"\[[^\]]*\]\(([^)]+)\)")
 
 # INDEX 등재 검사에서 빼는 파일
 INDEX_EXEMPT = {"INDEX.md", "STATE.md"}
+
+# archive 를 가리켜도 되는 문서. 보관 이유와 원본 위치를 적는 것이 이들의 역할이다.
+ARCHIVE_LINK_OK = {
+    "docs/INDEX.md",
+    "docs/decisions.md",
+    "docs/token-budget.md",
+    "docs/archive/README.md",
+    "docs/ai-workflow-notes.md",
+    "docs/implementation-notes.md",
+    "docs/changelog.md",
+}
+
+# STATE.md 가 이 일수보다 오래 묵으면 실패시킨다.
+STATE_STALE_DAYS = 14
 
 
 def md_files() -> list[Path]:
@@ -76,15 +99,116 @@ def check_index(files: list[Path]) -> list[str]:
     return problems
 
 
+def check_archive_backflow(files: list[Path]) -> list[str]:
+    """평시에 읽는 문서가 archive 를 가리키면 "읽지 않는다"가 무의미해진다."""
+    problems = []
+    for f in files:
+        rel = f.relative_to(ROOT).as_posix()
+        if rel in ARCHIVE_LINK_OK or "archive" in f.relative_to(ROOT).parts:
+            continue
+        for target in LINK.findall(f.read_text(encoding="utf-8")):
+            path_part = unquote(target.strip().split("#", 1)[0])
+            if not path_part or path_part.startswith(("http", "mailto:")):
+                continue
+            resolved = (f.parent / path_part).resolve()
+            try:
+                inside = resolved.relative_to(ROOT / "docs" / "archive")
+            except ValueError:
+                continue
+            problems.append(
+                f"{rel}: archive 를 가리킨다 → {target}\n"
+                f"      archive 는 평시에 읽지 않는다. 결정은 docs/decisions.md 를,"
+                f" 상태는 docs/STATE.md 를 가리켜라 (대상: {inside})"
+            )
+    return problems
+
+
+def _git(*args: str) -> str:
+    return subprocess.run(
+        ["git", *args], cwd=ROOT, capture_output=True, text=True, check=False
+    ).stdout
+
+
+def check_state_updated(pr_base: str) -> list[str]:
+    """코드·문서를 고치는 PR 은 docs/STATE.md 를 함께 고쳐야 한다.
+
+    낡은 상태 문서는 없는 것보다 해롭다. 규칙만 적어 두면 지켜지지 않으므로 검사로 만들었다.
+    """
+    merge_base = _git("merge-base", pr_base, "HEAD").strip()
+    if not merge_base:
+        return [f"STATE 검사: {pr_base} 와의 공통 조상을 찾지 못했다 (fetch-depth 를 늘려야 한다)"]
+
+    changed = [p for p in _git("diff", "--name-only", f"{merge_base}..HEAD").split("\n") if p]
+    messages = _git("log", "--format=%B", f"{merge_base}..HEAD")
+
+    if "[state-skip]" in messages:
+        print("STATE 검사: 커밋 메시지의 [state-skip] 로 건너뛴다")
+        return []
+    if "docs/STATE.md" in changed:
+        return []
+
+    # 상태가 바뀌는 변경인지 — 코드와 살아 있는 문서만 본다.
+    def matters(p: str) -> bool:
+        if p.startswith("docs/archive/"):
+            return False
+        return (
+            p.startswith(("src/", "include/", "docs/", "tools/", ".github/workflows/"))
+            or p in {"CLAUDE.md", "README.md", "CMakeLists.txt"}
+        )
+
+    relevant = [p for p in changed if matters(p)]
+    if not relevant:
+        return []
+
+    return [
+        "docs/STATE.md 를 고치지 않았다 — 이 PR 은 "
+        f"{len(relevant)}개 파일을 바꾼다 (예: {', '.join(relevant[:3])})\n"
+        "      버전·CI·열린 PR·막혀 있는 것·순서 제약 중 바뀐 것을 반영하고 '최종 갱신' 날짜를 고친다.\n"
+        "      상태가 정말 그대로라면 커밋 메시지에 [state-skip] 을 넣는다."
+    ]
+
+
+def check_state_fresh() -> list[str]:
+    state = ROOT / "docs" / "STATE.md"
+    if not state.exists():
+        return ["docs/STATE.md 가 없다 — 세션 시작 때 읽는 문서다"]
+    m = re.search(r"최종 갱신:\s*(\d{4})-(\d{2})-(\d{2})", state.read_text(encoding="utf-8"))
+    if not m:
+        return ["docs/STATE.md 에 `최종 갱신: YYYY-MM-DD` 줄이 없다"]
+    updated = dt.date(*(int(g) for g in m.groups()))
+    age = (dt.date.today() - updated).days
+    if age > STATE_STALE_DAYS:
+        return [
+            f"docs/STATE.md 가 {age}일 묵었다 (기준 {STATE_STALE_DAYS}일) — "
+            "낡은 상태 문서는 없는 것보다 해롭다. 지금 상태를 확인하고 날짜를 고친다"
+        ]
+    return []
+
+
 def main() -> int:
+    ap = argparse.ArgumentParser()
+    ap.add_argument(
+        "--pr-base",
+        help="이 ref 와의 차이를 보고 docs/STATE.md 갱신 여부를 검사한다 (예: origin/main)",
+    )
+    args = ap.parse_args()
+
     files = md_files()
-    problems = check_links(files) + check_index(files)
+    problems = (
+        check_links(files)
+        + check_index(files)
+        + check_archive_backflow(files)
+        + check_state_fresh()
+    )
+    if args.pr_base:
+        problems += check_state_updated(args.pr_base)
     if problems:
         print(f"문서 검사 실패 — {len(problems)}건\n")
         for p in problems:
             print(f"  - {p}")
         print("\n고치는 방법: 문서를 옮겼으면 링크를 같은 PR 에서 고치고,")
         print("새 문서를 만들었으면 docs/INDEX.md 의 목록과 라우팅 표에 추가한다.")
+        print("규칙은 CLAUDE.md 의 '문서를 쓸 때' 절에 있다.")
         return 1
     print(f"문서 검사 통과 — {len(files)}개 파일")
     return 0
