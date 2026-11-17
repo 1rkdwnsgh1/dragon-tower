@@ -197,3 +197,57 @@ python3 tools/fx_preview.py --body assets/dragons/revenant/skill_pierce.png \
   찾은 입력은 Actions 캐시에 쌓여 다음 회차가 이어 간다.
 
 분이 모자라면 `on: push` 를 `on: pull_request` 로 줄이는 것이 첫 번째 조정이다.
+
+## 7. `tools/check_docs.py` — 문서 링크와 색인
+
+문서 규칙("같은 것은 한 곳에만", "새 문서는 색인에 추가")은 사람 손으로 지켜지지 않았다.
+목록이 README·`CLAUDE.md`·`AGENTS.md` 세 곳에 갈라져 서로 달라졌고, 문서를 `archive/` 로
+옮겼을 때 안쪽 링크가 깨진 채 남았다. 그래서 기계가 잡을 수 있는 둘만 검사로 만들었다.
+
+```bash
+python3 tools/check_docs.py
+```
+
+1. **깨진 상대 링크** — 문서를 옮기고 링크를 안 고친 것
+2. **`docs/INDEX.md` 미등재** — 색인에 없어서 아무도 찾지 못하는 `docs/` 문서
+
+`assets/references/**/recovered-*/` 는 복구한 원본 보존 문서라 검사에서 뺀다(고치지 않는 것이 목적).
+`docs/archive/` 는 링크만 검사하고 색인 등재는 요구하지 않는다.
+
+CI 에서 가장 먼저 돈다 — 1초이고 설치가 필요 없다.
+
+### 7.1 archive 역류 검사
+
+`docs/archive/` 를 "읽지 않는다"로 정했는데, 살아 있는 문서가 링크로 끌어오면 그 규칙이
+무의미해진다. 그래서 **평시에 읽는 문서가 archive 를 가리키면 실패**시킨다.
+
+가리켜도 되는 문서는 7개뿐이다(`ARCHIVE_LINK_OK`) — 보관 이유와 원본 위치를 적는 것이 그들의 역할이다:
+`INDEX.md` · `decisions.md` · `token-budget.md` · `archive/README.md` · `ai-workflow-notes.md` ·
+`implementation-notes.md` · `changelog.md`.
+
+검사와 별개로 **저장소 루트의 `.ignore`** 가 `rg`·`fd` 에서 `docs/archive/` 를 기본으로 뺀다.
+git 은 이 파일을 보지 않으므로 커밋·diff·CI 에는 영향이 없다. 일부러 보려면 `rg -u`.
+
+### 7.2 `docs/STATE.md` 갱신 검사
+
+`STATE.md` 는 세션 시작 때 읽는 유일한 상태 문서다. **낡으면 없는 것보다 해롭다.**
+"작업 끝낼 때 같은 PR 에서 고친다"를 `CLAUDE.md` 에 적었지만 사람 손으로는 지켜지지 않으므로
+검사로 만들었다.
+
+```bash
+python3 tools/check_docs.py --pr-base origin/main
+```
+
+- `src/` · `include/` · `docs/`(archive 제외) · `tools/` · 워크플로 · `CLAUDE.md` · `README.md` ·
+  `CMakeLists.txt` 를 고친 PR 이 `docs/STATE.md` 를 안 고치면 **실패**.
+- 상태가 정말 그대로인 PR(에셋만, 오타만)은 **커밋 메시지에 `State-Skip: <이유>` 줄**을 넣는다.
+- 별도로 `최종 갱신` 날짜가 **14일**(`STATE_STALE_DAYS`) 넘게 묵으면 푸시·PR 어디서든 실패한다.
+- 얕은 체크아웃에서 merge-base 를 못 구하면 **막지 않고 경고만** 한다(환경 문제로 PR 을 막으면
+  검사 자체를 지우게 된다). CI 체크아웃은 그래서 `fetch-depth: 100` 이다. 방치는 날짜 검사가 잡는다.
+
+탈출구를 둔 이유: 탈출구가 없는 검사는 급할 때 검사 자체를 지우게 된다. `State-Skip:` 은
+커밋 메시지에 남아서 **누가 언제 왜 건너뛰었는지 보인다.**
+
+형식이 git trailer 인 이유: 처음에는 본문 어디든 `[state-skip]` 이 있으면 건너뛰게 했는데,
+**탈출구를 설명하는 커밋 메시지가 스스로 검사를 껐다.** 줄 머리의 `State-Skip:` 는 산문에
+우연히 걸리지 않고 이유를 적게 만든다.

@@ -1,5 +1,7 @@
 # 깊이감 축 C 설계안: 자동 사냥의 결정과 위험
 
+> **보관 문서 — 평시에 읽지 않는다.** 결정은 [../decisions.md](../decisions.md) 에, 지금 상태는 [../STATE.md](../STATE.md) 에 있다. 이 파일은 결정을 뒤집으려 할 때만 연다.
+
 상태: **선택지 문서 (2026-11-15).** 큐 18번의 결과물이다.
 [`design-depth.md`](design-depth.md) 3절 축 C를 이 게임의 코드에 비춰 **두 갈래를 나란히** 놓는다.
 **아무것도 결정하지 않는다** — 기획서 "아직 미결정"의 *자동 사냥 사망 위험의 허용 수준과 경고 방식*이
@@ -270,7 +272,7 @@ cp -r assets /tmp/a && sed -i 's/^speed=95/speed=180/' /tmp/a/enemies/goblin/ene
 
 **`cfg::kAutoExpCapEnabled` 는 값도 스위치도 건드리지 않는다.** (가)의 `exp_scale` 은 획득
 경험치에 곱하는 값이고 상한 계산과 **다른 자리**다 — 상한을 다시 켤 때 둘이 겹치지 않는지는
-그때 확인할 일로 남긴다([`implementation-notes.md`](implementation-notes.md) 에 적었다).
+그때 확인할 일로 남긴다([`implementation-notes.md`](../implementation-notes.md) 에 적었다).
 
 ---
 

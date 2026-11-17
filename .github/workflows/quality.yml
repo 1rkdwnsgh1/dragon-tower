@@ -3,9 +3,11 @@
 # build.yml 과 나누어 둔 이유: build.yml 은 "돌아가는가"를 보고, 이쪽은 "조용히 틀린 데가
 # 없는가"를 본다. 둘을 섞으면 실패 원인을 읽기 어렵다.
 #
-# **이 저장소는 비공개라 Actions 분이 유한하다.** 그래서 잡을 잘게 쪼개지 않고 하나로 묶었고
-# (잡마다 체크아웃·설치가 다시 돈다), 오래 걸리는 퍼징은 매 푸시가 아니라 주 1회와 수동으로만 돈다.
-# 전부 ubuntu 다 — windows 러너는 분이 2배로 계산된다.
+# 잡을 잘게 쪼개지 않고 하나로 묶었고(잡마다 체크아웃·설치가 다시 돈다), 오래 걸리는 퍼징은
+# 매 푸시가 아니라 주 1회와 수동으로만 돈다. 전부 ubuntu 다.
+#
+# 2026-11-17 저장소를 공개로 전환해 Actions 분 제한은 사라졌다(공개 저장소는 무료). 위 구성은
+# 그대로 두었다 — 분을 아끼려고 한 것이지만 실패 원인을 읽기 쉬운 쪽이기도 하다.
 name: quality
 
 on:
@@ -20,7 +22,26 @@ jobs:
   quality:
     runs-on: ubuntu-latest
     steps:
+      # STATE 검사가 merge-base 를 구해야 해서 얕은 체크아웃으로는 안 된다(실제로 1회 실패했다).
+      # fetch-depth: 0 은 173MB 전체를 매번 받으므로 100 으로 둔다 — PR 브랜치는 짧게 산다.
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 100
+
+      # --- 0. 문서 구조 (1초. 설치도 필요 없다) ---
+      # 문서 규칙이 사람 손으로는 안 지켜졌다 — 목록이 세 곳에 갈라져 서로 달라졌고, 문서를 옮기면
+      # 링크가 깨진 채 남았다. 기계가 잡을 수 있는 것만 검사한다(링크·색인·archive 역류·STATE 갱신).
+      #
+      # PR 에서는 STATE.md 갱신까지 본다. merge-base 가 필요해서 base 브랜치를 얕게 받아 온다.
+      # 상태가 정말 안 바뀐 PR 은 커밋 메시지에 `State-Skip: <이유>` 줄을 넣는다.
+      - name: 문서 링크·색인·STATE 검사
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            git fetch -q --depth=100 origin "${{ github.base_ref }}"
+            python3 tools/check_docs.py --pr-base "origin/${{ github.base_ref }}"
+          else
+            python3 tools/check_docs.py
+          fi
 
       - name: 도구 설치
         run: |

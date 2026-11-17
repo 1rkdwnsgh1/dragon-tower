@@ -1,5 +1,7 @@
 # 자동 작업 큐 (2026-11-14 ~ 11-15)
 
+> **보관 문서 — 평시에 읽지 않는다.** 결정은 [../decisions.md](../decisions.md) 에, 지금 상태는 [../STATE.md](../STATE.md) 에 있다. 이 파일은 결정을 뒤집으려 할 때만 연다.
+
 예약된 AI 세션이 2시간마다 돌면서 이 문서의 작업을 위에서부터 하나씩 집어 간다.
 **매 회차는 이전 기억이 없는 새 세션이다.** 그래서 진행 상태는 전부 이 문서에만 있다.
 
@@ -11,8 +13,8 @@
 
 1. **최신 받기.** `git fetch origin main && git checkout -B work origin/main`.
    팀원 3명이 같은 저장소에서 작업한다 — 이 주말에도 푸시될 수 있으니 매번 받는다.
-2. **읽기.** [`AGENTS.md`](../AGENTS.md)의 "작업 전에 읽을 문서" 중 이번 작업에 해당하는 것만.
-   위치는 [`docs/codemap.md`](codemap.md)에서 찾는다 — 큰 파일을 통째로 읽지 않는다.
+2. **읽기.** [`AGENTS.md`](../../CLAUDE.md)의 "작업 전에 읽을 문서" 중 이번 작업에 해당하는 것만.
+   위치는 [`docs/codemap.md`](../codemap.md)에서 찾는다 — 큰 파일을 통째로 읽지 않는다.
 3. **집기.** 아래 표에서 **집을 수 있는 가장 위 항목** 하나. 상태 칸의 낱말이 회차마다 늘었다 —
    `대기` · `집을 수 있다` · `승인됨 — 집을 수 있다` 는 **전부 집을 수 있다는 뜻이다.**
    `대기` 라는 글자만 찾으면 11/15처럼 **집을 수 있는 항목이 일곱 개인데도 "큐가 비었다"로 끝난다.**
@@ -30,13 +32,13 @@
    `src/win`을 고쳤으면 **푸시 전에** `tools/check_win_build.sh` 를 돌린다(9초).
    2026-11-14 밤에 확인했다 — 이 환경에서 Windows 코드가 **컴파일된다.** 그 전에 이 자리에
    "컴파일할 수 없다"고 적혀 있던 것은 틀린 기록이었다
-   ([`docs/ai-workflow-notes.md`](ai-workflow-notes.md) 맨 위 참고).
+   ([`docs/ai-workflow-notes.md`](../ai-workflow-notes.md) 맨 위 참고).
 6. **올리기.** 브랜치를 만들어 PR. 분류에 따라:
    - **`데이터` · `문서` · `도구` · `테스트`** → CI(Windows·Linux 둘 다)가 통과하면 **바로 병합**한다.
    - **`코어` · `win`** → PR만 올리고 **병합하지 않는다.** 사람이 일요일에 함께 검토한다.
      PR 본문에 "정한 것 / 임시값 / 사람이 확인할 것"을 적는다.
-7. **기록.** 같은 PR에서 함께 고친다 — [`docs/changelog.md`](changelog.md),
-   [`docs/codemap.md`](codemap.md)(코드를 바꿨으면), [`docs/implementation-notes.md`](implementation-notes.md)
+7. **기록.** 같은 PR에서 함께 고친다 — [`docs/changelog.md`](../changelog.md),
+   [`docs/codemap.md`](../codemap.md)(코드를 바꿨으면), [`docs/implementation-notes.md`](../implementation-notes.md)
    (임시값이 생겼거나 Windows에서 확인할 것이 생겼으면). 그리고 이 문서의 상태를 
    `완료 (PR #n)` 로 바꾼다.
 8. **보고.** 3줄 이내. 한 항목, PR 번호, 막힌 것.
@@ -53,9 +55,9 @@
 그 회차를 끝낸다. 되돌리기 어려운 결정을 기억 없는 세션이 혼자 내리면 안 된다.
 
 ### 이 환경에서 안 되는 것 / 반복해서 밟은 함정
-새로 적지 말고 이미 적힌 곳을 본다 — [`docs/ai-workflow-notes.md`](ai-workflow-notes.md)의
+새로 적지 말고 이미 적힌 곳을 본다 — [`docs/ai-workflow-notes.md`](../ai-workflow-notes.md)의
 "이 환경에서 안 되는 것"(LFS 푸시·브랜치 삭제·`gh` GraphQL·PR 본문 백틱)과
-[`docs/character-pipeline.md`](character-pipeline.md)(시트 변환의 공통 배율·격자 나누기 확인).
+[`docs/character-pipeline.md`](../character-pipeline.md)(시트 변환의 공통 배율·격자 나누기 확인).
 
 ---
 
@@ -93,7 +95,7 @@
 | 8 | 스킬 효과 — 그리기 | win | **병합 완료 (PR #42)** — v1.7 |
 | 9 | Windows 확인 목록 정리 | 문서 | 완료 (PR #30) |
 | 10 | `Renderer.cpp` 쪼개기 | win | 버림 (PR #34 닫음 — 최신 main 에서 다시 쪼갤 것. 다시 하려면 사람이 이 항목을 `대기` 로 되돌린다) |
-| 11 | 그린 부분만 갱신 (1단계: 측정) | win | **완료 (PR #51)** — 측정값 받았다(11/16). [측정·진단](implementation-notes.md#프레임-시간-측정-2026-11-16-큐-11번--사람이-windows-에서-쟀다) |
+| 11 | 그린 부분만 갱신 (1단계: 측정) | win | **완료 (PR #51)** — 측정값 받았다(11/16). [측정·진단](../implementation-notes.md#프레임-시간-측정-2026-11-16-큐-11번--사람이-windows-에서-쟀다) |
 | 12 | 그린 부분만 갱신 (2단계: 적용) | win | **완료 (PR #54)** — 측정 결과 UI 가 89~93%라 "그린 부분만 갱신"이 아니라 **UI 조각 캐시**로 바꿔 했다. 글자 캐시는 측정 뒤 따로 |
 | 13 | Zone 스킬 중복 정리안 | 문서 | 완료 (PR #36) |
 | 14 | 탑 층별 보상·난이도 곡선 | 데이터 | **집을 수 있다** (3번은 PR #41, 병합 후) |
@@ -289,7 +291,7 @@
 **PR 본문에 반드시**: 단계별로 어떻게 보이게 했는지, 크기·위치 기준값, **Windows에서 눈으로
 확인할 것**(시험용으로 `fx=` 를 하나 넣어 보고 몸통과 겹치는 정도, 세 단계가 끊겨 보이지 않는지).
 
-**푸시 전에**: [`team-ai-prompt.md` 3절](team-ai-prompt.md) 세 가지. `Renderer.cpp` 는 1752줄이므로
+**푸시 전에**: [`team-ai-prompt.md` 3절](../team-ai-prompt.md) 세 가지. `Renderer.cpp` 는 1752줄이므로
 `codemap.md` 로 위치를 찾아 그 근처만 읽는다.
 
 ## 9. Windows 확인 목록 정리 · `문서`
@@ -359,7 +361,7 @@
 작동 방식으로 바꾸기 (나) 둘을 합치고 빈 레벨에 다른 스킬 넣기 (다) 그대로 두기 — 각각의 잃는 것을
 적는다. `docs/characters/` 아래 문서로.
 
-**한 것** (PR #36): [`docs/characters/revenant-dragon-zone-skills.md`](characters/revenant-dragon-zone-skills.md).
+**한 것** (PR #36): [`docs/characters/revenant-dragon-zone-skills.md`](revenant-dragon-zone-skills.md).
 수치·코드·시뮬레이션 셋으로 재고 선택지 (가)·(나)·(다)와 각각 잃는 것을 적었다. **데이터·코드는
 고치지 않았다.**
 - 침식이 **재사용 대기시간과 사거리만 빼고 전부 안개보다 위**에 있고, 작동 분기와 그리기 코드가
@@ -497,7 +499,7 @@
 ## 18. 깊이감 C축: 자동 사냥의 결정과 위험 설계안 · `문서`
 
 **먼저 읽을 것**: [`docs/design-depth.md`](design-depth.md) 3절 축 C,
-[`docs/implementation-notes.md`](implementation-notes.md) "자동 사냥 생존과 패시브 임시값".
+[`docs/implementation-notes.md`](../implementation-notes.md) "자동 사냥 생존과 패시브 임시값".
 
 **왜**: 큐 6번이 숫자로 냈다 — **자동 사냥에서 드래곤은 피해를 한 번도 받지 않는다**
 (Lv1·5·10 × 60·180분, 받은 피해 0.00배). 패시브를 0으로 꺼도 출력이 바이트까지 같다.
@@ -529,7 +531,7 @@
   피해 0.00배) — 예고 0.85초 동안 드래곤이 뒷걸음질해 장판이 떠난 자리에 떨어진다.
 - **속도를 260까지 올려도 사망 0/20이다.** 피해 1.93배인데 회복 3.12배 — 파도 사이 휴식
   15초 × 1.5%/초가 깎임을 매번 되돌린다. **회복 쪽을 함께 건드리지 않으면 (나)안은 효과가 없다.**
-- 숫자와 재는 방법은 [`implementation-notes.md`](implementation-notes.md)
+- 숫자와 재는 방법은 [`implementation-notes.md`](../implementation-notes.md)
   "자동 사냥 위험이 0인 까닭 — 레버별 측정" 에 옮겨 적었다.
 - 구현(이 축의 19·20번에 해당하는 일)은 **사람이 (가)/(나)를 정하기 전까지 집지 않는다.**
 
@@ -571,7 +573,7 @@ PR 본문에 "정한 것 / 임시값 / 사람이 확인할 것".
 
 ## 21. 망령룡 Zone 중복 정리 · `데이터` · **승인됨**
 
-결정은 [`docs/characters/revenant-dragon-zone-skills.md`](characters/revenant-dragon-zone-skills.md)
+결정은 [`docs/characters/revenant-dragon-zone-skills.md`](revenant-dragon-zone-skills.md)
 7절. **(나) 합치기, "지우지 않는" 변형.**
 
 **할 일**: `assets/dragons/revenant/dragon.txt` 에서
@@ -590,7 +592,7 @@ PR 본문에 "정한 것 / 임시값 / 사람이 확인할 것".
 
 ## 22. 스킬 자동 채움 순서 바꾸기 · `코어` · **승인됨** · **PR만**
 
-결정은 [`revenant-dragon-zone-skills.md`](characters/revenant-dragon-zone-skills.md) 7절 5-1.
+결정은 [`revenant-dragon-zone-skills.md`](revenant-dragon-zone-skills.md) 7절 5-1.
 
 **할 일**: 빈 칸은 **해제 레벨이 높은 것부터** 채운다. **이미 찬 칸은 자동으로 밀어내지 않는다.**
 새 스킬이 해제되면 화면에 알린다(**소리 없이** — 확정 규칙).
@@ -609,7 +611,7 @@ Lv5 침식을 영원히 못 쓴다.
 
 ## 23. 적 `attack.png` 에서 떨어져 나온 조각 제거 · `데이터` · **승인됨**
 
-품질 도구가 찾았다([`quality-tools.md`](quality-tools.md) 5절). 고블린·오우거의 `attack.png`
+품질 도구가 찾았다([`quality-tools.md`](../quality-tools.md) 5절). 고블린·오우거의 `attack.png`
 첫 칸에 **본체에서 떨어져 나온 조각**(칼날·바위)이 들어 있다. 지금도 게임에서 공중에 떠 보인다.
 
 **할 일**: 원본에서 다시 자르거나 조각을 지운다. `tools/make_sheet.py` 를 쓸 때

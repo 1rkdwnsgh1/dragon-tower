@@ -1,5 +1,7 @@
 # 자동 작업 큐 — 망령룡 스킬 이펙트 적용 (2026-11-16 밤)
 
+> **보관 문서 — 평시에 읽지 않는다.** 결정은 [../decisions.md](../decisions.md) 에, 지금 상태는 [../STATE.md](../STATE.md) 에 있다. 이 파일은 결정을 뒤집으려 할 때만 연다.
+
 예약된 AI 세션이 **1시간마다** 돌면서 이 문서의 항목을 위에서부터 하나씩 집어 간다.
 **매 회차는 이전 기억이 없는 새 세션이다.** 진행 상태는 전부 이 문서에만 있다.
 
@@ -14,7 +16,7 @@
 
 1. **최신 받기.** `git fetch origin main && git checkout -B work origin/main`.
    팀원 3명이 같은 저장소에서 작업한다 — 매번 받는다.
-2. **읽기.** 이 문서 전체. 그리고 [`docs/codemap.md`](codemap.md)에서 고칠 곳의 위치만 찾는다.
+2. **읽기.** 이 문서 전체. 그리고 [`docs/codemap.md`](../codemap.md)에서 고칠 곳의 위치만 찾는다.
    `Renderer.cpp`·`World.cpp`를 통째로 읽지 않는다.
 3. **직전 회차 재검증이 먼저다.** 아래 "검증" 5단계를 **직전 회차가 머지한 것에** 돌린다.
    깨진 게 있으면 **새 항목을 집지 않고 그것을 먼저 고친다.**
@@ -28,9 +30,9 @@
 7. **올리기.** 브랜치 + PR. **브랜치는 이 큐 전체에서 3개까지만 만든다**(아래 표의 세 개).
    CI(Windows·Linux)가 통과하면 **머지한다** — `win` 분류도 이번 작업에 한해 사람이 허용했다.
    PR 본문에 `자동 세션이 머지함 — 사후 검토 필요`를 적는다.
-8. **기록.** 같은 PR에서 [`docs/changelog.md`](changelog.md),
-   [`docs/codemap.md`](codemap.md)(코드를 바꿨으면),
-   [`docs/implementation-notes.md`](implementation-notes.md)(임시값·뜻이 바뀐 값·Windows에서
+8. **기록.** 같은 PR에서 [`docs/changelog.md`](../changelog.md),
+   [`docs/codemap.md`](../codemap.md)(코드를 바꿨으면),
+   [`docs/implementation-notes.md`](../implementation-notes.md)(임시값·뜻이 바뀐 값·Windows에서
    확인할 것이 생겼으면)를 고치고, 이 문서의 상태를 `완료 (PR #n)`으로 바꾼다.
 9. **보고.** 3줄 이내. 한 항목, PR 번호, 막힌 것.
 
