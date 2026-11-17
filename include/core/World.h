@@ -63,6 +63,10 @@ struct Projectile {
     float damage = 1.f;
     bool big = false;
     bool alive = true;
+    // 2026-11-17: 효과 그림을 쓰려고 더했다. Fx 는 시작점·끝점이 고정이라 날아가는 것을
+    // 따라갈 수 없어서, 발사체가 자기 스킬 번호와 재생 시간을 들고 다닌다.
+    int skill = -1;   // 스킬 목록 번호. -1 이면 전처럼 동그라미로 그린다
+    float t = 0.f;    // 애니메이션 시간
 };
 
 struct DotZone {

@@ -359,6 +359,7 @@ bool World::castSkill(int i, bool aiChoice) {
             p.speed = cfg::kProjectileSpeed * 1.1f;
             p.damage = d.stats.atk * s.power;
             p.big = true;
+            p.skill = i;  // 날아가는 동안 쓸 효과 그림을 그리는 쪽에서 찾는다(2026-11-17)
             projectiles_.push_back(p);
             break;
         }
@@ -992,10 +993,21 @@ void World::updateCombat(float dt, CombatMode mode, const PlayerInput& in) {
         float step = p.speed * dt;
         if (to.length() <= step + t->radius * 0.6f) {
             damageEnemy(*t, p.damage);
-            addFx(FxType::Hit, t->pos, t->pos, p.big ? 40.f : 24.f, 0.2f, speciesDef(d.species).color);
+            // 2026-11-17: fx_impact 를 적은 스킬이면 그 시트를, 아니면 전처럼 도형을 띄운다.
+            const SpeciesDef& psp = speciesDef(d.species);
+            const SkillDef* ps = (p.skill >= 0 && p.skill < static_cast<int>(psp.skills.size()))
+                                     ? &psp.skills[static_cast<size_t>(p.skill)] : nullptr;
+            if (ps && !ps->fxImpact.empty()) {
+                SkillDef hit = *ps;
+                hit.fx = ps->fxImpact;  // 맞는 순간용 시트로 바꿔 띄운다
+                addSkillFx(hit, FxType::Hit, t->pos, t->pos, p.big ? 40.f : 24.f, 0.2f, psp.color);
+            } else {
+                addFx(FxType::Hit, t->pos, t->pos, p.big ? 40.f : 24.f, 0.2f, psp.color);
+            }
             p.alive = false;
         } else {
             p.pos += to.normalized() * step;
+            p.t += dt;  // 따라다니는 효과 그림의 재생 시간
         }
     }
     projectiles_.erase(std::remove_if(projectiles_.begin(), projectiles_.end(), [](const Projectile& p) { return !p.alive; }),

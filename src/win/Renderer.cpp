@@ -904,6 +904,30 @@ void Renderer::drawWorld(Graphics& g, const Game& game, const Sprites& sprites, 
 
     // 투사체
     for (const Projectile& p : w.projectiles()) {
+        // 2026-11-17: fx= 를 적은 스킬이 쏜 발사체는 그 시트를 **현재 위치에** 그린다.
+        // Fx 를 쓰지 않는 이유는 Fx 의 시작점·끝점이 고정이라 날아가는 것을 못 따라가서다.
+        // 시트가 없거나 스킬을 못 찾으면 전과 똑같이 동그라미로 그린다.
+        const SkillDef* ps = (p.skill >= 0 && p.skill < static_cast<int>(dragonSp.skills.size()))
+                                 ? &dragonSp.skills[static_cast<size_t>(p.skill)] : nullptr;
+        if (ps && !ps->fx.empty()) {
+            Sheet sh = sprites.fxSheet(dragonSp.key, ps->fx);
+            if (sh.bmp && sh.frames > 0 && sh.frameH > 0) {
+                float h = cfg::kDragonRadius * 3.f * cs * ps->fxScale * ps->fxAnim.renderScale;
+                if (h > 0.5f) {
+                    // 날아가는 쪽을 본다. 목표가 사라졌으면 그냥 오른쪽으로 둔다.
+                    bool flip = false;
+                    for (const Enemy& e : w.enemies())
+                        if (e.id == p.targetId) { flip = e.pos.x < p.pos.x; break; }
+                    float wpx = h * static_cast<float>(sh.frameW) / static_cast<float>(sh.frameH);
+                    float half = std::max(wpx, h) * 0.5f;
+                    markRegion(RectF(p.pos.x - half, p.pos.y - half, half * 2.f, half * 2.f), 4.f);
+                    // 날아가는 그림은 **반복 재생**한다(효과 시트의 1회 재생 규칙과 다르다).
+                    drawSheetFrame(g, sh, animFrame(p.t, ps->fxAnim.fps, sh.frames, true), p.pos.x, p.pos.y,
+                                   h, flip, 0.f, 1.f);
+                    continue;
+                }
+            }
+        }
         float r = p.big ? 11.f : 6.f;
         fillCircle(g, p.pos.x, p.pos.y, r * 2.f, col(spColor, 0.25f));
         fillCircle(g, p.pos.x, p.pos.y, r, col(lighten(spColor, 0.3f)));
