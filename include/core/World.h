@@ -205,6 +205,13 @@ public:
     // v1.4 장착 칸. Game이 개체 기록(DragonRecord::slots)에서 넣어 준다.
     // 입력(키 1~4)과 자동 전투는 여기 들어 있는 스킬만 쓴다.
     void setSlots(const std::array<int, kSkillSlots>& s) { slots_ = s; }
+
+    // 보기 크기(charScale)를 판정에도 쓴다(2026-11-17). Game이 설정이 바뀔 때마다 넣어 준다.
+    // 몸 반지름은 항상, 스킬 반경은 scale_with_size 를 켠 스킬만 따라 커진다.
+    void setSizeScale(float s) { sizeScale_ = s > 0.f ? s : 1.f; }
+    // 스킬 판정 반경. scale_with_size 를 켠 스킬만 보기 크기를 따라 커진다.
+    float skillRadius(const SkillDef& s) const { return s.scaleWithSize ? s.radius * sizeScale_ : s.radius; }
+    float sizeScale() const { return sizeScale_; }
     const std::array<int, kSkillSlots>& slots() const { return slots_; }
     // 칸 번호 -> 스킬 목록 번호. 빈 칸이면 -1.
     int slotSkill(int slot) const {
@@ -268,6 +275,7 @@ private:
     float dragonDodgeChance() const;
 
     RectF bounds_{0.f, 0.f, 1280.f, 720.f};
+    float sizeScale_ = 1.f;  // 보기 크기. 판정에 쓰는 몸·스킬 반경을 여기에 곱한다
     bool confining_ = false;   // 띠로 내려가는 중
     RectF confineBand_{};
     Rng rng_;

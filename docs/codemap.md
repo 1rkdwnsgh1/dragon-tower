@@ -103,6 +103,7 @@ tests/                     코어 규칙 검증
 | 키 1~4와 자동 전투의 스킬 선택 | `src/core/World.cpp` | `slotSkill`, `slotReady`, `dragonAi`의 `castSkills` |
 | 스킬 관리창 그리기 | `src/win/Renderer.cpp` | `drawSkills`, `drawSkillBox` |
 | 스킬별 본체 모션 | `src/win/Sprites.cpp`, `src/win/Renderer.cpp` | `loadSkillSheets`/`skillSheet`, `drawDragon`의 `skillMotion` |
+| 크기 비례 판정 | `src/core/World.cpp` | `scaledBody`, `World::skillRadius`, `setSizeScale`. `Game::setCharScale` 가 넣어 준다 |
 | 스킬 효과(FX) 설정 | `assets/dragons/<키>/dragon.txt` | `fx=`, `fx_front=`, `fx_scale=`, `fx_offset_x=`, `fx_offset_y=` ([사용법](../assets/dragons/README.md)) |
 | 망령룡 효과 시트 | `assets/dragons/revenant/fx_pierce.png`·`fx_claw.png`·`fx_breath.png` | 8프레임 256칸. 출처는 같은 폴더 `CREDITS.md` |
 | 그림자룡 효과 시트 | `assets/dragons/shadow/fx_claw.png`·`fx_breath.png` | 9·11프레임 256칸. 출처는 같은 폴더 `CREDITS.md` |
