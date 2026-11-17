@@ -143,6 +143,8 @@ def render_cell(body, fx, char_scale, dir_sign, p):
     cell = Image.new("RGBA", (CELL, CELL), (0, 0, 0, 0))
     dr = ImageDraw.Draw(cell)
     k, alpha = phase_look(p["phase"])
+    # 스킬마다 정한 투명도(#79). Renderer::drawFxSheet 와 같은 자리에서 곱한다.
+    alpha *= max(0.0, min(1.0, float(p.get("fx_alpha", 1.0))))
     base = K_DRAGON_RADIUS * 3.0 * char_scale
 
     # --- 본체: drawDragon 의 render_scale 바닥 보정까지 같게 ---
@@ -221,7 +223,8 @@ def build(entries, scales, out):
                      f"fx_offset_x={e['fx_offset_x']:+g} fx_offset_y={e['fx_offset_y']:+g}",
                      f"fx sheet: {e['fx'].path.name} ({e['fx'].frames} frames)",
                      f"body    : {e['body'].path.name} ({e['body'].frames} frames)",
-                     f"phase={e['phase']} fx_front={'yes' if e['fx_front'] else 'no'}"]
+                     f"phase={e['phase']} fx_front={'yes' if e['fx_front'] else 'no'} "
+                     f"fx_alpha={e.get('fx_alpha', 1.0):g}"]
             for li, t in enumerate(lines):
                 dr.text((PAD, y + 10 + li * 16), t, font=FONT_SMALL if li else FONT,
                         fill=(236, 238, 246, 255) if li == 0 else (186, 192, 208, 255))
@@ -267,6 +270,7 @@ def from_dragon(key, args):
             "ascii": f"[{sec}] fx={sk['fx']} motion={motion or '-'}",
             "body": body, "fx": fx,
             "fx_scale": float(sk.get("fx_scale", 1.0)),
+            "fx_alpha": float(sk.get("fx_alpha", 1.0)),
             "fx_offset_x": float(sk.get("fx_offset_x", 0.0)),
             "fx_offset_y": float(sk.get("fx_offset_y", 0.0)),
             "fx_front": (sk.get("fx_front", "yes").lower() in ("yes", "true", "1")),
@@ -285,6 +289,7 @@ def main():
     ap.add_argument("--body", help="본체 모션 시트 경로(직접 지정할 때)")
     ap.add_argument("--fx", help="FX 시트 경로(직접 지정할 때)")
     ap.add_argument("--fx-scale", type=float, default=1.0)
+    ap.add_argument("--fx-alpha", type=float, default=1.0, help="효과 투명도 배수(--dragon 이 아닐 때). 1 이 지금까지와 같다")
     ap.add_argument("--fx-offset-x", type=float, default=0.0, help="100%% 기준 px")
     ap.add_argument("--fx-offset-y", type=float, default=0.0, help="100%% 기준 px")
     ap.add_argument("--fx-render-scale", type=float, default=1.0)
@@ -326,6 +331,7 @@ def main():
                 "body": Sheet(args.body, args.body_frame_w, args.body_render_scale),
                 "fx": Sheet(args.fx, args.fx_frame_w, args.fx_render_scale),
                 "fx_scale": args.fx_scale,
+                "fx_alpha": args.fx_alpha,
                 "fx_offset_x": args.fx_offset_x, "fx_offset_y": args.fx_offset_y,
                 "fx_front": not args.fx_back,
                 "phase": args.phase, "body_frame": args.body_frame, "fx_frame": args.fx_frame,

@@ -5,7 +5,7 @@
 
 작업을 끝낼 때 이 문서를 같은 PR 에서 고친다. **낡은 상태 문서는 없는 것보다 해롭다.**
 
-최종 갱신: 2026-11-17 (작업표시줄 띠)
+최종 갱신: 2026-11-17 (효과 투명도)
 
 ---
 
@@ -17,8 +17,8 @@
 | 저장소 | **공개(public)** — 2026-11-17 전환 |
 | CI | **정상** (2026-11-17 01:12 `main` build·quality 통과) |
 | 자동 작업 큐 | **없음** — 두 큐 모두 종료 (11-15 20:00, 11-17 08:00) |
-| 열린 PR | **#82** 작업표시줄 띠를 바깥쪽으로 (win — 팀원 검토 대상) |
-| 알려진 문제 | **1건** — [known-issues.md](known-issues.md) 효과 투명도 [#79](https://github.com/1rkdwnsgh1/dragon-tower/issues/79). [#78](https://github.com/1rkdwnsgh1/dragon-tower/issues/78) 크기-사거리는 #80, [#77](https://github.com/1rkdwnsgh1/dragon-tower/issues/77) 작업표시줄은 #82 에서 고쳤다 |
+| 열린 PR | **#84** 어스름 장막 · **#85** 장판 효과 · **#86** 발사체 효과 · **#87** 처치 패시브 효과 |
+| 알려진 문제 | **0건** — [known-issues.md](known-issues.md) 세 건 모두 고쳤다 ([#77](https://github.com/1rkdwnsgh1/dragon-tower/issues/77) → #82, [#78](https://github.com/1rkdwnsgh1/dragon-tower/issues/78) → #80, [#79](https://github.com/1rkdwnsgh1/dragon-tower/issues/79) → #83). Windows 확인이 남아 있다 |
 
 ## 운영 방식
 
