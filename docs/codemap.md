@@ -53,7 +53,7 @@ tests/                     코어 규칙 검증
 | 탐색기 재시작 대응 | `src/win/App.cpp` | `taskbarCreatedMsg_` |
 | 전역 단축키 | `src/win/App.cpp` | `RegisterHotKey`, `WM_HOTKEY` (Ctrl+Shift+D 메뉴 / Ctrl+Alt+D 숨기기) |
 | 전부 숨기기 | `src/win/App.cpp` | `setUserHidden`, `userHidden_` (전체화면 숨김과 구분) |
-| 작업표시줄 꾸미기 | `src/win/App.cpp` | `updateTaskbarSkin`, 스킨의 `taskbar.png` |
+| 작업표시줄 꾸미기 | `src/win/App.cpp` | `updateTaskbarSkin` — 작업표시줄 **바깥쪽**에 띠를 그린다(#77), 스킨의 `taskbar.png` |
 | 창 끌기 범위 자르기 | `src/win/App.cpp` | `clampToDesktop`, `Renderer::lastCardRect/lastMenuRect` |
 | 상태창·메뉴·드래곤 끌기 | `src/win/App.cpp` | `startDrag`, `WM_MOUSEMOVE` |
 | 끄는 동안 자동 행동 멈춤 | `src/core/World.cpp` | `wander`의 `d.held`, `Game::setDragonHeld` |
@@ -107,6 +107,9 @@ tests/                     코어 규칙 검증
 | 스킬 효과(FX) 설정 | `assets/dragons/<키>/dragon.txt` | `fx=`, `fx_front=`, `fx_scale=`, `fx_offset_x=`, `fx_offset_y=` ([사용법](../assets/dragons/README.md)) |
 | 망령룡 효과 시트 | `assets/dragons/revenant/fx_pierce.png`·`fx_claw.png`·`fx_breath.png`·`fx_fog.png` | 8·8·8·18프레임 256칸. 출처는 같은 폴더 `CREDITS.md` |
 | 그림자룡 효과 시트 | `assets/dragons/shadow/fx_claw.png`·`fx_breath.png` | 9·11프레임 256칸. 출처는 같은 폴더 `CREDITS.md` |
+| 스킬 효과(FX) 설정 | `assets/dragons/<키>/dragon.txt` | `fx=`, `fx_front=`, `fx_scale=`, `fx_offset_x=`, `fx_offset_y=`, `fx_alpha=` ([사용법](../assets/dragons/README.md)) |
+| 망령룡 효과 시트 | `assets/dragons/revenant/fx_pierce.png`·`fx_claw.png`·`fx_breath.png` | 8프레임 256칸. 출처는 같은 폴더 `CREDITS.md` |
+| 그림자룡 효과 시트 | `assets/dragons/shadow/fx_claw.png`·`fx_breath.png`·`fx_barrier.png` | 9·11·24프레임 256칸. 출처는 같은 폴더 `CREDITS.md` |
 | 효과의 세 단계(발동·지속·잔류) | `src/core/World.cpp` | `Fx::phase`, `Fx::phaseProgress`, `addSkillFx` |
 | 효과 단계 기본 길이·개수 상한 | `include/core/Config.h` | `kFxWindup`, `kFxHold`, `kFxTail`, `kMaxFx` |
 | 효과를 도형으로 그리기 | `src/win/Renderer.cpp` | `drawFx` (시트가 없는 효과) |
