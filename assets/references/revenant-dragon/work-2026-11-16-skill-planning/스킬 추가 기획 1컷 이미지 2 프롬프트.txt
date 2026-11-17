@@ -1,0 +1,216 @@
+Generate ONE NEW high-resolution 4 columns x 2 rows concept sheet with exactly eight equal gameplay panels. Use case: stylized-concept. Reference image 1 is the PREVIOUS APPROVED SKILL SHEET: match its presentation, scale, battlefield, hand-painted 2D game rendering, labels and composition closely, but REPLACE ALL EIGHT SKILLS with the NEW ones specified below. Reference image 2 is the authoritative dragon model design. Keep this identical ivory and ash skeletal dragon with long segmented neck, branching horned skull, turquoise soul core in open ribs, eyes and ghostfire, TWO skeletal wings with turquoise translucent asymmetric torn membranes, FOUR clawed legs, articulated spear-tip tail and ancient ornament chains. Mirror side reference to face RIGHT.
+Consistent fixed SIDE gameplay camera and dragon scale in all panels, entire dragon clearly visible at LEFT, small dark enemies at RIGHT, same muted stone ground and restrained ruined wasteland. Not cinematic posters. No 3D or photorealism. Moderate sprite-friendly VFX in turquoise, pale cyan, spectral white, ash and smoky black, controlled glow, crisp readable silhouettes. Thin clean panel separators, no elements crossing panels, no title or HUD. Small elegant ENGLISH skill label at bottom of each panel, exact names below. Landscape 4K-quality maximal useful resolution.
+NEW SKILLS in reading order:
+1 GIANT HAND OF THE DEAD: ONE enormous physical aged ivory SKELETAL HAND erupts from ground beneath right-side enemies. Clearly articulated bone fingers curl UPWARD gripping/crushing silhouettes. Cyan energy ground cracks and narrow soul-control stream from dragon chest. Differentiate from translucent ghost hands: this is one massive solid bone hand.
+2 BONE FOREST: sequence of huge sharpened ivory BONE SPIKES of varied height and angle bursting from ground across enemy zone, dense skeletal forest. Enemies thrown upward or caught on spikes, stylized non-graphic no blood. Cyan power travels along ground from roaring dragon.
+3 BONE BLADE ORBIT: several curved ivory bone blades and skeletal shards in a controlled circular weapon halo AROUND dragon without hiding anatomy; some arc outward to right enemies, thin cyan motion trails. Visually elegant curved blade shapes.
+4 WAILING SKULL ROAR: gigantic transparent spectral SKULL apparition above/in front of left dragon, wide open mouth toward RIGHT emits broad turquoise sonic pressure-wave arcs at enemies. Temporary disembodied skull VFX, no second full creature.
+5 SOUL BLOOM DETONATION: enemy-side compact soul flame opened into a large beautiful mystical FLOWER of layered cyan spectral energy petals, blooming outward with circular detonation rings. Show opened bloom at explosion onset, elegant and clean, not ordinary fireball.
+6 PHANTOM LEGION: multiple readable rows of small semi-transparent turquoise ancient warriors CHARGING RIGHT from dragon across battlefield; spectral swords, spears, shields and a banner. Roughly 12-18 phantoms at gameplay scale. Solid original dragon clearly visible as commander at left; darker actual enemies at right.
+7 SOUL SHACKLES: large clearly linked spectral CHAINS materialize diagonally from above and from ground rune circles/rifts, wrap around enemy torsos and bind their cast shadows at right. Cyan ghostfire links taut with restraint tension, dragon chest directs casting.
+8 NETHER RIFT: huge jagged VERTICAL turquoise-black tear in reality just before right enemies, asymmetrical fractured-glass edges, dark underworld opening with pale souls, mist and a few bone fragments spilling out. Clearly a shattered spatial fissure, not a round portal, eclipse or flower. Dragon remains intact left.
+Follow the full user specification below; English-only labels are sufficient and no other text:
+# DRAGON TOWER — REVENANT DRAGON
+## Eight Additional Necromantic Skills — In-Game Combat Visualization
+
+Create one high-resolution 4×2 concept sheet containing EIGHT distinct gameplay screenshots of the Revenant Dragon performing eight different necromantic skills.
+
+This image must match the same overall presentation style as the previously approved Revenant Dragon in-game skill sheet:
+- dark fantasy 2D side-view combat
+- the dragon on the LEFT, enemies on the RIGHT
+- fixed gameplay-like side camera
+- hand-painted 2D fantasy game art
+- readable combat effects suitable for a real game
+- dramatic but practical visual clarity
+- each panel showing a different skill as if captured mid-battle
+
+This is NOT a cinematic poster.  
+This is a gameplay skill visualization sheet for evaluating how the skills would look inside the game.
+
+## CHARACTER CONSISTENCY — MANDATORY
+
+Use the approved Revenant Dragon design consistently in all eight panels.
+
+Preserve:
+- ancient ivory and ash-gray skeletal body
+- long articulated neck and horned skull
+- bright turquoise spectral soul core floating in the ribcage
+- glowing turquoise eye sockets and ghostfire
+- enormous skeletal wings with translucent turquoise membranes
+- asymmetrical wing damage
+- four skeletal legs, claws, long bony tail
+- ancient ritual chains and worn ornaments
+
+Do not redesign the dragon.  
+Do not turn it into a fleshy dragon.  
+Do not change the core silhouette or proportions.
+
+## GAMEPLAY PRESENTATION RULES
+
+- side-view 2D combat scene
+- same battlefield type across all eight panels
+- ruined dark-fantasy wasteland background with muted stone ground
+- dragon always on the left side
+- enemy silhouettes or small enemy figures on the right side
+- the dragon remains clearly visible in every panel
+- effects must be spectacular but readable
+- use turquoise, pale cyan, spectral white, ash-gray, and dark smoky tones
+- moderate complexity suitable for eventual animation adaptation
+- no photorealism
+- no 3D CGI look
+- no cinematic perspective
+- no heavy HUD
+- include only small elegant skill-name labels for each panel
+
+---
+
+## PANEL 1 — GIANT HAND OF THE DEAD
+### 망자의 거수
+
+The Revenant Dragon summons an enormous skeletal hand from the ground beneath the enemies.
+
+The hand is made of aged bone and infused with turquoise necromantic energy.
+
+Its fingers are curling upward as if grabbing and crushing the enemies.
+
+Cracks of spectral energy spread across the ground where it emerged.
+
+The dragon stands at the left, controlling the hand through glowing soul energy streaming from its chest.
+
+Keywords: Giant Skeletal Hand, Bone Grip, Necromantic Crush, Ground Eruption.
+
+---
+
+## PANEL 2 — BONE FOREST
+### 백골림
+
+A line of massive sharpened bone spikes erupts from the battlefield in the enemy direction.
+
+The spikes vary in height and angle, creating the image of a deadly skeletal forest bursting from underground.
+
+Several enemies are being launched or impaled by the attack.
+
+The dragon is shown roaring or channeling the spell, with necromantic power traveling through the ground.
+
+Keywords: Bone Spikes, Skeletal Forest, Impalement Field, Ossuary Eruption.
+
+---
+
+## PANEL 3 — BONE BLADE ORBIT
+### 사골윤무
+
+Multiple curved bone blades and skeletal shards are floating and rotating around the Revenant Dragon in a circular formation.
+
+Some blades are still orbiting close to the dragon, while others are flying outward toward enemies.
+
+The orbit should feel controlled and elegant, like a necromantic weapon halo.
+
+Turquoise spectral trails follow the flying blades.
+
+Keywords: Bone Orbit, Skeletal Blades, Weapon Halo, Bone Shrapnel Storm.
+
+---
+
+## PANEL 4 — WAILING SKULL ROAR
+### 원혼의 포효
+
+A gigantic spectral skull apparition appears in front of or above the dragon.
+
+Its mouth is open wide, releasing a devastating turquoise shockwave toward the enemy side.
+
+The shockwave should feel like a ghostly scream mixed with magical pressure.
+
+The dragon is clearly commanding the manifestation, and the spectral skull should feel like an enormous temporary summoned attack, not a separate creature.
+
+Keywords: Spectral Skull, Ghostly Scream, Soul Shockwave, Wailing Apparition.
+
+---
+
+## PANEL 5 — SOUL BLOOM DETONATION
+### 혼백 개화
+
+A concentrated turquoise soul flame blooms open like a ghostly flower in front of the enemies.
+
+The bloom begins as a compact orb, then unfurls into layered petal-like energy shapes before exploding outward in circular rings.
+
+Show the dramatic midpoint where the magical bloom has opened and is beginning to detonate.
+
+The effect should feel elegant, supernatural, and mystical rather than fiery and chaotic.
+
+Keywords: Soul Bloom, Spectral Flower, Circular Blast, Ghostfire Detonation.
+
+---
+
+## PANEL 6 — PHANTOM LEGION
+### 망령 군단
+
+The Revenant Dragon summons rows of ghostly ancient warriors charging forward across the battlefield.
+
+The phantoms are semi-transparent turquoise soldiers carrying spectral weapons such as swords, spears, shields, or banners.
+
+The dragon remains the commanding figure on the left, while the spectral army advances toward the enemies on the right.
+
+The summoned legion should feel numerous but still readable within gameplay scale.
+
+Keywords: Phantom Army, Spectral Soldiers, Army of the Dead, Necromantic Charge.
+
+---
+
+## PANEL 7 — SOUL SHACKLES
+### 영혼의 족쇄
+
+Large spectral chains materialize in midair and wrap around enemies.
+
+Some chains descend diagonally from above, while others emerge from summoning circles or rifts around the battlefield.
+
+The chains glow with turquoise ghostfire energy and visibly bind enemy bodies and shadows at the same time.
+
+The Revenant Dragon should appear to be casting and controlling the restraint spell from the left side.
+
+Keywords: Spectral Chains, Spirit Binding, Ethereal Shackles, Soul Restraint.
+
+---
+
+## PANEL 8 — NETHER RIFT
+### 저승의 균열
+
+Reality tears open in front of the enemies, forming a large jagged turquoise-black dimensional rift.
+
+The rift looks like shattered space or fractured glass, with spectral mist, bone fragments, and souls spilling out from within.
+
+The attack should feel like the battlefield itself is being split open to reveal the underworld.
+
+The dragon stands at the left as the master of the rupture.
+
+Keywords: Dimensional Rift, Shattered Reality, Underworld Tear, Soul Rupture.
+
+---
+
+## COMPOSITION RULES
+
+- exactly eight panels
+- arranged in four columns and two rows
+- equal panel sizes
+- thin clean borders between panels
+- one skill per panel
+- consistent dragon size, side-view angle, and battlefield scale
+- preserve the same visual language across all panels
+- every skill should be immediately recognizable and clearly different from the others
+- every panel should feel like a moment from a real playable game
+- effects should be suitable as references for later animation and skill production
+
+## QUALITY REQUIREMENTS
+
+High-quality 2D hand-painted dark fantasy game art.
+
+Beautiful skeletal anatomy, controlled turquoise spectral lighting, elegant ghostly effects, clean silhouettes, and practical gameplay readability.
+
+The final image should feel like a professional game-development skill concept sheet for the Revenant Dragon, matching the quality and visual appeal of the previously approved first eight-skill sheet.
+
+Priority:
+1. exact character consistency
+2. clear differentiation between the eight new skills
+3. strong in-game readability
+4. dark fantasy atmosphere
+5. practical reference value for future asset production
+
