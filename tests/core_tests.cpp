@@ -113,6 +113,80 @@ static void testMultiLevelUp() {
     CHECK(grantExp(dead, 100, false).granted == 0);
 }
 
+// 탑 100층 T2(2026-11-18): 드래곤별 층·돌파 기록, 크레딧, 필드 보스·첫 돌파 기록 저장.
+static void testTowerSaveKeys() {
+    std::printf("[tower save keys]\n");
+    SaveData s;
+    s.nextDragonId = 3;
+    DragonRecord a;
+    a.id = 1; a.species = Species::Fire; a.level = 30; a.floor = 23; a.cleared = 22;
+    DragonRecord b;
+    b.id = 2; b.species = Species::Water; b.level = 5; b.floor = 11; b.cleared = 9;
+    s.stable = {a, b};
+    s.activeIndex = 1;
+    s.dragon = b;
+    s.hasDragon = true;
+    s.credits = 123456789012LL;
+    s.firstClear = 22;
+    s.fieldBossCleared = {10, 20};
+
+    SaveData l;
+    CHECK(deserializeSave(serializeSave(s), l));
+    CHECK(l.stable.size() == 2);
+    CHECK(l.stable[0].floor == 23 && l.stable[0].cleared == 22);
+    CHECK(l.stable[1].floor == 11 && l.stable[1].cleared == 9);
+    CHECK(l.dragon.floor == 11 && l.dragon.cleared == 9);  // 지금 개체는 보유 목록에서 복원된다
+    CHECK(l.credits == 123456789012LL);
+    CHECK(l.firstClear == 22);
+    CHECK(l.fieldBossCleared == std::set<int>({10, 20}));
+    {
+        SaveData l2;  // 한 번 읽은 것을 다시 저장·읽어도 같다(읽을 때 장착 칸 채우기 등은 첫 번에 끝난다)
+        CHECK(deserializeSave(serializeSave(l), l2));
+        CHECK(serializeSave(l2) == serializeSave(l));
+    }
+
+    // 슬롯: 기본 4 + 깬 20의 배수 필드 보스층 수
+    CHECK(l.stableCapacity() == cfg::kMaxStable + 1);  // 20층만 해당
+    CHECK(stableCapacityFor({}) == cfg::kMaxStable);
+    CHECK(stableCapacityFor({10, 30, 50}) == cfg::kMaxStable);
+    CHECK(stableCapacityFor({20, 40, 60, 80, 100}) == cfg::kMaxStableTotal);
+
+    // 옛 저장 파일(새 키 없음): 기본값으로 읽힌다
+    const std::string old =
+        "version=1\nnextDragonId=2\ndragon.present=1\ndragon.id=1\ndragon.species=fire\ndragon.alive=1\n"
+        "dragon.level=7\nstable.count=1\nstable.active=0\nstable.0.id=1\nstable.0.species=fire\n"
+        "stable.0.alive=1\nstable.0.level=7\n";
+    SaveData o;
+    CHECK(deserializeSave(old, o));
+    CHECK(o.dragon.floor == 1 && o.dragon.cleared == 0);
+    CHECK(o.stable.size() == 1 && o.stable[0].floor == 1);
+    CHECK(o.credits == 0 && o.firstClear == 0 && o.fieldBossCleared.empty());
+
+    // 손으로 고친 이상한 값은 범위로 자른다
+    const std::string bad =
+        "version=1\nstable.count=1\nstable.active=0\nstable.0.id=1\nstable.0.species=fire\nstable.0.alive=1\n"
+        "stable.0.floor=999\nstable.0.cleared=-5\ncredits=-100\ntower.firstClear=500\n"
+        "tower.fieldBossCleared=10,15,21,abc,200,40\n";
+    SaveData x;
+    CHECK(deserializeSave(bad, x));
+    CHECK(x.stable[0].floor == cfg::kTowerTopFloor && x.stable[0].cleared == 0);
+    CHECK(x.credits == 0 && x.firstClear == cfg::kTowerTopFloor);
+    CHECK(x.fieldBossCleared == std::set<int>({10, 40}));  // 필드 보스층만 남는다
+    SaveData huge;
+    CHECK(deserializeSave("version=1\ncredits=99999999999999999\n", huge));
+    CHECK(huge.credits == cfg::kMaxCredits);
+
+    // 슬롯이 늘어난 저장(5마리)도 잘리지 않는다
+    std::string five = "version=1\nstable.count=5\nstable.active=0\ntower.fieldBossCleared=20\n";
+    for (int i = 0; i < 5; ++i) {
+        const std::string pre = "stable." + std::to_string(i) + ".";
+        five += pre + "id=" + std::to_string(i + 1) + "\n" + pre + "species=fire\n" + pre + "alive=1\n";
+    }
+    SaveData f;
+    CHECK(deserializeSave(five, f));
+    CHECK(f.stable.size() == 5);
+}
+
 static void testSaveRoundTrip() {
     std::printf("[save round trip]\n");
     SaveData s;
@@ -2498,6 +2572,7 @@ int main(int argc, char** argv) {
     testAutoCapClamp();
     testMultiLevelUp();
     testSaveRoundTrip();
+    testTowerSaveKeys();
     testSelectAndDeath();
     testModeRules();
     testHiddenRules();

@@ -78,6 +78,7 @@ tests/                     코어 규칙 검증
 | 드래곤 보유·교체 | `src/core/Game.cpp` | `switchDragon`, `beginAddDragon`, `canSwitchDragon` |
 | 보관 중 체력 회복 | `src/core/Game.cpp` | `Game::update` 앞부분, `cfg::kStableRegenRatio` |
 | 보유 목록 저장 | `src/core/SaveData.cpp` | `stable.*` 키와 옛 저장 파일 변환 |
+| 탑 100층 저장(T2) | `src/core/SaveData.cpp`, `include/core/Tower.h` | `stable.N.floor`·`cleared`, `credits`, `tower.firstClear`·`fieldBossCleared`, 슬롯 수 `stableCapacityFor`/`SaveData::stableCapacity` |
 | 관리창 그리기 | `src/win/Renderer.cpp` | `drawStable` |
 | 싸울 때 유지할 간격 | `src/core/World.cpp` | `desiredRange`, `Game::setKeepRange` |
 | 쉴 때 엎드리기 | `src/core/World.cpp` | `updateDragonAnim`의 `restTime`, `cfg::kRestLieDelay` |

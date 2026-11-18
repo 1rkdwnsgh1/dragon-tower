@@ -142,6 +142,12 @@ constexpr float kKeepSlack = 24.f;        // 이보다 가까워지면 물러난
 // v1.3 드래곤 보유(관리창). 동시에 가질 수 있는 마리 수와 보관 중 회복 속도.
 // 보관 중에는 경험치가 오르지 않는다(한 번에 한 마리만 키운다 = 영구 사망의 무게를 지킨다).
 constexpr int kMaxStable = 4;
+// 탑 100층 T2(2026-11-18): 계정이 20의 배수 필드 보스층을 깰 때마다 슬롯이 하나씩 는다(최대 +5).
+// 늘어난 슬롯을 실제로 쓰는 것은 T6 이다. 저장 파일은 이 값까지 받아 둔다.
+constexpr int kStableBonusEvery = 20;
+constexpr int kMaxStableTotal = kMaxStable + kTowerTopFloor / kStableBonusEvery;
+// 크레딧 저장 상한(64비트). 손으로 고친 저장 파일이 넘쳐도 읽을 때 이 값으로 자른다.
+constexpr long long kMaxCredits = 999999999999LL;
 // v1.4 드래곤 하나가 가질 수 있는 스킬 수의 상한. 제한이 필요해서가 아니라
 // dragon.txt에 [skill.9999] 같은 오타가 들어왔을 때 메모리를 그만큼 잡지 않으려는 안전장치다.
 // 레벨마다 하나씩 해제되므로 최고 레벨보다 많아 봐야 열리지 않는다.
