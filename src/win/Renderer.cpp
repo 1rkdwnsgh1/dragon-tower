@@ -1142,7 +1142,8 @@ void Renderer::drawBreath(Graphics& g, const DragonActor& dragon, const Sprites&
         layer(pack->ribbons.get(), 8, phase, alpha);
         layer(pack->outer.get(), 8, phase, alpha);
     };
-    constexpr float loopPhaseSeconds = BreathCast::frameSeconds / 1.25f;
+    constexpr float loopPhaseSeconds = BreathCast::frameSeconds / 2.5f;
+    constexpr float endBlendSeconds = 0.096f;
     const auto loopPhase = [](float time) {
         return static_cast<int>((time + 1e-6f) / loopPhaseSeconds) % 8;
     };
@@ -1166,7 +1167,7 @@ void Renderer::drawBreath(Graphics& g, const DragonActor& dragon, const Sprites&
         float endAlpha = 1.f;
         if (!umbral && index == 0) {
             const float elapsed = std::max(0.f, cast.elapsed - BreathCast::endTime);
-            endAlpha = std::min(1.f, elapsed / loopPhaseSeconds);
+            endAlpha = std::min(1.f, elapsed / endBlendSeconds);
             const float from = BreathCast::endTime - BreathCast::impactTime - loopPhaseSeconds * 0.5f;
             loop(loopPhase(from + elapsed), 1.f - endAlpha);
         }
