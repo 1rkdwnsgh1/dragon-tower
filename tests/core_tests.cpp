@@ -2334,9 +2334,10 @@ static void testLayeredBreath() {
         for (float scale : {1.f, 3.f, 10.f}) {
             auto world = scenario(aim, scale, 0);
             world.updateCombat(0.f, CombatMode::Direct, cast);
-            CHECK(world.dragon().breath.has_value());
-            if (!world.dragon().breath) continue;
-            CHECK(distance(world.dragon().breath->aim, aim) < 0.001f);
+            const auto castBreath = world.dragon().breath;
+            CHECK(castBreath.has_value());
+            if (!castBreath) continue;
+            CHECK(distance(castBreath->aim, aim) < 0.001f);
             CHECK(world.dragon().skillCd[0] == 14.f);
             PlayerInput move{};
             move.moveX = 1.f;
@@ -2370,14 +2371,15 @@ static void testLayeredBreath() {
         for (float scale : {1.f, 3.f, 10.f}) {
             auto shadow = scenario(aim, scale, 2);
             shadow.updateCombat(0.f, CombatMode::Direct, cast);
-            CHECK(shadow.dragon().breath.has_value());
-            if (!shadow.dragon().breath) continue;
+            const auto castBreath = shadow.dragon().breath;
+            CHECK(castBreath.has_value());
+            if (!castBreath) continue;
             const auto& attack = spec.def.skills[2];
-            CHECK(shadow.dragon().breath->bodyFrame(attack) == 2);
-            CHECK(shadow.dragon().breath->facingLeft == (aim.x < 0.f));
-            CHECK(distance(shadow.dragon().breath->aim, aim) < 0.001f);
+            CHECK(castBreath->bodyFrame(attack) == 2);
+            CHECK(castBreath->facingLeft == (aim.x < 0.f));
+            CHECK(distance(castBreath->aim, aim) < 0.001f);
             CHECK(shadow.dragon().skillCd[2] == 11.f);
-            CHECK(shadow.dragon().breath->radius == 44.f * scale);
+            CHECK(castBreath->radius == 44.f * scale);
             const float hitHp = shadow.enemies()[0].hp;
             CHECK(hitHp < 10000.f && shadow.enemies()[1].hp < 10000.f);
             CHECK(shadow.enemies()[2].hp == 10000.f);
@@ -2385,12 +2387,15 @@ static void testLayeredBreath() {
             move.moveX = -1.f;
             shadow.updateCombat(0.48f, CombatMode::Direct, move);
             CHECK(shadow.dragon().pos.x < origin.x);
-            CHECK(shadow.dragon().breath->bodyFrame(attack) == 6);
+            const auto activeBreath = shadow.dragon().breath;
+            CHECK(activeBreath && activeBreath->bodyFrame(attack) == 6);
             CHECK(shadow.enemies()[0].hp == hitHp);
             shadow.updateCombat(0.96f, CombatMode::Direct, {});
-            CHECK(shadow.dragon().breath->bodyFrame(attack) == 8);
+            const auto endingBreath = shadow.dragon().breath;
+            CHECK(endingBreath && endingBreath->bodyFrame(attack) == 8);
             shadow.updateCombat(0.36f, CombatMode::Direct, {});
-            CHECK(shadow.dragon().breath->bodyFrame(attack) == 11);
+            const auto tailBreath = shadow.dragon().breath;
+            CHECK(tailBreath && tailBreath->bodyFrame(attack) == 11);
             shadow.updateCombat(0.12f, CombatMode::Direct, {});
             CHECK(!shadow.dragon().breath);
             CHECK(shadow.enemies()[0].hp == hitHp);
