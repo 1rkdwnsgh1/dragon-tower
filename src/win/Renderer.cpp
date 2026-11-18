@@ -720,7 +720,8 @@ void Renderer::drawDragon(Graphics& g, const DragonActor& d, const Sprites& spri
     g.DrawEllipse(&outline, x - h * 0.36f, cy - h * 0.14f, h * 0.72f, h * 0.46f);
 }
 
-void Renderer::drawEnemy(Graphics& g, const Enemy& e, const Sprites& sprites, float time, float charScale) {
+void Renderer::drawEnemy(Graphics& g, const Enemy& e, const Sprites& sprites, float time, float charScale,
+                         const AnimState* forcedState) {
     const EnemyDef& edef = enemyDef(e.kind);
     // v1.5: 적 그림은 왼쪽을 보고 그려져 있다. 드래곤(오른쪽 기준)과 반대라 전에는 거꾸로 걸었다.
     bool flip = edef.artFacesRight ? (e.facing < 0.f) : (e.facing > 0.f);
@@ -752,6 +753,7 @@ void Renderer::drawEnemy(Graphics& g, const Enemy& e, const Sprites& sprites, fl
     if (e.hitFlash > 0.f) st = AnimState::Hit;
     else if (e.castTimer > 0.f) st = AnimState::Attack;
     else if (e.stun <= 0.f) st = AnimState::Move;
+    if (forcedState) st = *forcedState;
     Sheet sh2 = sprites.sheet("enemy:" + ed.key, st);
     if (sh2.bmp) {
         const AnimDef& ad = ed.anims[static_cast<int>(st)];
@@ -824,22 +826,7 @@ void Renderer::drawWorld(Graphics& g, const Game& game, const Sprites& sprites, 
     const SpeciesDef& dragonSp = speciesDef(w.dragon().species);
     uint32_t spColor = dragonSp.color;
 
-    // 지속 피해 장판
-    for (const DotZone& z : w.dots()) {
-        float life = std::clamp(z.remaining / std::max(0.01f, z.duration), 0.f, 1.f);
-        fillCircle(g, z.pos.x, z.pos.y, z.radius, col(spColor, 0.22f * (0.4f + 0.6f * life)));
-        GraphicsState st = g.Save();
-        g.TranslateTransform(z.pos.x, z.pos.y);
-        g.RotateTransform(time * 220.f);
-        Pen p(col(lighten(spColor, 0.3f), 0.8f * life + 0.2f), 3.f);
-        p.SetStartCap(LineCapRound);
-        p.SetEndCap(LineCapRound);
-        for (int i = 0; i < 3; ++i) {
-            g.DrawArc(&p, -z.radius * 0.8f, -z.radius * 0.8f, z.radius * 1.6f, z.radius * 1.6f, i * 120.f, 70.f);
-            g.DrawArc(&p, -z.radius * 0.45f, -z.radius * 0.45f, z.radius * 0.9f, z.radius * 0.9f, i * 120.f + 60.f, 60.f);
-        }
-        g.Restore(st);
-    }
+    drawDotZones(g, w, spColor, time);
 
     // 적 공격 예고
     for (const AttackZone& z : w.zones()) {
@@ -902,6 +889,39 @@ void Renderer::drawWorld(Graphics& g, const Game& game, const Sprites& sprites, 
              13.f, 0xFFFFF3C4, 1, true, true);
     }
 
+    drawProjectiles(g, w, sprites, dragonSp, cs);
+
+    drawFx(g, w, sprites, dragonSp, cs, true);
+
+    for (const FloatText& t : w.texts()) {
+        float a = 1.f - std::clamp((t.t - t.duration * 0.6f) / (t.duration * 0.4f), 0.f, 1.f);
+        uint32_t c = (t.color & 0x00FFFFFF) | (static_cast<uint32_t>(255 * a) << 24);
+        text(g, t.text, t.pos.x, t.pos.y, t.size, c, 1, true, true);
+    }
+}
+
+void Renderer::drawDotZones(Graphics& g, const World& w, uint32_t spColor, float time) {
+    // 지속 피해 장판
+    for (const DotZone& z : w.dots()) {
+        float life = std::clamp(z.remaining / std::max(0.01f, z.duration), 0.f, 1.f);
+        fillCircle(g, z.pos.x, z.pos.y, z.radius, col(spColor, 0.22f * (0.4f + 0.6f * life)));
+        GraphicsState st = g.Save();
+        g.TranslateTransform(z.pos.x, z.pos.y);
+        g.RotateTransform(time * 220.f);
+        Pen p(col(lighten(spColor, 0.3f), 0.8f * life + 0.2f), 3.f);
+        p.SetStartCap(LineCapRound);
+        p.SetEndCap(LineCapRound);
+        for (int i = 0; i < 3; ++i) {
+            g.DrawArc(&p, -z.radius * 0.8f, -z.radius * 0.8f, z.radius * 1.6f, z.radius * 1.6f, i * 120.f, 70.f);
+            g.DrawArc(&p, -z.radius * 0.45f, -z.radius * 0.45f, z.radius * 0.9f, z.radius * 0.9f, i * 120.f + 60.f, 60.f);
+        }
+        g.Restore(st);
+    }
+}
+
+void Renderer::drawProjectiles(Graphics& g, const World& w, const Sprites& sprites,
+                               const SpeciesDef& dragonSp, float cs) {
+    const uint32_t spColor = dragonSp.color;
     // 투사체
     for (const Projectile& p : w.projectiles()) {
         // 2026-11-17: fx= 를 적은 스킬이 쏜 발사체는 그 시트를 **현재 위치에** 그린다.
@@ -933,13 +953,29 @@ void Renderer::drawWorld(Graphics& g, const Game& game, const Sprites& sprites, 
         fillCircle(g, p.pos.x, p.pos.y, r, col(lighten(spColor, 0.3f)));
         fillCircle(g, p.pos.x, p.pos.y, r * 0.45f, Color(255, 255, 255, 255));
     }
+}
 
-    drawFx(g, w, sprites, dragonSp, cs, true);
+void Renderer::drawEnemyPreview(Graphics& g, const Enemy& enemy, const Sprites& sprites,
+                                AnimState state, float time, float charScale) {
+    drawEnemy(g, enemy, sprites, time, charScale, &state);
+}
 
-    for (const FloatText& t : w.texts()) {
-        float a = 1.f - std::clamp((t.t - t.duration * 0.6f) / (t.duration * 0.4f), 0.f, 1.f);
-        uint32_t c = (t.color & 0x00FFFFFF) | (static_cast<uint32_t>(255 * a) << 24);
-        text(g, t.text, t.pos.x, t.pos.y, t.size, c, 1, true, true);
+void Renderer::drawAnimationPreview(Graphics& g, const World& w, const Sprites& sprites,
+                                    float time, bool body, bool effects, float charScale) {
+    const DragonActor& d = w.dragon();
+    const SpeciesDef& species = speciesDef(d.species);
+    if (effects) {
+        drawDotZones(g, w, species.color, time);
+        drawFx(g, w, sprites, species, charScale, false);
+    }
+    if (body) {
+        const float height = cfg::kDragonRadius * 3.f * charScale;
+        const float cy = d.pos.y + cfg::kDragonRadius - (240.f / 256.f - 0.5f) * height;
+        drawDragon(g, d, sprites, time, d.pos.x, cy, height, false);
+    }
+    if (effects) {
+        drawProjectiles(g, w, sprites, species, charScale);
+        drawFx(g, w, sprites, species, charScale, true);
     }
 }
 
@@ -947,7 +983,7 @@ void Renderer::drawWorld(Graphics& g, const Game& game, const Sprites& sprites, 
 // 같은 fx 이름을 여러 스킬이 쓰면 먼저 적힌 쪽의 설정을 쓴다 — 시트도 한 장만 읽으므로 같다.
 static const SkillDef* findSkillByFx(const SpeciesDef& sp, const std::string& fxKey) {
     for (const SkillDef& s : sp.skills) {
-        if (s.fx == fxKey) return &s;
+        if (s.fx == fxKey || s.fxImpact == fxKey) return &s;
     }
     return nullptr;
 }

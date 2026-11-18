@@ -43,11 +43,16 @@ public:
     // assetDir: 실행 파일 옆 assets 폴더. 기존 정지 이미지와 dragons/ 시트를 모두 읽는다.
     void load(const std::filesystem::path& assetDir);
 
+    // 제작 도구에서는 PNG를 열어 둔 채로 덮어쓸 수 있게 메모리로 분리한다.
+    void loadPreviewDragon(const std::filesystem::path& dir, const SpeciesDef& def);
+
+    void loadPreviewEnemy(const std::filesystem::path& dir, const EnemyDef& def);
+
     Gdiplus::Bitmap* get(const std::string& key) const;
 
     // 종의 상태 시트를 찾는다. 없으면 대체 규칙(move/attack → idle)을 따른다.
     // 어떤 시트도 없으면 bmp == nullptr.
-    Sheet sheet(const std::string& speciesKey, AnimState state) const;
+    Sheet sheet(const std::string& speciesKey, AnimState state, AnimState* resolved = nullptr) const;
     bool hasAnySheet(const std::string& speciesKey) const;
 
     // v1.4 스킬 전용 본체 모션 시트(assets/dragons/<키>/skill_<motion>.png).
@@ -96,6 +101,7 @@ private:
     std::map<std::string, UiData> ui_;  // "<스킨>/<조각>"
     std::map<std::string, SheetData> sheets_;  // "<키>/<상태>"
     std::vector<std::string> warnings_;
+    bool detachFiles_ = false;
 };
 
 }  // namespace dt::win
