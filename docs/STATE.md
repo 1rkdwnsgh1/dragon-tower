@@ -5,7 +5,7 @@
 
 작업을 끝낼 때 이 문서를 같은 PR 에서 고친다. **낡은 상태 문서는 없는 것보다 해롭다.**
 
-최종 갱신: 2026-11-18 (망령룡·그림자룡의 레이어형 숨결 통합)
+최종 갱신: 2026-11-18 (망령룡 변신폼·궁극기 기획 시안 추가)
 
 ---
 
@@ -43,6 +43,7 @@
 | 스킬 자동 채움을 끌 수 있게 할지 | 사람 (보류 — 칸을 비워 두고 싶은 사람이 실제로 있는지 먼저 본다) | [decisions.md D](decisions.md#d-망령룡-장판-스킬-중복-2026-11-15) |
 | 작업표시줄 띠가 바탕화면을 얼마나 먹어도 되는지 (지금은 작업표시줄과 같은 높이) | 사람 | [known-issues.md 1번](known-issues.md) |
 | **낙인(중첩)·궁극기(충전) 기능을 만들지** — 그림 4장은 있는데 **게임에 그 개념 자체가 없다**(`SkillKind` 10종에 없고 기획서에 한 글자도 없다). 새 전투 메커니즘 설계다 | 사람 | [characters/revenant-dragon-skill-concepts.md](characters/revenant-dragon-skill-concepts.md) |
+| **망령룡 변신폼 시안 선택(A/B/C)·충전 방식·장착 칸** — 시안 4종과 구현 세 갈래를 정리했다. 고르는 시안이 코어 변경 범위를 정한다 | 사람 3명 | [characters/revenant-dragon-transform-concepts.md 8장](characters/revenant-dragon-transform-concepts.md) |
 | **죽음의 행렬을 자동으로 할지 수동으로 할지, 영혼을 소모할지** — 정해져야 그림 6장을 붙인다 | 사람 | [characters/revenant-dragon-skills-v1.md](characters/revenant-dragon-skills-v1.md) |
 | **영혼 수확 연출을 체력이 가득 찼을 때도 띄울지** — 지금은 회복량이 0이면 연출도 없다(기존 회복 연출 조건 그대로) | 사람 | [windows-checklist.md 78번](windows-checklist.md) |
 | 드래곤 첫 제작 목표 종 수 (2명 기준으로 다시 정해야 한다) | 사람 | [character-pipeline.md 1장](character-pipeline.md) |
