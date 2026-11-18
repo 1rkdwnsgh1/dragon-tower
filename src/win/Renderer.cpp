@@ -1038,7 +1038,10 @@ bool Renderer::drawFxSheet(Graphics& g, const Fx& f, const Sprites& sprites, con
 
     const SkillDef* sk = findSkillByFx(sp, f.key);
     AnimDef ad;  // 스킬을 못 찾는 일은 없어야 하지만, 못 찾으면 AnimDef 기본값으로 그린다
-    if (sk) ad = sk->fxAnim;
+    if (sk) {
+        ad = sk->fxAnim;
+        ad.fps = sk->fxPlaybackFps(f.key);
+    }
 
     float k = 1.f, alpha = 1.f;
     fxPhaseLook(f, k, alpha);

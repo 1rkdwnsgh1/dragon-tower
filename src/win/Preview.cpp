@@ -442,7 +442,8 @@ void PreviewWindow::updateInfo() {
                     if (key->empty()) continue;
                     const Sheet effect = sprites_.fxSheet(def.key, *key);
                     out << L"\r\n이펙트  fx_" << widen(*key) << L".png";
-                    if (effect.bmp) out << L"  ·  " << effect.frames << L"프레임  ·  " << sk->fxAnim.fps << L" FPS";
+                    if (effect.bmp)
+                        out << L"  ·  " << effect.frames << L"프레임  ·  " << sk->fxPlaybackFps(*key) << L" FPS";
                     else out << L"  ·  시트를 읽을 수 없어 기본 효과 사용";
                 }
                 if (sk->fx.empty() && !skillIsPassive(sk->kind)) out << L"\r\n이펙트  기본 도형";
