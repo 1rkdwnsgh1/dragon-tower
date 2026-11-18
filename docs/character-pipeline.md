@@ -163,6 +163,19 @@ render_scale=1.37
   자세한 규칙은 [통합 기획서의 확정 절](game-design.md#확정-스킬-해제와-장착-2026-11-14-v14),
   적는 법은 [드래곤 사용법](../assets/dragons/README.md#2-2-스킬-추가하기-v14)에 있다.
 
+### 모션과 스킬 미리보기
+
+Windows에서 `cmake --build build --config Release --target dragon_preview`로 빌드하고
+`build/Release/dragon_preview.exe`를 실행한다. **캐릭터 폴더 열기**에서 작업 중인
+`dragon.txt`가 들어 있는 폴더를 고른다. 탐색기에서 폴더를 창에 끌어 놓아도 된다.
+실행 파일 옆에 게임의 `assets`가 있으면 망령룡을 먼저 연다.
+
+목록에서 기본 모션 또는 스킬을 선택한다. 스킬은 고정 표적을 향해 한 번 발동하며
+**반복**을 켜면 다시 발동한다. 한 프레임씩 이동하는 버튼은 일시정지 후 본체 FPS를 기준으로
+시간을 옮긴다. 이펙트만 보기에서는 이펙트 FPS를 쓴다. 교체한 PNG와 `dragon.txt`는
+**F5**로 다시 읽는다. 아래 정보창에서 시트 이름, 프레임 수, 대체 표시와 규격 경고를 확인한다.
+처치 패시브는 표적 위치에서 회복 이펙트를 직접 띄워 본다.
+
 ## 6. 확정: 망령룡 작업물 처리
 
 - [작업 자료](characters/revenant-dragon-progress.md)의 낱장 프레임(ZIP)은 **변환 스크립트 [tools/make_sheet.py](../tools/make_sheet.py)**로 이 규격의 가로 시트로 만든다. 결과물은 `assets/dragons/revenant/`, 원본은 지금처럼 `references/`에 보관한다.

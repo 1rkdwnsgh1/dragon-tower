@@ -40,6 +40,16 @@ if(WIN32)
     )
     target_link_libraries(dragon_tower PRIVATE dragon_core gdiplus shell32 ole32 user32 gdi32)
     target_compile_definitions(dragon_tower PRIVATE UNICODE _UNICODE NOMINMAX WIN32_LEAN_AND_MEAN _WIN32_WINNT=0x0601)
+    add_executable(dragon_preview WIN32
+        src/win/Preview.cpp
+        src/win/FrameProfiler.cpp
+        src/win/Renderer.cpp
+        src/win/Sprites.cpp
+        src/win/Platform.cpp
+    )
+    target_link_libraries(dragon_preview PRIVATE dragon_core gdiplus shell32 ole32 user32 gdi32 uuid)
+    target_compile_definitions(dragon_preview PRIVATE UNICODE _UNICODE NOMINMAX WIN32_LEAN_AND_MEAN _WIN32_WINNT=0x0601)
+
     # 실행 파일 옆에 assets 폴더를 복사한다(이미지를 넣으면 임시 도형 대신 표시됨).
     add_custom_command(TARGET dragon_tower POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/assets $<TARGET_FILE_DIR:dragon_tower>/assets

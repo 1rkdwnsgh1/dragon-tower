@@ -50,10 +50,15 @@ if [[ "${1:-}" == "--link" ]]; then
     OUT="dist/win-local"
     mkdir -p "$OUT"
     echo "링크까지 빌드한다 → $OUT/dragon_tower.exe"
+    # Preview.cpp is the separate dragon_preview entry point.
+    GAME_SOURCES=()
+    for source in src/win/*.cpp; do
+        [[ "$source" == "src/win/Preview.cpp" ]] || GAME_SOURCES+=("$source")
+    done
     # -municode 는 쓰지 않는다. 진입점이 WinMain(wWinMain 아님)이라 쓰면 링크가 깨진다.
     "$CXX" -std=c++17 -O2 -mwindows -static -static-libgcc -static-libstdc++ \
         "${WARN[@]}" "${INCS[@]}" "${DEFS[@]}" \
-        src/win/*.cpp src/core/*.cpp \
+        "${GAME_SOURCES[@]}" src/core/*.cpp \
         -o "$OUT/dragon_tower.exe" "${LIBS[@]}"
     echo "됐다: $(ls -la "$OUT/dragon_tower.exe" | awk '{print $5" 바이트"}')"
     echo "실행하려면 assets 폴더를 .exe 옆에 둔다."

@@ -13,14 +13,43 @@ const char* kSpriteKeys[] = {
     "enemy_imp",   "boss_guardian", "button_settings",
 };
 
-std::unique_ptr<Gdiplus::Bitmap> loadPng(const std::filesystem::path& p) {
+std::unique_ptr<Gdiplus::Bitmap> loadPng(const std::filesystem::path& p, bool detach = false) {
+    using namespace Gdiplus;
     std::error_code ec;
     if (!std::filesystem::exists(p, ec)) return nullptr;
     std::unique_ptr<Gdiplus::Bitmap> bmp(Gdiplus::Bitmap::FromFile(p.wstring().c_str(), FALSE));
-    if (bmp && bmp->GetLastStatus() == Gdiplus::Ok && bmp->GetWidth() > 0 && bmp->GetHeight() > 0) return bmp;
-    return nullptr;
+    if (!bmp || bmp->GetLastStatus() != Ok || bmp->GetWidth() == 0 || bmp->GetHeight() == 0) return nullptr;
+    if (!detach) return bmp;
+
+    auto copy = std::make_unique<Bitmap>(bmp->GetWidth(), bmp->GetHeight(), PixelFormat32bppPARGB);
+    Graphics graphics(copy.get());
+    graphics.SetCompositingMode(CompositingModeSourceCopy);
+    const Rect rect(0, 0, static_cast<INT>(bmp->GetWidth()), static_cast<INT>(bmp->GetHeight()));
+    if (graphics.DrawImage(bmp.get(), rect, 0, 0, rect.Width, rect.Height, UnitPixel) != Ok) return nullptr;
+    return copy;
 }
 }  // namespace
+
+void Sprites::loadPreviewDragon(const std::filesystem::path& dir, const SpeciesDef& def) {
+    images_.clear();
+    sheets_.clear();
+    warnings_.clear();
+    detachFiles_ = true;
+    if (auto bmp = loadPng(dir / "dragon.png", true)) images_["dragon_" + def.key] = std::move(bmp);
+    loadSheetsFor(dir, def.anims, def.key, def.key);
+    loadSkillSheets(dir, def, def.key);
+    loadFxSheets(dir, def, def.key);
+    detachFiles_ = false;
+}
+
+void Sprites::loadPreviewEnemy(const std::filesystem::path& dir, const EnemyDef& def) {
+    images_.clear();
+    sheets_.clear();
+    warnings_.clear();
+    detachFiles_ = true;
+    loadSheetsFor(dir, def.anims, "enemy:" + def.key, def.key);
+    detachFiles_ = false;
+}
 
 void Sprites::load(const std::filesystem::path& assetDir) {
     images_.clear();
@@ -71,14 +100,22 @@ void Sprites::load(const std::filesystem::path& assetDir) {
 
 bool Sprites::loadSheetFile(const std::filesystem::path& file, const AnimDef& anim, const std::string& key,
                             const std::string& label) {
-    auto bmp = loadPng(file);
-    if (!bmp) return false;
+    auto bmp = loadPng(file, detachFiles_);
+    if (!bmp) {
+        std::error_code ec;
+        if (detachFiles_ && std::filesystem::exists(file, ec))
+            warnings_.push_back(label + ": PNG를 읽을 수 없습니다");
+        return false;
+    }
 
     int w = static_cast<int>(bmp->GetWidth());
     int h = static_cast<int>(bmp->GetHeight());
     int frameW = anim.frameW;
     if (frameW <= 0) frameW = h;  // frame_w가 없으면 정사각형 칸으로 본다
-    if (frameW > w) frameW = w;
+    if (frameW > w) {
+        if (detachFiles_) warnings_.push_back(label + ": 설정한 칸 너비보다 PNG가 좁아 한 칸으로 읽습니다");
+        frameW = w;
+    }
     if (frameW <= 0 || w % frameW != 0) {
         warnings_.push_back(label + ": 너비 " + std::to_string(w) + "가 칸 너비 " + std::to_string(frameW) +
                             "로 나누어떨어지지 않습니다");
@@ -119,11 +156,13 @@ void Sprites::loadSkillSheets(const std::filesystem::path& dir, const SpeciesDef
 // 그러면 그리는 쪽이 예전처럼 도형으로 그려서 깨진 그림이 나오지 않는다.
 void Sprites::loadFxSheets(const std::filesystem::path& dir, const SpeciesDef& def, const std::string& label) {
     for (const SkillDef& sk : def.skills) {
-        if (sk.fx.empty()) continue;
-        std::string key = def.key + "/fx_" + sk.fx;
-        if (sheets_.count(key) != 0) continue;  // 다른 스킬이 이미 읽었다
-        std::string file = "fx_" + sk.fx + ".png";
-        loadSheetFile(dir / file, sk.fxAnim, key, label + "/" + file);
+        for (const std::string* effect : {&sk.fx, &sk.fxImpact}) {
+            if (effect->empty()) continue;
+            std::string key = def.key + "/fx_" + *effect;
+            if (sheets_.count(key) != 0) continue;
+            std::string file = "fx_" + *effect + ".png";
+            loadSheetFile(dir / file, sk.fxAnim, key, label + "/" + file);
+        }
     }
 }
 
@@ -281,13 +320,14 @@ Gdiplus::Bitmap* Sprites::get(const std::string& key) const {
     return it == images_.end() ? nullptr : it->second.get();
 }
 
-Sheet Sprites::sheet(const std::string& speciesKey, AnimState state) const {
+Sheet Sprites::sheet(const std::string& speciesKey, AnimState state, AnimState* resolved) const {
     // 대체 규칙(docs/character-pipeline.md 4장): 없는 상태는 idle로 그린다.
     // fly 시트가 없으면 move를 먼저 써 본다(걷는 그림이 가만히 있는 것보다 낫다).
     AnimState order[3] = {state, state == AnimState::Fly ? AnimState::Move : AnimState::Idle, AnimState::Idle};
     for (AnimState s : order) {
         auto it = sheets_.find(speciesKey + "/" + animStateName(s));
         if (it == sheets_.end()) continue;
+        if (resolved) *resolved = s;
         Sheet out;
         out.bmp = it->second.bmp.get();
         out.frames = it->second.frames;

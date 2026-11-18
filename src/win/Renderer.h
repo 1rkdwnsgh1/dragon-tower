@@ -90,7 +90,11 @@ public:
     void drawOverlay(Gdiplus::Graphics& g, const Game& game, const Sprites& sprites, const RenderContext& ctx,
                      std::vector<UiButton>& outButtons, FrameRegions* outRegions = nullptr);
 
-    // 설정 버튼 창. attention이면 입력을 켜 달라는 의미로 깜빡인다.
+    // 제작 도구용. 게임과 같은 본체, 투사체, 효과를 HUD 없이 그린다.
+    void drawAnimationPreview(Gdiplus::Graphics& g, const World& world, const Sprites& sprites,
+                              float time, bool body, bool effects, float charScale = 1.f);
+    void drawEnemyPreview(Gdiplus::Graphics& g, const Enemy& enemy, const Sprites& sprites,
+                          AnimState state, float time, float charScale);
 
 private:
     Gdiplus::Font* font(float size, bool bold);
@@ -113,7 +117,11 @@ private:
     void drawDragon(Gdiplus::Graphics& g, const DragonActor& d, const Sprites& sprites, float time, float x, float y,
                     float height, bool preview);
     // charScale은 보기 배수다. 그림 크기만 바꾸고 판정에는 쓰지 않는다.
-    void drawEnemy(Gdiplus::Graphics& g, const Enemy& e, const Sprites& sprites, float time, float charScale);
+    void drawDotZones(Gdiplus::Graphics& g, const World& w, uint32_t spColor, float time);
+    void drawProjectiles(Gdiplus::Graphics& g, const World& w, const Sprites& sprites,
+                         const SpeciesDef& dragonSp, float cs);
+    void drawEnemy(Gdiplus::Graphics& g, const Enemy& e, const Sprites& sprites, float time, float charScale,
+                   const AnimState* forcedState = nullptr);
     void drawSprite(Gdiplus::Graphics& g, Gdiplus::Bitmap* bmp, float cx, float cy, float height, bool flip,
                     float flash, float alpha);
     // 시트의 한 칸만 그린다. frame은 0부터.

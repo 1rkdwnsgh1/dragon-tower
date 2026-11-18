@@ -5,7 +5,7 @@
 
 작업을 끝낼 때 이 문서를 같은 PR 에서 고친다. **낡은 상태 문서는 없는 것보다 해롭다.**
 
-최종 갱신: 2026-11-17 (스킬 효과 그림 일곱 건 병합, 남은 일 정리)
+최종 갱신: 2026-11-18 (모션·스킬 미리보기 도구 추가)
 
 ---
 
@@ -19,6 +19,8 @@
 | 자동 작업 큐 | **없음** — 두 큐 모두 종료 (11-15 20:00, 11-17 08:00) |
 | 열린 PR | **없음** |
 | 알려진 문제 | **1건** — [known-issues.md](known-issues.md) 4번 `make_sheet.py` 가 칸을 꽉 채우는 그림에 안 맞는다(우회 있음). 1~3번은 고쳤다 ([#77](https://github.com/1rkdwnsgh1/dragon-tower/issues/77) → #82, [#78](https://github.com/1rkdwnsgh1/dragon-tower/issues/78) → #80, [#79](https://github.com/1rkdwnsgh1/dragon-tower/issues/79) → #83). **Windows 확인 59~78번이 남아 있다** |
+
+- 제작 중인 캐릭터 모션과 스킬은 [미리보기 도구](character-pipeline.md#모션과-스킬-미리보기)에서 확인할 수 있다.
 
 ## 운영 방식
 
