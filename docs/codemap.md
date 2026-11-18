@@ -104,6 +104,7 @@ tests/                     코어 규칙 검증
 | 스킬 관리창 그리기 | `src/win/Renderer.cpp` | `drawSkills`, `drawSkillBox` |
 | 스킬별 본체 모션 | `src/win/Sprites.cpp`, `src/win/Renderer.cpp` | `loadSkillSheets`/`skillSheet`, `drawDragon`의 `skillMotion` |
 | 크기 비례 판정 | `src/core/World.cpp` | `scaledBody`, `World::skillRadius`, `setSizeScale`. `Game::setCharScale` 가 넣어 준다 |
+| 모션·스킬 미리보기 도구 | `src/win/Preview.cpp` | `PreviewWindow`, `Renderer::drawAnimationPreview`, `Sprites::loadPreviewDragon` |
 | 스킬 효과(FX) 설정 | `assets/dragons/<키>/dragon.txt` | `fx=`, `fx_front=`, `fx_scale=`, `fx_offset_x=`, `fx_offset_y=` ([사용법](../assets/dragons/README.md)) |
 | 망령룡 효과 시트 | `assets/dragons/revenant/fx_*.png` (`pierce`·`claw`·`breath`·`harvest`) | 8~18프레임 256칸. 출처는 같은 폴더 `CREDITS.md` |
 | 망령룡 효과 시트 | `assets/dragons/revenant/fx_*.png` (`pierce`·`claw`·`breath`·`bolt`·`bolt_hit`) | 8~9프레임 256칸. 출처는 같은 폴더 `CREDITS.md` |
