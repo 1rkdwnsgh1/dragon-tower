@@ -1233,6 +1233,80 @@ static void testDefenseBattle() {
 
 // #47(2026-11-16 사용자 결정): "아래쪽에만"을 끄면 바탕화면 전투도 화면 전체에서 한다.
 // 적은 여전히 왼쪽 밖에서 들어오고(디펜스), 드래곤이 있는 높이 근처로 온다.
+// 탑 100층 T3(2026-11-18): 바탕화면 디펜스는 드래곤이 머무는 층의 직전 일반 층 구성으로 나온다.
+// 탑 층을 돌파하면 그 드래곤의 진행(floor·cleared)과 계정 첫 돌파 기록이 오른다.
+static void testHuntFloorPool() {
+    std::printf("[hunt floor pool]\n");
+    EnemyKind slime, goblin, ogre;
+    CHECK(enemyFromKey("slime", slime) && enemyFromKey("goblin", goblin) && enemyFromKey("ogre", ogre));
+    std::vector<TowerFloorDef> floors(4);
+    floors[0].spawns = {{"slime", 2, 4, 0.f}};
+    floors[1].spawns = {{"goblin", 2, 6, 0.f}, {"ogre", 1, 6, 0.f}};
+    floors[2].boss = true;
+    floors[2].spawns = {{"", 1, 8, 0.f}};  // 보스층: 바탕화면에는 쓰지 않는다
+    floors[3].spawns = {{"ogre", 1, 9, 0.f}};
+    const auto hunt = [&](int dragonFloor) {
+        Game g;
+        SaveData s;
+        s.hasDragon = true;
+        s.dragon.species = Species::Fire;
+        s.dragon.level = 8;
+        s.dragon.floor = dragonFloor;
+        s.huntMode = CombatMode::SkillManual;
+        g.setTowerFloors(floors);
+        g.init(s, kDesk);
+        return g;
+    };
+    {
+        Game g = hunt(1);  // 1층 → 1층 구성(슬라임)
+        CHECK(g.huntFloor() == 1);
+        g.startHunt();
+        PlayerInput in;
+        for (int i = 0; i < 30 * 10 && g.world().enemies().empty(); ++i) g.update(1.f / 30.f, in, false, true);
+        CHECK(!g.world().enemies().empty());
+        g_silentFailed = false;
+        for (const Enemy& e : g.world().enemies()) CHECK_SILENT(e.kind == slime);
+        CHECK(!g_silentFailed);
+    }
+    {
+        Game g = hunt(3);  // 3층 → 직전 일반 층 2층(고블린·오우거)
+        CHECK(g.huntFloor() == 2);
+        g.startHunt();
+        PlayerInput in;
+        for (int i = 0; i < 30 * 10 && g.world().enemies().empty(); ++i) g.update(1.f / 30.f, in, false, true);
+        g_silentFailed = false;
+        for (const Enemy& e : g.world().enemies()) CHECK_SILENT(e.kind == goblin || e.kind == ogre);
+        CHECK(!g_silentFailed);
+    }
+    // 층 수보다 높이 있으면 마지막 층까지만 본다(floors.txt 가 아직 100층이 아님)
+    CHECK(hunt(30).huntFloor() <= 4);
+
+    // 돌파 기록: 그 드래곤만 오르고, 계정 첫 돌파는 가장 높은 값을 남긴다
+    {
+        Game g;
+        SaveData s;
+        DragonRecord a;
+        a.id = 1; a.species = Species::Fire; a.level = 8;
+        s.stable = {a};
+        s.activeIndex = 0;
+        s.dragon = a;
+        s.hasDragon = true;
+        g.setTowerFloors(floors);
+        g.init(s, kDesk);
+        g.openTowerWarning();
+        g.enterTower(CombatMode::Direct);
+        CHECK(g.screen() == Screen::Tower);
+        g.world().clearEnemies(false);
+        PlayerInput in;
+        g.update(1.f / 30.f, in, false, true);
+        CHECK(g.screen() == Screen::FloorClear);
+        const SaveData snap = g.snapshotForSave();
+        CHECK(snap.dragon.cleared == 1 && snap.dragon.floor == 2);
+        CHECK(snap.stable[0].cleared == 1 && snap.stable[0].floor == 2);
+        CHECK(snap.firstClear == 1);
+    }
+}
+
 static void testBattleWithoutConfine() {
     std::printf("[battle without confine]\n");
     Game g;
@@ -2205,35 +2279,45 @@ static void testEliteVariantsSpawn(const std::filesystem::path& assets) {
     CHECK(enemyDef(el).role == EnemyRole::Boss);
     CHECK(defaultBoss() == li);
 
-    // 바탕화면 사냥: 일반 적 두 변종이 실제로 섞여 나온다
-    Game g;
-    SaveData s;
-    s.hasDragon = true;
-    s.dragon.species = Species::Fire;
-    s.dragon.level = 60;  // 치이지 않게 높게 둔다. 매 무리를 바로 치운다
-    s.dragon.hp = -1.f;
-    s.huntMode = CombatMode::SkillManual;
-    g.init(s, kDesk);
-    g.startHunt();
-    PlayerInput in;
-    bool sawSlime = false, sawGoblin = false;
-    int waves = 0;
-    for (int w = 0; w < 200 && !(sawSlime && sawGoblin); ++w) {
-        for (int i = 0; i < 30 * 20 && g.world().enemies().empty(); ++i) g.update(1.f / 30.f, in, false, true);
-        if (g.world().enemies().empty()) break;
-        ++waves;
-        for (const Enemy& e : g.world().enemies()) {
-            if (e.kind == es) sawSlime = true;
-            if (e.kind == eg) sawGoblin = true;
+    // 바탕화면 사냥: 일반 적 두 변종이 실제로 나온다.
+    // T3(2026-11-18)부터 나오는 적은 드래곤이 머무는 층의 직전 일반 층 구성을 따른다 —
+    // 실제 floors.txt 에서 정예 슬라임은 8층, 정예 고블린은 7층에 있다(9층→8층, 8층→7층).
+    TowerScanResult towerScan = loadTowerFloors(assets / "tower");
+    CHECK(towerScan.found);
+    const auto sawInHunt = [&](int dragonFloor, EnemyKind want, int& wavesOut) {
+        Game g;
+        SaveData s;
+        s.hasDragon = true;
+        s.dragon.species = Species::Fire;
+        s.dragon.level = 60;  // 치이지 않게 높게 둔다. 매 무리를 바로 치운다
+        s.dragon.hp = -1.f;
+        s.dragon.floor = dragonFloor;
+        s.huntMode = CombatMode::SkillManual;
+        g.setTowerFloors(towerScan.floors);
+        g.init(s, kDesk);
+        g.startHunt();
+        PlayerInput in;
+        bool saw = false;
+        for (int w = 0; w < 200 && !saw; ++w) {
+            for (int i = 0; i < 30 * 20 && g.world().enemies().empty(); ++i) g.update(1.f / 30.f, in, false, true);
+            if (g.world().enemies().empty()) break;
+            ++wavesOut;
+            for (const Enemy& e : g.world().enemies())
+                if (e.kind == want) saw = true;
+            g.world().clearEnemies(false);
         }
-        g.world().clearEnemies(false);
-    }
+        return saw;
+    };
+    int waves = 0;
+    const bool sawSlime = sawInHunt(9, es, waves);
+    const bool sawGoblin = sawInHunt(8, eg, waves);
     CHECK(waves > 0);  // 무리가 실제로 나왔다(안 나왔으면 아래 두 줄이 뜻이 없다)
     CHECK(sawSlime);
     CHECK(sawGoblin);
     std::printf("  무리 %d번 안에 두 변종이 모두 나왔다\n", waves);
 
     // 보스 변종: 체력 절반에서 정예 슬라임 3마리를 부른다
+    PlayerInput in;
     World wd;
     wd.setBounds(kDesk);
     wd.setupDragon(Species::Fire, 20, -1.f, {400.f, 500.f});
@@ -2601,6 +2685,7 @@ int main(int argc, char** argv) {
     testBossPhase2Summons();
     testDefenseBattle();
     testBattleWithoutConfine();
+    testHuntFloorPool();
     testDefenseWaveGrows();
     testAutoBattleNoLongerCapped();
     testUiSettingsSaved();

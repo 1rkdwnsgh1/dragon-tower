@@ -596,6 +596,41 @@ EnemyKind Game::randomMelee() {
     return pool[static_cast<size_t>(rng_.range(0, static_cast<int>(pool.size()) - 1))];
 }
 
+int Game::huntFloor() const {
+    int f = huntFloorFor(save_.dragon.floor);
+    // floors.txt 가 아직 100층이 아니면(T4 전) 있는 층까지만 본다.
+    if (towerFloorCount() > 0) f = std::min(f, towerFloorCount());
+    return std::max(1, f);
+}
+
+std::vector<EnemyKind> Game::huntPool() const {
+    std::vector<EnemyKind> pool;
+    if (floors_.empty()) return pool;
+    const TowerFloorDef& f = towerFloorDef(huntFloor());
+    for (const TowerSpawn& s : f.spawns) {
+        EnemyKind k;
+        if (s.key.empty() || !enemyFromKey(s.key, k)) continue;
+        if (enemyDef(k).role != EnemyRole::Melee) continue;  // 보스는 바탕화면에 나오지 않는다
+        for (int i = 0; i < std::max(1, s.count); ++i) pool.push_back(k);
+    }
+    return pool;
+}
+
+void Game::recordFloorCleared(int floor) {
+    if (!save_.hasDragon || floor < 1) return;
+    DragonRecord& d = save_.dragon;
+    d.cleared = std::clamp(std::max(d.cleared, floor), 0, cfg::kTowerTopFloor);
+    // 머무는 층은 돌파한 다음 층. 탑의 끝(floors.txt 마지막 층)을 넘지 않는다.
+    const int top = std::max(1, std::min(cfg::kTowerTopFloor, towerFloorCount()));
+    d.floor = std::clamp(std::max(d.floor, floor + 1), 1, top);
+    save_.firstClear = std::clamp(std::max(save_.firstClear, floor), 0, cfg::kTowerTopFloor);
+    if (save_.activeIndex >= 0 && save_.activeIndex < static_cast<int>(save_.stable.size())) {
+        DragonRecord& s = save_.stable[static_cast<size_t>(save_.activeIndex)];
+        s.floor = d.floor;
+        s.cleared = d.cleared;
+    }
+}
+
 void Game::spawnWave() {
     // 디펜스형: 적은 화면 왼쪽 밖에서 줄지어 들어와 드래곤에게 걸어온다.
     ++waveNumber_;
@@ -605,6 +640,7 @@ void Game::spawnWave() {
     int byWave = 1 + static_cast<int>(waveNumber_ / cfg::kWaveLevelStep);
     int maxCount = std::clamp(std::max(byLevel, byWave), cfg::kWaveMin, cfg::kWaveMax);
     int count = rng_.range(cfg::kWaveMin, maxCount);
+    const std::vector<EnemyKind> pool = huntPool();  // T3: 드래곤 층 기준 구성
     for (int i = 0; i < count; ++i) {
         int lv = std::max(1, level - rng_.range(0, 1));
         // 한 줄로 겹치지 않게 왼쪽 밖에서 간격을 두고 세운다
@@ -621,7 +657,9 @@ void Game::spawnWave() {
             if (lo > hi) lo = hi = std::clamp(dy, desktop_.y, desktop_.bottom());
         }
         float y = rng_.uniform(lo, hi);
-        world_.spawnEnemy(randomMelee(), lv, {x, y});
+        EnemyKind kind = pool.empty() ? randomMelee()
+                                      : pool[static_cast<size_t>(rng_.range(0, static_cast<int>(pool.size()) - 1))];
+        world_.spawnEnemy(kind, lv, {x, y});
     }
     waveActive_ = true;
 }
@@ -901,6 +939,7 @@ void Game::update(float dt, const PlayerInput& in, bool hidden, bool inputEnable
             processEvents(false);
             if (screen_ != Screen::Tower) break;
             if (world_.aliveEnemyCount() == 0) {
+                recordFloorCleared(towerFloor_);  // T3: 이 드래곤의 진행을 올린다
                 if (towerFloor_ >= towerFloorCount()) {
                     save_.towerClears++;
                     ExpResult r = grantExp(save_.dragon, cfg::kTowerClearExp, false);
