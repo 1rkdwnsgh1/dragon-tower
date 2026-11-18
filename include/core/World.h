@@ -128,6 +128,18 @@ struct BreathCast {
     float range = 0.f, radius = 0.f, damage = 0.f;
     float inputLock = 0.f;
     bool hit = false;
+    bool facingLeft = false;
+
+    int frame() const {
+        return std::min(15, static_cast<int>((elapsed + 1e-6f) / frameSeconds));
+    }
+    int bodyFrame(const SkillDef& definition) const {
+        if (!definition.usesUmbralBreath()) return openMouthFrame;
+        constexpr int windup[] = {2, 4, 5, 6};
+        const int i = frame();
+        if (i < 4) return windup[i];
+        return i < 12 ? 6 : i - 4;
+    }
 };
 
 struct DragonActor {

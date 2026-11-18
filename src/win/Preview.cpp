@@ -293,7 +293,11 @@ void PreviewWindow::reset() {
     }
 
     duration_ = std::max(1.f, dragon.animHold);
-    if (dragon.breath) duration_ = BreathCast::duration + 4.f / std::max(1.f, anim.fps);
+    const bool layered = dragon.breath && sprites_.breathBody(def, *sk).bmp;
+    if (layered) {
+        duration_ = BreathCast::duration;
+        if (!sk->usesUmbralBreath()) duration_ += 4.f / std::max(1.f, anim.fps);
+    }
     for (const Fx& effect : world_.fx()) duration_ = std::max(duration_, effect.duration);
     for (const DotZone& zone : world_.dots()) duration_ = std::max(duration_, zone.duration);
     for (const Projectile& projectile : world_.projectiles()) {
@@ -305,7 +309,7 @@ void PreviewWindow::reset() {
     }
     duration_ += 0.15f;
     if (selected(Layer) == 2 || !body.bmp || skillIsPassive(sk->kind)) stepFps_ = std::max(1.f, sk->fxAnim.fps);
-    if (dragon.breath) stepFps_ = 1.f / BreathCast::frameSeconds;
+    if (layered) stepFps_ = 1.f / BreathCast::frameSeconds;
 }
 
 void PreviewWindow::seek(float time) {
@@ -405,14 +409,15 @@ void PreviewWindow::updateInfo() {
         const Sheet body = custom.bmp ? custom : sprites_.sheet(def.key, state, &resolved);
         const AnimDef& anim = sk && custom.bmp ? sk->motionAnim : def.anims[static_cast<int>(state)];
         const auto& dragon = world_.dragon();
+        const bool layered = sk && sprites_.breathBody(def, *sk).bmp;
         out << widen(def.name) << L"   |   " << std::fixed << std::setprecision(2) << time_ << L" / "
             << duration_ << L"초   |   " << folder_.wstring() << L"\r\n본체  ";
         if (body.bmp) {
             out << (sk && custom.bmp ? L"skill_" + widen(sk->motion) : widen(animStateName(resolved))) << L".png"
                 << L"  ·  " << body.frames << L"프레임  ·  " << anim.fps << L" FPS";
-            if (dragon.anim == state) {
-                const int frame = dragon.breath ? std::min(BreathCast::openMouthFrame, body.frames - 1)
-                                                : animFrame(dragon.animTime, anim.fps, body.frames, anim.loop);
+            if (dragon.anim == state || (layered && dragon.breath)) {
+                const int frame = layered && dragon.breath ? dragon.breath->bodyFrame(*sk)
+                                                           : animFrame(dragon.animTime, anim.fps, body.frames, anim.loop);
                 out << L"  ·  현재 " << frame + 1
                     << L"/" << body.frames;
             } else {
@@ -423,15 +428,14 @@ void PreviewWindow::updateInfo() {
         }
         if (resolved != state || (sk && !skillIsPassive(sk->kind) && !sk->motion.empty() && !custom.bmp))
             out << L"  ·  대체 표시";
-        if (sk && sk->layeredBreath.empty() && !skillIsPassive(sk->kind) && body.bmp) {
+        if (sk && !layered && !skillIsPassive(sk->kind) && body.bmp) {
             const float hold = sk->motion.empty() ? cfg::kAnimAttackHold
                                                   : std::max(cfg::kSkillMotionHold, cfg::kAnimAttackHold);
             if (anim.fps > 0.f && (body.frames - 1) / anim.fps >= hold)
                 out << L"\r\n주의  모션 유지 시간 " << hold << L"초 안에 마지막 프레임까지 재생되지 않습니다.";
         }
         if (sk) {
-            if (!sk->layeredBreath.empty() && sprites_.breathSheets(def.key, sk->layeredBreath) &&
-                body.frames > BreathCast::openMouthFrame) {
+            if (layered) {
                 out << L"\r\n이펙트  " << widen(sk->layeredBreath) << L"  ·  START 4 / LOOP 8 / END 4";
             } else {
                 for (const std::string* key : {&sk->fx, &sk->fxImpact}) {

@@ -2303,7 +2303,10 @@ static void testLayeredBreath() {
     const auto spec = parseDragonText(
         "[dragon]\nname=Breath test\n[skill.1]\nkind=Line\nrange=300\nradius=70\npower=2.6\ncooldown=14\n"
         "scale_with_size=yes\nlayered_breath=bonestorm\nbreath_input_lock=1.92\n"
-        "[skill.2]\nkind=Line\nrange=300\nradius=70\npower=2.6\n", "layered-breath-test", nullptr);
+        "[skill.2]\nkind=Line\nrange=300\nradius=70\npower=2.6\n"
+        "[skill.3]\nkind=Line\nrange=300\nradius=44\npower=2.4\ncooldown=11\n"
+        "scale_with_size=yes\nlayered_breath=umbral_vortex_v2\nbreath_defer_hit=no\n",
+        "layered-breath-test", nullptr);
     CHECK(spec.warnings.empty());
     const Species species = registerOrUpdateSpecies(spec.def);
     const Vec2 origin{600.f, 300.f};
@@ -2362,6 +2365,37 @@ static void testLayeredBreath() {
     ordinary.updateCombat(0.f, CombatMode::Direct, cast);
     CHECK(!ordinary.dragon().breath);
     CHECK(ordinary.enemies()[0].hp < 10000.f);
+
+    for (Vec2 aim : {Vec2{1.f, 0.f}, Vec2{-1.f, 0.f}, Vec2{0.8f, -0.6f}}) {
+        for (float scale : {1.f, 3.f, 10.f}) {
+            auto shadow = scenario(aim, scale, 2);
+            shadow.updateCombat(0.f, CombatMode::Direct, cast);
+            CHECK(shadow.dragon().breath.has_value());
+            if (!shadow.dragon().breath) continue;
+            const auto& attack = spec.def.skills[2];
+            CHECK(shadow.dragon().breath->bodyFrame(attack) == 2);
+            CHECK(shadow.dragon().breath->facingLeft == (aim.x < 0.f));
+            CHECK(distance(shadow.dragon().breath->aim, aim) < 0.001f);
+            CHECK(shadow.dragon().skillCd[2] == 11.f);
+            CHECK(shadow.dragon().breath->radius == 44.f * scale);
+            const float hitHp = shadow.enemies()[0].hp;
+            CHECK(hitHp < 10000.f && shadow.enemies()[1].hp < 10000.f);
+            CHECK(shadow.enemies()[2].hp == 10000.f);
+            PlayerInput move{};
+            move.moveX = -1.f;
+            shadow.updateCombat(0.48f, CombatMode::Direct, move);
+            CHECK(shadow.dragon().pos.x < origin.x);
+            CHECK(shadow.dragon().breath->bodyFrame(attack) == 6);
+            CHECK(shadow.enemies()[0].hp == hitHp);
+            shadow.updateCombat(0.96f, CombatMode::Direct, {});
+            CHECK(shadow.dragon().breath->bodyFrame(attack) == 8);
+            shadow.updateCombat(0.36f, CombatMode::Direct, {});
+            CHECK(shadow.dragon().breath->bodyFrame(attack) == 11);
+            shadow.updateCombat(0.12f, CombatMode::Direct, {});
+            CHECK(!shadow.dragon().breath);
+            CHECK(shadow.enemies()[0].hp == hitHp);
+        }
+    }
 }
 
 int main(int argc, char** argv) {

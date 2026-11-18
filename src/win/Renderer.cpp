@@ -631,12 +631,18 @@ void Renderer::drawDragon(Graphics& g, const DragonActor& d, const Sprites& spri
 
     // 시트 애니메이션이 있으면 그것으로 그린다(v0.2). 미리보기는 항상 대기 동작.
     AnimState state = preview ? AnimState::Idle : d.anim;
-    const bool breathing = !preview && d.breath.has_value();
+    const SkillDef* breath = !preview && d.breath ? &sp.skills[static_cast<size_t>(d.breath->skill)] : nullptr;
+    const Sheet breathBody = breath ? sprites.breathBody(sp, *breath) : Sheet{};
+    const bool breathing = breathBody.bmp != nullptr;
     if (breathing) state = AnimState::Attack;
-    Sheet sh = sprites.sheet(sp.key, state);
+    Sheet sh = breathing ? breathBody : sprites.sheet(sp.key, state);
     // v1.4: 스킬 전용 본체 모션이 재생 중이고 그 시트가 있으면 공용 attack 대신 그것을 쓴다.
     // 시트가 없으면 아래에서 공용 attack(sh)으로 그려진다 — 데이터만 있고 그림이 없어도 괜찮다.
     const AnimDef* skillAnim = nullptr;
+    if (breathing) {
+        flip = sp.flipAllowed && d.breath->facingLeft;
+        if (breath->usesUmbralBreath()) skillAnim = &breath->motionAnim;
+    }
     if (!preview && !breathing && d.skillMotion >= 0 && d.skillMotion < static_cast<int>(sp.skills.size())) {
         const SkillDef& sk = sp.skills[static_cast<size_t>(d.skillMotion)];
         Sheet ms = sprites.skillSheet(sp.key, sk.motion);
@@ -669,7 +675,7 @@ void Renderer::drawDragon(Graphics& g, const DragonActor& d, const Sprites& spri
         float k = ad.renderScale;
         float drawH = height * k;
         float cyAdj = cy - (kAnchorFrac - 0.5f) * height * (k - 1.f);
-        const int frame = breathing ? BreathCast::openMouthFrame : animFrame(t, ad.fps, sh.frames, ad.loop);
+        const int frame = breathing ? d.breath->bodyFrame(*breath) : animFrame(t, ad.fps, sh.frames, ad.loop);
         drawSheetFrame(g, sh, frame, x, cyAdj, drawH, flip, flash, alpha);
         return;
     }
@@ -1076,8 +1082,8 @@ void Renderer::drawBreath(Graphics& g, const DragonActor& dragon, const Sprites&
     const SpeciesDef& sp = speciesDef(dragon.species);
     const SkillDef& skill = sp.skills[static_cast<size_t>(cast.skill)];
     const BreathSheets* pack = sprites.breathSheets(sp.key, skill.layeredBreath);
-    const Sheet attack = sprites.sheet(sp.key, AnimState::Attack);
-    if (!pack || !attack.bmp || attack.frames <= BreathCast::openMouthFrame) {
+    const Sheet body = sprites.breathBody(sp, skill);
+    if (!pack || !body.bmp) {
         Fx legacy;
         legacy.a = cast.origin;
         legacy.b = cast.origin + cast.aim * cast.range;
@@ -1096,17 +1102,22 @@ void Renderer::drawBreath(Graphics& g, const DragonActor& dragon, const Sprites&
             drawLineBlast(g, legacy, 1.f - legacy.t / legacy.duration);
         return;
     }
-    // Mouth opening measured on frame 4 of the 256px Revenant attack sheet.
-    const float bodyHeight = cfg::kDragonRadius * 3.f * charScale *
-                             sp.anims[static_cast<int>(AnimState::Attack)].renderScale;
-    const bool left = sp.flipAllowed && dragon.facing.x < 0.f;
-    const Vec2 mouth = dragon.pos + Vec2{(left ? -1.f : 1.f) * (243.f - 128.f) / 256.f *
-                                            bodyHeight * attack.frameW / attack.frameH,
-                                        cfg::kDragonRadius + (129.f - 240.f) / 256.f * bodyHeight};
+    const bool umbral = skill.usesUmbralBreath();
+    const AnimDef& pose = umbral ? skill.motionAnim : sp.anims[static_cast<int>(AnimState::Attack)];
+    const float bodyHeight = cfg::kDragonRadius * 3.f * charScale * pose.renderScale;
+    const bool left = sp.flipAllowed && cast.facingLeft;
+    // Mouth landmarks in the right-facing 256px body cells, including the closing frames.
+    static const Vec2 shadowMouth[] = {{232, 112}, {233, 110}, {225, 100}, {229, 100},
+                                      {224, 99}, {239, 104}, {246, 108}, {248, 110},
+                                      {245, 113}, {232, 116}, {230, 117}, {232, 117}};
+    const Vec2 anchor = umbral ? shadowMouth[cast.bodyFrame(skill)] : Vec2{243.f, 129.f};
+    const Vec2 mouth = dragon.pos + Vec2{(left ? -1.f : 1.f) * (anchor.x - 128.f) / 256.f *
+                                            bodyHeight * body.frameW / body.frameH,
+                                        cfg::kDragonRadius + (anchor.y - 240.f) / 256.f * bodyHeight};
     // Keep the visible stream at the configured reach from the mouth, even when
     // the enlarged sprite's muzzle is beyond the center-based hit segment.
     constexpr float sourceAnchor = 64.f;
-    const float scale = cast.range / (965.f - sourceAnchor);
+    const float scale = cast.range / ((umbral ? 967.f : 965.f) - sourceAnchor);
     if (scale <= 0.f) return;
     const float center = (512.f - sourceAnchor) * scale;
     const float halfW = 512.f * scale, halfH = 256.f * scale;
@@ -1124,22 +1135,29 @@ void Renderer::drawBreath(Graphics& g, const DragonActor& dragon, const Sprites&
             drawSheetFrame(g, Sheet{bitmap, frames, 1024, 512, frames == 1 ? 1 : 4},
                            index, center, 0.f, 512.f * scale, false, 0.f, alpha);
     };
-    const int frame = std::min(15, static_cast<int>((cast.elapsed + 1e-6f) / BreathCast::frameSeconds));
+    const int frame = cast.frame();
     if (frame < 4) {
-        constexpr float alpha[] = {0.f, 0.12f, 0.45f, 0.96f};
+        constexpr float bonestormAlpha[] = {0.f, 0.12f, 0.45f, 0.96f};
+        constexpr float umbralAlpha[] = {0.f, 0.08f, 0.43f, 0.96f};
         layer(pack->start.get(), 4, frame);
-        layer(pack->ribbons.get(), 8, (frame + 5) % 8, alpha[frame]);
-        layer(pack->bones.get(), 8, (frame + 5) % 8, alpha[frame]);
+        if (umbral) {
+            layer(pack->startRibbons.get(), 4, frame, umbralAlpha[frame]);
+            layer(pack->startOuter.get(), 4, frame, umbralAlpha[frame]);
+        } else {
+            layer(pack->ribbons.get(), 8, (frame + 5) % 8, bonestormAlpha[frame]);
+            layer(pack->outer.get(), 8, (frame + 5) % 8, bonestormAlpha[frame]);
+        }
     } else if (frame < 12) {
         layer(pack->core.get(), 8, frame - 4);
         layer(pack->ribbons.get(), 8, frame - 4);
-        layer(pack->bones.get(), 8, frame - 4);
+        layer(pack->outer.get(), 8, frame - 4);
     } else {
         constexpr float alpha[] = {0.85f, 0.50f, 0.20f, 0.025f};
         const int index = frame - 12;
         layer(pack->end.get(), 4, index);
-        layer(pack->endRibbons.get(), 4, index, alpha[index]);
-        layer(pack->endBones[index].get(), 1, 0);
+        if (umbral) layer(pack->endRibbonFrames[index].get(), 1, 0);
+        else layer(pack->endRibbons.get(), 4, index, alpha[index]);
+        layer(pack->endOuter[index].get(), 1, 0);
     }
     g.Restore(state);
 }

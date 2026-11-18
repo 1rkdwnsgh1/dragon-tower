@@ -41,8 +41,9 @@ struct Sheet {
 };
 
 struct BreathSheets {
-    std::unique_ptr<Gdiplus::Bitmap> start, core, end, ribbons, bones, endRibbons;
-    std::array<std::unique_ptr<Gdiplus::Bitmap>, 4> endBones;
+    std::unique_ptr<Gdiplus::Bitmap> start, core, end, ribbons, outer, endRibbons;
+    std::unique_ptr<Gdiplus::Bitmap> startRibbons, startOuter;
+    std::array<std::unique_ptr<Gdiplus::Bitmap>, 4> endRibbonFrames, endOuter;
 };
 
 class Sprites {
@@ -70,6 +71,7 @@ public:
     // 없으면 bmp == nullptr 이고, 그리는 쪽이 예전처럼 도형(FxType)으로 대신 그린다.
     Sheet fxSheet(const std::string& speciesKey, const std::string& fxKey) const;
     const BreathSheets* breathSheets(const std::string& speciesKey, const std::string& package) const;
+    Sheet breathBody(const SpeciesDef& species, const SkillDef& skill) const;
 
     // UI 스킨 조각을 찾는다. 스킨에 없으면 default 에서 찾고, 그래도 없으면 bmp == nullptr.
     // 그림이 없으면 렌더러가 예전처럼 도형으로 그린다.

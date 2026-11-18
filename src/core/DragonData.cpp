@@ -253,6 +253,7 @@ DragonParseResult parseDragonText(const std::string& text, const std::string& fo
                 if (ok) s.layeredBreath = val;
             }
             else if (key == "breath_input_lock") ok = parseFloat(val, s.breathInputLock);
+            else if (key == "breath_defer_hit") ok = parseBool(val, s.breathDeferHit);
             else if (key == "fx_front") ok = parseBool(val, s.fxInFront);
             else if (key == "fx_scale") ok = parseFloat(val, s.fxScale);
             else if (key == "fx_offset_x") ok = parseFloat(val, s.fxOffsetX);
