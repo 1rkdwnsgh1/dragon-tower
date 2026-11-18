@@ -2299,7 +2299,77 @@ static void testFrameStats() {
     CHECK(st.row(FrameStage::Clear).avgMs == 0.0);
 }
 
+static void testLayeredBreath() {
+    const auto spec = parseDragonText(
+        "[dragon]\nname=Breath test\n[skill.1]\nkind=Line\nrange=300\nradius=70\npower=2.6\ncooldown=14\n"
+        "scale_with_size=yes\nlayered_breath=bonestorm\nbreath_input_lock=1.92\n"
+        "[skill.2]\nkind=Line\nrange=300\nradius=70\npower=2.6\n", "layered-breath-test", nullptr);
+    CHECK(spec.warnings.empty());
+    const Species species = registerOrUpdateSpecies(spec.def);
+    const Vec2 origin{600.f, 300.f};
+    const auto scenario = [&](Vec2 aim, float scale, int skill) {
+        World world;
+        world.setBounds({0.f, 0.f, 1500.f, 1000.f});
+        world.setSizeScale(scale);
+        world.setupDragon(species, cfg::kMaxLevel, 0.f, origin);
+        world.dragon().basicCd = 99.f;
+        world.setSlots({skill, -1, -1, -1});
+        const auto target = [&](Vec2 at) {
+            Enemy& enemy = world.spawnEnemy(defaultMelee(), 1, at);
+            enemy.radius = 8.f;
+            enemy.hp = enemy.maxHp = 10000.f;
+            enemy.stun = 99.f;
+        };
+        target(origin + aim * 80.f);
+        target(origin + aim * 300.f);
+        target(origin + aim * (320.f + 80.f * scale));
+        return world;
+    };
+    PlayerInput cast{};
+    cast.skill[0] = true;
+    for (Vec2 aim : {Vec2{1.f, 0.f}, Vec2{-1.f, 0.f}, Vec2{-0.8f, -0.6f}}) {
+        for (float scale : {1.f, 3.f, 10.f}) {
+            auto world = scenario(aim, scale, 0);
+            world.updateCombat(0.f, CombatMode::Direct, cast);
+            CHECK(world.dragon().breath.has_value());
+            if (!world.dragon().breath) continue;
+            CHECK(distance(world.dragon().breath->aim, aim) < 0.001f);
+            CHECK(world.dragon().skillCd[0] == 14.f);
+            PlayerInput move{};
+            move.moveX = 1.f;
+            world.updateCombat(0.47f, CombatMode::Direct, move);
+            CHECK(distance(world.dragon().pos, origin) < 0.001f);
+            CHECK(world.enemies()[0].hp == 10000.f && world.enemies()[1].hp == 10000.f);
+            world.updateCombat(0.01f, CombatMode::Direct, {});
+            const float hitHp = world.enemies()[0].hp;
+            CHECK(hitHp < 10000.f && world.enemies()[1].hp < 10000.f);
+            CHECK(world.enemies()[2].hp == 10000.f);
+            world.updateCombat(1.1f, CombatMode::Direct, {});
+            CHECK(world.enemies()[0].hp == hitHp);
+            world.updateFx(0.4f, true);  // Floor clear can stop the combat clock during the tail.
+            CHECK(!world.dragon().breath);
+            CHECK(world.enemies()[0].hp == hitHp);
+        }
+    }
+    auto cancelled = scenario({1.f, 0.f}, 1.f, 0);
+    cancelled.updateCombat(0.f, CombatMode::Direct, cast);
+    cancelled.dragon().alive = false;
+    cancelled.updateCombat(0.5f, CombatMode::Direct, {});
+    CHECK(!cancelled.dragon().breath);
+    CHECK(cancelled.enemies()[0].hp == 10000.f);
+
+    auto ordinary = scenario({1.f, 0.f}, 1.f, 1);
+    ordinary.updateCombat(0.f, CombatMode::Direct, cast);
+    CHECK(!ordinary.dragon().breath);
+    CHECK(ordinary.enemies()[0].hp < 10000.f);
+}
+
 int main(int argc, char** argv) {
+    if (argc == 2 && std::string(argv[1]) == "--layered-breath") {
+        testLayeredBreath();
+        std::printf("%d passed, %d failed\n", g_passed, g_failed);
+        return g_failed == 0 ? 0 : 1;
+    }
     // 종을 등록하기 전에 돌아야 하는 것들이 맨 앞이다.
     testEmptySpeciesRegistry();
     testSaveLevelClamp();

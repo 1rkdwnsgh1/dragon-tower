@@ -6,6 +6,7 @@
 
 #include <algorithm>
 #include <cctype>
+#include <cmath>
 #include <cstdlib>
 #include <filesystem>
 #include <fstream>
@@ -247,6 +248,11 @@ DragonParseResult parseDragonText(const std::string& text, const std::string& fo
             else if (key == "scale_with_size") ok = parseBool(val, s.scaleWithSize);
             else if (key == "fx") s.fx = val;
             else if (key == "fx_impact") s.fxImpact = val;
+            else if (key == "layered_breath") {
+                ok = !val.empty() && val.find_first_not_of("abcdefghijklmnopqrstuvwxyz0123456789_-") == std::string::npos;
+                if (ok) s.layeredBreath = val;
+            }
+            else if (key == "breath_input_lock") ok = parseFloat(val, s.breathInputLock);
             else if (key == "fx_front") ok = parseBool(val, s.fxInFront);
             else if (key == "fx_scale") ok = parseFloat(val, s.fxScale);
             else if (key == "fx_offset_x") ok = parseFloat(val, s.fxOffsetX);
@@ -311,6 +317,11 @@ DragonParseResult parseDragonText(const std::string& text, const std::string& fo
         s.fxWindup = std::clamp(s.fxWindup, 0.f, 5.f);
         s.fxHold = std::clamp(s.fxHold, 0.f, 10.f);
         s.fxTail = std::clamp(s.fxTail, 0.f, 5.f);
+        s.breathInputLock = std::isfinite(s.breathInputLock) ? std::clamp(s.breathInputLock, 0.f, 1.92f) : 0.f;
+        if (s.kind != SkillKind::Line && !s.layeredBreath.empty()) {
+            r.warnings.push_back(folderKey + ": layered_breath requires a Line skill");
+            s.layeredBreath.clear();
+        }
     }
     if (d.skills.size() > static_cast<size_t>(cfg::kMaxSkillsPerDragon))
         d.skills.resize(static_cast<size_t>(cfg::kMaxSkillsPerDragon));
