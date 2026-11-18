@@ -28,23 +28,48 @@ std::unique_ptr<Gdiplus::Bitmap> loadPng(const std::filesystem::path& p, bool de
     if (graphics.DrawImage(bmp.get(), rect, 0, 0, rect.Width, rect.Height, UnitPixel) != Ok) return nullptr;
     return copy;
 }
+
+std::unique_ptr<Gdiplus::Bitmap> makeEndRibbons(Gdiplus::Bitmap& ribbons) {
+    using namespace Gdiplus;
+    constexpr int frameW = 1024, frameH = 512, columns = 4;
+    const Rect area(0, 0, frameW * columns, frameH);
+    auto end = std::unique_ptr<Bitmap>(ribbons.Clone(area, PixelFormat32bppARGB));
+    if (!end || end->GetLastStatus() != Ok) return nullptr;
+    BitmapData pixels{};
+    if (end->LockBits(&area, ImageLockModeRead | ImageLockModeWrite, PixelFormat32bppARGB, &pixels) != Ok)
+        return nullptr;
+    constexpr int maskStart[] = {24, 165, 390, 650};
+    for (int y = 0; y < frameH; ++y) {
+        auto* row = static_cast<BYTE*>(pixels.Scan0) + y * pixels.Stride;
+        for (int x = 0; x < area.Width; ++x) {
+            const float t = std::clamp((x % frameW - maskStart[x / frameW]) / 72.f, 0.f, 1.f);
+            BYTE& alpha = row[x * 4 + 3];
+            alpha = static_cast<BYTE>(alpha * t * t * (3.f - 2.f * t));
+        }
+    }
+    if (end->UnlockBits(&pixels) != Ok) return nullptr;
+    return end;
+}
 }  // namespace
 
 void Sprites::loadPreviewDragon(const std::filesystem::path& dir, const SpeciesDef& def) {
     images_.clear();
     sheets_.clear();
+    breathSheets_.clear();
     warnings_.clear();
     detachFiles_ = true;
     if (auto bmp = loadPng(dir / "dragon.png", true)) images_["dragon_" + def.key] = std::move(bmp);
     loadSheetsFor(dir, def.anims, def.key, def.key);
     loadSkillSheets(dir, def, def.key);
     loadFxSheets(dir, def, def.key);
+    loadBreathSheets(dir, def, def.key);
     detachFiles_ = false;
 }
 
 void Sprites::loadPreviewEnemy(const std::filesystem::path& dir, const EnemyDef& def) {
     images_.clear();
     sheets_.clear();
+    breathSheets_.clear();
     warnings_.clear();
     detachFiles_ = true;
     loadSheetsFor(dir, def.anims, "enemy:" + def.key, def.key);
@@ -54,6 +79,7 @@ void Sprites::loadPreviewEnemy(const std::filesystem::path& dir, const EnemyDef&
 void Sprites::load(const std::filesystem::path& assetDir) {
     images_.clear();
     sheets_.clear();
+    breathSheets_.clear();
     warnings_.clear();
 
     for (const char* key : kSpriteKeys) {
@@ -80,6 +106,7 @@ void Sprites::load(const std::filesystem::path& assetDir) {
         loadSheetsFor(dir, def.anims, def.key, "dragons/" + def.key);
         loadSkillSheets(dir, def, "dragons/" + def.key);  // v1.4 스킬 전용 모션
         loadFxSheets(dir, def, "dragons/" + def.key);     // v1.6 스킬 효과
+        loadBreathSheets(dir, def, "dragons/" + def.key);
     }
 
     // UI 스킨 폴더 (v0.9)
@@ -96,6 +123,46 @@ void Sprites::load(const std::filesystem::path& assetDir) {
         if (!std::filesystem::is_directory(dir, ec)) continue;
         loadSheetsFor(dir, def.anims, "enemy:" + def.key, "enemies/" + artKey);
     }
+}
+
+void Sprites::loadBreathSheets(const std::filesystem::path& dir, const SpeciesDef& def, const std::string& label) {
+    for (const SkillDef& skill : def.skills) {
+        if (skill.layeredBreath.empty()) continue;
+        const std::string key = def.key + "/" + skill.layeredBreath;
+        if (breathSheets_.count(key)) continue;
+        const auto folder = dir / skill.layeredBreath;
+        const auto read = [&](const char* name, unsigned columns, unsigned rows) -> std::unique_ptr<Gdiplus::Bitmap> {
+            auto bmp = loadPng(folder / name, detachFiles_);
+            if (bmp && bmp->GetWidth() == columns * 1024 && bmp->GetHeight() == rows * 512) return bmp;
+            warnings_.push_back(label + "/" + skill.layeredBreath + "/" + name +
+                                ": missing or invalid breath atlas; using fallback");
+            return nullptr;
+        };
+        BreathSheets bundle;
+        bundle.start = read("bonestorm_L1_start.png", 4, 1);
+        bundle.core = read("bonestorm_L1_loop.png", 4, 2);
+        bundle.end = read("bonestorm_L1_end.png", 4, 1);
+        bundle.ribbons = read("bonestorm_L2_spiral_loop.png", 4, 2);
+        bundle.bones = read("bonestorm_L3_bones_loop.png", 4, 2);
+        bool complete = bundle.start && bundle.core && bundle.end && bundle.ribbons && bundle.bones;
+        for (size_t i = 0; i < bundle.endBones.size(); ++i) {
+            const std::string name = "L3_end_tail_0" + std::to_string(i + 1) + ".png";
+            bundle.endBones[i] = read(name.c_str(), 1, 1);
+            complete = complete && bundle.endBones[i] != nullptr;
+        }
+        if (!complete) continue;
+        bundle.endRibbons = makeEndRibbons(*bundle.ribbons);
+        if (!bundle.endRibbons) {
+            warnings_.push_back(label + "/" + skill.layeredBreath + ": could not mask end ribbons; using fallback");
+            continue;
+        }
+        breathSheets_.emplace(key, std::move(bundle));
+    }
+}
+
+const BreathSheets* Sprites::breathSheets(const std::string& speciesKey, const std::string& package) const {
+    const auto it = breathSheets_.find(speciesKey + "/" + package);
+    return it == breathSheets_.end() ? nullptr : &it->second;
 }
 
 bool Sprites::loadSheetFile(const std::filesystem::path& file, const AnimDef& anim, const std::string& key,

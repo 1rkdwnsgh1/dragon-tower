@@ -118,6 +118,7 @@ private:
                     float height, bool preview);
     // charScale은 보기 배수다. 그림 크기만 바꾸고 판정에는 쓰지 않는다.
     void drawDotZones(Gdiplus::Graphics& g, const World& w, uint32_t spColor, float time);
+    void drawBreath(Gdiplus::Graphics& g, const DragonActor& dragon, const Sprites& sprites, float charScale);
     void drawProjectiles(Gdiplus::Graphics& g, const World& w, const Sprites& sprites,
                          const SpeciesDef& dragonSp, float cs);
     void drawEnemy(Gdiplus::Graphics& g, const Enemy& e, const Sprites& sprites, float time, float charScale,

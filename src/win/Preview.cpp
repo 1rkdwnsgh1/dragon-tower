@@ -50,7 +50,8 @@ private:
     void command(int id, int notification);
     void paint();
     int capture(const fs::path& initial, const fs::path& jobs);
-    bool saveCapture(const fs::path& file, const Enemy* enemy, AnimState state, float time, float scale, int layer);
+    bool saveCapture(const fs::path& file, const Enemy* enemy, AnimState state, float time, float scale, int layer,
+                     bool light);
     void updateInfo();
     void setPlaying(bool playing);
     void select(int id, int index) const { SendMessageW(item(id), CB_SETCURSEL, index, 0); }
@@ -81,6 +82,7 @@ private:
     float duration_ = 1.f;
     float stepFps_ = 8.f;
     float captureScale_ = 1.f;
+    float captureAim_ = 0.f;  // Degrees above the horizontal.
     Clock::time_point lastTick_{};
 };
 
@@ -272,7 +274,8 @@ void PreviewWindow::reset() {
     if (!sk) return;
 
     const float distance = std::clamp(sk->range * 0.7f, 0.f, 280.f);
-    target_ = origin + Vec2{direction * distance, 0.f};
+    const float aim = captureAim_ * kPi / 180.f;
+    target_ = origin + Vec2{direction * std::cos(aim), -std::sin(aim)} * distance;
     // 고정 표적에 생존과 무행동만 설정하고 스킬 발동은 게임의 수동 입력 경로를 쓴다.
     Enemy& target = world_.spawnEnemy(defaultMelee(), 1, target_);
     target.radius = 8.f;
@@ -290,6 +293,7 @@ void PreviewWindow::reset() {
     }
 
     duration_ = std::max(1.f, dragon.animHold);
+    if (dragon.breath) duration_ = BreathCast::duration + 4.f / std::max(1.f, anim.fps);
     for (const Fx& effect : world_.fx()) duration_ = std::max(duration_, effect.duration);
     for (const DotZone& zone : world_.dots()) duration_ = std::max(duration_, zone.duration);
     for (const Projectile& projectile : world_.projectiles()) {
@@ -301,6 +305,7 @@ void PreviewWindow::reset() {
     }
     duration_ += 0.15f;
     if (selected(Layer) == 2 || !body.bmp || skillIsPassive(sk->kind)) stepFps_ = std::max(1.f, sk->fxAnim.fps);
+    if (dragon.breath) stepFps_ = 1.f / BreathCast::frameSeconds;
 }
 
 void PreviewWindow::seek(float time) {
@@ -406,7 +411,9 @@ void PreviewWindow::updateInfo() {
             out << (custom.bmp ? L"skill_" + widen(sk->motion) : widen(animStateName(resolved))) << L".png"
                 << L"  ·  " << body.frames << L"프레임  ·  " << anim.fps << L" FPS";
             if (dragon.anim == state) {
-                out << L"  ·  현재 " << animFrame(dragon.animTime, anim.fps, body.frames, anim.loop) + 1
+                const int frame = dragon.breath ? std::min(BreathCast::openMouthFrame, body.frames - 1)
+                                                : animFrame(dragon.animTime, anim.fps, body.frames, anim.loop);
+                out << L"  ·  현재 " << frame + 1
                     << L"/" << body.frames;
             } else {
                 out << L"  ·  시전 모션 종료";
@@ -416,21 +423,26 @@ void PreviewWindow::updateInfo() {
         }
         if (resolved != state || (sk && !skillIsPassive(sk->kind) && !sk->motion.empty() && !custom.bmp))
             out << L"  ·  대체 표시";
-        if (sk && !skillIsPassive(sk->kind) && body.bmp) {
+        if (sk && sk->layeredBreath.empty() && !skillIsPassive(sk->kind) && body.bmp) {
             const float hold = sk->motion.empty() ? cfg::kAnimAttackHold
                                                   : std::max(cfg::kSkillMotionHold, cfg::kAnimAttackHold);
             if (anim.fps > 0.f && (body.frames - 1) / anim.fps >= hold)
                 out << L"\r\n주의  모션 유지 시간 " << hold << L"초 안에 마지막 프레임까지 재생되지 않습니다.";
         }
         if (sk) {
-            for (const std::string* key : {&sk->fx, &sk->fxImpact}) {
-                if (key->empty()) continue;
-                const Sheet effect = sprites_.fxSheet(def.key, *key);
-                out << L"\r\n이펙트  fx_" << widen(*key) << L".png";
-                if (effect.bmp) out << L"  ·  " << effect.frames << L"프레임  ·  " << sk->fxAnim.fps << L" FPS";
-                else out << L"  ·  시트를 읽을 수 없어 기본 효과 사용";
+            if (!sk->layeredBreath.empty() && sprites_.breathSheets(def.key, sk->layeredBreath) &&
+                body.frames > BreathCast::openMouthFrame) {
+                out << L"\r\n이펙트  " << widen(sk->layeredBreath) << L"  ·  START 4 / LOOP 8 / END 4";
+            } else {
+                for (const std::string* key : {&sk->fx, &sk->fxImpact}) {
+                    if (key->empty()) continue;
+                    const Sheet effect = sprites_.fxSheet(def.key, *key);
+                    out << L"\r\n이펙트  fx_" << widen(*key) << L".png";
+                    if (effect.bmp) out << L"  ·  " << effect.frames << L"프레임  ·  " << sk->fxAnim.fps << L" FPS";
+                    else out << L"  ·  시트를 읽을 수 없어 기본 효과 사용";
+                }
+                if (sk->fx.empty() && !skillIsPassive(sk->kind)) out << L"\r\n이펙트  기본 도형";
             }
-            if (sk->fx.empty() && !skillIsPassive(sk->kind)) out << L"\r\n이펙트  기본 도형";
             if (sk->kind == SkillKind::PassiveOnKill) out << L"\r\n처치가 일어난 위치에 회복 효과를 바로 표시합니다.";
             if (sk->kind == SkillKind::PassiveStat) out << L"\r\n상시 적용 스킬에는 발동 연출이 없습니다.";
             if (!skillIsPassive(sk->kind) && time_ == 0.f && dragon.anim != AnimState::Attack)
@@ -446,13 +458,14 @@ void PreviewWindow::updateInfo() {
     details_ = next;
 }
 
-bool PreviewWindow::saveCapture(const fs::path& file, const Enemy* enemy, AnimState state, float time, float scale, int layer) {
+bool PreviewWindow::saveCapture(const fs::path& file, const Enemy* enemy, AnimState state, float time, float scale,
+                                int layer, bool light) {
     constexpr int width = 900;
     constexpr int height = 500;
     Bitmap bitmap(width, height, PixelFormat32bppPARGB);
     {
         Graphics canvas(&bitmap);
-        canvas.Clear(Color(26, 30, 39));
+        canvas.Clear(light ? Color(229, 232, 237) : Color(26, 30, 39));
         canvas.SetSmoothingMode(SmoothingModeAntiAlias);
         canvas.SetInterpolationMode(InterpolationModeHighQualityBilinear);
         // At large character sizes, effects can extend well beyond the body and below the floor.
@@ -494,17 +507,26 @@ int PreviewWindow::capture(const fs::path& initial, const fs::path& jobs) {
         return 2;
     }
 
-    std::string name;
-    int selectedItem;
-    float time, scale;
-    char direction;
-    int layer;
-    while (requests >> name >> selectedItem >> time >> direction >> scale >> layer) {
+    std::string line;
+    while (std::getline(requests, line)) {
+        std::istringstream job(line);
+        if ((job >> std::ws).eof()) continue;
+        std::string name;
+        int selectedItem, layer;
+        float time, scale;
+        char direction;
+        if (!(job >> name >> selectedItem >> time >> direction >> scale >> layer)) return 2;
+        // Optional angle and backdrop keep the original six-field job format valid.
+        float aim = 0.f;
+        char backdrop = 'D';
+        if (!(job >> std::ws).eof() && (!(job >> aim >> backdrop) || !(job >> std::ws).eof())) return 2;
         if (name.find_first_not_of("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_.") !=
                 std::string::npos || fs::path(name).extension() != ".png" ||
             (direction != 'L' && direction != 'R') || !std::isfinite(time) || time < 0.f || time > 60.f ||
             !std::isfinite(scale) || scale < cfg::kCharScaleMin || scale > cfg::kCharScaleMax ||
-            selectedItem < 0 || layer < 0 || layer > 2) return 2;
+            selectedItem < 0 || layer < 0 || layer > 2 || !std::isfinite(aim) || std::fabs(aim) > 89.f ||
+            (backdrop != 'D' && backdrop != 'L')) return 2;
+        const bool light = backdrop == 'L';
         const auto output = jobs.parent_path() / name;
         if (isEnemy) {
             if (selectedItem >= kAnimStateCount) return 2;
@@ -513,15 +535,16 @@ int PreviewWindow::capture(const fs::path& initial, const fs::path& jobs) {
             previewEnemy.hitFlash = state == AnimState::Hit ? 1.f : 0.f;
             previewEnemy.castTimer = state == AnimState::Attack ? 1.f : 0.f;
             previewEnemy.stun = state == AnimState::Idle ? 1.f : 0.f;
-            if (!saveCapture(output, &previewEnemy, state, time, scale, layer)) return 3;
+            if (!saveCapture(output, &previewEnemy, state, time, scale, layer, light)) return 3;
         } else {
             if (selectedItem >= SendMessageW(item(Motion), CB_GETCOUNT, 0, 0)) return 2;
             captureScale_ = scale;
+            captureAim_ = aim;
             select(Motion, selectedItem);
             CheckDlgButton(hwnd_, Flip, direction == 'L' ? BST_CHECKED : BST_UNCHECKED);
             reset();
             seek(time);
-            if (!saveCapture(output, nullptr, AnimState::Idle, time_, scale, layer)) return 3;
+            if (!saveCapture(output, nullptr, AnimState::Idle, time_, scale, layer, light)) return 3;
         }
     }
     return requests.eof() ? 0 : 2;

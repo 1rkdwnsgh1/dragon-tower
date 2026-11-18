@@ -2,6 +2,7 @@
 // v0.2: assets/dragons/<키>/<상태>.png 스프라이트 시트를 함께 읽는다.
 #pragma once
 
+#include <array>
 #include <filesystem>
 #include <map>
 #include <memory>
@@ -30,12 +31,18 @@ struct UiPiece {
     bool stretch() const { return left || top || right || bottom; }
 };
 
-// 가로 한 줄 스프라이트 시트. frames는 칸 수, frameW는 칸 너비(픽셀).
+// Grid atlas, read left to right and then top to bottom.
 struct Sheet {
     Gdiplus::Bitmap* bmp = nullptr;
     int frames = 1;
     int frameW = 0;
     int frameH = 0;
+    int columns = 0;  // Zero means a single row.
+};
+
+struct BreathSheets {
+    std::unique_ptr<Gdiplus::Bitmap> start, core, end, ribbons, bones, endRibbons;
+    std::array<std::unique_ptr<Gdiplus::Bitmap>, 4> endBones;
 };
 
 class Sprites {
@@ -62,6 +69,7 @@ public:
     // v1.6 스킬 효과 시트(assets/dragons/<키>/fx_<fx>.png).
     // 없으면 bmp == nullptr 이고, 그리는 쪽이 예전처럼 도형(FxType)으로 대신 그린다.
     Sheet fxSheet(const std::string& speciesKey, const std::string& fxKey) const;
+    const BreathSheets* breathSheets(const std::string& speciesKey, const std::string& package) const;
 
     // UI 스킨 조각을 찾는다. 스킨에 없으면 default 에서 찾고, 그래도 없으면 bmp == nullptr.
     // 그림이 없으면 렌더러가 예전처럼 도형으로 그린다.
@@ -88,6 +96,7 @@ private:
     void loadSkillSheets(const std::filesystem::path& dir, const SpeciesDef& def, const std::string& label);
     // v1.6 그 종의 스킬이 fx= 로 적어 둔 fx_*.png 를 모두 읽는다.
     void loadFxSheets(const std::filesystem::path& dir, const SpeciesDef& def, const std::string& label);
+    void loadBreathSheets(const std::filesystem::path& dir, const SpeciesDef& def, const std::string& label);
 
     struct UiData {
         std::unique_ptr<Gdiplus::Bitmap> bmp;
@@ -100,6 +109,7 @@ private:
     std::map<std::string, std::unique_ptr<Gdiplus::Bitmap>> images_;
     std::map<std::string, UiData> ui_;  // "<스킨>/<조각>"
     std::map<std::string, SheetData> sheets_;  // "<키>/<상태>"
+    std::map<std::string, BreathSheets> breathSheets_;
     std::vector<std::string> warnings_;
     bool detachFiles_ = false;
 };
