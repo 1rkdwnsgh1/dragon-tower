@@ -254,7 +254,6 @@ fx_tail=0.20
 ; 세고 느린 "강력한 일반 스킬"로 두었다(docs/characters/revenant-dragon-skills-v1.md 3절).
 ; 전용 본체 모션은 아직 없어 공용 attack 시트로 그려진다. 침식용 skill_erosion.png 는
 ; 당장 쓰이지 않지만 지우지 않고 둔다(안개에 모션을 줄 때 쓸 수 있다).
-; 8프레임을 세 단계 합(0.18+0.45+0.25=0.88초)에 맞춰 fx_fps = 8 / 0.88 ~= 9 로 역산했다.
 [skill.6]
 name=망계의 숨결
 desc=턱을 열어 전방으로 거대한 영혼 격류를 쏟아낸다.
@@ -265,18 +264,19 @@ cooldown=14
 power=2.6
 range=300
 radius=70
-fx=breath
-; 효과가 본체를 덮어 드래곤이 잘 안 보였다(#79). 임시값 — 눈으로 보고 조정한다.
+; Three-layer Bonestorm art, composited from START / LOOP / END as 4 / 8 / 4 frames.
+; The canvas puts the source anchor (64, 256) at frame center for either facing.
+; Frame timing is adapted to the original 0.88-second visual window.
+fx=bonestorm
 fx_alpha=0.65
-fx_scale=2.2
-fx_offset_x=170
-; 숨결은 그림이 칸 높이의 61% 라 같은 계산으로 약 30px 올린다(위 관통 주석 참고).
-fx_offset_y=-30
-fx_fps=9
-fx_frame_w=256
-fx_windup=0.18
-fx_hold=0.45
-fx_tail=0.25
+fx_scale=1.42
+fx_offset_x=45
+fx_offset_y=-14
+fx_fps=18.181818
+fx_frame_w=912
+fx_windup=0.22
+fx_hold=0.44
+fx_tail=0.22
 
 ; 패시브 — 장착 칸을 쓰지 않는다. 해제되면 항상 적용된다.
 ; 본체 모션(skill_harvest.png)은 변환해 두었지만 패시브는 발동 모션이 없어 아직 쓰이지 않는다.
