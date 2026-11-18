@@ -40,6 +40,12 @@ struct Sheet {
     int columns = 0;  // Zero means a single row.
 };
 
+namespace bonestorm {
+inline constexpr float anchorX = 64.f;
+inline constexpr float coreTipX = 965.f;
+inline constexpr float reachScale = 1.15f;
+}
+
 struct BreathSheets {
     std::unique_ptr<Gdiplus::Bitmap> start, core, end, ribbons, outer, endRibbons;
     std::unique_ptr<Gdiplus::Bitmap> startRibbons, startOuter;

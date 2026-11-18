@@ -30,21 +30,21 @@ std::unique_ptr<Gdiplus::Bitmap> loadPng(const std::filesystem::path& p, bool de
 }
 
 template <typename Opacity>
-bool maskBreathRow(Gdiplus::Bitmap& rowAtlas, Opacity opacity) {
+bool maskBreathAtlas(Gdiplus::Bitmap& atlas, Opacity opacity) {
     using namespace Gdiplus;
-    constexpr int frameW = 1024, frameH = 512, columns = 4;
-    const Rect area(0, 0, frameW * columns, frameH);
+    constexpr int frameW = 1024;
+    const Rect area(0, 0, static_cast<int>(atlas.GetWidth()), static_cast<int>(atlas.GetHeight()));
     BitmapData pixels{};
-    if (rowAtlas.LockBits(&area, ImageLockModeRead | ImageLockModeWrite, PixelFormat32bppARGB, &pixels) != Ok)
+    if (atlas.LockBits(&area, ImageLockModeRead | ImageLockModeWrite, PixelFormat32bppARGB, &pixels) != Ok)
         return false;
-    for (int y = 0; y < frameH; ++y) {
+    for (int y = 0; y < area.Height; ++y) {
         auto* row = static_cast<BYTE*>(pixels.Scan0) + y * pixels.Stride;
         for (int x = 0; x < area.Width; ++x) {
             BYTE& alpha = row[x * 4 + 3];
             alpha = static_cast<BYTE>(alpha * opacity(x / frameW, x % frameW));
         }
     }
-    return rowAtlas.UnlockBits(&pixels) == Ok;
+    return atlas.UnlockBits(&pixels) == Ok;
 }
 
 float smoothRamp(float t) {
@@ -55,7 +55,7 @@ float smoothRamp(float t) {
 std::unique_ptr<Gdiplus::Bitmap> makeEndRibbons(Gdiplus::Bitmap& ribbons) {
     using namespace Gdiplus;
     auto end = std::unique_ptr<Bitmap>(ribbons.Clone(Rect(0, 0, 4096, 512), PixelFormat32bppARGB));
-    if (!end || end->GetLastStatus() != Ok || !maskBreathRow(*end, [](int frame, int x) {
+    if (!end || end->GetLastStatus() != Ok || !maskBreathAtlas(*end, [](int frame, int x) {
             constexpr int maskStart[] = {24, 165, 390, 650};
             return smoothRamp((x - maskStart[frame]) / 72.f);
         })) return nullptr;
@@ -77,7 +77,7 @@ std::unique_ptr<Gdiplus::Bitmap> makeUmbralStart(Gdiplus::Bitmap& loop) {
                 return nullptr;
         }
     }
-    if (!maskBreathRow(*start, [](int frame, int x) {
+    if (!maskBreathAtlas(*start, [](int frame, int x) {
             constexpr int edge[] = {105, 350, 690, 1000};
             return 1.f - smoothRamp((x - (edge[frame] - 42)) / 42.f);
         })) return nullptr;
@@ -164,15 +164,22 @@ void Sprites::loadBreathSheets(const std::filesystem::path& dir, const SpeciesDe
         const std::string key = def.key + "/" + skill.layeredBreath;
         if (breathSheets_.count(key)) continue;
         const auto folder = dir / skill.layeredBreath;
+        const bool umbral = skill.usesUmbralBreath();
         const auto read = [&](const char* name, unsigned columns, unsigned rows) -> std::unique_ptr<Gdiplus::Bitmap> {
-            auto bmp = loadPng(folder / name, detachFiles_);
-            if (bmp && bmp->GetWidth() == columns * 1024 && bmp->GetHeight() == rows * 512) return bmp;
+            auto bmp = loadPng(folder / name, detachFiles_ || !umbral);
+            if (bmp && bmp->GetWidth() == columns * 1024 && bmp->GetHeight() == rows * 512) {
+                if (umbral || maskBreathAtlas(*bmp, [](int, int x) {
+                        // Past the old 300-unit tip, retain only faint residual light.
+                        constexpr float oldTip = bonestorm::anchorX +
+                            (bonestorm::coreTipX - bonestorm::anchorX) / bonestorm::reachScale;
+                        return 1.f - 0.85f * smoothRamp((x - oldTip + 56.f) / 56.f);
+                    })) return bmp;
+            }
             warnings_.push_back(label + "/" + skill.layeredBreath + "/" + name +
                                 ": missing or invalid breath atlas; using fallback");
             return nullptr;
         };
         BreathSheets bundle;
-        const bool umbral = skill.usesUmbralBreath();
         bundle.start = read(umbral ? "umbral_vortex_L1_start.png" : "bonestorm_L1_start.png", 4, 1);
         bundle.core = read(umbral ? "umbral_vortex_L1_loop.png" : "bonestorm_L1_loop.png", 4, 2);
         bundle.end = read(umbral ? "umbral_vortex_L1_end.png" : "bonestorm_L1_end.png", 4, 1);
