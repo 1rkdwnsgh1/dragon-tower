@@ -178,21 +178,19 @@ cooldown=11
 motion=breath
 motion_fps=12
 motion_frame_w=256
-; 효과 그림(2026-11-17). 원본 shadow_02_breath_fx.png 12칸 중 빈 1칸을 빼고 11장.
-fx=breath
-; 효과가 본체를 덮어 드래곤이 잘 안 보였다(#79). 임시값 — 눈으로 보고 조정한다.
+; Umbral Vortex V2: layered effect with a composited sprite sheet fallback.
+fx=umbral_vortex
+layered_breath=umbral_vortex_v2
+breath_defer_hit=no
 fx_alpha=0.65
-fx_scale=2.2
-fx_offset_x=120
-; 윤곽이 칸 높이의 54% 밖에 안 차서(가로가 긴 그림) 올려 줄 값이 크다.
-; 칸 가운데에 맞추는 계산값은 -38 인데 그러면 숨결이 배 아래로 나왔다. 미리보기로 보며
-; -72 까지 올리고 fx_offset_x 는 170 -> 120 으로 당겨 입에서 뿜는 모양을 맞췄다.
-fx_offset_y=-72
-fx_fps=12
-fx_frame_w=256
-fx_windup=0.18
-fx_hold=0.45
-fx_tail=0.25
+fx_scale=1.42
+fx_offset_x=39
+fx_offset_y=-20
+fx_fps=18.181818
+fx_frame_w=976
+fx_windup=0.22
+fx_hold=0.44
+fx_tail=0.22
 
 ; 패시브 — 장착 칸을 쓰지 않는다. 해제되면 항상 적용된다.
 ; 그림자룡은 회피로 버티는 쪽이라 회피를 올린다. 회피 상한(0.75)은 넘지 못한다.

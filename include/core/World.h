@@ -2,6 +2,7 @@
 #pragma once
 
 #include <array>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -115,6 +116,32 @@ struct FloatText {
 enum class IdleBehavior { Rest = 0, Walk = 1, Fly = 2 };
 const char* idleBehaviorName(IdleBehavior b);
 
+struct BreathCast {
+    static constexpr float frameSeconds = 0.12f;
+    static constexpr float impactTime = 4 * frameSeconds;
+    static constexpr float endTime = 12 * frameSeconds;
+    static constexpr float duration = 16 * frameSeconds;
+    static constexpr int openMouthFrame = 3;  // Zero-based frame of the Revenant attack sheet.
+    int skill = -1;
+    Vec2 origin, aim;
+    float elapsed = 0.f;
+    float range = 0.f, radius = 0.f, damage = 0.f;
+    float inputLock = 0.f;
+    bool hit = false;
+    bool facingLeft = false;
+
+    int frame() const {
+        return std::min(15, static_cast<int>((elapsed + 1e-6f) / frameSeconds));
+    }
+    int bodyFrame(const SkillDef& definition) const {
+        if (!definition.usesUmbralBreath()) return openMouthFrame;
+        constexpr int windup[] = {2, 4, 5, 6};
+        const int i = frame();
+        if (i < 4) return windup[i];
+        return i < 12 ? 6 : i - 4;
+    }
+};
+
 struct DragonActor {
     Species species = Species::Fire;
     int level = 1;
@@ -128,6 +155,7 @@ struct DragonActor {
     std::vector<float> skillCd;
     // 지금 재생 중인 스킬 전용 본체 모션의 스킬 번호. -1이면 공용 attack 시트를 쓴다.
     int skillMotion = -1;
+    std::optional<BreathCast> breath;
     float dodgeCd = 0.f;
     float dashTime = 0.f;
     Vec2 dashVel;
@@ -192,7 +220,7 @@ public:
     // 적이 없을 때 바탕화면을 천천히 돌아다닌다.
     void updateWander(float dt);
     // 효과와 글자만 진행(일시정지 중에는 부르지 않는다)
-    void updateFx(float dt);
+    void updateFx(float dt, bool combatEnded = false);
 
     void healPercent(float pct);
     void regen(float pctPerSec, float dt);
@@ -268,6 +296,8 @@ private:
     std::array<int, kSkillSlots> slots_{-1, -1, -1, -1};
     void autoFillSlots();  // 빈 칸을 해제된 액티브로 채운다(이미 든 칸은 그대로)
     bool castSkill(int i, bool aiChoice);  // i = 스킬 목록 번호
+    void hitLine(Vec2 start, Vec2 end, float radius, float damage);
+    void advanceBreath(float dt, bool combatEnded = false);
     // v1.4 패시브 PassiveOnKill. 적을 쓰러뜨렸을 때 damageEnemy가 부른다.
     void onEnemyKilled(Vec2 at);
     void basicAttack();

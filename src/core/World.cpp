@@ -168,6 +168,10 @@ Vec2 World::randomEdgePoint(float margin) {
 }
 
 void World::clearEnemies(bool withPoof) {
+    if (dragon_.breath) {
+        if (dragon_.breath->inputLock > 0.f) dragon_.animHold = 0.f;
+        dragon_.breath.reset();
+    }
     if (withPoof) {
         for (const Enemy& e : enemies_)
             if (e.alive) addFx(FxType::Poof, e.pos, e.pos, e.radius * 1.4f, 0.4f, 0xFFB08CFF);
@@ -319,7 +323,7 @@ void World::moveDragon(float dt, Vec2 dir, float speedMul) {
 
 void World::basicAttack() {
     DragonActor& d = dragon_;
-    if (d.basicCd > 0.f) return;
+    if (d.basicCd > 0.f || (d.breath && d.breath->elapsed < d.breath->inputLock)) return;
     Enemy* t = nearestEnemy(d.pos, cfg::kBasicAttackRange);
     if (!t) return;
     Projectile p;
@@ -335,6 +339,7 @@ void World::basicAttack() {
 
 bool World::castSkill(int i, bool aiChoice) {
     DragonActor& d = dragon_;
+    if (d.breath && d.breath->elapsed < d.breath->inputLock) return false;
     const SpeciesDef& sp = speciesDef(d.species);
     if (i < 0 || i >= static_cast<int>(sp.skills.size())) return false;
     const SkillDef& s = sp.skills[static_cast<size_t>(i)];
@@ -380,11 +385,26 @@ bool World::castSkill(int i, bool aiChoice) {
             Enemy* t = nearestEnemy(d.pos, s.range + 80.f);
             if (aiChoice && !t) return false;
             Vec2 dir = t ? (t->pos - d.pos).normalized() : facingDir;
-            Vec2 end = d.pos + dir * s.range;
-            for (Enemy& e : enemies_) {
-                if (!e.alive) continue;
-                if (distancePointSegment(e.pos, d.pos, end) <= skillRadius(s) + scaledBody(e.radius, sizeScale_)) damageEnemy(e, d.stats.atk * s.power);
+            if (!s.layeredBreath.empty()) {
+                if (d.breath) return false;
+                if (dir.length() < 0.01f) dir = facingDir;
+                dir = dir.normalized();
+                d.breath = BreathCast{i, d.pos, dir, 0.f, s.range, skillRadius(s),
+                                      d.stats.atk * s.power, s.breathInputLock};
+                d.breath->facingLeft = std::fabs(dir.x) > 0.01f ? dir.x < 0.f : d.facing.x < 0.f;
+                if (!s.breathDeferHit) {
+                    d.breath->hit = true;
+                    hitLine(d.pos, d.pos + dir * s.range, d.breath->radius, d.breath->damage);
+                }
+                if (!s.usesUmbralBreath()) {
+                    if (std::fabs(dir.x) > 0.01f) d.facing = {dir.x < 0.f ? -1.f : 1.f, 0.f};
+                    d.dashTime = 0.f;
+                    d.moving = false;
+                }
+                break;
             }
+            Vec2 end = d.pos + dir * s.range;
+            hitLine(d.pos, end, skillRadius(s), d.stats.atk * s.power);
             addSkillFx(s, FxType::LineBlast, d.pos, end, skillRadius(s), 0.45f, sp.color);
             break;
         }
@@ -468,9 +488,43 @@ bool World::castSkill(int i, bool aiChoice) {
     } else {
         d.skillMotion = -1;
     }
+    if (d.breath && d.breath->skill == i && !s.usesUmbralBreath()) hold = std::max(hold, BreathCast::duration);
     setDragonAnim(AnimState::Attack, hold);
     addText(s.name, d.pos - Vec2{0.f, 78.f}, sp.color | 0xFF000000, 15.f, 0.9f);
     return true;
+}
+
+void World::hitLine(Vec2 start, Vec2 end, float radius, float damage) {
+    for (Enemy& e : enemies_) {
+        if (e.alive && distancePointSegment(e.pos, start, end) <= radius + scaledBody(e.radius, sizeScale_))
+            damageEnemy(e, damage);
+    }
+}
+
+void World::advanceBreath(float dt, bool combatEnded) {
+    DragonActor& d = dragon_;
+    if (!d.breath) return;
+    if (!d.alive || d.held || (combatEnded && !d.breath->hit)) {
+        if (d.breath->inputLock > 0.f) d.animHold = 0.f;
+        d.breath.reset();
+        return;
+    }
+    BreathCast& cast = *d.breath;
+    cast.elapsed += dt;
+    constexpr float epsilon = 1e-6f;
+    if (!cast.hit && cast.elapsed + epsilon >= BreathCast::impactTime) {
+        cast.hit = true;
+        hitLine(cast.origin, cast.origin + cast.aim * cast.range, cast.radius, cast.damage);
+    }
+    if (cast.elapsed + epsilon >= BreathCast::duration) {
+        const bool umbral = speciesDef(d.species).skills[static_cast<size_t>(cast.skill)].usesUmbralBreath();
+        d.breath.reset();
+        if (!umbral && d.anim == AnimState::Attack) {
+            const float fps = speciesDef(d.species).anims[static_cast<int>(AnimState::Attack)].fps;
+            d.animTime = (BreathCast::openMouthFrame + 1) / std::max(1.f, fps);
+            d.animHold = std::max(d.animHold, 4.f / std::max(1.f, fps));
+        }
+    }
 }
 
 // 패시브 PassiveOnKill. 적을 쓰러뜨릴 때마다 해제된 것을 모두 적용한다.
@@ -884,13 +938,14 @@ void World::damageDragon(float raw) {
     if (d.shieldTime > 0.f) dmg *= (1.f - d.shieldPct);
     d.hp -= dmg;
     d.hitFlash = 0.2f;
-    setDragonAnim(AnimState::Hit, cfg::kAnimHitHold);
+    if (!d.breath || d.breath->inputLock <= 0.f) setDragonAnim(AnimState::Hit, cfg::kAnimHitHold);
     statHitsTaken++;
     addText(intText(dmg), d.pos - Vec2{0.f, 52.f}, kColorDamageToDragon, 20.f, 0.9f);
     addFx(FxType::Hit, d.pos, d.pos, 46.f, 0.25f, kColorDamageToDragon);
     if (d.hp <= 0.f) {
         d.hp = 0.f;
         d.alive = false;
+        d.breath.reset();
         events_.push_back({WorldEventType::DragonDied, EnemyKind{}, 0});
         addFx(FxType::Death, d.pos, d.pos, 90.f, 0.9f, speciesDef(d.species).color);
     }
@@ -933,9 +988,9 @@ void World::updateCombat(float dt, CombatMode mode, const PlayerInput& in) {
     if (d.shieldTime > 0.f) d.shieldTime -= dt;
     if (d.hasteTime > 0.f) d.hasteTime -= dt;
 
-    if (d.alive) {
-        if (d.stats.regen > 0.f) d.hp = std::min(d.stats.maxHp, d.hp + d.stats.regen * dt);
-
+    advanceBreath(dt);
+    if (d.alive && d.stats.regen > 0.f) d.hp = std::min(d.stats.maxHp, d.hp + d.stats.regen * dt);
+    if (d.alive && (!d.breath || d.breath->elapsed >= d.breath->inputLock)) {
         if (mode == CombatMode::Direct) {
             if (in.dodge && d.dodgeCd <= 0.f && d.dashTime <= 0.f) {
                 Vec2 dir{in.moveX, in.moveY};
@@ -1029,7 +1084,11 @@ void World::updateCombat(float dt, CombatMode mode, const PlayerInput& in) {
     updateDragonAnim(dt);
 }
 
-void World::updateFx(float dt) {
+void World::updateFx(float dt, bool combatEnded) {
+    if (combatEnded && dragon_.breath) {
+        advanceBreath(dt, true);
+        updateDragonAnim(dt);
+    }
     for (Fx& f : fx_) f.t += dt;
     fx_.erase(std::remove_if(fx_.begin(), fx_.end(), [](const Fx& f) { return f.t >= f.duration; }), fx_.end());
     for (FloatText& t : texts_) {

@@ -601,6 +601,7 @@ void Renderer::drawSheetFrame(Graphics& g, const Sheet& sh, int frame, float cx,
     int f = std::clamp(frame, 0, sh.frames - 1);
     float fw = static_cast<float>(sh.frameW);
     float fh = static_cast<float>(sh.frameH);
+    const int columns = sh.columns > 0 ? sh.columns : sh.frames;
     float h = height;
     float w = h * fw / fh;
     GraphicsState st = g.Save();
@@ -614,7 +615,8 @@ void Renderer::drawSheetFrame(Graphics& g, const Sheet& sh, int frame, float cx,
     ImageAttributes ia;
     ia.SetColorMatrix(&cm, ColorMatrixFlagsDefault, ColorAdjustTypeBitmap);
     ia.SetWrapMode(WrapModeTileFlipXY);  // 칸 경계에서 옆 칸 픽셀이 번지지 않게 한다
-    g.DrawImage(sh.bmp, RectF(-w * 0.5f, -h * 0.5f, w, h), fw * f, 0.f, fw, fh, UnitPixel, &ia);
+    g.DrawImage(sh.bmp, RectF(-w * 0.5f, -h * 0.5f, w, h), fw * (f % columns), fh * (f / columns),
+                fw, fh, UnitPixel, &ia);
     g.Restore(st);
 }
 
@@ -629,11 +631,19 @@ void Renderer::drawDragon(Graphics& g, const DragonActor& d, const Sprites& spri
 
     // 시트 애니메이션이 있으면 그것으로 그린다(v0.2). 미리보기는 항상 대기 동작.
     AnimState state = preview ? AnimState::Idle : d.anim;
-    Sheet sh = sprites.sheet(sp.key, state);
+    const SkillDef* breath = !preview && d.breath ? &sp.skills[static_cast<size_t>(d.breath->skill)] : nullptr;
+    const Sheet breathBody = breath ? sprites.breathBody(sp, *breath) : Sheet{};
+    const bool breathing = breathBody.bmp != nullptr;
+    if (breathing) state = AnimState::Attack;
+    Sheet sh = breathing ? breathBody : sprites.sheet(sp.key, state);
     // v1.4: 스킬 전용 본체 모션이 재생 중이고 그 시트가 있으면 공용 attack 대신 그것을 쓴다.
     // 시트가 없으면 아래에서 공용 attack(sh)으로 그려진다 — 데이터만 있고 그림이 없어도 괜찮다.
     const AnimDef* skillAnim = nullptr;
-    if (!preview && d.skillMotion >= 0 && d.skillMotion < static_cast<int>(sp.skills.size())) {
+    if (breathing) {
+        flip = sp.flipAllowed && d.breath->facingLeft;
+        if (breath->usesUmbralBreath()) skillAnim = &breath->motionAnim;
+    }
+    if (!preview && !breathing && d.skillMotion >= 0 && d.skillMotion < static_cast<int>(sp.skills.size())) {
         const SkillDef& sk = sp.skills[static_cast<size_t>(d.skillMotion)];
         Sheet ms = sprites.skillSheet(sp.key, sk.motion);
         if (ms.bmp) {
@@ -665,7 +675,8 @@ void Renderer::drawDragon(Graphics& g, const DragonActor& d, const Sprites& spri
         float k = ad.renderScale;
         float drawH = height * k;
         float cyAdj = cy - (kAnchorFrac - 0.5f) * height * (k - 1.f);
-        drawSheetFrame(g, sh, animFrame(t, ad.fps, sh.frames, ad.loop), x, cyAdj, drawH, flip, flash, alpha);
+        const int frame = breathing ? d.breath->bodyFrame(*breath) : animFrame(t, ad.fps, sh.frames, ad.loop);
+        drawSheetFrame(g, sh, frame, x, cyAdj, drawH, flip, flash, alpha);
         return;
     }
 
@@ -860,6 +871,7 @@ void Renderer::drawWorld(Graphics& g, const Game& game, const Sprites& sprites, 
     // v1.6: 본체 뒤 효과(fx_front=0)를 드래곤보다 먼저 그린다.
     // 지금은 fx= 를 적은 스킬이 하나도 없어서 이 층에 걸리는 효과가 없다 — 화면은 그대로다.
     drawFx(g, w, sprites, dragonSp, cs, false);
+    drawBreath(g, w.dragon(), sprites, cs);
 
     const DragonActor& d = w.dragon();
     if (d.alive && game.hasDragon()) {
@@ -967,6 +979,7 @@ void Renderer::drawAnimationPreview(Graphics& g, const World& w, const Sprites& 
     if (effects) {
         drawDotZones(g, w, species.color, time);
         drawFx(g, w, sprites, species, charScale, false);
+        drawBreath(g, d, sprites, charScale);
     }
     if (body) {
         const float height = cfg::kDragonRadius * 3.f * charScale;
@@ -1049,6 +1062,104 @@ bool Renderer::drawFxSheet(Graphics& g, const Fx& f, const Sprites& sprites, con
     drawSheetFrame(g, sh, animFrame(f.t, ad.fps, sh.frames, ad.loop), cx, cy, h, /*flip=*/dirSign < 0.f, 0.f,
                    alpha);
     return true;
+}
+
+static void drawLineBlast(Graphics& g, const Fx& f, float fade) {
+    const float halfWidth = f.radius * (1.f - 0.3f * fade);
+    markRegion(RectF(std::min(f.a.x, f.b.x) - halfWidth, std::min(f.a.y, f.b.y) - halfWidth,
+                     std::fabs(f.b.x - f.a.x) + 2.f * halfWidth, std::fabs(f.b.y - f.a.y) + 2.f * halfWidth));
+    Pen pen(col(f.color, 0.7f * fade), halfWidth * 2.f);
+    pen.SetStartCap(LineCapRound);
+    pen.SetEndCap(LineCapRound);
+    g.DrawLine(&pen, f.a.x, f.a.y, f.b.x, f.b.y);
+    Pen core(Color(static_cast<BYTE>(200 * fade), 255, 255, 255), f.radius * 0.5f);
+    g.DrawLine(&core, f.a.x, f.a.y, f.b.x, f.b.y);
+}
+
+void Renderer::drawBreath(Graphics& g, const DragonActor& dragon, const Sprites& sprites, float charScale) {
+    if (!dragon.alive || !dragon.breath) return;
+    const BreathCast& cast = *dragon.breath;
+    const SpeciesDef& sp = speciesDef(dragon.species);
+    const SkillDef& skill = sp.skills[static_cast<size_t>(cast.skill)];
+    const BreathSheets* pack = sprites.breathSheets(sp.key, skill.layeredBreath);
+    const Sheet body = sprites.breathBody(sp, skill);
+    if (!pack || !body.bmp) {
+        Fx legacy;
+        legacy.a = cast.origin;
+        legacy.b = cast.origin + cast.aim * cast.range;
+        legacy.radius = cast.radius;
+        legacy.color = sp.color;
+        legacy.key = skill.fx;
+        legacy.scale = skill.fxScale;
+        legacy.offsetX = skill.fxOffsetX;
+        legacy.offsetY = skill.fxOffsetY;
+        legacy.windup = skill.fxWindup > 0.f ? skill.fxWindup : cfg::kFxWindup;
+        legacy.hold = skill.fxHold > 0.f ? skill.fxHold : cfg::kFxHold;
+        legacy.tail = skill.fxTail > 0.f ? skill.fxTail : cfg::kFxTail;
+        legacy.duration = legacy.windup + legacy.hold + legacy.tail;
+        legacy.t = cast.elapsed;
+        if (legacy.t < legacy.duration && !drawFxSheet(g, legacy, sprites, sp, charScale))
+            drawLineBlast(g, legacy, 1.f - legacy.t / legacy.duration);
+        return;
+    }
+    const bool umbral = skill.usesUmbralBreath();
+    const AnimDef& pose = umbral ? skill.motionAnim : sp.anims[static_cast<int>(AnimState::Attack)];
+    const float bodyHeight = cfg::kDragonRadius * 3.f * charScale * pose.renderScale;
+    const bool left = sp.flipAllowed && cast.facingLeft;
+    // Mouth landmarks in the right-facing 256px body cells, including the closing frames.
+    static const Vec2 shadowMouth[] = {{232, 112}, {233, 110}, {225, 100}, {229, 100},
+                                      {224, 99}, {239, 104}, {246, 108}, {248, 110},
+                                      {245, 113}, {232, 116}, {230, 117}, {232, 117}};
+    const Vec2 anchor = umbral ? shadowMouth[cast.bodyFrame(skill)] : Vec2{243.f, 129.f};
+    const Vec2 mouth = dragon.pos + Vec2{(left ? -1.f : 1.f) * (anchor.x - 128.f) / 256.f *
+                                            bodyHeight * body.frameW / body.frameH,
+                                        cfg::kDragonRadius + (anchor.y - 240.f) / 256.f * bodyHeight};
+    // Keep the visible stream at the configured reach from the mouth, even when
+    // the enlarged sprite's muzzle is beyond the center-based hit segment.
+    constexpr float sourceAnchor = 64.f;
+    const float scale = cast.range / ((umbral ? 967.f : 965.f) - sourceAnchor);
+    if (scale <= 0.f) return;
+    const float center = (512.f - sourceAnchor) * scale;
+    const float halfW = 512.f * scale, halfH = 256.f * scale;
+    const float extentX = std::fabs(cast.aim.x) * halfW + std::fabs(cast.aim.y) * halfH;
+    const float extentY = std::fabs(cast.aim.y) * halfW + std::fabs(cast.aim.x) * halfH;
+    const Vec2 middle = mouth + cast.aim * center;
+    markRegion(RectF(middle.x - extentX, middle.y - extentY, extentX * 2.f, extentY * 2.f));
+
+    const GraphicsState state = g.Save();
+    g.TranslateTransform(mouth.x, mouth.y);
+    g.RotateTransform(std::atan2(cast.aim.y, cast.aim.x) * 57.2957795f);
+    if (left) g.ScaleTransform(1.f, -1.f);
+    const auto layer = [&](Bitmap* bitmap, int frames, int index, float alpha = 1.f) {
+        if (alpha > 0.f)
+            drawSheetFrame(g, Sheet{bitmap, frames, 1024, 512, frames == 1 ? 1 : 4},
+                           index, center, 0.f, 512.f * scale, false, 0.f, alpha);
+    };
+    const int frame = cast.frame();
+    if (frame < 4) {
+        constexpr float bonestormAlpha[] = {0.f, 0.12f, 0.45f, 0.96f};
+        constexpr float umbralAlpha[] = {0.f, 0.08f, 0.43f, 0.96f};
+        layer(pack->start.get(), 4, frame);
+        if (umbral) {
+            layer(pack->startRibbons.get(), 4, frame, umbralAlpha[frame]);
+            layer(pack->startOuter.get(), 4, frame, umbralAlpha[frame]);
+        } else {
+            layer(pack->ribbons.get(), 8, (frame + 5) % 8, bonestormAlpha[frame]);
+            layer(pack->outer.get(), 8, (frame + 5) % 8, bonestormAlpha[frame]);
+        }
+    } else if (frame < 12) {
+        layer(pack->core.get(), 8, frame - 4);
+        layer(pack->ribbons.get(), 8, frame - 4);
+        layer(pack->outer.get(), 8, frame - 4);
+    } else {
+        constexpr float alpha[] = {0.85f, 0.50f, 0.20f, 0.025f};
+        const int index = frame - 12;
+        layer(pack->end.get(), 4, index);
+        if (umbral) layer(pack->endRibbonFrames[index].get(), 1, 0);
+        else layer(pack->endRibbons.get(), 4, index, alpha[index]);
+        layer(pack->endOuter[index].get(), 1, 0);
+    }
+    g.Restore(state);
 }
 
 void Renderer::drawFx(Graphics& g, const World& w, const Sprites& sprites, const SpeciesDef& sp, float charScale,

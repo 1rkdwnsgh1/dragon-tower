@@ -69,3 +69,9 @@ python tools/make_sheet.py --set fx_barrier=<두 원본의 칸을 순서대로 �
 **흡수(`shadow_04_barrier_absorb`, 11칸)는 넣지 않았다** — "피해를 막은 순간"에 효과를 띄우는
 자리가 코드에 없다. 넣으려면 `World` 에서 보호막이 피해를 깎는 지점에 `addSkillFx` 를
 부르는 변경이 필요하다.
+
+## 어둠의 숨결 V2
+
+`fx_umbral_vortex.png`는 사용자가 제공한 `UMBRAL_VORTEX_3LAYER_V2.zip`의
+코어·나선·그림자 기류를 합성한 게임용 시트다. 시작 4장, 지속 8장, 종료 4장을
+976×256 칸에 배치했다. 종료에는 원본의 나선과 그림자 기류 종료 낱장을 사용했다.

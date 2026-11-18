@@ -114,6 +114,10 @@ struct SkillDef {
     float fxHold = 0.f;
     float fxTail = 0.f;
     AnimDef fxAnim{12.f, false, 0, 1.f};
+    std::string layeredBreath;  // Optional five-sheet breath package, relative to the dragon folder.
+    float breathInputLock = 0.f;
+    bool breathDeferHit = true;  // Compatibility with Bonestorm's impact at LOOP entry.
+    bool usesUmbralBreath() const { return layeredBreath == "umbral_vortex_v2"; }
 };
 
 struct SpeciesDef {

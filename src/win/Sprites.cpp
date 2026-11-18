@@ -28,23 +28,81 @@ std::unique_ptr<Gdiplus::Bitmap> loadPng(const std::filesystem::path& p, bool de
     if (graphics.DrawImage(bmp.get(), rect, 0, 0, rect.Width, rect.Height, UnitPixel) != Ok) return nullptr;
     return copy;
 }
+
+template <typename Opacity>
+bool maskBreathRow(Gdiplus::Bitmap& rowAtlas, Opacity opacity) {
+    using namespace Gdiplus;
+    constexpr int frameW = 1024, frameH = 512, columns = 4;
+    const Rect area(0, 0, frameW * columns, frameH);
+    BitmapData pixels{};
+    if (rowAtlas.LockBits(&area, ImageLockModeRead | ImageLockModeWrite, PixelFormat32bppARGB, &pixels) != Ok)
+        return false;
+    for (int y = 0; y < frameH; ++y) {
+        auto* row = static_cast<BYTE*>(pixels.Scan0) + y * pixels.Stride;
+        for (int x = 0; x < area.Width; ++x) {
+            BYTE& alpha = row[x * 4 + 3];
+            alpha = static_cast<BYTE>(alpha * opacity(x / frameW, x % frameW));
+        }
+    }
+    return rowAtlas.UnlockBits(&pixels) == Ok;
+}
+
+float smoothRamp(float t) {
+    t = std::clamp(t, 0.f, 1.f);
+    return t * t * (3.f - 2.f * t);
+}
+
+std::unique_ptr<Gdiplus::Bitmap> makeEndRibbons(Gdiplus::Bitmap& ribbons) {
+    using namespace Gdiplus;
+    auto end = std::unique_ptr<Bitmap>(ribbons.Clone(Rect(0, 0, 4096, 512), PixelFormat32bppARGB));
+    if (!end || end->GetLastStatus() != Ok || !maskBreathRow(*end, [](int frame, int x) {
+            constexpr int maskStart[] = {24, 165, 390, 650};
+            return smoothRamp((x - maskStart[frame]) / 72.f);
+        })) return nullptr;
+    return end;
+}
+
+std::unique_ptr<Gdiplus::Bitmap> makeUmbralStart(Gdiplus::Bitmap& loop) {
+    using namespace Gdiplus;
+    constexpr int width = 1024, height = 512;
+    auto start = std::make_unique<Bitmap>(4 * width, height, PixelFormat32bppARGB);
+    {
+        Graphics canvas(start.get());
+        canvas.SetCompositingMode(CompositingModeSourceCopy);
+        canvas.SetInterpolationMode(InterpolationModeNearestNeighbor);
+        for (int i = 0; i < 4; ++i) {
+            const int phase = (i + 5) % 8;
+            if (canvas.DrawImage(&loop, Rect(i * width, 0, width, height),
+                                 (phase % 4) * width, (phase / 4) * height, width, height, UnitPixel) != Ok)
+                return nullptr;
+        }
+    }
+    if (!maskBreathRow(*start, [](int frame, int x) {
+            constexpr int edge[] = {105, 350, 690, 1000};
+            return 1.f - smoothRamp((x - (edge[frame] - 42)) / 42.f);
+        })) return nullptr;
+    return start;
+}
 }  // namespace
 
 void Sprites::loadPreviewDragon(const std::filesystem::path& dir, const SpeciesDef& def) {
     images_.clear();
     sheets_.clear();
+    breathSheets_.clear();
     warnings_.clear();
     detachFiles_ = true;
     if (auto bmp = loadPng(dir / "dragon.png", true)) images_["dragon_" + def.key] = std::move(bmp);
     loadSheetsFor(dir, def.anims, def.key, def.key);
     loadSkillSheets(dir, def, def.key);
     loadFxSheets(dir, def, def.key);
+    loadBreathSheets(dir, def, def.key);
     detachFiles_ = false;
 }
 
 void Sprites::loadPreviewEnemy(const std::filesystem::path& dir, const EnemyDef& def) {
     images_.clear();
     sheets_.clear();
+    breathSheets_.clear();
     warnings_.clear();
     detachFiles_ = true;
     loadSheetsFor(dir, def.anims, "enemy:" + def.key, def.key);
@@ -54,6 +112,7 @@ void Sprites::loadPreviewEnemy(const std::filesystem::path& dir, const EnemyDef&
 void Sprites::load(const std::filesystem::path& assetDir) {
     images_.clear();
     sheets_.clear();
+    breathSheets_.clear();
     warnings_.clear();
 
     for (const char* key : kSpriteKeys) {
@@ -80,6 +139,7 @@ void Sprites::load(const std::filesystem::path& assetDir) {
         loadSheetsFor(dir, def.anims, def.key, "dragons/" + def.key);
         loadSkillSheets(dir, def, "dragons/" + def.key);  // v1.4 스킬 전용 모션
         loadFxSheets(dir, def, "dragons/" + def.key);     // v1.6 스킬 효과
+        loadBreathSheets(dir, def, "dragons/" + def.key);
     }
 
     // UI 스킨 폴더 (v0.9)
@@ -96,6 +156,74 @@ void Sprites::load(const std::filesystem::path& assetDir) {
         if (!std::filesystem::is_directory(dir, ec)) continue;
         loadSheetsFor(dir, def.anims, "enemy:" + def.key, "enemies/" + artKey);
     }
+}
+
+void Sprites::loadBreathSheets(const std::filesystem::path& dir, const SpeciesDef& def, const std::string& label) {
+    for (const SkillDef& skill : def.skills) {
+        if (skill.layeredBreath.empty()) continue;
+        const std::string key = def.key + "/" + skill.layeredBreath;
+        if (breathSheets_.count(key)) continue;
+        const auto folder = dir / skill.layeredBreath;
+        const auto read = [&](const char* name, unsigned columns, unsigned rows) -> std::unique_ptr<Gdiplus::Bitmap> {
+            auto bmp = loadPng(folder / name, detachFiles_);
+            if (bmp && bmp->GetWidth() == columns * 1024 && bmp->GetHeight() == rows * 512) return bmp;
+            warnings_.push_back(label + "/" + skill.layeredBreath + "/" + name +
+                                ": missing or invalid breath atlas; using fallback");
+            return nullptr;
+        };
+        BreathSheets bundle;
+        const bool umbral = skill.usesUmbralBreath();
+        bundle.start = read(umbral ? "umbral_vortex_L1_start.png" : "bonestorm_L1_start.png", 4, 1);
+        bundle.core = read(umbral ? "umbral_vortex_L1_loop.png" : "bonestorm_L1_loop.png", 4, 2);
+        bundle.end = read(umbral ? "umbral_vortex_L1_end.png" : "bonestorm_L1_end.png", 4, 1);
+        bundle.ribbons = read(umbral ? "umbral_vortex_L2_helix_loop.png" : "bonestorm_L2_spiral_loop.png", 4, 2);
+        bundle.outer = read(umbral ? "umbral_vortex_L3_shadow_currents_loop.png" : "bonestorm_L3_bones_loop.png", 4, 2);
+        bool complete = bundle.start && bundle.core && bundle.end && bundle.ribbons && bundle.outer;
+        for (size_t i = 0; i < bundle.endOuter.size(); ++i) {
+            const std::string suffix = std::to_string(i + 1) + ".png";
+            const std::string outer = (umbral ? "L3_shadow_currents_end_0" : "L3_end_tail_0") + suffix;
+            bundle.endOuter[i] = read(outer.c_str(), 1, 1);
+            complete = complete && bundle.endOuter[i] != nullptr;
+            if (umbral) {
+                bundle.endRibbonFrames[i] = read(("L2_end_tail_0" + suffix).c_str(), 1, 1);
+                complete = complete && bundle.endRibbonFrames[i] != nullptr;
+            }
+        }
+        if (!complete) continue;
+        if (umbral) {
+            bundle.startRibbons = makeUmbralStart(*bundle.ribbons);
+            bundle.startOuter = makeUmbralStart(*bundle.outer);
+            complete = bundle.startRibbons && bundle.startOuter;
+        } else {
+            bundle.endRibbons = makeEndRibbons(*bundle.ribbons);
+            complete = bundle.endRibbons != nullptr;
+        }
+        if (!complete) {
+            warnings_.push_back(label + "/" + skill.layeredBreath + ": could not prepare breath masks; using fallback");
+            continue;
+        }
+        if (umbral) {
+            const Sheet motion = skillSheet(def.key, skill.motion);
+            if (!motion.bmp || motion.frames != 12 || motion.frameW != 256 || motion.frameH != 256) {
+                warnings_.push_back(label + ": invalid Umbral breath body motion; using fallback");
+                continue;
+            }
+        }
+        breathSheets_.emplace(key, std::move(bundle));
+    }
+}
+
+Sheet Sprites::breathBody(const SpeciesDef& species, const SkillDef& skill) const {
+    if (!breathSheets(species.key, skill.layeredBreath)) return {};
+    if (skill.usesUmbralBreath()) return skillSheet(species.key, skill.motion);
+    const Sheet attack = sheet(species.key, AnimState::Attack);
+    if (attack.frames < 4) return {};
+    return attack;
+}
+
+const BreathSheets* Sprites::breathSheets(const std::string& speciesKey, const std::string& package) const {
+    const auto it = breathSheets_.find(speciesKey + "/" + package);
+    return it == breathSheets_.end() ? nullptr : &it->second;
 }
 
 bool Sprites::loadSheetFile(const std::filesystem::path& file, const AnimDef& anim, const std::string& key,

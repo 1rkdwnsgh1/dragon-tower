@@ -844,7 +844,7 @@ void Game::update(float dt, const PlayerInput& in, bool hidden, bool inputEnable
         case Screen::Death:
         case Screen::FloorClear:
         case Screen::TowerVictory:
-            world_.updateFx(dt);
+            world_.updateFx(dt, true);
             break;
 
         // v1.5: 드래곤 관리창·스킬창·선택창이 떠 있어도 바탕화면 전투는 멈추지 않는다.
