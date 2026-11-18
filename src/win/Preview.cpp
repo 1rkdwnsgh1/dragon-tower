@@ -265,7 +265,7 @@ void PreviewWindow::reset() {
 
     const Sheet custom = sk && !skillIsPassive(sk->kind) ? sprites_.skillSheet(def.key, sk->motion) : Sheet{};
     const Sheet body = custom.bmp ? custom : sprites_.sheet(def.key, state);
-    const AnimDef& anim = custom.bmp ? sk->motionAnim : def.anims[static_cast<int>(state)];
+    const AnimDef& anim = sk && custom.bmp ? sk->motionAnim : def.anims[static_cast<int>(state)];
     stepFps_ = std::max(1.f, anim.fps);
     duration_ = std::max(1.f, body.frames / stepFps_);
 
@@ -398,12 +398,12 @@ void PreviewWindow::updateInfo() {
         AnimState resolved = state;
         const Sheet custom = sk && !skillIsPassive(sk->kind) ? sprites_.skillSheet(def.key, sk->motion) : Sheet{};
         const Sheet body = custom.bmp ? custom : sprites_.sheet(def.key, state, &resolved);
-        const AnimDef& anim = custom.bmp ? sk->motionAnim : def.anims[static_cast<int>(state)];
+        const AnimDef& anim = sk && custom.bmp ? sk->motionAnim : def.anims[static_cast<int>(state)];
         const auto& dragon = world_.dragon();
         out << widen(def.name) << L"   |   " << std::fixed << std::setprecision(2) << time_ << L" / "
             << duration_ << L"초   |   " << folder_.wstring() << L"\r\n본체  ";
         if (body.bmp) {
-            out << (custom.bmp ? L"skill_" + widen(sk->motion) : widen(animStateName(resolved))) << L".png"
+            out << (sk && custom.bmp ? L"skill_" + widen(sk->motion) : widen(animStateName(resolved))) << L".png"
                 << L"  ·  " << body.frames << L"프레임  ·  " << anim.fps << L" FPS";
             if (dragon.anim == state) {
                 out << L"  ·  현재 " << animFrame(dragon.animTime, anim.fps, body.frames, anim.loop) + 1
