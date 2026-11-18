@@ -1116,11 +1116,13 @@ void Renderer::drawBreath(Graphics& g, const DragonActor& dragon, const Sprites&
                                         cfg::kDragonRadius + (anchor.y - 240.f) / 256.f * bodyHeight};
     // Keep the visible stream at the configured reach from the mouth, even when
     // the enlarged sprite's muzzle is beyond the center-based hit segment.
-    constexpr float sourceAnchor = 64.f;
-    const float scale = cast.range / ((umbral ? 967.f : 965.f) - sourceAnchor);
-    if (scale <= 0.f) return;
-    const float center = (512.f - sourceAnchor) * scale;
-    const float halfW = 512.f * scale, halfH = 256.f * scale;
+    const float reach = cast.range * (umbral ? 1.f : bonestorm::reachScale);
+    const float scaleX = reach / ((umbral ? 967.f : bonestorm::coreTipX) - bonestorm::anchorX);
+    if (scaleX <= 0.f) return;
+    // At alpha 128 the firing body silhouette is 175px high and the core is 88px high.
+    const float scaleY = umbral ? scaleX : bodyHeight * (175.f / 256.f) / 88.f;
+    const float center = (512.f - bonestorm::anchorX) * scaleX;
+    const float halfW = 512.f * scaleX, halfH = 256.f * scaleY;
     const float extentX = std::fabs(cast.aim.x) * halfW + std::fabs(cast.aim.y) * halfH;
     const float extentY = std::fabs(cast.aim.y) * halfW + std::fabs(cast.aim.x) * halfH;
     const Vec2 middle = mouth + cast.aim * center;
@@ -1129,11 +1131,20 @@ void Renderer::drawBreath(Graphics& g, const DragonActor& dragon, const Sprites&
     const GraphicsState state = g.Save();
     g.TranslateTransform(mouth.x, mouth.y);
     g.RotateTransform(std::atan2(cast.aim.y, cast.aim.x) * 57.2957795f);
-    if (left) g.ScaleTransform(1.f, -1.f);
+    g.ScaleTransform(1.f, (left ? -1.f : 1.f) * scaleY / scaleX);
     const auto layer = [&](Bitmap* bitmap, int frames, int index, float alpha = 1.f) {
         if (alpha > 0.f)
             drawSheetFrame(g, Sheet{bitmap, frames, 1024, 512, frames == 1 ? 1 : 4},
-                           index, center, 0.f, 512.f * scale, false, 0.f, alpha);
+                           index, center, 0.f, 512.f * scaleX, false, 0.f, alpha);
+    };
+    const auto loop = [&](int phase, float alpha = 1.f) {
+        layer(pack->core.get(), 8, phase, alpha);
+        layer(pack->ribbons.get(), 8, phase, alpha);
+        layer(pack->outer.get(), 8, phase, alpha);
+    };
+    constexpr float loopPhaseSeconds = BreathCast::frameSeconds / 1.25f;
+    const auto loopPhase = [](float time) {
+        return static_cast<int>((time + 1e-6f) / loopPhaseSeconds) % 8;
     };
     const int frame = cast.frame();
     if (frame < 4) {
@@ -1148,16 +1159,21 @@ void Renderer::drawBreath(Graphics& g, const DragonActor& dragon, const Sprites&
             layer(pack->outer.get(), 8, (frame + 5) % 8, bonestormAlpha[frame]);
         }
     } else if (frame < 12) {
-        layer(pack->core.get(), 8, frame - 4);
-        layer(pack->ribbons.get(), 8, frame - 4);
-        layer(pack->outer.get(), 8, frame - 4);
+        loop(umbral ? frame - 4 : loopPhase(cast.elapsed - BreathCast::impactTime));
     } else {
         constexpr float alpha[] = {0.85f, 0.50f, 0.20f, 0.025f};
         const int index = frame - 12;
-        layer(pack->end.get(), 4, index);
+        float endAlpha = 1.f;
+        if (!umbral && index == 0) {
+            const float elapsed = std::max(0.f, cast.elapsed - BreathCast::endTime);
+            endAlpha = std::min(1.f, elapsed / loopPhaseSeconds);
+            const float from = BreathCast::endTime - BreathCast::impactTime - loopPhaseSeconds * 0.5f;
+            loop(loopPhase(from + elapsed), 1.f - endAlpha);
+        }
+        layer(pack->end.get(), 4, index, endAlpha);
         if (umbral) layer(pack->endRibbonFrames[index].get(), 1, 0);
-        else layer(pack->endRibbons.get(), 4, index, alpha[index]);
-        layer(pack->endOuter[index].get(), 1, 0);
+        else layer(pack->endRibbons.get(), 4, index, alpha[index] * endAlpha);
+        layer(pack->endOuter[index].get(), 1, 0, endAlpha);
     }
     g.Restore(state);
 }
