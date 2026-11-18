@@ -142,6 +142,20 @@ struct BreathCast {
     }
 };
 
+// 2026-11-18: hit_frame= 을 적은 스킬의 진행 상태. 시전부터 타격까지는 제자리에 서서
+// 모션만 재생하고, fx_frame 에 효과를, hit_frame 에 피해를 낸다(SkillDef::usesTimedHit).
+struct SkillCast {
+    int skill = -1;
+    Vec2 aim;                // 시전할 때 정한 방향. 준비 중 대상이 죽어도 이 방향으로 나간다
+    float elapsed = 0.f;
+    float fxTime = 0.f;      // 효과를 띄우는 시각
+    float hitTime = 0.f;     // 피해를 주는 시각
+    float lockTime = 0.f;    // 여기까지 이동·다른 스킬을 막는다
+    bool fxDone = false;
+    bool hitDone = false;
+    bool facingLeft = false;
+};
+
 struct DragonActor {
     Species species = Species::Fire;
     int level = 1;
@@ -156,6 +170,7 @@ struct DragonActor {
     // 지금 재생 중인 스킬 전용 본체 모션의 스킬 번호. -1이면 공용 attack 시트를 쓴다.
     int skillMotion = -1;
     std::optional<BreathCast> breath;
+    std::optional<SkillCast> skillCast;  // 2026-11-18: 타격 프레임 스킬 진행 중
     float dodgeCd = 0.f;
     float dashTime = 0.f;
     Vec2 dashVel;
@@ -298,6 +313,11 @@ private:
     bool castSkill(int i, bool aiChoice);  // i = 스킬 목록 번호
     void hitLine(Vec2 start, Vec2 end, float radius, float damage);
     void advanceBreath(float dt, bool combatEnded = false);
+    // 2026-11-18: 타격 프레임 스킬. 타격 전에 끊기면 쿨타임의 일부를 돌려준다.
+    void advanceSkillCast(float dt, bool combatEnded = false);
+    void cancelSkillCast(float refundRatio);
+    void spawnAnchoredFx(const SkillDef& s, bool facingLeft);
+    bool skillCastLocked() const { return dragon_.skillCast && dragon_.skillCast->elapsed < dragon_.skillCast->lockTime; }
     // v1.4 패시브 PassiveOnKill. 적을 쓰러뜨렸을 때 damageEnemy가 부른다.
     void onEnemyKilled(Vec2 at);
     void basicAttack();

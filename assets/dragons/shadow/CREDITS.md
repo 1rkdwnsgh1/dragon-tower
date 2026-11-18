@@ -10,7 +10,7 @@
 | `move.png` | `dragon_walk_art_12.png` | 크기 기준(`--ref move`) |
 | `fly.png` | `dragon_flight_12_reference_v3.png` | |
 | `rest.png` | `dragon_rest_relaxed_12_v3.png` | |
-| `skill_claw.png` | `shadow_01_body_claw.png` | v1.4 — 그림자 가르기 |
+| `skill_claw.png` | **2026-11-18 교체** — 아래 "가르기 강화 모션" | 원래는 `shadow_01_body_claw.png`(v1.4, 12장) |
 | `skill_breath.png` | `shadow_01_body_breath.png` | v1.4 — 어둠의 숨결 |
 | `skill_barrier.png` | `shadow_01_body_barrier.png` | v1.4 — 어스름 장막 |
 
@@ -75,3 +75,15 @@ python tools/make_sheet.py --set fx_barrier=<두 원본의 칸을 순서대로 �
 `fx_umbral_vortex.png`는 사용자가 제공한 `UMBRAL_VORTEX_3LAYER_V2.zip`의
 코어·나선·그림자 기류를 합성한 게임용 시트다. 시작 4장, 지속 8장, 종료 4장을
 976×256 칸에 배치했다. 종료에는 원본의 나선과 그림자 기류 종료 낱장을 사용했다.
+
+## 2026-11-18 — 가르기 강화 모션(교체)
+
+| 파일 | 원본 | 변환 |
+|---|---|---|
+| `skill_claw.png` | `assets/references/shadow-dragon/skill-showcase-2026-11-18/claw/body.png` (16칸, 칸 311) | 칸마다 알파 16 이하를 지우고 256칸으로 줄인 뒤(배율 0.823) **프레임마다 맨 아래를 y=240 에 맞춤**. 가로 위치는 그대로 |
+| `fx_claw.png` | 같은 폴더 `effect.png` (8칸, 칸 443) | 알파 16 이하만 지움. 크기 그대로(`fx_frame_w=443`) |
+
+- 제작: OpenAI built-in image_gen (사용자가 Codex 로 생성, 2026-11-18). 생성형 AI 그림이다. 프롬프트는 같은 폴더 `generation.json`.
+- 몸은 기존 그림자룡을 참고로 **다시 그린 것**이라 대기·이동 시트와 세부 비율이 조금 다를 수 있다(제작 쪽 README).
+- 예전 `skill_claw.png`(12장)·`fx_claw.png`(9장)는 교체했다. git 이력에 남아 있다.
+- 효과 위치(`fx_anchor`·`fx_origin`·`fx_scale`)는 제작 쪽 미리보기 `claw_player.py` 의 배치를 그대로 옮겼다.

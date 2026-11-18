@@ -166,5 +166,9 @@ constexpr float kAnimDeathHold = 3.0f;
 // v1.4 스킬 전용 본체 모션(skill_*.png)을 유지하는 시간. 공용 attack(0.35초)보다 길다 —
 // 스킬 모션은 충전·발동·복귀가 들어 있어 더 길게 그려져 있다. 시트가 짧으면 마지막 칸에서 멈춘다.
 constexpr float kSkillMotionHold = 0.9f;
+// 2026-11-18: 타격 프레임 스킬(hit_frame=). 타격 뒤에도 이만큼 제자리에 서 있는다(효과가 몸에서 떨어지지 않게).
+constexpr float kSkillCastRecover = 0.25f;
+// 타격 전에 끊기면(직접 조작 회피 등) 쿨타임을 이 비율만큼만 남긴다. 임시값
+constexpr float kSkillCastCancelCooldown = 0.5f;
 
 }  // namespace dt::cfg
