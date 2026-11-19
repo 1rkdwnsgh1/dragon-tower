@@ -272,6 +272,7 @@ void World::addSkillFx(const SkillDef& s, FxType fallback, Vec2 a, Vec2 b, float
     f.radius = radius;
     f.color = color;
     f.key = s.fx;
+    f.t = -s.fxDelay;
     f.inFront = s.fxInFront;
     f.scale = s.fxScale;
     f.offsetX = s.fxOffsetX;

@@ -1182,6 +1182,7 @@ void Renderer::drawBreath(Graphics& g, const DragonActor& dragon, const Sprites&
 void Renderer::drawFx(Graphics& g, const World& w, const Sprites& sprites, const SpeciesDef& sp, float charScale,
                       bool inFront) {
     for (const Fx& f : w.fx()) {
+        if (f.t < 0.f) continue;
         if (f.inFront != inFront) continue;  // 이 층이 아니다
         // v1.6: 시트가 있으면 스프라이트로 그리고, 없으면 아래 도형 분기로 내려간다.
         if (!f.key.empty() && drawFxSheet(g, f, sprites, sp, charScale)) continue;

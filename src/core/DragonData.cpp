@@ -273,6 +273,11 @@ DragonParseResult parseDragonText(const std::string& text, const std::string& fo
             else if (key == "fx_windup") ok = parseFloat(val, s.fxWindup);
             else if (key == "fx_hold") ok = parseFloat(val, s.fxHold);
             else if (key == "fx_tail") ok = parseFloat(val, s.fxTail);
+            else if (key == "fx_delay") {
+                float delay = 0.f;
+                ok = parseFloat(val, delay) && delay >= 0.f && delay <= 5.f;
+                if (ok) s.fxDelay = delay;
+            }
             else if (key == "fx_fps") ok = parseFloat(val, s.fxAnim.fps);
             else if (key == "fx_frame_w") ok = parseInt(val, s.fxAnim.frameW);
             else if (key == "fx_render_scale") ok = parseFloat(val, s.fxAnim.renderScale);

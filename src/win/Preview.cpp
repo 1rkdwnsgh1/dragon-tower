@@ -298,10 +298,10 @@ void PreviewWindow::reset() {
         duration_ = BreathCast::duration;
         if (!sk->usesUmbralBreath()) duration_ += 4.f / std::max(1.f, anim.fps);
     }
-    for (const Fx& effect : world_.fx()) duration_ = std::max(duration_, effect.duration);
+    for (const Fx& effect : world_.fx()) duration_ = std::max(duration_, effect.duration - effect.t);
     for (const DotZone& zone : world_.dots()) duration_ = std::max(duration_, zone.duration);
     for (const Projectile& projectile : world_.projectiles()) {
-        const float impact = sk->fxImpact.empty() ? 0.2f :
+        const float impact = sk->fxImpact.empty() ? 0.2f : sk->fxDelay +
             (sk->fxWindup > 0.f ? sk->fxWindup : cfg::kFxWindup) +
             (sk->fxHold > 0.f ? sk->fxHold : cfg::kFxHold) +
             (sk->fxTail > 0.f ? sk->fxTail : cfg::kFxTail);

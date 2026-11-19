@@ -113,6 +113,7 @@ struct SkillDef {
     float fxWindup = 0.f;
     float fxHold = 0.f;
     float fxTail = 0.f;
+    float fxDelay = 0.f;  // Seconds from the triggering event to the visual effect.
     AnimDef fxAnim{12.f, false, 0, 1.f};
     std::string layeredBreath;  // Optional five-sheet breath package, relative to the dragon folder.
     float breathInputLock = 0.f;
