@@ -1027,37 +1027,42 @@ void Renderer::drawProcession(Graphics& g, const DragonActor& dragon, const Spri
                               float scale, bool inFront) {
     if (!dragon.alive || !dragon.procession) return;
     const ProcessionCast& cast = *dragon.procession;
-    const float t = cast.elapsed;
     const float body = cfg::kDragonRadius * 3.f * scale;
-    const Vec2 aim = (cast.target - cast.origin).normalized();
-    const Vec2 rear = cast.origin - aim * (body * 0.6f);
-    const float travel = std::clamp((t - ProcessionCast::chargeStart) /
-        (ProcessionCast::impactTime - ProcessionCast::chargeStart), 0.f, 1.f);
-    const Vec2 host = rear + (cast.target - rear) * travel;
-    const auto drawLayer = [&](const char* key, float start, float duration, Vec2 at, float height, float opacity) {
-        if (t < start || t >= start + duration) return;
+    const float direction = cast.facingLeft ? -1.f : 1.f;
+    const float lifetime = speciesDef(dragon.species).skills[static_cast<size_t>(cast.skill)].processionLifetime;
+    const auto drawLayer = [&](const char* key, float local, float duration, Vec2 at,
+                               float height, float opacity, bool left, bool loop = false) {
+        if (local < 0.f || local >= duration) return;
         const Sheet sheet = sprites.fxSheet("revenant", key);
         if (!sheet.bmp) return;
-        const float local = t - start;
-        const float fade = std::min(1.f, (duration - local) / 0.10f);
-        const int frame = animFrame(local, sheet.frames / duration, sheet.frames, false);
-        drawSheetFrame(g, sheet, frame, at.x, at.y, height, cast.facingLeft, 0.f, opacity * fade);
+        const float fade = loop ? 1.f : std::min(1.f, (duration - local) / 0.10f);
+        const int frame = animFrame(local, sheet.frames / (loop ? 0.48f : duration), sheet.frames, loop);
+        drawSheetFrame(g, sheet, frame, at.x, at.y, height, left, 0.f, opacity * fade);
     };
     if (!inFront) {
-        drawLayer("procession_ritual", 0.f, 0.72f, cast.origin + Vec2{0.f, body * 0.24f}, body * 1.55f, 0.72f);
-        drawLayer("procession_army_emergence", 0.70f, 0.72f, rear, body * 1.45f, 0.80f);
-        if (cast.hit)
-            drawLayer("procession_aftermath", ProcessionCast::impactTime, 1.04f, cast.target, body * 1.9f, 0.56f);
+        drawLayer("procession_ritual", cast.elapsed, 0.72f,
+                  cast.origin + Vec2{0.f, body * 0.24f}, body * 1.55f, 0.72f, cast.facingLeft);
     } else {
-        const float direction = cast.facingLeft ? -1.f : 1.f;
-        drawLayer("procession_soul_eruption", 0.48f, 0.52f,
-                  cast.origin + Vec2{body * 0.12f * direction, -body * 0.24f}, body, 0.73f);
-        drawLayer("procession_spectral_crown", 0.70f, 0.80f,
-                  cast.origin + Vec2{body * 0.26f * direction, -body * 0.57f}, body * 0.60f, 0.78f);
-        drawLayer("procession_spirit_charge", ProcessionCast::chargeStart,
-                  ProcessionCast::impactTime - ProcessionCast::chargeStart, host, body * 1.75f, 0.78f);
-        if (cast.hit)
-            drawLayer("procession_final_impact", ProcessionCast::impactTime, 0.44f, cast.target, body * 2.2f, 0.86f);
+        drawLayer("procession_soul_eruption", cast.elapsed - 0.48f, 0.52f,
+                  cast.origin + Vec2{body * 0.12f * direction, -body * 0.24f}, body, 0.73f, cast.facingLeft);
+        drawLayer("procession_spectral_crown", cast.elapsed - 0.70f, 0.80f,
+                  cast.origin + Vec2{body * 0.26f * direction, -body * 0.57f}, body * 0.60f, 0.78f, cast.facingLeft);
+    }
+    for (const ProcessionWave& wave : cast.waves) {
+        if (wave.impacted) {
+            if (inFront)
+                drawLayer("procession_final_impact", wave.age, 0.44f, wave.pos, body * 1.65f, 0.78f, wave.facingLeft);
+            else
+                drawLayer("procession_aftermath", wave.age, ProcessionCast::aftermath,
+                          wave.pos, body * 1.55f, 0.52f, wave.facingLeft);
+        } else if (inFront) {
+            constexpr float emergenceLead = 0.12f;
+            drawLayer("procession_spirit_charge", wave.age - emergenceLead,
+                      lifetime,
+                      wave.pos, body * 1.45f, 0.75f, wave.facingLeft, true);
+        } else {
+            drawLayer("procession_army_emergence", wave.age, 0.31f, wave.pos, body * 1.20f, 0.80f, wave.facingLeft);
+        }
     }
 }
 

@@ -313,13 +313,17 @@ fx_tail=0.45
 ; PR 4 검증값. 기존 장착 인덱스를 보존하기 위해 마지막에 추가한다.
 [skill.8]
 name=죽음의 행렬
-desc=영혼 10개를 모아 수동으로 시전한다. 망령 군세가 목표 지점에 충돌할 때 광역 피해를 입힌다.
+desc=영혼 10개를 모아 수동으로 시전한다. 세 망령 군세가 적을 추적해 충돌할 때마다 광역 피해를 입힌다.
 kind=Procession
 level=8
 cooldown=30
-power=5
+power=1.67
 range=540
-radius=130
+radius=110
+procession_shots=3
+procession_interval=0.4
+procession_speed=620
+procession_lifetime=2
 motion=procession
 motion_frames=8
 motion_fps=5.333333

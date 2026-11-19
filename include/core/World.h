@@ -42,17 +42,33 @@ struct UltimateUseConditions {
 };
 inline constexpr double kCurseDuration = 6.0;
 
+struct ProcessionWave {
+    Vec2 pos;
+    int targetId = 0;
+    float age = 0.f;  // 충돌하면 0부터 폭발·잔류 시간으로 다시 센다.
+    bool facingLeft = false;
+    bool impacted = false;
+    float nextSearchAt = 0.f;
+};
+
 struct ProcessionCast {
-    static constexpr float chargeStart = 1.40f;
-    static constexpr float impactTime = 1.88f;
-    static constexpr float duration = impactTime + 1.04f;
+    static constexpr float firstLaunch = 1.40f;
+    static constexpr float aftermath = 1.04f;
+    static constexpr float targetRetry = 0.10f;
+    static float maxDuration(const SkillDef& skill) {
+        return firstLaunch + (skill.processionShots - 1) * skill.processionInterval +
+               skill.processionLifetime + aftermath;
+    }
     int skill;
     uint64_t payment;
     Vec2 origin;
-    Vec2 target;
+    Vec2 launchOrigin;
     bool facingLeft;
     float elapsed = 0.f;
-    bool hit = false;
+    int launched = 0;
+    bool paid = false;
+    std::vector<ProcessionWave> waves;
+    std::vector<int> claimedTargets;
 };
 
 struct Enemy {
@@ -368,6 +384,8 @@ private:
     void advanceBreath(float dt, bool combatEnded = false);
     // 2026-11-18: 타격 프레임 스킬. 타격 전에 끊기면 쿨타임의 일부를 돌려준다.
     void advanceProcession(float dt);
+    bool advanceProcessionWaves(ProcessionCast& cast, const SkillDef& skill, float dt);
+    const Enemy* chooseProcessionTarget(ProcessionCast& cast, const SkillDef& skill, Vec2 from) const;
     void cancelProcession();
     void advanceSkillCast(float dt, bool combatEnded = false);
     void cancelSkillCast(float refundRatio);

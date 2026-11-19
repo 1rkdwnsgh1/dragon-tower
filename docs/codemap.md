@@ -19,7 +19,7 @@ tests/                     코어 규칙 검증
 
 | 바꾸려는 것 | 파일 | 찾을 이름 |
 |---|---|---|
-| 죽음의 행렬 수동 발동·충돌·연출 | `src/core/World.cpp`, `src/win/Renderer.cpp` | `processionBlockedReason`, `castSkill`, `advanceProcession`, `drawProcession` |
+| 죽음의 행렬 수동 발동·충돌·연출 | `src/core/World.cpp`, `src/win/Renderer.cpp` | `processionBlockedReason`, `advanceProcession`, `chooseProcessionTarget`, `advanceProcessionWaves`, `drawProcession` |
 | 망령룡 궁극기 충전 | `src/core/World.cpp`, `src/win/Renderer.cpp` | `ultimateCharge`, `canUseUltimate`, `beginUltimatePayment`·`commitUltimatePayment`·`cancelUltimatePayment`, `drawStatusCard` |
 | 망령룡 저주 중첩 표시 | `src/win/Renderer.cpp` | `drawEnemy`가 배치하고 `drawCurseBadge`가 실제 적 상태를 그린다 |
 | 망령룡 저주 중첩과 장판 간격 | `include/core/World.h`, `src/core/World.cpp` | `Enemy::curseStacks`, `applyCurse`, `updateCombat`의 투사체·장판 분기 |

@@ -430,7 +430,8 @@ void PreviewWindow::updateInfo() {
         if (resolved != state || (sk && !skillIsPassive(sk->kind) && !sk->motion.empty() && !custom.bmp))
             out << L"  ·  대체 표시";
         if (sk && !layered && !skillIsPassive(sk->kind) && body.bmp) {
-            const float hold = sk->motion.empty() ? cfg::kAnimAttackHold
+            const float hold = sk->kind == SkillKind::Procession ? ProcessionCast::maxDuration(*sk) :
+                sk->motion.empty() ? cfg::kAnimAttackHold
                                                   : std::max(cfg::kSkillMotionHold, cfg::kAnimAttackHold);
             if (anim.fps > 0.f && (body.frames - 1) / anim.fps >= hold)
                 out << L"\r\n주의  모션 유지 시간 " << hold << L"초 안에 마지막 프레임까지 재생되지 않습니다.";
@@ -446,7 +447,10 @@ void PreviewWindow::updateInfo() {
                     if (effect.bmp) out << L"  ·  " << effect.frames << L"프레임  ·  " << sk->fxAnim.fps << L" FPS";
                     else out << L"  ·  시트를 읽을 수 없어 기본 효과 사용";
                 }
-                if (sk->fx.empty() && !skillIsPassive(sk->kind)) out << L"\r\n이펙트  기본 도형";
+                if (sk->kind == SkillKind::Procession)
+                out << L"\r\n전용 이펙트 7층 · 유도 군세 " << sk->processionShots << L"회";
+            else if (sk->fx.empty() && !skillIsPassive(sk->kind))
+                out << L"\r\n이펙트  기본 도형";
             }
             if (sk->kind == SkillKind::PassiveOnKill) out << L"\r\n처치가 일어난 위치에 회복 효과를 바로 표시합니다.";
             if (sk->kind == SkillKind::PassiveStat) out << L"\r\n상시 적용 스킬에는 발동 연출이 없습니다.";

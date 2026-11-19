@@ -430,13 +430,19 @@ bool World::castSkill(int i, bool aiChoice) {
         if (!payment) return false;
         const float dx = target->pos.x - d.pos.x;
         const bool left = std::fabs(dx) > 0.01f ? dx < 0.f : d.facing.x < 0.f;
-        d.procession = ProcessionCast{i, *payment, d.pos, target->pos, left};
+        Vec2 aim = (target->pos - d.pos).normalized();
+        if (aim.length() == 0.f) aim = {left ? -1.f : 1.f, 0.f};
+        const float rearOffset = 55.f * std::clamp(sizeScale_, 0.5f, 3.f);
+        const Vec2 rear = d.pos - aim * rearOffset;
+        d.procession = ProcessionCast{i, *payment, d.pos, rear, left, 0.f, 0, false, {}, {}};
+        d.procession->waves.reserve(static_cast<size_t>(s.processionShots));
+        d.procession->claimedTargets.reserve(static_cast<size_t>(s.processionShots));
         d.facing = {left ? -1.f : 1.f, 0.f};
         d.dashTime = 0.f;
         d.moving = false;
         d.skillMotion = i;
         d.animTime = 0.f;
-        setDragonAnim(AnimState::Attack, ProcessionCast::duration);
+        setDragonAnim(AnimState::Attack, ProcessionCast::maxDuration(s));
         return true;
     }
     if (!skillUnlocked(i)) {
@@ -625,6 +631,70 @@ void World::cancelProcession() {
     if (d.alive && d.anim == AnimState::Attack) setDragonAnim(AnimState::Idle, 0.f);
 }
 
+const Enemy* World::chooseProcessionTarget(ProcessionCast& cast, const SkillDef& skill, Vec2 from) const {
+    const Enemy* nearest[2]{nullptr, nullptr};
+    float best[2]{0.f, 0.f};
+    for (const Enemy& enemy : enemies_) {
+        if (!enemy.alive || distance(enemy.pos, cast.origin) - enemy.radius > skill.range) continue;
+        const bool used = std::find(cast.claimedTargets.begin(), cast.claimedTargets.end(), enemy.id) !=
+                          cast.claimedTargets.end();
+        const float gap = distance(enemy.pos, from) - enemy.radius;
+        if (!nearest[used] || gap < best[used]) {
+            best[used] = gap;
+            nearest[used] = &enemy;
+        }
+    }
+    if (!nearest[0]) return nearest[1];
+    cast.claimedTargets.push_back(nearest[0]->id);
+    return nearest[0];
+}
+
+bool World::advanceProcessionWaves(ProcessionCast& cast, const SkillDef& skill, float dt) {
+    for (ProcessionWave& wave : cast.waves) {
+        if (wave.impacted || wave.age >= skill.processionLifetime) {
+            wave.age += dt;
+            continue;
+        }
+        const float flight = std::min(dt, skill.processionLifetime - wave.age);
+        wave.age += dt;
+        const Enemy* target = wave.targetId != 0 ? findEnemy(wave.targetId) : nullptr;
+        if (target && distance(target->pos, cast.origin) - target->radius > skill.range) target = nullptr;
+        if (!target && wave.age >= wave.nextSearchAt) {
+            target = chooseProcessionTarget(cast, skill, wave.pos);
+            wave.targetId = target ? target->id : 0;
+            wave.nextSearchAt = target ? 0.f : wave.age + ProcessionCast::targetRetry;
+        }
+        if (!target) continue;
+
+        const Vec2 toward = target->pos - wave.pos;
+        const float distanceToTarget = toward.length();
+        const float step = skill.processionSpeed * flight;
+        if (std::fabs(toward.x) > 0.01f) wave.facingLeft = toward.x < 0.f;
+        const float contact = target->radius * 0.6f;
+        if (distanceToTarget > step + contact) {
+            wave.pos += toward * (step / distanceToTarget);
+            continue;
+        }
+
+        if (!cast.paid) {
+            if (!commitUltimatePayment(cast.payment)) return false;
+            cast.paid = true;
+            dragon_.skillCd[static_cast<size_t>(cast.skill)] = skill.cooldown;
+        }
+        wave.pos = target->pos;
+        wave.impacted = true;
+        wave.age = std::max(0.f, dt - std::max(0.f, distanceToTarget - contact) / skill.processionSpeed);
+        const float radius = skillRadius(skill);
+        for (Enemy& enemy : enemies_)
+            if (inSkillCircle(enemy, wave.pos, radius, sizeScale_))
+                damageEnemy(enemy, dragon_.stats.atk * skill.power);
+    }
+    cast.waves.erase(std::remove_if(cast.waves.begin(), cast.waves.end(), [&](const ProcessionWave& wave) {
+        return wave.age >= (wave.impacted ? ProcessionCast::aftermath : skill.processionLifetime);
+    }), cast.waves.end());
+    return true;
+}
+
 void World::advanceProcession(float dt) {
     DragonActor& d = dragon_;
     if (!d.procession) return;
@@ -633,23 +703,26 @@ void World::advanceProcession(float dt) {
         return;
     }
     ProcessionCast& cast = *d.procession;
-    cast.elapsed += dt;
-    if (!cast.hit && cast.elapsed >= ProcessionCast::impactTime) {
-        const SkillDef& skill = speciesDef(d.species).skills[static_cast<size_t>(cast.skill)];
-        const float radius = skillRadius(skill);
-        const auto inImpact = [&](const Enemy& e) {
-            return inSkillCircle(e, cast.target, radius, sizeScale_);
-        };
-        if (std::none_of(enemies_.begin(), enemies_.end(), inImpact) || !commitUltimatePayment(cast.payment)) {
+    const SkillDef& skill = speciesDef(d.species).skills[static_cast<size_t>(cast.skill)];
+    const float end = cast.elapsed + dt;
+    float cursor = cast.elapsed;
+    while (cast.launched < skill.processionShots) {
+        const float launch = ProcessionCast::firstLaunch + cast.launched * skill.processionInterval;
+        if (launch > end) break;
+        if (!advanceProcessionWaves(cast, skill, std::max(0.f, launch - cursor))) {
             cancelProcession();
             return;
         }
-        cast.hit = true;
-        d.skillCd[static_cast<size_t>(cast.skill)] = skill.cooldown;
-        for (Enemy& enemy : enemies_)
-            if (inImpact(enemy)) damageEnemy(enemy, d.stats.atk * skill.power);
+        const Enemy* target = chooseProcessionTarget(cast, skill, cast.launchOrigin);
+        const bool left = target ? target->pos.x < cast.launchOrigin.x : cast.facingLeft;
+        cast.waves.push_back({cast.launchOrigin, target ? target->id : 0, 0.f, left, false,
+                              target ? 0.f : ProcessionCast::targetRetry});
+        ++cast.launched;
+        cursor = launch;
     }
-    if (cast.elapsed >= ProcessionCast::duration) cancelProcession();
+    cast.elapsed = end;
+    if (!advanceProcessionWaves(cast, skill, std::max(0.f, end - cursor)) ||
+        (cast.launched == skill.processionShots && cast.waves.empty())) cancelProcession();
 }
 
 void World::hitLine(Vec2 start, Vec2 end, float radius, float damage) {
@@ -1238,7 +1311,7 @@ void World::updateCombat(float dt, CombatMode mode, const PlayerInput& in) {
         if (enemy.curseRemaining == 0.0) enemy.curseStacks = 0;
     }
 
-    if (mode == CombatMode::Direct && in.dodge && d.dodgeCd <= 0.f && d.procession && !d.procession->hit)
+    if (mode == CombatMode::Direct && in.dodge && d.dodgeCd <= 0.f && d.procession)
         cancelProcession();
     advanceProcession(dt);
     advanceBreath(dt);
