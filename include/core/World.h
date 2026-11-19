@@ -308,7 +308,7 @@ public:
     void regen(float pctPerSec, float dt);
 
     // 드래곤 애니메이션 상태를 진행한다. updateCombat/updateWander가 내부에서 부른다.
-    void updateDragonAnim(float dt);
+    void updateDragonAnim(float dt, bool allowForcedMotion = false);
     // 1회 재생 상태로 바꾼다(공격·피격·사망). hold 동안 다른 상태로 덮이지 않는다.
     void setDragonAnim(AnimState s, float hold);
 

@@ -126,12 +126,13 @@ void World::setDragonAnim(AnimState s, float hold) {
     d.animHold = std::max(d.animHold, hold);
 }
 
-void World::updateDragonAnim(float dt) {
+void World::updateDragonAnim(float dt, bool allowForcedMotion) {
     DragonActor& d = dragon_;
     d.animTime += dt;
     d.animHold = std::max(0.f, d.animHold - dt);
-    // v1.5: 사람이 고른 모션이 있으면 그대로 둔다. 죽음만 예외다.
-    if (d.animForced && d.alive && !d.procession) {
+    if (allowForcedMotion && d.animForced && d.alive && !d.held && !confining_ && !d.landing &&
+        d.dashTime <= 0.f && d.animHold <= 0.f) {
+        d.skillMotion = -1;
         setDragonAnim(d.forcedAnim, 0.f);
         return;
     }
@@ -921,8 +922,8 @@ void World::dragonAi(float dt, bool castSkills, const PlayerInput& in, bool allo
 }
 
 void World::updateWander(float dt) {
-    wander(dt);
-    updateDragonAnim(dt);
+    if (dragon_.alive) wander(dt);
+    updateDragonAnim(dt, true);
 }
 
 const char* idleBehaviorName(IdleBehavior b) {

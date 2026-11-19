@@ -234,11 +234,6 @@ void Game::setForcedMotion(AnimState st) {
     DragonActor& d = world_.dragon();
     d.animForced = true;
     d.forcedAnim = st;
-    // 고른 모션에 맞게 떠 있는지도 맞춘다(날기를 고르면 떠 있어야 자연스럽다)
-    d.flying = (st == AnimState::Fly);
-    d.landing = false;
-    d.moving = false;
-    d.behaviorLeft = 1e9f;  // 자동 행동이 모션을 덮어쓰지 않게 한다
     motionMenuOpen_ = false;
 }
 
@@ -246,7 +241,6 @@ void Game::clearForcedMotion() {
     DragonActor& d = world_.dragon();
     if (!d.animForced) return;
     d.animForced = false;
-    d.behaviorLeft = 0.f;  // 다음 프레임에 자동 행동을 새로 고른다
 }
 
 void Game::openStable() {
@@ -435,8 +429,7 @@ void Game::setDragonHeld(bool on) {
         d.groundY = d.pos.y;
         d.wanderTarget = d.pos;
         d.restTime = 0.f;
-        // v1.5: 사람이 고른 모션은 끌어 옮겨도 그대로 둔다. 자동일 때만 새 행동을 고른다.
-        if (!d.animForced) d.behaviorLeft = 0.f;
+        d.behaviorLeft = 0.f;
     }
 }
 

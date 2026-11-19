@@ -1479,6 +1479,25 @@ static void testPlaceAndPanel() {
     g.placeDragon({-9999.f, 9999.f});
     CHECK(g.world().bounds().contains(g.world().dragon().pos.x, g.world().dragon().pos.y));
 
+    g.placeDragon({700.f, 500.f});
+    auto& w = g.world();
+    auto& actor = w.dragon();
+    actor.behavior = IdleBehavior::Walk;
+    actor.behaviorLeft = 2.f;
+    actor.wanderTarget = {800.f, 500.f};
+    g.setForcedMotion(AnimState::Fly);
+    w.updateWander(0.1f);
+    CHECK(actor.pos.x > 700.f && actor.pos.y == 500.f && !actor.flying);
+    CHECK(actor.anim == AnimState::Fly && actor.behaviorLeft < 2.f);
+    w.setDragonAnim(AnimState::Attack, 0.1f);
+    w.updateCombat(0.01f, CombatMode::Direct, {});
+    CHECK(actor.anim == AnimState::Attack);
+    w.updateWander(0.15f);
+    CHECK(actor.anim == AnimState::Fly);
+    g.clearForcedMotion();
+    w.updateWander(0.01f);
+    CHECK(actor.anim == AnimState::Move);
+
     // 상태창 위치·접힘은 저장 요청을 남긴다
     g.setPanelPos({10.f, 20.f});
     CHECK(g.panelPos().x == 10.f && g.panelPos().y == 20.f);
