@@ -1,4 +1,5 @@
 #include "core/SaveData.h"
+#include "core/Tower.h"
 
 #include <algorithm>
 #include <fstream>
@@ -31,6 +32,16 @@ int toInt(const std::string& v, int fallback) {
     try {
         size_t used = 0;
         int x = std::stoi(v, &used);
+        return used > 0 ? x : fallback;
+    } catch (...) {
+        return fallback;
+    }
+}
+
+long long toInt64(const std::string& v, long long fallback) {
+    try {
+        size_t used = 0;
+        long long x = std::stoll(v, &used);
         return used > 0 ? x : fallback;
     } catch (...) {
         return fallback;
@@ -111,6 +122,19 @@ std::string serializeSave(const SaveData& s) {
     o << "ui.menuTab=" << s.menuTab << "\n";
     o << "bestFloor=" << s.bestFloor << "\n";
     o << "towerClears=" << s.towerClears << "\n";
+    // 탑 100층 T2(2026-11-18). 모르는 키는 옛 빌드가 무시하므로 호환이 깨지지 않는다.
+    o << "credits=" << s.credits << "\n";
+    o << "tower.firstClear=" << s.firstClear << "\n";
+    o << "tower.fieldBossCleared=";
+    {
+        bool first = true;
+        for (int f : s.fieldBossCleared) {
+            if (!first) o << ",";
+            o << f;
+            first = false;
+        }
+    }
+    o << "\n";
     o << "dragon.present=" << (s.hasDragon ? 1 : 0) << "\n";
     if (s.hasDragon) {
         const DragonRecord& d = s.dragon;
@@ -122,6 +146,8 @@ std::string serializeSave(const SaveData& s) {
         o << "dragon.autoExp=" << d.autoExp << "\n";
         o << "dragon.hp=" << d.hp << "\n";
         o << "dragon.slots=" << slotsText(d.slots) << "\n";
+        o << "dragon.floor=" << d.floor << "\n";
+        o << "dragon.cleared=" << d.cleared << "\n";
     }
     // v1.3 보유 목록. 위의 dragon.* 는 지금 플레이 중인 개체를 가리키며 그대로 둔다
     // (옛 빌드에서도 저장 파일을 읽을 수 있게 하기 위해서다).
@@ -138,6 +164,8 @@ std::string serializeSave(const SaveData& s) {
         o << pre << "autoExp=" << d.autoExp << "\n";
         o << pre << "hp=" << d.hp << "\n";
         o << pre << "slots=" << slotsText(d.slots) << "\n";
+        o << pre << "floor=" << d.floor << "\n";
+        o << pre << "cleared=" << d.cleared << "\n";
     }
     o << "codex.species=";
     bool first = true;
@@ -204,7 +232,8 @@ bool deserializeSave(const std::string& text, SaveData& out) {
         else if (key == "towerClears") s.towerClears = std::max(0, toInt(val, 0));
         else if (key == "dragon.present") dragonPresent = toInt(val, 0) != 0;
         else if (key == "stable.count") {
-            int n = std::clamp(toInt(val, 0), 0, cfg::kMaxStable);
+            // T2: 슬롯이 늘어날 수 있어 상한은 kMaxStableTotal 이다(실제 수는 stableCapacity).
+            int n = std::clamp(toInt(val, 0), 0, cfg::kMaxStableTotal);
             s.stable.assign(static_cast<size_t>(n), DragonRecord{});
         }
         else if (key == "stable.active") s.activeIndex = toInt(val, -1);
@@ -224,6 +253,8 @@ bool deserializeSave(const std::string& text, SaveData& out) {
                     else if (f == "autoExp") d.autoExp = std::max(0, toInt(val, 0));
                     else if (f == "hp") d.hp = toFloat(val, -1.f);
                     else if (f == "slots") parseSlots(val, d.slots);
+                    else if (f == "floor") d.floor = std::clamp(toInt(val, 1), 1, cfg::kTowerTopFloor);
+                    else if (f == "cleared") d.cleared = std::clamp(toInt(val, 0), 0, cfg::kTowerTopFloor);
                 }
             }
         }
@@ -239,6 +270,19 @@ bool deserializeSave(const std::string& text, SaveData& out) {
         else if (key == "dragon.autoExp") s.dragon.autoExp = std::max(0, toInt(val, 0));
         else if (key == "dragon.hp") s.dragon.hp = toFloat(val, -1.f);
         else if (key == "dragon.slots") parseSlots(val, s.dragon.slots);
+        else if (key == "dragon.floor") s.dragon.floor = std::clamp(toInt(val, 1), 1, cfg::kTowerTopFloor);
+        else if (key == "dragon.cleared") s.dragon.cleared = std::clamp(toInt(val, 0), 0, cfg::kTowerTopFloor);
+        else if (key == "credits") s.credits = std::clamp(toInt64(val, 0), 0LL, cfg::kMaxCredits);
+        else if (key == "tower.firstClear") s.firstClear = std::clamp(toInt(val, 0), 0, cfg::kTowerTopFloor);
+        else if (key == "tower.fieldBossCleared") {
+            // 필드 보스층(10의 배수)만 받는다. 손으로 고친 값이 섞여도 슬롯 수가 부풀지 않게.
+            s.fieldBossCleared.clear();
+            for (const std::string& part : split(val, ',')) {
+                if (part.empty()) continue;
+                int f = toInt(part, 0);
+                if (floorType(f) == FloorType::FieldBoss) s.fieldBossCleared.insert(f);
+            }
+        }
         else if (key == "codex.species") {
             // 모르는 키도 그대로 보관한다(폴더를 다시 넣으면 도감이 되살아난다).
             for (const std::string& k : split(val, ',')) {
@@ -339,5 +383,7 @@ bool loadFromFile(const std::filesystem::path& path, SaveData& out) {
     ss << f.rdbuf();
     return deserializeSave(ss.str(), out);
 }
+
+int SaveData::stableCapacity() const { return stableCapacityFor(fieldBossCleared); }
 
 }  // namespace dt
