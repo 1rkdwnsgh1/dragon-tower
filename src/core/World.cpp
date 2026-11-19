@@ -340,6 +340,7 @@ void World::basicAttack() {
 bool World::castSkill(int i, bool aiChoice) {
     DragonActor& d = dragon_;
     if (d.breath && d.breath->elapsed < d.breath->inputLock) return false;
+    if (d.skillCast) return false;  // 2026-11-18: 타격 프레임 스킬이 끝날 때까지 다른 스킬을 막는다
     const SpeciesDef& sp = speciesDef(d.species);
     if (i < 0 || i >= static_cast<int>(sp.skills.size())) return false;
     const SkillDef& s = sp.skills[static_cast<size_t>(i)];
@@ -385,6 +386,24 @@ bool World::castSkill(int i, bool aiChoice) {
             Enemy* t = nearestEnemy(d.pos, s.range + 80.f);
             if (aiChoice && !t) return false;
             Vec2 dir = t ? (t->pos - d.pos).normalized() : facingDir;
+            if (s.usesTimedHit()) {
+                // 2026-11-18: 피해는 hit_frame 에, 효과는 fx_frame 에 낸다(advanceSkillCast).
+                if (dir.length() < 0.01f) dir = facingDir;
+                dir = dir.normalized();
+                const float fps = std::max(1.f, s.motionAnim.fps);
+                SkillCast c;
+                c.skill = i;
+                c.aim = dir;
+                c.hitTime = static_cast<float>(s.hitFrame - 1) / fps;
+                c.fxTime = static_cast<float>((s.fxFrame > 0 ? s.fxFrame : s.hitFrame) - 1) / fps;
+                c.lockTime = std::max(c.hitTime, c.fxTime) + cfg::kSkillCastRecover;
+                c.facingLeft = std::fabs(dir.x) > 0.01f ? dir.x < 0.f : d.facing.x < 0.f;
+                d.facing = {c.facingLeft ? -1.f : 1.f, 0.f};
+                d.dashTime = 0.f;
+                d.moving = false;
+                d.skillCast = c;
+                break;
+            }
             if (!s.layeredBreath.empty()) {
                 if (d.breath) return false;
                 if (dir.length() < 0.01f) dir = facingDir;
@@ -485,6 +504,8 @@ bool World::castSkill(int i, bool aiChoice) {
         d.skillMotion = i;
         // 1회 재생이 끝날 만큼 유지한다(프레임 수는 그리는 쪽이 알고 있으므로 넉넉히 잡는다).
         hold = std::max(hold, cfg::kSkillMotionHold);
+        // 2026-11-18: 프레임 수를 적었으면 모션이 끝날 때까지 자세를 유지한다.
+        if (s.motionFrames > 0) hold = std::max(hold, static_cast<float>(s.motionFrames) / std::max(1.f, s.motionAnim.fps));
     } else {
         d.skillMotion = -1;
     }
@@ -525,6 +546,81 @@ void World::advanceBreath(float dt, bool combatEnded) {
             d.animHold = std::max(d.animHold, 4.f / std::max(1.f, fps));
         }
     }
+}
+
+// 2026-11-18: 타격 프레임 스킬 진행. 숨결(advanceBreath)과 같은 규칙으로 끊는다.
+void World::advanceSkillCast(float dt, bool combatEnded) {
+    DragonActor& d = dragon_;
+    if (!d.skillCast) return;
+    SkillCast& c = *d.skillCast;
+    if (!d.alive || d.held) {
+        d.skillCast.reset();  // 죽거나 붙잡히면 효과도 피해도 없이 끝난다
+        return;
+    }
+    if (combatEnded && !c.hitDone) {
+        cancelSkillCast(0.f);  // 전투가 끝나 끊긴 것은 쿨타임을 모두 돌려준다
+        return;
+    }
+    const SpeciesDef& sp = speciesDef(d.species);
+    if (c.skill < 0 || c.skill >= static_cast<int>(sp.skills.size())) {
+        d.skillCast.reset();
+        return;
+    }
+    const SkillDef& s = sp.skills[static_cast<size_t>(c.skill)];
+    c.elapsed += dt;
+    constexpr float epsilon = 1e-6f;
+    if (!c.fxDone && c.elapsed + epsilon >= c.fxTime) {
+        c.fxDone = true;
+        spawnAnchoredFx(s, c.facingLeft);
+    }
+    if (!c.hitDone && c.elapsed + epsilon >= c.hitTime) {
+        c.hitDone = true;
+        hitLine(d.pos, d.pos + c.aim * s.range, skillRadius(s), d.stats.atk * s.power);
+    }
+    if (c.fxDone && c.hitDone && c.elapsed + epsilon >= c.lockTime) d.skillCast.reset();
+}
+
+// 타격 전에 끊는다. 남는 쿨타임 = 원래 쿨타임 × cooldownRatio (0이면 바로 다시 쓸 수 있다).
+void World::cancelSkillCast(float cooldownRatio) {
+    DragonActor& d = dragon_;
+    if (!d.skillCast) return;
+    const int i = d.skillCast->skill;
+    const bool hit = d.skillCast->hitDone;
+    d.skillCast.reset();
+    if (hit) return;  // 타격 뒤에는 쿨타임을 돌려주지 않는다
+    const SpeciesDef& sp = speciesDef(d.species);
+    if (i >= 0 && i < static_cast<int>(sp.skills.size()) && i < static_cast<int>(d.skillCd.size()))
+        d.skillCd[static_cast<size_t>(i)] = sp.skills[static_cast<size_t>(i)].cooldown * cooldownRatio;
+    d.animHold = 0.f;
+    d.skillMotion = -1;
+}
+
+// fx_anchor(본체 칸 안 좌표)를 화면 좌표로 바꿔, 효과 칸의 fx_origin 이 거기에 오도록 띄운다.
+// 그리는 쪽(Renderer::drawDragon)과 같은 규칙을 쓴다: 본체 칸 높이 = 반지름×3×보기 크기×render_scale,
+// 칸의 바닥 기준선(240/256)이 판정 원의 아래 끝(pos.y + 반지름)에 온다.
+void World::spawnAnchoredFx(const SkillDef& s, bool facingLeft) {
+    DragonActor& d = dragon_;
+    const SpeciesDef& sp = speciesDef(d.species);
+    const float sign = (sp.flipAllowed && facingLeft) ? -1.f : 1.f;
+    const float aimSign = facingLeft ? -1.f : 1.f;
+    if (s.fx.empty() || !s.hasFxAnchor) {
+        // 시트나 기준점이 없으면 예전처럼 몸에서 앞으로 뻗는 도형/시트로 띄운다.
+        Vec2 end = d.pos + Vec2{aimSign, 0.f} * s.range;
+        addSkillFx(s, FxType::LineBlast, d.pos, end, skillRadius(s), 0.45f, sp.color);
+        return;
+    }
+    constexpr float kFoot = 240.f / 256.f;
+    const float bodyCell = s.motionAnim.frameW > 0 ? static_cast<float>(s.motionAnim.frameW) : 256.f;
+    const float bodyH = cfg::kDragonRadius * 3.f * sizeScale_ * s.motionAnim.renderScale;
+    const Vec2 anchor{d.pos.x + sign * (s.fxAnchorX / bodyCell - 0.5f) * bodyH,
+                      d.pos.y + cfg::kDragonRadius + (s.fxAnchorY / bodyCell - kFoot) * bodyH};
+    const float fxCell = s.fxAnim.frameW > 0 ? static_cast<float>(s.fxAnim.frameW) : bodyCell;
+    const float fxH = cfg::kDragonRadius * 3.f * sizeScale_ * s.fxScale * s.fxAnim.renderScale;
+    const float ox = s.fxOriginX >= 0.f ? s.fxOriginX : fxCell * 0.5f;
+    const float oy = s.fxOriginY >= 0.f ? s.fxOriginY : fxCell * 0.5f;
+    const Vec2 center{anchor.x - sign * (ox / fxCell - 0.5f) * fxH, anchor.y - (oy / fxCell - 0.5f) * fxH};
+    // b 는 뒤집기 판정(Renderer::drawFxSheet 의 dirSign)에만 쓰인다.
+    addSkillFx(s, FxType::LineBlast, center, center + Vec2{sign, 0.f}, skillRadius(s), 0.45f, sp.color);
 }
 
 // 패시브 PassiveOnKill. 적을 쓰러뜨릴 때마다 해제된 것을 모두 적용한다.
@@ -989,8 +1085,12 @@ void World::updateCombat(float dt, CombatMode mode, const PlayerInput& in) {
     if (d.hasteTime > 0.f) d.hasteTime -= dt;
 
     advanceBreath(dt);
+    advanceSkillCast(dt);
     if (d.alive && d.stats.regen > 0.f) d.hp = std::min(d.stats.maxHp, d.hp + d.stats.regen * dt);
-    if (d.alive && (!d.breath || d.breath->elapsed >= d.breath->inputLock)) {
+    // 2026-11-18: 타격 전 직접 조작 회피는 시전을 끊고 회피한다(쿨타임 일부 반환).
+    if (mode == CombatMode::Direct && in.dodge && d.dodgeCd <= 0.f && d.skillCast && !d.skillCast->hitDone)
+        cancelSkillCast(cfg::kSkillCastCancelCooldown);
+    if (d.alive && (!d.breath || d.breath->elapsed >= d.breath->inputLock) && !skillCastLocked()) {
         if (mode == CombatMode::Direct) {
             if (in.dodge && d.dodgeCd <= 0.f && d.dashTime <= 0.f) {
                 Vec2 dir{in.moveX, in.moveY};
@@ -1089,6 +1189,7 @@ void World::updateFx(float dt, bool combatEnded) {
         advanceBreath(dt, true);
         updateDragonAnim(dt);
     }
+    if (combatEnded && dragon_.skillCast) advanceSkillCast(dt, true);
     for (Fx& f : fx_) f.t += dt;
     fx_.erase(std::remove_if(fx_.begin(), fx_.end(), [](const Fx& f) { return f.t >= f.duration; }), fx_.end());
     for (FloatText& t : texts_) {

@@ -118,6 +118,7 @@ tests/                     코어 규칙 검증
 | 효과를 도형으로 그리기 | `src/win/Renderer.cpp` | `drawFx` (시트가 없는 효과) |
 | 레이어형 숨결 로드·렌더링 | `src/win/Sprites.cpp`, `src/win/Renderer.cpp` | `layered_breath` 에 지정한 효과 팩을 읽고 시작·지속·종료 레이어를 그린다 |
 | 레이어형 숨결 판정 | `src/core/DragonData.cpp`, `src/core/World.cpp` | `breath_defer_hit` 와 `breath_input_lock` 을 읽어 피해와 입력 잠금 시점을 처리한다 |
+| 타격 프레임 스킬(`hit_frame=`) | `src/core/World.cpp` | `castSkill` 의 `usesTimedHit` 분기, `advanceSkillCast`(효과·피해 시점), `cancelSkillCast`, `spawnAnchoredFx`(`fx_anchor`→화면 좌표). 상태는 `World.h` 의 `SkillCast`, 키 읽기는 `DragonData.cpp`, 상수는 `cfg::kSkillCastRecover`·`kSkillCastCancelCooldown` |
 | 발사체 효과 그리기(따라다님) | `src/win/Renderer.cpp` | 투사체 루프에서 `Projectile::skill` 로 스킬을 찾아 현재 위치에 시트를 그린다(반복 재생) |
 | 효과를 스프라이트로 그리기 | `src/win/Renderer.cpp` | `drawFxSheet`(좌우 뒤집기·`fx_offset_x`·보정값×`charScale`), `fxPhaseLook`, `findSkillByFx` |
 | 효과 시트 읽기 (`fx_<이름>.png`) | `src/win/Sprites.cpp` | `loadFxSheets`/`fxSheet` |

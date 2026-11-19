@@ -254,6 +254,18 @@ DragonParseResult parseDragonText(const std::string& text, const std::string& fo
             }
             else if (key == "breath_input_lock") ok = parseFloat(val, s.breathInputLock);
             else if (key == "breath_defer_hit") ok = parseBool(val, s.breathDeferHit);
+            // 2026-11-18: 타격 프레임. 좌표는 "x,y" (칸 안 px)
+            else if (key == "hit_frame") ok = parseInt(val, s.hitFrame) && s.hitFrame >= 0;
+            else if (key == "fx_frame") ok = parseInt(val, s.fxFrame) && s.fxFrame >= 0;
+            else if (key == "motion_frames") ok = parseInt(val, s.motionFrames) && s.motionFrames >= 0;
+            else if (key == "fx_anchor" || key == "fx_origin") {
+                size_t comma = val.find(',');
+                float x = 0.f, y = 0.f;
+                ok = comma != std::string::npos && parseFloat(trim(val.substr(0, comma)), x) &&
+                     parseFloat(trim(val.substr(comma + 1)), y);
+                if (ok && key == "fx_anchor") { s.hasFxAnchor = true; s.fxAnchorX = x; s.fxAnchorY = y; }
+                if (ok && key == "fx_origin") { s.fxOriginX = x; s.fxOriginY = y; }
+            }
             else if (key == "fx_front") ok = parseBool(val, s.fxInFront);
             else if (key == "fx_scale") ok = parseFloat(val, s.fxScale);
             else if (key == "fx_offset_x") ok = parseFloat(val, s.fxOffsetX);

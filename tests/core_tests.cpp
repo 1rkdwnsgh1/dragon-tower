@@ -2403,6 +2403,86 @@ static void testLayeredBreath() {
     }
 }
 
+// 2026-11-18: 타격 프레임 스킬(hit_frame=). 피해는 정해진 모션 프레임에, 효과는 fx_frame 에
+// 본체 기준점(fx_anchor)에 붙여 뜬다. 그사이 제자리에 서 있고, 끊기면 쿨타임 일부를 돌려준다.
+static void testTimedHit() {
+    const auto spec = parseDragonText(
+        "[dragon]\nname=Timed hit test\n[skill.1]\nkind=Line\nrange=150\nradius=34\npower=1.8\ncooldown=4.5\n"
+        "motion=claw\nmotion_fps=12\nmotion_frame_w=256\nmotion_frames=16\nhit_frame=10\nfx_frame=9\n"
+        "fx=claw\nfx_frame_w=443\nfx_scale=0.75\nfx_anchor=203.6,82.2\nfx_origin=0,0\n",
+        "timed-hit-test", nullptr);
+    CHECK(spec.warnings.empty());
+    const SkillDef& def = spec.def.skills[0];
+    CHECK(def.usesTimedHit());
+    CHECK(def.hitFrame == 10 && def.fxFrame == 9 && def.motionFrames == 16);
+    CHECK(def.hasFxAnchor && def.fxOriginX == 0.f && def.fxOriginY == 0.f);
+    const Species species = registerOrUpdateSpecies(spec.def);
+    const Vec2 origin{600.f, 300.f};
+    const auto scenario = [&](Vec2 aim) {
+        World world;
+        world.setBounds({0.f, 0.f, 1500.f, 1000.f});
+        world.setupDragon(species, cfg::kMaxLevel, 0.f, origin);
+        world.dragon().basicCd = 99.f;
+        world.setSlots({0, -1, -1, -1});
+        Enemy& enemy = world.spawnEnemy(defaultMelee(), 1, origin + aim * 80.f);
+        enemy.radius = 8.f;
+        enemy.hp = enemy.maxHp = 10000.f;
+        enemy.stun = 99.f;
+        return world;
+    };
+    PlayerInput cast{};
+    cast.skill[0] = true;
+    float fxDx[2] = {0.f, 0.f};
+    int side = 0;
+    for (Vec2 aim : {Vec2{1.f, 0.f}, Vec2{-1.f, 0.f}}) {
+        auto world = scenario(aim);
+        world.updateCombat(0.f, CombatMode::Direct, cast);
+        CHECK(world.dragon().skillCast.has_value());
+        CHECK(world.dragon().skillCd[0] == 4.5f);
+        CHECK(world.enemies()[0].hp == 10000.f);  // 시전 순간에는 피해가 없다
+        const size_t fxBefore = world.fx().size();
+        PlayerInput move{};
+        move.moveX = 1.f;
+        world.updateCombat(0.70f, CombatMode::Direct, move);  // fx_frame(0.667초)은 지났고 hit_frame(0.75초) 전
+        CHECK(distance(world.dragon().pos, origin) < 0.001f);  // 제자리
+        CHECK(world.enemies()[0].hp == 10000.f);
+        CHECK(world.fx().size() == fxBefore + 1);
+        if (world.fx().size() == fxBefore + 1) fxDx[side] = world.fx().back().a.x - origin.x;
+        world.updateCombat(0.06f, CombatMode::Direct, {});
+        CHECK(world.enemies()[0].hp < 10000.f);  // hit_frame 에 맞는다
+        world.updateCombat(0.30f, CombatMode::Direct, {});
+        CHECK(!world.dragon().skillCast);  // 타격 + 0.25초 뒤 풀린다
+        ++side;
+    }
+    CHECK(fxDx[0] > 0.f && std::fabs(fxDx[0] + fxDx[1]) < 0.01f);  // 왼쪽을 보면 좌우가 뒤집힌다
+
+    // 타격 전 직접 조작 회피 → 끊기고 쿨타임은 절반만 남는다
+    auto dodged = scenario({1.f, 0.f});
+    dodged.updateCombat(0.f, CombatMode::Direct, cast);
+    PlayerInput dodge{};
+    dodge.dodge = true;
+    dodged.updateCombat(0.3f, CombatMode::Direct, dodge);
+    CHECK(!dodged.dragon().skillCast);
+    CHECK(std::fabs(dodged.dragon().skillCd[0] - (4.5f * cfg::kSkillCastCancelCooldown)) < 0.05f);
+    dodged.updateCombat(1.0f, CombatMode::Direct, {});
+    CHECK(dodged.enemies()[0].hp == 10000.f);
+
+    // 죽으면 피해 없이 끝난다
+    auto dead = scenario({1.f, 0.f});
+    dead.updateCombat(0.f, CombatMode::Direct, cast);
+    dead.dragon().alive = false;
+    dead.updateCombat(1.0f, CombatMode::Direct, {});
+    CHECK(!dead.dragon().skillCast);
+    CHECK(dead.enemies()[0].hp == 10000.f);
+
+    // 전투가 끝나 끊기면 쿨타임을 모두 돌려준다
+    auto ended = scenario({1.f, 0.f});
+    ended.updateCombat(0.f, CombatMode::Direct, cast);
+    ended.updateFx(0.1f, true);
+    CHECK(!ended.dragon().skillCast);
+    CHECK(ended.dragon().skillCd[0] == 0.f);
+}
+
 int main(int argc, char** argv) {
     if (argc == 2 && std::string(argv[1]) == "--layered-breath") {
         testLayeredBreath();
@@ -2455,6 +2535,7 @@ int main(int argc, char** argv) {
     testFirstRunHint();
     testViewSettings();
     testBattleBandHeight();
+    testTimedHit();
     testThinBandStanding();
     testStable();
     testStablePermadeath();
