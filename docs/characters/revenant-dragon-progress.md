@@ -1,5 +1,19 @@
 # 망령룡 제작 진행사항
 
+<a id="fly24-2026-11-19"></a>
+## 2026-11-19 — 승인 키 기반 FLY24 적용
+
+사용자의 새 FLY 적용 및 WALK와 함께 main 병합 요청에 따른 에셋 작업이다. WALK24는 이미 [PR #96](https://github.com/1rkdwnsgh1/dragon-tower/pull/96)으로 병합되어 기준 main은 `9292d4d`다. 기존 개발 순서·전투 규칙·다른 모션은 변경하지 않는다.
+
+- 입력 `REVENANT_FLY24_FROM_APPROVED_KEYS_V1.zip`: 승인된 비행 키 8장 + 광학 흐름 중간 16장. **24장 모두 1024×1024 RGBA·투명도·파일명 순서·6×4 원본 시트 셀 대응**을 확인했다. 잠금 키 01·04·07·10·13·16·19·22의 픽셀이 동봉 `QA/APPROVED_SOURCE_SHEET.png`의 8셀과 일치한다.
+- [원본·백업·QA 보관 폴더](../../assets/references/revenant-dragon/fly24-2026-11-19/README.txt)에 ZIP을 바이트 그대로 보관하고 이전 `fly.png`도 `fly-before-8frames.png`로 보존했다. SHA-256과 변환 수치는 `validation.json`에 있다.
+- `tools/make_sheet.py <frames> -o assets/dragons/revenant/fly.png --mirror --align union --cell 256 --ratio 0.90`. 기존 fly의 약 90% 칸 높이 기준을 유지했다. 공통 상자 `(78,40,906,985)` → `202×230`, 배치 `(27,10)`. 같은 배율·위치로 오른쪽 지향 **6144×256 RGBA 가로 24칸**을 만들었다. 프레임 재생성·개별 재정렬 없음. 다른 상태를 다시 변환하지 않아 기존 WALK24·IDLE 등은 보존했다.
+- 기존 **fps=10, loop=yes, frame_w=256, render_scale=1.37** 유지. 게임 루프는 **2.4초**, 동봉 GIF는 120ms×24=2.88초다. 미리보기와 게임 속도가 같다고 주장하지 않는다. 속도·몸 크기 보정값은 실제 재생 확인 전 임의 조정하지 않았다.
+- 변환된 24개 셀이 원본 공통 변환 결과와 바이트 단위로 일치함을 검사했다. [24칸 정적 대조표](../../assets/references/revenant-dragon/fly24-2026-11-19/contact.png)에서 방향·주요 외곽과 자세 순서를 확인했다. 기존 비행 키 자세가 유지되지만 중간 날개가 늘어나거나 흐려지는 부분은 최종 품질 승인이 아니다.
+- **이미지 QA NEEDS_REVIEW / Windows 실제 재생 미검증**. 첨부 보고서의 11→12→13, 14→15→16, 20→21→22 및 24→01에서 날개 뼈·막 구멍·사슬·꼬리의 보간 왜곡과 연속성을 실제 정상/저속 재생으로 확인해야 한다. 좌우 이동, IDLE/WALK↔FLY, 몸 크기와 120px 선명도·잘림도 확인 대상이다.
+
+검사 결과: 망령룡 7시트 및 전체 35시트 규격 통과, WALK와 FLY 모두 24칸. 기존 shadow/dragon.png 미사용 알림 1건은 그대로다. MSVC x64 Release 전체 빌드 통과(게임·미리보기 포함). 로컬 CTest는 2/3 통과: layered_breath·asset_check 통과, core_tests는 WALK 작업 때 기존 모션에서도 재현된 `0xc0000409` 중단이 계속 발생했다. 원인 미확정이며 전체 통과로 표시하지 않는다. 문서·변경 형식 검사 후 PR을 만들고 GitHub CI 결과를 별도로 확인한다.
+
 ## 2026-11-16 — 스킬 모션·이펙트 원본 복구
 
 사용자 요청으로 `kospher123-sys/dragon_`에 잘못 올라간 망령룡 6종의 본체·효과 12개 폴더와 관련 콘셉트 문서 6개를 복구했다.
@@ -11,7 +25,7 @@
 <a id="walk24-2026-11-19"></a>
 ## 2026-11-19 — WALK24 게임용 시트 적용
 
-상태: **에셋 적용 PR / 이미지 QA NEEDS_REVIEW / Windows 실제 재생 미검증**. 기존 개발 순서를 변경하거나 다른 확인 항목의 완료를 선언하지 않는다.
+상태: **PR #96 main 병합 완료 / 이미지 QA NEEDS_REVIEW / Windows 실제 재생 미검증**. 기존 개발 순서를 변경하거나 다른 확인 항목의 완료를 선언하지 않는다.
 
 - 기준 커밋: `16f16de`(작업 시작 시 main). `assets/revenant-walk24` 브랜치에서 망령룡 `move.png`만 8칸에서 24칸으로 교체했다. 소스코드·다른 드래곤·스킬·UI·IDLE·FLY는 수정하지 않았다.
 - 입력: `DRAGON_TOWER_WORK_WALK24_HANDOFF.zip`의 **24_FRAME_COMPAT_REPLACE_18**. `source/frames/REVENANT_WALK_01.png`~`24.png`를 파일명 순서로 사용했고 **18번은 17.5 보조 자세 교체본**이다. 25프레임이나 원본 6×4 시트를 런타임으로 사용하지 않았다.

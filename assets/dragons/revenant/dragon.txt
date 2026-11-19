@@ -45,9 +45,10 @@ loop=yes
 frame_w=256
 render_scale=1.13
 
-; fly: 바탕화면에서 스스로 날 때 쓴다. 권장 타이밍이 없어 임시값이다.
-; fly: 날개를 펼쳐 칸을 꽉 채우느라 몸이 작게 들어갔다. 그리는 단계에서 키워 맞춘다
-; (흉곽 발광부 높이 기준 대기 145px : 비행 106px -> 1.37배)
+; fly: 2026-11-19 승인 키 기반 FLY24. 원본 8키 + 중간 16장, 24칸 x 256.
+; 기존 fps=10, render_scale=1.37 유지. 2.4초 루프(동봉 GIF는 2.88초).
+; Windows 실제 재생 미검증 / 이미지 품질 NEEDS_REVIEW.
+; 원본·기존 8프레임·QA: references/revenant-dragon/fly24-2026-11-19/README.txt
 [anim.fly]
 fps=10
 loop=yes

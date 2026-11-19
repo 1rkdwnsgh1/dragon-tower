@@ -4,7 +4,7 @@
 |---|---|---|
 | `idle.png` | `references/revenant-dragon/work-2026-11-13/REVENANT_IDLE_FINAL_V1.zip` 의 `FINAL_FRAMES` 4장 | 아래 한 번의 명령 |
 | `move.png` | `references/revenant-dragon/walk24-2026-11-19/DRAGON_TOWER_WORK_WALK24_HANDOFF.zip` 의 `source/frames` 24장 | 아래 WALK24 갱신 기록 |
-| `fly.png` | 같은 폴더 `REVENANT_FLY_FINAL_V1.zip` 의 `FINAL_FRAMES` 8장 | 아래 한 번의 명령 |
+| `fly.png` | `references/revenant-dragon/fly24-2026-11-19/REVENANT_FLY24_FROM_APPROVED_KEYS_V1.zip` 의 `frames` 24장 | 아래 FLY24 갱신 기록 |
 
 초기 8프레임 버전은 세 시트를 **한 번의 명령으로 함께 변환**했다(상태 간 크기를 맞추기 위해 필수). 2026-11-19에는 아래 기록대로 move만 갱신하고 나머지는 보존했다:
 
@@ -20,6 +20,12 @@ python tools/make_sheet.py --mirror -o assets/dragons/revenant \
 사용자가 제공하고 적용 요청한 `24_FRAME_COMPAT_REPLACE_18` 원본 24장이다. 17.5 보조 자세가 18번을 대체하며 25프레임 버전은 사용하지 않았다. 원본 ZIP을 바이트 그대로 보관했고 이전 8프레임 시트도 `move-before-8frames.png`로 보존했다. 출처는 사용자 제공 생성형 AI 작업물이며 별도의 외부 라이선스 문서는 첨부되지 않았다.
 
 변환 명령·해시·검사 자료는 [원본 보관 폴더](../../references/revenant-dragon/walk24-2026-11-19/README.txt), 적용·검증 상태는 [제작 진행사항](../../../docs/characters/revenant-dragon-progress.md#walk24-2026-11-19)을 따른다. 이미지 품질은 **NEEDS_REVIEW**, Windows 실제 재생은 **미검증**이다.
+
+## 2026-11-19 FLY24 갱신
+
+사용자가 제공하고 적용·병합 요청한 `REVENANT_FLY24_FROM_APPROVED_KEYS_V1.zip`의 생성형 AI 비행 작업물이다. 승인 키 8장을 01·04·07·10·13·16·19·22번에 고정하고 광학 흐름 중간 16장을 더한 버전이다. 별도의 외부 라이선스 문서는 첨부되지 않았다. 첨부 QA의 잠금 키 픽셀 일치 및 원본 시트와 24장 대응을 재검증했다.
+
+전체 원본 ZIP·이전 8프레임·변환 명령·해시는 [FLY24 보관 폴더](../../references/revenant-dragon/fly24-2026-11-19/README.txt)에 있다. 기존 다른 상태를 보존하기 위해 fly만 같은 배율·위치로 변환했다. 품질은 **NEEDS_REVIEW**, Windows 실제 재생은 **미검증**이며 승인 키 사용 허가와 최종 보간 품질 승인을 구분한다.
 
 ## 주의: 검수 전 자료다
 
