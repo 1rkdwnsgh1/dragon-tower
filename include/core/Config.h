@@ -83,14 +83,18 @@ constexpr bool kUiPieceCache = true;
 constexpr size_t kUiPieceCacheMaxEntries = 256;             // 항목 수 한도(넘으면 통째로 비운다)
 constexpr size_t kUiPieceCacheMaxBytes = size_t{64} * 1024 * 1024;  // 64MB
 constexpr size_t kUiPieceCacheMaxPixels = size_t{1920} * 1080;  // 이보다 큰 조각은 캐시하지 않는다
-// 레이어형 숨결 캐시(2026-11-19). 숨결 그림은 시작 4·반복 8·끝 4, 정해진 16장뿐이다.
-// 읽을 때 층을 16장으로 합쳐 두고, 그 16장을 장치 픽셀 크기로 키운 캐시를 따로 도는 스레드가 만든다.
-// 그리는 쪽은 캐시를 최근접 보간으로 회전만 해서 붙인다. 끄면 합성본 한 장을 매번 확대·회전한다
-// (느리다) — 눈에 보이는 차이가 나면 이것부터 꺼서 확인한다.
-constexpr bool kBreathCache = true;
-// 한 장의 장치 픽셀 상한(16장이면 약 82MB). 이보다 크게 그려지면 이 크기로 캐시하고 붙일 때 늘린다.
-constexpr size_t kBreathCacheMaxPixels = size_t{1600} * 800;
-// 캐릭터 크기를 바꾼 뒤 같은 크기가 이만큼 프레임 이어져야 캐시를 다시 만든다(끄는 동안 반복 생성 방지).
+// 그림 캐시(2026-11-19). 스프라이트·효과·장판·투사체·숨결의 한 칸을 화면 크기로 미리 키워 두고
+// 정수 좌표에 그대로 찍는다. 키우는 일은 따로 도는 스레드가 한다. 설명은 src/win/FrameCache.h.
+// 끄면 예전처럼 매 프레임 확대한다(느리다) — 눈에 보이는 차이가 나면 이것부터 꺼서 확인한다.
+constexpr bool kFrameCache = true;
+constexpr size_t kFrameCacheMaxBytes = size_t{192} * 1024 * 1024;  // 넘으면 오래 안 쓴 것부터 버린다
+// 한 장의 장치 픽셀 상한. 이보다 크게 그려지면 이 크기로 만들고 붙일 때 최근접으로 늘린다.
+constexpr size_t kFrameCacheMaxPixels = size_t{1600} * 800;
+constexpr size_t kFrameCacheMaxQueue = 48;    // 뒤 스레드에 밀린 일의 상한(넘으면 오래된 것을 버린다)
+constexpr unsigned kFrameCacheMaxWorkers = 3;  // 뒤 스레드 수 상한(코어 수 - 1 과 비교해 작은 쪽)
+// 키운 그림이 아직 없을 때 이보다 작은 그림은 양선형으로, 큰 그림은 최근접으로 대신 그린다(둘 다 빠르다).
+constexpr size_t kFrameCacheSmoothFallbackPixels = size_t{400} * 400;
+// 캐릭터 크기를 바꾼 뒤 같은 크기가 이만큼 프레임 이어져야 숨결 16장을 미리 만든다(끄는 동안 반복 생성 방지).
 constexpr int kBreathCacheSettleFrames = 10;
 
 // 바탕화면 디펜스 전투(v0.5). 전투는 화면 맨 아래 띠에서만 일어난다.

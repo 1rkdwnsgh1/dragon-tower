@@ -2,15 +2,13 @@
 #pragma once
 
 #include <array>
-#include <atomic>
 #include <map>
 #include <tuple>
 #include <memory>
-#include <mutex>
 #include <string>
-#include <thread>
 #include <vector>
 
+#include "FrameCache.h"
 #include "Sprites.h"
 #include "WinCommon.h"
 #include "core/FrameStats.h"
@@ -138,37 +136,24 @@ private:
     // charScale은 보기 배수다. 그림 크기만 바꾸고 판정에는 쓰지 않는다.
     void drawDotZones(Gdiplus::Graphics& g, const World& w, const Sprites& sprites, float time);
     void drawBreath(Gdiplus::Graphics& g, const DragonActor& dragon, const Sprites& sprites, float charScale);
-    // 장착한 숨결이 있으면 지금 배율의 캐시를 뒤에서 만들어 둔다(첫 숨결이 끊기지 않게).
+    // 장착한 숨결이 있으면 지금 배율의 16장을 뒤에서 미리 만들어 둔다(첫 숨결이 끊기지 않게).
     void warmBreathCache(Gdiplus::Graphics& g, const World& w, const Sprites& sprites, float charScale);
 
-    // --- 레이어형 숨결 캐시 --------------------------------------------------
-    // 숨결은 1024x512 원본을 화면 크기로 확대·회전해 그린다. GDI+ 는 변환이 걸린 양선형 보간이
-    // 비싸서(2560 화면 실측 한 장 55ms) 매 프레임 그리면 프레임이 떨어진다. 그림은 key 16장으로
-    // 정해져 있으니 장치 픽셀 크기로 한 번씩 키워 두고, 붙일 때는 최근접 보간으로 회전만 한다(약 4ms).
-    //
-    // 키우는 일도 큰 배율에서는 한 장에 70ms 가 넘어서 그리는 스레드에서 하면 끊긴다.
-    // 그래서 따로 도는 스레드가 만든다. GDI+ 개체는 두 스레드가 같이 쓰면 안 되므로 그 스레드는
-    // 합성본의 **복사본**만 읽고, 만든 그림은 job->done 에 넣어 두면 그리는 스레드가 가져간다.
-    struct BreathJob {
-        std::mutex m;
-        std::atomic<bool> cancel{false};
-        std::array<std::unique_ptr<Gdiplus::Bitmap>, BreathSheets::kFrames> done;  // m 으로 지킨다
-    };
-    struct BreathCache {
-        const BreathSheets* pack = nullptr;
-        unsigned generation = 0;  // Sprites::generation() — 다시 읽으면 같은 주소라도 버린다
-        float cacheScale = 0.f;   // 원본 1px 이 캐시 몇 px 인가
-        std::array<std::unique_ptr<Gdiplus::Bitmap>, BreathSheets::kFrames> frames;  // 그리는 스레드 전용
-        std::shared_ptr<BreathJob> job;
-        std::thread worker;
-        // 크기를 끌어서 바꾸는 동안 매번 다시 만들지 않게, 같은 배율이 몇 프레임 이어진 뒤에 만든다.
-        float wantScale = 0.f;
-        int wantFrames = 0;
-    };
-    BreathCache breathCache_;
-    // 캐시를 이 팩·배율에 맞추고 다 만든 그림을 가져온다. 다른 숨결이면 바로, 배율만 다르면 잠시 뒤 다시 만든다.
-    void updateBreathCache(const Sprites& sprites, const BreathSheets& pack, float devScale);
-    void stopBreathWorker();
+    // --- 그림 캐시 (FrameCache.h) ---------------------------------------------
+    // 시트의 한 칸(src)을 (cx, cy) 가운데에 w x h(논리 크기)로 그린다. 지금 변환의 배율을 보고 장치 픽셀
+    // 크기로 키워 둔 그림을 쓰고, 아직 없으면 잘라 둔 칸을 대신 그린다. drawSprite·drawSheetFrame·
+    // drawBreath 가 모두 여기로 온다 — 새 스킬 효과도 이 길로 그려지면 따로 할 일이 없다.
+    void drawFrameCached(Gdiplus::Graphics& g, const FrameCache::Source& src, float cx, float cy, float w, float h,
+                         bool flip, float flash, float alpha);
+    // 예전 그리기(캐시를 끄거나 칸을 자를 수 없을 때).
+    void drawFrameDirect(Gdiplus::Graphics& g, const FrameCache::Source& src, float cx, float cy, float w, float h,
+                         bool flip, float flash, float alpha);
+    // 지금 변환에서 w x h 가 장치 픽셀로 몇 x 몇인가(한 장 상한을 넘으면 줄인 크기). 상한에 걸리면 false.
+    static bool frameDeviceSize(Gdiplus::Graphics& g, float w, float h, int& devW, int& devH);
+    FrameCache frameCache_;
+    // 숨결 미리 만들기: 크기를 끄는 동안 매번 맡기지 않게 같은 배율이 몇 프레임 이어진 뒤에 맡긴다.
+    float breathWarmScale_ = 0.f;
+    int breathWarmFrames_ = 0;
     void drawProcession(Gdiplus::Graphics& g, const DragonActor& dragon, const Sprites& sprites,
                         float scale, bool inFront);
     void drawProjectiles(Gdiplus::Graphics& g, const World& w, const Sprites& sprites,

@@ -318,7 +318,6 @@ kind=Procession
 level=8
 cooldown=30
 power=1.67
-range=540
 radius=110
 procession_shots=3
 procession_interval=0.4

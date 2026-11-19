@@ -1,7 +1,9 @@
 #include "core/World.h"
 
 #include <algorithm>
+#include <cmath>
 #include <cstdio>
+#include <limits>
 
 #include "core/Config.h"
 
@@ -403,10 +405,7 @@ const char* World::processionBlockedReason(int i, bool inCombat, bool automatic)
     if (d.skillCd[static_cast<size_t>(i)] > 0.f) return "궁극기 재사용 대기";
     if (!ultimateCharge().full()) return "영혼 10개 필요";
     if (!inCombat) return "전투 중에 사용 가능";
-    const float range = species.skills[static_cast<size_t>(i)].range;
-    if (std::none_of(enemies_.begin(), enemies_.end(), [&](const Enemy& enemy) {
-            return enemy.alive && distance(enemy.pos, d.pos) - enemy.radius <= range;
-        })) return "대상 없음";
+    if (aliveEnemyCount() == 0) return "대상 없음";
     return nullptr;
 }
 
@@ -420,7 +419,7 @@ bool World::castSkill(int i, bool aiChoice) {
     if (s.kind == SkillKind::Procession) {
         if (aiChoice || currentMode_ == CombatMode::Auto) return false;
         const char* blocked = processionBlockedReason(i, true, false);
-        const Enemy* target = blocked ? nullptr : nearestEnemy(d.pos, s.range);
+        const Enemy* target = blocked ? nullptr : nearestEnemy(d.pos, std::numeric_limits<float>::max());
         if (!blocked && !target) blocked = "대상 없음";
         if (blocked) {
             addText(blocked, d.pos - Vec2{0.f, 60.f}, 0xFFCCCCCC, 14.f, 0.8f);
@@ -434,7 +433,9 @@ bool World::castSkill(int i, bool aiChoice) {
         if (aim.length() == 0.f) aim = {left ? -1.f : 1.f, 0.f};
         const float rearOffset = 55.f * std::clamp(sizeScale_, 0.5f, 3.f);
         const Vec2 rear = d.pos - aim * rearOffset;
-        d.procession = ProcessionCast{i, *payment, d.pos, rear, left, 0.f, 0, false, {}, {}};
+        const float crossingDistance = std::hypot(bounds_.w, bounds_.h) + rearOffset;
+        const float flightLimit = crossingDistance / s.processionSpeed + s.processionLifetime;
+        d.procession = ProcessionCast{i, *payment, d.pos, rear, left, flightLimit, 0.f, 0, false, {}, {}};
         d.procession->waves.reserve(static_cast<size_t>(s.processionShots));
         d.procession->claimedTargets.reserve(static_cast<size_t>(s.processionShots));
         d.facing = {left ? -1.f : 1.f, 0.f};
@@ -442,7 +443,7 @@ bool World::castSkill(int i, bool aiChoice) {
         d.moving = false;
         d.skillMotion = i;
         d.animTime = 0.f;
-        setDragonAnim(AnimState::Attack, ProcessionCast::maxDuration(s));
+        setDragonAnim(AnimState::Attack, ProcessionCast::maxDuration(s, flightLimit));
         return true;
     }
     if (!skillUnlocked(i)) {
@@ -631,11 +632,11 @@ void World::cancelProcession() {
     if (d.alive && d.anim == AnimState::Attack) setDragonAnim(AnimState::Idle, 0.f);
 }
 
-const Enemy* World::chooseProcessionTarget(ProcessionCast& cast, const SkillDef& skill, Vec2 from) const {
+const Enemy* World::chooseProcessionTarget(ProcessionCast& cast, Vec2 from) const {
     const Enemy* nearest[2]{nullptr, nullptr};
     float best[2]{0.f, 0.f};
     for (const Enemy& enemy : enemies_) {
-        if (!enemy.alive || distance(enemy.pos, cast.origin) - enemy.radius > skill.range) continue;
+        if (!enemy.alive) continue;
         const bool used = std::find(cast.claimedTargets.begin(), cast.claimedTargets.end(), enemy.id) !=
                           cast.claimedTargets.end();
         const float gap = distance(enemy.pos, from) - enemy.radius;
@@ -651,16 +652,16 @@ const Enemy* World::chooseProcessionTarget(ProcessionCast& cast, const SkillDef&
 
 bool World::advanceProcessionWaves(ProcessionCast& cast, const SkillDef& skill, float dt) {
     for (ProcessionWave& wave : cast.waves) {
-        if (wave.impacted || wave.age >= skill.processionLifetime) {
+        if (wave.impacted || wave.age >= cast.flightLimit) {
             wave.age += dt;
             continue;
         }
-        const float flight = std::min(dt, skill.processionLifetime - wave.age);
+        const float flight = std::min(dt, cast.flightLimit - wave.age);
         wave.age += dt;
         const Enemy* target = wave.targetId != 0 ? findEnemy(wave.targetId) : nullptr;
-        if (target && distance(target->pos, cast.origin) - target->radius > skill.range) target = nullptr;
+        if (!target) wave.targetId = 0;
         if (!target && wave.age >= wave.nextSearchAt) {
-            target = chooseProcessionTarget(cast, skill, wave.pos);
+            target = chooseProcessionTarget(cast, wave.pos);
             wave.targetId = target ? target->id : 0;
             wave.nextSearchAt = target ? 0.f : wave.age + ProcessionCast::targetRetry;
         }
@@ -690,7 +691,9 @@ bool World::advanceProcessionWaves(ProcessionCast& cast, const SkillDef& skill, 
                 damageEnemy(enemy, dragon_.stats.atk * skill.power);
     }
     cast.waves.erase(std::remove_if(cast.waves.begin(), cast.waves.end(), [&](const ProcessionWave& wave) {
-        return wave.age >= (wave.impacted ? ProcessionCast::aftermath : skill.processionLifetime);
+        if (wave.impacted) return wave.age >= ProcessionCast::aftermath;
+        const float limit = wave.targetId == 0 ? skill.processionLifetime : cast.flightLimit;
+        return wave.age >= limit;
     }), cast.waves.end());
     return true;
 }
@@ -713,7 +716,7 @@ void World::advanceProcession(float dt) {
             cancelProcession();
             return;
         }
-        const Enemy* target = chooseProcessionTarget(cast, skill, cast.launchOrigin);
+        const Enemy* target = chooseProcessionTarget(cast, cast.launchOrigin);
         const bool left = target ? target->pos.x < cast.launchOrigin.x : cast.facingLeft;
         cast.waves.push_back({cast.launchOrigin, target ? target->id : 0, 0.f, left, false,
                               target ? 0.f : ProcessionCast::targetRetry});

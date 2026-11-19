@@ -430,7 +430,7 @@ void PreviewWindow::updateInfo() {
         if (resolved != state || (sk && !skillIsPassive(sk->kind) && !sk->motion.empty() && !custom.bmp))
             out << L"  ·  대체 표시";
         if (sk && !layered && !skillIsPassive(sk->kind) && body.bmp) {
-            const float hold = sk->kind == SkillKind::Procession ? ProcessionCast::maxDuration(*sk) :
+            const float hold = sk->kind == SkillKind::Procession ? ProcessionCast::maxDuration(*sk, sk->processionLifetime) :
                 sk->motion.empty() ? cfg::kAnimAttackHold
                                                   : std::max(cfg::kSkillMotionHold, cfg::kAnimAttackHold);
             if (anim.fps > 0.f && (body.frames - 1) / anim.fps >= hold)

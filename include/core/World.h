@@ -55,15 +55,16 @@ struct ProcessionCast {
     static constexpr float firstLaunch = 1.40f;
     static constexpr float aftermath = 1.04f;
     static constexpr float targetRetry = 0.10f;
-    static float maxDuration(const SkillDef& skill) {
+    static float maxDuration(const SkillDef& skill, float flightLimit) {
         return firstLaunch + (skill.processionShots - 1) * skill.processionInterval +
-               skill.processionLifetime + aftermath;
+               flightLimit + aftermath;
     }
     int skill;
     uint64_t payment;
     Vec2 origin;
     Vec2 launchOrigin;
     bool facingLeft;
+    float flightLimit;
     float elapsed = 0.f;
     int launched = 0;
     bool paid = false;
@@ -385,7 +386,7 @@ private:
     // 2026-11-18: 타격 프레임 스킬. 타격 전에 끊기면 쿨타임의 일부를 돌려준다.
     void advanceProcession(float dt);
     bool advanceProcessionWaves(ProcessionCast& cast, const SkillDef& skill, float dt);
-    const Enemy* chooseProcessionTarget(ProcessionCast& cast, const SkillDef& skill, Vec2 from) const;
+    const Enemy* chooseProcessionTarget(ProcessionCast& cast, Vec2 from) const;
     void cancelProcession();
     void advanceSkillCast(float dt, bool combatEnded = false);
     void cancelSkillCast(float refundRatio);

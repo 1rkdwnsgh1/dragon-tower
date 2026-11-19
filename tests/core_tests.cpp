@@ -3184,10 +3184,26 @@ static void testRevenantProcession() {
     moving.enemiesMutable()[0].alive = false;
     step(moving, 0.1f);
     CHECK(moving.dragon().procession->waves[0].targetId == replacement);
-    moving.enemiesMutable()[0].pos.x += 900.f;
-    const int inRange = moving.enemies()[1].id;
+    moving.enemiesMutable()[0].pos.x += 600.f;
     step(moving, 0.1f);
-    CHECK(moving.dragon().procession->waves[0].targetId == inRange);
+    CHECK(moving.dragon().procession->waves[0].targetId == replacement);
+
+    World wide = setup();
+    wide.setBounds({0.f, 0.f, 3840.f, 2160.f});
+    wide.enemiesMutable()[0].pos = {3740.f, 2060.f};
+    wide.enemiesMutable()[1].alive = wide.enemiesMutable()[2].alive = false;
+    const int farTarget = wide.enemies()[0].id;
+    cast(wide);
+    CHECK(wide.dragon().procession.has_value());
+    step(wide, 4.5f);
+    CHECK(wide.dragon().procession && wide.dragon().procession->waves.size() == 3);
+    if (wide.dragon().procession)
+        for (const auto& wave : wide.dragon().procession->waves)
+            CHECK(wave.targetId == farTarget && !wave.impacted);
+    CHECK(wide.enemies()[0].hp == 100000.f && wide.dragon().souls == 10);
+    step(wide, 5.f);
+    CHECK(wide.enemies()[0].hp < 100000.f && wide.dragon().souls == 0);
+    CHECK(!wide.dragon().procession);
 
     World single = setup();
     single.enemiesMutable()[1].alive = single.enemiesMutable()[2].alive = false;
@@ -3227,12 +3243,12 @@ static void testRevenantProcession() {
 
     World missed = setup();
     cast(missed);
-    for (auto& enemy : missed.enemiesMutable()) enemy.pos.x += 900.f;
+    for (auto& enemy : missed.enemiesMutable()) enemy.alive = false;
     step(missed, 2.25f);
     CHECK(missed.dragon().procession && missed.dragon().procession->launched == 3);
     step(missed, 2.5f);
     CHECK(!missed.dragon().procession && missed.dragon().souls == 10);
-    CHECK(missed.enemies()[0].hp == 100000.f);
+    CHECK(missed.enemies().empty());
 
     World ended = setup();
     cast(ended);
