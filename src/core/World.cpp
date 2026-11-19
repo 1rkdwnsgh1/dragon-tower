@@ -646,7 +646,8 @@ void World::onEnemyKilled(Vec2 at) {
         if (!soulAwarded && sp.key == "revenant" && s.grantsSoul && d.souls < kRevenantSoulCap) {
             ++d.souls;
             soulAwarded = true;
-            addText("영혼 +1", d.pos - Vec2{0.f, 86.f}, 0xFFA6FFF0, 12.f, 0.7f);
+            const float hudTop = d.pos.y + cfg::kDragonRadius - cfg::kDragonRadius * 3.f * sizeScale_;
+            addText("영혼 +1", {d.pos.x, hudTop - 60.f}, 0xFFA6FFF0, 12.f, 0.7f);
         }
         if (s.power <= 0.f) continue;
         float before = d.hp;
