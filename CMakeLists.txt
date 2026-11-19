@@ -34,6 +34,7 @@ if(WIN32)
         src/win/main.cpp
         src/win/App.cpp
         src/win/Renderer.cpp
+        src/win/FrameCache.cpp
         src/win/FrameProfiler.cpp
         src/win/Sprites.cpp
         src/win/Platform.cpp
@@ -44,6 +45,7 @@ if(WIN32)
         src/win/Preview.cpp
         src/win/FrameProfiler.cpp
         src/win/Renderer.cpp
+        src/win/FrameCache.cpp
         src/win/Sprites.cpp
         src/win/Platform.cpp
     )
