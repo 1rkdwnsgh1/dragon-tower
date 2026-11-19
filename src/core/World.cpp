@@ -21,8 +21,6 @@ constexpr uint32_t kColorDamageToDragon = 0xFFFF5A5A;
 constexpr uint32_t kColorDamageToEnemy = 0xFFFFF2B0;
 constexpr uint32_t kColorDodge = 0xFF9FF0FF;
 constexpr uint32_t kColorHeal = 0xFF7CFF8A;
-constexpr int kCurseMaxStacks = 5;
-constexpr double kCurseDuration = 6.0;
 constexpr double kCurseZoneInterval = 1.0;
 
 void applyCurse(Enemy& enemy) {

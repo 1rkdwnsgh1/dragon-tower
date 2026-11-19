@@ -21,6 +21,10 @@ struct PlayerInput {
     bool skill[kSkillSlots] = {false, false, false, false};
 };
 
+// 전투와 표시가 같은 중첩 상한과 지속 시간을 읽는다.
+inline constexpr int kCurseMaxStacks = 5;
+inline constexpr double kCurseDuration = 6.0;
+
 struct Enemy {
     int id = 0;
     EnemyKind kind{};

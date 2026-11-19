@@ -2495,6 +2495,7 @@ static void testRevenantCurse(const std::filesystem::path& assets) {
     CHECK(def.skills.size() >= 2);
     if (def.skills.size() < 2) return;
     CHECK(def.skills[0].appliesCurse && def.skills[1].appliesCurse);
+    CHECK(def.skills[1].fxZoneSpriteOnly && def.skills[1].fxAnim.fps == 10.f);
 
     auto setup = [](Species species) {
         World w;
@@ -2663,6 +2664,11 @@ static void testZoneSprite() {
 }
 
 int main(int argc, char** argv) {
+    if (argc == 2 && std::string(argv[1]) == "--revenant-curse") {
+        testRevenantCurse("assets");
+        std::printf("%d passed, %d failed\n", g_passed, g_failed);
+        return g_failed == 0 ? 0 : 1;
+    }
     if (argc == 2 && std::string(argv[1]) == "--zone-sprite") {
         testZoneSprite();
         std::printf("%d passed, %d failed\n", g_passed, g_failed);
