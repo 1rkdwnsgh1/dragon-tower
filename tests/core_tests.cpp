@@ -1,5 +1,6 @@
 // 핵심 규칙 검증. Windows 없이도 빌드·실행된다.
 #include <cstdio>
+#include <cstdlib>
 #include <filesystem>
 #include <algorithm>
 #include <cmath>
@@ -3117,6 +3118,14 @@ static void testRevenantProcession() {
     input.skill[0] = true;
     const auto cast = [&](World& w, CombatMode mode = CombatMode::Direct) { w.updateCombat(0.f, mode, input); };
     const auto step = [](World& w, float dt) { w.updateCombat(dt, CombatMode::Direct, {}); };
+    const auto activeCast = [](const World& world) -> const ProcessionCast& {
+        const auto& active = world.dragon().procession;
+        if (!active) {
+            CHECK(active.has_value());
+            std::exit(EXIT_FAILURE);
+        }
+        return *active;
+    };
     World shortfall = setup(9);
     cast(shortfall);
     CHECK(!shortfall.dragon().procession && shortfall.dragon().souls == 9);
@@ -3145,29 +3154,29 @@ static void testRevenantProcession() {
     if (!w.dragon().procession) return;
     CHECK(w.dragon().skillMotion == skill && w.dragon().souls == 10);
     step(w, 1.39f);
-    CHECK(w.dragon().procession->launched == 0);
+    CHECK(activeCast(w).launched == 0);
     step(w, 0.06f);
-    CHECK(w.dragon().procession->launched == 1 && w.dragon().procession->waves.size() == 1);
-    CHECK(w.dragon().procession->waves[0].targetId == firstId);
-    CHECK(w.dragon().procession->waves[0].pos.x > w.dragon().procession->launchOrigin.x);
+    CHECK(activeCast(w).launched == 1 && activeCast(w).waves.size() == 1);
+    CHECK(activeCast(w).waves[0].targetId == firstId);
+    CHECK(activeCast(w).waves[0].pos.x > activeCast(w).launchOrigin.x);
     CHECK(w.enemies()[0].hp == 100000.f && w.dragon().souls == 10);
     step(w, 0.34f);
-    CHECK(w.dragon().procession->launched == 1);
+    CHECK(activeCast(w).launched == 1);
     step(w, 0.06f);
-    CHECK(w.dragon().procession->launched == 2 && w.dragon().procession->waves[1].targetId == secondId);
-    CHECK(w.dragon().procession->paid && w.dragon().souls == 0 && w.ultimateCharge().percent() == 0);
+    CHECK(activeCast(w).launched == 2 && activeCast(w).waves[1].targetId == secondId);
+    CHECK(activeCast(w).paid && w.dragon().souls == 0 && w.ultimateCharge().percent() == 0);
     CHECK(w.dragon().skillCd[skill] == 30.f);
     CHECK(w.enemies()[0].hp < 100000.f && w.enemies()[1].hp < 100000.f && w.enemies()[2].hp == 100000.f);
     CHECK(w.enemies()[0].curseStacks == 3 && w.enemies()[1].curseStacks == 0);
     const float firstHitHp = w.enemies()[0].hp;
     step(w, 0.39f);
-    CHECK(w.dragon().procession->launched == 3 && w.dragon().procession->waves[2].targetId == thirdId);
+    CHECK(activeCast(w).launched == 3 && activeCast(w).waves[2].targetId == thirdId);
     CHECK(w.enemies()[0].hp == firstHitHp);  // 첫 충돌은 피해를 반복하지 않는다.
     w.dragon().souls = 10;
     step(w, 0.30f);
     CHECK(w.enemies()[0].hp < firstHitHp && w.dragon().souls == 10);  // 두 번째 폭발은 같은 적을 맞힐 수 있다.
     step(w, 1.f);
-    CHECK(w.enemies()[2].hp < 100000.f && w.dragon().procession->launched == 3);
+    CHECK(w.enemies()[2].hp < 100000.f && activeCast(w).launched == 3);
     step(w, 1.f);
     CHECK(!w.dragon().procession);
     cast(w);
@@ -3176,17 +3185,17 @@ static void testRevenantProcession() {
     World moving = setup();
     cast(moving);
     step(moving, 1.45f);
-    const float priorY = moving.dragon().procession->waves[0].pos.y;
+    const float priorY = activeCast(moving).waves[0].pos.y;
     moving.enemiesMutable()[0].pos.y += 100.f;
     step(moving, 0.1f);
-    CHECK(moving.dragon().procession->waves[0].pos.y > priorY);
+    CHECK(activeCast(moving).waves[0].pos.y > priorY);
     const int replacement = moving.enemies()[1].id;
     moving.enemiesMutable()[0].alive = false;
     step(moving, 0.1f);
-    CHECK(moving.dragon().procession->waves[0].targetId == replacement);
+    CHECK(activeCast(moving).waves[0].targetId == replacement);
     moving.enemiesMutable()[0].pos.x += 600.f;
     step(moving, 0.1f);
-    CHECK(moving.dragon().procession->waves[0].targetId == replacement);
+    CHECK(activeCast(moving).waves[0].targetId == replacement);
 
     World wide = setup();
     wide.setBounds({0.f, 0.f, 3840.f, 2160.f});
@@ -3196,9 +3205,9 @@ static void testRevenantProcession() {
     cast(wide);
     CHECK(wide.dragon().procession.has_value());
     step(wide, 4.5f);
-    CHECK(wide.dragon().procession && wide.dragon().procession->waves.size() == 3);
+    CHECK(wide.dragon().procession && activeCast(wide).waves.size() == 3);
     if (wide.dragon().procession)
-        for (const auto& wave : wide.dragon().procession->waves)
+        for (const auto& wave : activeCast(wide).waves)
             CHECK(wave.targetId == farTarget && !wave.impacted);
     CHECK(wide.enemies()[0].hp == 100000.f && wide.dragon().souls == 10);
     step(wide, 5.f);
@@ -3209,8 +3218,8 @@ static void testRevenantProcession() {
     single.enemiesMutable()[1].alive = single.enemiesMutable()[2].alive = false;
     cast(single);
     step(single, 2.25f);
-    CHECK(single.dragon().procession && single.dragon().procession->launched == 3);
-    CHECK(std::all_of(single.dragon().procession->waves.begin(), single.dragon().procession->waves.end(),
+    CHECK(single.dragon().procession && activeCast(single).launched == 3);
+    CHECK(std::all_of(activeCast(single).waves.begin(), activeCast(single).waves.end(),
                       [&](const ProcessionWave& wave) { return wave.targetId == single.enemies()[0].id; }));
     const float oneHit = 100000.f - firstHitHp;
     step(single, 2.5f);
@@ -3235,7 +3244,7 @@ static void testRevenantProcession() {
     World paidCancel = setup();
     cast(paidCancel);
     step(paidCancel, 1.85f);
-    CHECK(paidCancel.dragon().procession && paidCancel.dragon().procession->paid);
+    CHECK(paidCancel.dragon().procession && activeCast(paidCancel).paid);
     const float paidHp = paidCancel.enemies()[0].hp;
     paidCancel.updateCombat(1.f, CombatMode::Direct, dodge);
     CHECK(!paidCancel.dragon().procession && paidCancel.dragon().souls == 0);
@@ -3245,7 +3254,7 @@ static void testRevenantProcession() {
     cast(missed);
     for (auto& enemy : missed.enemiesMutable()) enemy.alive = false;
     step(missed, 2.25f);
-    CHECK(missed.dragon().procession && missed.dragon().procession->launched == 3);
+    CHECK(missed.dragon().procession && activeCast(missed).launched == 3);
     step(missed, 2.5f);
     CHECK(!missed.dragon().procession && missed.dragon().souls == 10);
     CHECK(missed.enemies().empty());
@@ -3277,7 +3286,7 @@ static void testRevenantProcession() {
     World mirrored = setup();
     for (auto& enemy : mirrored.enemiesMutable()) enemy.pos.x = 800.f - enemy.pos.x;
     cast(mirrored);
-    CHECK(mirrored.dragon().procession && mirrored.dragon().procession->facingLeft);
+    CHECK(mirrored.dragon().procession && activeCast(mirrored).facingLeft);
 
     SaveData saved;
     CHECK(deserializeSave("version=1\ndragon.present=1\ndragon.species=revenant\ndragon.alive=1\n"
