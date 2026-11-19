@@ -11,7 +11,12 @@
 name: quality
 
 on:
+  # push 를 main 으로 제한한다 — 열어 두면 같은 커밋이 push 로 한 번, pull_request 로
+  # 또 한 번 돌아서 워크플로 2개 x 이벤트 2개 = 목록에 4개가 쌓인다(2026-11-19).
+  # pull_request 는 지우지 말 것: check_docs.py --pr-base 의 STATE·codemap 갱신 검사가
+  # 그 이벤트에서만 돈다. 대신 PR 을 열기 전 브랜치 푸시에는 CI 가 돌지 않는다.
   push:
+    branches: [main]
   pull_request:
   workflow_dispatch:
   schedule:
