@@ -22,6 +22,7 @@ void Game::seed(uint32_t s) {
 
 void Game::init(const SaveData& save, const RectF& desktop) {
     save_ = save;
+    world_.resetSouls();
     desktop_ = desktop;
     world_.setBounds(desktop_);
     world_.setKeepRange(save_.keepRange);  // 저장해 둔 간격을 이어서 쓴다
@@ -532,6 +533,7 @@ void Game::startHunt() {
         screen_ = Screen::AutoWarning;
         return;
     }
+    world_.resetSouls();
     hunting_ = true;
     waveActive_ = false;
     waveNumber_ = 0;
@@ -546,6 +548,7 @@ void Game::confirmAutoWarning() {
     save_.huntMode = CombatMode::Auto;
     saveRequested_ = true;
     if (pendingAutoStart_ && !hunting_) {
+        world_.resetSouls();
         hunting_ = true;
         waveActive_ = false;
         enterBattleArea();
@@ -570,6 +573,7 @@ void Game::enterBattleArea() {
 
 void Game::stopHunt(const std::string& reason) {
     if (!hunting_) return;
+    world_.resetSouls();
     hunting_ = false;
     waveActive_ = false;
     waveNumber_ = 0;
@@ -723,6 +727,7 @@ void Game::spawnTowerFloor() {
 void Game::enterTower(CombatMode m) {
     if (screen_ != Screen::TowerWarning || !save_.hasDragon) return;
     if (m == CombatMode::Auto) return;  // 탑에서는 자동 사냥을 쓸 수 없다
+    world_.resetSouls();
     if (hunting_) {
         hunting_ = false;
         waveActive_ = false;
@@ -755,6 +760,7 @@ void Game::nextFloor() {
 
 void Game::leaveTower() {
     if (screen_ != Screen::FloorClear && screen_ != Screen::TowerVictory) return;
+    world_.resetSouls();
     world_.clearEnemies(false);
     towerFloor_ = 0;
     placeDragonForDesktop();
@@ -941,6 +947,7 @@ void Game::update(float dt, const PlayerInput& in, bool hidden, bool inputEnable
             if (world_.aliveEnemyCount() == 0) {
                 recordFloorCleared(towerFloor_);  // T3: 이 드래곤의 진행을 올린다
                 if (towerFloor_ >= towerFloorCount()) {
+                    world_.resetSouls();
                     save_.towerClears++;
                     ExpResult r = grantExp(save_.dragon, cfg::kTowerClearExp, false);
                     if (r.levelsGained > 0) { world_.setDragonLevel(save_.dragon.level); syncSkillSlots(); }

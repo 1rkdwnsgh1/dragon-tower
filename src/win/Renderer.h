@@ -154,6 +154,8 @@ private:
     // 숨결 미리 만들기: 크기를 끄는 동안 매번 맡기지 않게 같은 배율이 몇 프레임 이어진 뒤에 맡긴다.
     float breathWarmScale_ = 0.f;
     int breathWarmFrames_ = 0;
+    void drawProcession(Gdiplus::Graphics& g, const DragonActor& dragon, const Sprites& sprites,
+                        float scale, bool inFront);
     void drawProjectiles(Gdiplus::Graphics& g, const World& w, const Sprites& sprites,
                          const SpeciesDef& dragonSp, float cs);
     void drawEnemy(Gdiplus::Graphics& g, const Enemy& e, const Sprites& sprites, float time, float charScale,

@@ -2,6 +2,7 @@
 #pragma once
 
 #include <array>
+#include <cstdint>
 #include <optional>
 #include <string>
 #include <vector>
@@ -23,7 +24,53 @@ struct PlayerInput {
 
 // 전투와 표시가 같은 중첩 상한과 지속 시간을 읽는다.
 inline constexpr int kCurseMaxStacks = 5;
+inline constexpr int kRevenantSoulCap = 10;
+inline constexpr int kUltimateSoulCost = 10;
+
+struct UltimateCharge {
+    bool soulHarvestUnlocked = false;
+    int souls = 0;
+    int percent() const { return 100 * souls / kUltimateSoulCost; }
+    bool full() const { return soulHarvestUnlocked && souls == kUltimateSoulCost; }
+};
+
+// 실제 궁극기가 생기면 호출자가 해제·전투·시전 제한을 각각 평가해 전달한다.
+struct UltimateUseConditions {
+    bool skillUnlocked = false;
+    bool inCombat = false;
+    bool castAllowed = false;
+};
 inline constexpr double kCurseDuration = 6.0;
+
+struct ProcessionWave {
+    Vec2 pos;
+    int targetId = 0;
+    float age = 0.f;  // 충돌하면 0부터 폭발·잔류 시간으로 다시 센다.
+    bool facingLeft = false;
+    bool impacted = false;
+    float nextSearchAt = 0.f;
+};
+
+struct ProcessionCast {
+    static constexpr float firstLaunch = 1.40f;
+    static constexpr float aftermath = 1.04f;
+    static constexpr float targetRetry = 0.10f;
+    static float maxDuration(const SkillDef& skill, float flightLimit) {
+        return firstLaunch + (skill.processionShots - 1) * skill.processionInterval +
+               flightLimit + aftermath;
+    }
+    int skill;
+    uint64_t payment;
+    Vec2 origin;
+    Vec2 launchOrigin;
+    bool facingLeft;
+    float flightLimit;
+    float elapsed = 0.f;
+    int launched = 0;
+    bool paid = false;
+    std::vector<ProcessionWave> waves;
+    std::vector<int> claimedTargets;
+};
 
 struct Enemy {
     int id = 0;
@@ -167,6 +214,8 @@ struct SkillCast {
 };
 
 struct DragonActor {
+    int souls = 0;  // Current combat session only.
+    std::optional<ProcessionCast> procession;
     Species species = Species::Fire;
     int level = 1;
     DragonStats stats{};
@@ -231,6 +280,14 @@ public:
     void seed(uint32_t s) { rng_.seed(s); }
 
     void setupDragon(Species s, int level, float hp, Vec2 pos);
+    void resetSouls();
+    UltimateCharge ultimateCharge() const;
+    bool canUseUltimate(const UltimateUseConditions& conditions) const;
+    const char* processionBlockedReason(int skill, bool inCombat, bool automatic) const;
+    // 준비는 영혼을 건드리지 않는다. 성공한 타격 한 번에만 같은 ID로 확정한다.
+    std::optional<uint64_t> beginUltimatePayment(const UltimateUseConditions& conditions);
+    bool commitUltimatePayment(uint64_t id);
+    void cancelUltimatePayment(uint64_t id);
     void setDragonLevel(int level);  // 레벨업 시 능력치 갱신(늘어난 최대 체력만큼 회복)
     DragonActor& dragon() { return dragon_; }
     const DragonActor& dragon() const { return dragon_; }
@@ -306,6 +363,9 @@ public:
     float desiredRange() const;
 
 private:
+    uint64_t nextUltimatePayment_ = 1;
+    std::optional<uint64_t> pendingUltimatePayment_;
+
     void wander(float dt);     // 애니메이션 진행을 포함하지 않는 배회(내부용)
     void pickBehavior();       // 다음 행동을 확률로 고르고 목적지를 정한다
     Vec2 randomRoamTarget(bool fly);
@@ -324,6 +384,10 @@ private:
     void hitLine(Vec2 start, Vec2 end, float radius, float damage);
     void advanceBreath(float dt, bool combatEnded = false);
     // 2026-11-18: 타격 프레임 스킬. 타격 전에 끊기면 쿨타임의 일부를 돌려준다.
+    void advanceProcession(float dt);
+    bool advanceProcessionWaves(ProcessionCast& cast, const SkillDef& skill, float dt);
+    const Enemy* chooseProcessionTarget(ProcessionCast& cast, Vec2 from) const;
+    void cancelProcession();
     void advanceSkillCast(float dt, bool combatEnded = false);
     void cancelSkillCast(float refundRatio);
     void spawnAnchoredFx(const SkillDef& s, bool facingLeft);

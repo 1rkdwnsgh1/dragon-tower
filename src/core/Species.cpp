@@ -127,6 +127,7 @@ bool skillKindFromName(const std::string& name, SkillKind& out) {
     else if (n == "shield") out = SkillKind::Shield;
     else if (n == "haste") out = SkillKind::Haste;
     else if (n == "zone") out = SkillKind::Zone;
+    else if (n == "procession") out = SkillKind::Procession;
     else if (n == "passivestat") out = SkillKind::PassiveStat;
     else if (n == "passiveonkill") out = SkillKind::PassiveOnKill;
     else return false;
@@ -143,6 +144,7 @@ const char* skillKindName(SkillKind k) {
         case SkillKind::Shield: return "Shield";
         case SkillKind::Haste: return "Haste";
         case SkillKind::Zone: return "Zone";
+        case SkillKind::Procession: return "Procession";
         case SkillKind::PassiveStat: return "PassiveStat";
         case SkillKind::PassiveOnKill: return "PassiveOnKill";
     }

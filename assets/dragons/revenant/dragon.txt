@@ -295,6 +295,7 @@ name=영혼 수확
 desc=적을 쓰러뜨릴 때 영혼을 거두어 최대 체력의 6%를 회복한다.
 kind=PassiveOnKill
 power=0.06
+grant_soul=yes
 ; 처치 연출(2026-11-17). soul_orb 와 soul_travel 낱장 각 8칸을 이어 붙이고,
 ; 각 구간 마지막 낱장을 한 칸 더 유지해 18칸으로 맞췄다.
 ; 쓰러진 적 자리에서 영혼이 솟는다. **체력이 가득 차 회복량이 0이면 뜨지 않는다** —
@@ -308,3 +309,22 @@ fx_frame_w=256
 fx_windup=0.15
 fx_hold=0.9
 fx_tail=0.45
+
+; PR 4 검증값. 기존 장착 인덱스를 보존하기 위해 마지막에 추가한다.
+[skill.8]
+name=죽음의 행렬
+desc=영혼 10개를 모아 수동으로 시전한다. 세 망령 군세가 적을 추적해 충돌할 때마다 광역 피해를 입힌다.
+kind=Procession
+level=8
+cooldown=30
+power=1.67
+radius=110
+procession_shots=3
+procession_interval=0.4
+procession_speed=620
+procession_lifetime=2
+motion=procession
+motion_frames=8
+motion_fps=5.333333
+motion_frame_w=256
+motion_render_scale=1.25

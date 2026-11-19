@@ -36,6 +36,7 @@ void fillEmptySkillSlots(DragonRecord& d) {
     sanitizeSkillSlots(d);
     const SpeciesDef& sp = speciesDef(d.species);
     for (int idx : unlockedActiveSkills(sp, d.level)) {
+        if (sp.skills[static_cast<size_t>(idx)].kind == SkillKind::Procession) continue;
         bool already = false;
         for (int v : d.slots) if (v == idx) { already = true; break; }
         if (already) continue;
