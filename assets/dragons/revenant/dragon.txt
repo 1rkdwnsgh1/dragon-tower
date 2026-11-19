@@ -185,6 +185,7 @@ fx_tail=0.8
 name=망령의 포효
 desc=주변 적에게 피해를 주고 잠시 기절시킨다.
 kind=Burst
+detonate_curse=yes
 ; 몸집이 커지면 판정 반경도 같이 커진다(2026-11-17). 사거리는 커지지 않는다.
 scale_with_size=yes
 level=6
@@ -260,7 +261,7 @@ fx_tail=0.20
 
 ; 2026-11-15 결정으로 망령의 침식(Zone)이 안개와 합쳐져 없어지고, 그 자리에
 ; 망계의 숨결(Line)이 들어왔다. 수치는 전부 임시값이다 — 관통(power 3.0 / cooldown 9)보다
-; 세고 느린 "강력한 일반 스킬"로 두었다(docs/characters/revenant-dragon-skills-v1.md 3절).
+; 강력한 전방 지속 피해 스킬로 조정했다(docs/characters/revenant-dragon-skills-v1.md 3절).
 ; 전용 본체 모션은 아직 없어 공용 attack 시트로 그려진다. 침식용 skill_erosion.png 는
 ; 당장 쓰이지 않지만 지우지 않고 둔다(안개에 모션을 줄 때 쓸 수 있다).
 ; 8프레임을 세 단계 합(0.18+0.45+0.25=0.88초)에 맞춰 fx_fps = 8 / 0.88 ~= 9 로 역산했다.

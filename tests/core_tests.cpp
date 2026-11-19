@@ -2752,7 +2752,7 @@ static void testRevenantCurse(const std::filesystem::path& assets) {
     step(basic, 0.25f);
     CHECK(basic.enemies()[0].curseStacks == 3 && basic.enemies()[0].curseRemaining == kCurseDuration);
 
-    for (int index : {3, 4}) {
+    for (int index : {2, 3, 4}) {
         World blast = setup(revenant);
         blast.setupDragon(revenant, 8, -1.f, {420.f, 450.f});
         blast.dragon().basicCd = 100.f;

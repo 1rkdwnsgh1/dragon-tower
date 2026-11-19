@@ -480,7 +480,7 @@ bool World::castSkill(int i, bool aiChoice) {
             if (aiChoice && !any) return false;
             for (Enemy& e : enemies_) {
                 if (!inSkillCircle(e, d.pos, skillRadius(s), sizeScale_)) continue;
-                damageEnemy(e, d.stats.atk * s.power);
+                damageEnemy(e, d.stats.atk * s.power, true, s.detonatesCurse);
                 if (s.extra > 0.f) e.stun = std::max(e.stun, s.extra);
             }
             addSkillFx(s, FxType::Ring, d.pos, d.pos, skillRadius(s), 0.45f, sp.color);
