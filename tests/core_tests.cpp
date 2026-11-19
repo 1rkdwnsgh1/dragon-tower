@@ -2741,6 +2741,17 @@ static void testRevenantCurse(const std::filesystem::path& assets) {
     CHECK(bolts.enemies()[0].curseStacks == 0);
     CHECK(bolts.enemies()[0].curseRemaining == 0.0);
 
+    World basic = setup(revenant);
+    enemyAt(basic, {520.f, 450.f});
+    basic.dragon().basicCd = 0.f;
+    step(basic, 0.25f);
+    CHECK(basic.enemies()[0].curseStacks == 0 && basic.enemies()[0].hp < 100000.f);
+    basic.enemiesMutable()[0].curseStacks = 3;
+    basic.enemiesMutable()[0].curseRemaining = 1.0;
+    basic.dragon().basicCd = 0.f;
+    step(basic, 0.25f);
+    CHECK(basic.enemies()[0].curseStacks == 3 && basic.enemies()[0].curseRemaining == kCurseDuration);
+
     World lostTarget = setup(revenant);
     enemyAt(lostTarget, {520.f, 450.f});
     enemyAt(lostTarget, {620.f, 450.f});
@@ -2789,13 +2800,6 @@ static void testRevenantCurse(const std::filesystem::path& assets) {
     enemyAt(zones, {520.f, 450.f});
     CHECK(zones.enemies().back().curseStacks == 0);
     CHECK(zones.enemies().back().curseZoneCooldown == 0.0);
-
-    World basic = setup(revenant);
-    enemyAt(basic, {470.f, 450.f});
-    basic.dragon().basicCd = 0.f;
-    step(basic, 0.25f);
-    CHECK(basic.enemies()[0].hp < 100000.f);
-    CHECK(basic.enemies()[0].curseStacks == 0);
 
     SpeciesDef otherDef = def;
     otherDef.key = "test-curse-other";

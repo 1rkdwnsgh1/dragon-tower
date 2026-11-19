@@ -1384,6 +1384,8 @@ void World::updateCombat(float dt, CombatMode mode, const PlayerInput& in) {
         float step = p.speed * dt;
         if (to.length() <= step + t->radius * 0.6f) {
             if (p.appliesCurse) applyCurse(*t);
+            if (p.skill < 0 && t->curseStacks > 0 && speciesDef(d.species).key == "revenant")
+                t->curseRemaining = kCurseDuration;
             damageEnemy(*t, p.damage);
             // 2026-11-17: fx_impact 를 적은 스킬이면 그 시트를, 아니면 전처럼 도형을 띄운다.
             const SpeciesDef& psp = speciesDef(d.species);
