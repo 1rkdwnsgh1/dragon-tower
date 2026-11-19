@@ -8,6 +8,38 @@
 
 기록일: 2026-11-13. [캐릭터 기획](revenant-dragon.md)의 디자인 기준을 유지한다.
 
+<a id="walk24-2026-11-19"></a>
+## 2026-11-19 — WALK24 게임용 시트 적용
+
+상태: **에셋 적용 PR / 이미지 QA NEEDS_REVIEW / Windows 실제 재생 미검증**. 기존 개발 순서를 변경하거나 다른 확인 항목의 완료를 선언하지 않는다.
+
+- 기준 커밋: `16f16de`(작업 시작 시 main). `assets/revenant-walk24` 브랜치에서 망령룡 `move.png`만 8칸에서 24칸으로 교체했다. 소스코드·다른 드래곤·스킬·UI·IDLE·FLY는 수정하지 않았다.
+- 입력: `DRAGON_TOWER_WORK_WALK24_HANDOFF.zip`의 **24_FRAME_COMPAT_REPLACE_18**. `source/frames/REVENANT_WALK_01.png`~`24.png`를 파일명 순서로 사용했고 **18번은 17.5 보조 자세 교체본**이다. 25프레임이나 원본 6×4 시트를 런타임으로 사용하지 않았다.
+- 보존: [원본 ZIP·이전 이동 시트·QA 자료](../../assets/references/revenant-dragon/walk24-2026-11-19/README.txt). 원본 24장의 SHA-256·RGBA·1024×1024·파일 순서를 `SOURCE_MANIFEST.json`과 대조해 통과했다. 이전 `move.png`와 설정은 기준 커밋으로도 복구할 수 있다.
+- 변환: `tools/make_sheet.py <해제한 source/frames> -o assets/dragons/revenant/move.png --mirror --align union --cell 256`. 기본 `--ratio 0.70`, 배경 제거 없음. 공통 윤곽 상자와 같은 배율·좌표로 반전·리사이즈하여 상대 움직임을 유지했다. 프레임별 재정렬·재생성 없음.
+- 다른 상태를 재변환하면 기존 모션 픽셀이 달라지므로 이번에는 move만 변환하고 IDLE/기존 MOVE와 비교했다. 오른쪽 지향 **6144×256 RGBA, 256×256 가로 24칸**, 공통 기준점 **(128,240)**. 반전 후 공통 상자 `(53,168,969,828)` → `249×179`, 배치 `(4,61)`이다. 기준점 정렬은 각 프레임의 모든 발이 땅에 닿는다는 보장이 아니다.
+- `dragon.txt`의 실제 설정 **fps=8, frame_w=256, loop=yes, render_scale=1.13**을 유지했다(주석만 갱신). 1프레임 125ms, 전체 3초이며 이전 8프레임 1초 루프보다 길다. 보행 속도·이동 거리의 적합성은 실제 재생 후 판단한다.
+- 정적 대조표에서 오른쪽 방향, 코어·골격·날개·꼬리의 식별, 외곽과 바닥선, 17·18·19 및 24·01, 120px 축소 표시를 확인했다. 큰 끝부분 잘림은 관찰되지 않았으나 네 다리의 해부학·하중·접지와 루프의 자연스러움을 승인한 것은 아니다.
+- 전체 윤곽 기준 그려지는 높이는 기존 MOVE 약 75% → 새 MOVE 약 79%, IDLE 약 70%다. 자동 검사의 10%p 범위 안이나 같은 신체 부위의 크기 일치나 전환의 자연스러움을 뜻하지 않는다. 정적 비교에서 새 모션이 조금 크게 보여 기존 보정값의 적절성은 재생 검수에 남긴다.
+- [24프레임·기존 모션 비교](../../assets/references/revenant-dragon/walk24-2026-11-19/contact.png), [120px 정적 비교](../../assets/references/revenant-dragon/walk24-2026-11-19/contact-120px.png), [상태별 시트 검사 그림](../../assets/references/revenant-dragon/walk24-2026-11-19/sheet-comparison.png), [수치 검사](../../assets/references/revenant-dragon/walk24-2026-11-19/validation.json)를 보관했다. 수치 검사에서 24개 셀이 원본의 동일 공통 변환 결과와 바이트 단위로 일치했다.
+
+### 검사 결과
+
+- `tools/check_sheets.py --only revenant`: 7시트 통과, move 24칸 확인.
+- `tools/check_sheets.py --quiet`: 전체 35시트 통과. 기존 `shadow/dragon.png` 미사용 알림 1건은 이번 변경과 무관하다.
+- MSVC 19.44 / Visual Studio 2022 x64 Release 전체 빌드 통과(`dragon_tower`, `dragon_preview`, 테스트 도구 포함). 기존 소스의 수치 변환 경고 8건은 남아 있다. Debug core_tests·asset_check 빌드도 통과했다.
+- `ctest --test-dir build/walk24 -C Release --output-on-failure`: **2/3 통과**. `layered_breath`(230 passed)·`asset_check` 통과. `core_tests`는 `[dragon folder scan]` 구간에서 `0xc0000409`로 중단했다. 이전 8프레임 시트로 되돌려 실행해도 같은 종료 코드가 재현되었으며 24프레임을 복원했다. 원인은 미확정이고 전체 테스트 통과로 표시하지 않는다. 이번 에셋 작업에서 테스트/소스코드를 고치지 않았다.
+- `asset_check assets` 별도 실행: 경고 없이 통과. 문서 링크·변경 범위는 커밋 전 검사한다.
+
+### Windows 실제 확인 절차 — 아직 미검증
+
+1. PR 빌드를 별도 폴더에서 실행하고 미리보기 도구에서 망령룡 move 24칸 로딩과 8fps·3초 반복을 확인한다.
+2. 정상·저속·프레임 단위로 **17→18→19**, **24→01**, 발 교차·접지·미끄러짐, 머리·뿔·날개·사슬·꼬리 연속성을 확인한다.
+3. 좌우 양방향, IDLE↔MOVE 전환과 몸 크기, 기존 8프레임 대비 보행 속도·이동 거리·발 미끄러짐을 비교한다.
+4. 실제 게임의 120px 수준 표시와 밝고 어두운 배경에서 선명도·가장자리·잘림을 확인한다. 실제 움직임을 보지 않은 상태에서 fps나 render_scale을 임의 튜닝하지 않는다.
+
+아래 2026-11-13 기록은 당시 전달 자료와 검수 상태의 이력이다.
+
 ## 자료 보관
 
 사용자가 지정한 바탕화면 `드래곤 타워/gpt 작업용 레퍼런스` 폴더의 파일 14개를 백업 하위 폴더까지 포함해 [작업 자료 폴더](../../assets/references/revenant-dragon/work-2026-11-13/)에 원본 파일명과 구조 그대로 보관했다. PNG·ZIP은 Git LFS로 관리한다. ZIP 내부 원본·프레임·미리보기·보고서를 그대로 보존하며, 패키지의 코드나 HTML은 이번 보관 작업에서 실행하지 않았다.
