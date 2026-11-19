@@ -1054,7 +1054,7 @@ static void testLoadDragonFolders() {
     CHECK(!speciesFromKey("_skipme", sp));
 
     // 없는 폴더를 가리켜도 안전하다
-    DragonScanResult none = loadDragonFolders(root / "없음");
+    DragonScanResult none = loadDragonFolders(root / std::filesystem::u8path("없음"));
     CHECK(none.folderCount == 0 && none.warnings.empty());
     fs::remove_all(root, ec);
 }
@@ -1150,7 +1150,7 @@ static void testEnemyFolderScan() {
     CHECK(!enemyFromKey("_skip", k));
     CHECK(enemyFromKey("slime", k) && enemyDef(k).desc == "덮어쓴 설명");
 
-    EnemyScanResult none = loadEnemyFolders(root / "없음");
+    EnemyScanResult none = loadEnemyFolders(root / std::filesystem::u8path("없음"));
     CHECK(none.folderCount == 0 && none.warnings.empty());
     fs::remove_all(root, ec);
 }
@@ -2646,6 +2646,151 @@ static void testTimedHit() {
     CHECK(ended.dragon().skillCd[0] == 0.f);
 }
 
+static void testRevenantCurse(const std::filesystem::path& assets) {
+    std::printf("[revenant curse stacks]\n");
+    loadDragonFolders(assets / "dragons");
+    Species revenant{};
+    const bool found = speciesFromKey("revenant", revenant);
+    CHECK(found);
+    if (!found) return;
+
+    const auto& def = speciesDef(revenant);
+    CHECK(def.skills.size() >= 2);
+    if (def.skills.size() < 2) return;
+    CHECK(def.skills[0].appliesCurse && def.skills[1].appliesCurse);
+    CHECK(def.skills[1].fxZoneSpriteOnly && def.skills[1].fxAnim.fps == 10.f);
+
+    auto setup = [](Species species) {
+        World w;
+        w.setBounds({0.f, 0.f, 1400.f, 650.f});
+        w.setupDragon(species, 3, -1.f, {420.f, 450.f});
+        w.setSlots({0, 1, -1, -1});
+        w.dragon().basicCd = 100.f;
+        return w;
+    };
+    auto enemyAt = [](World& w, Vec2 at) {
+        Enemy& e = w.spawnEnemy(defaultMelee(), 1, at);
+        e.hp = e.maxHp = 100000.f;
+        e.stun = 100.f;
+    };
+    auto cast = [](World& w, int slot) {
+        w.dragon().skillCd[static_cast<size_t>(slot)] = 0.f;
+        PlayerInput in{};
+        in.skill[slot] = true;
+        w.updateCombat(0.f, CombatMode::Direct, in);
+    };
+    auto step = [](World& w, float seconds) { w.updateCombat(seconds, CombatMode::Direct, {}); };
+
+    World bolts = setup(revenant);
+    enemyAt(bolts, {520.f, 450.f});
+    enemyAt(bolts, {720.f, 450.f});
+    cast(bolts, 0);
+    CHECK(bolts.enemies()[0].curseStacks == 0);
+    CHECK(bolts.dragon().skillCd[0] == def.skills[0].cooldown);
+    step(bolts, 0.25f);
+    CHECK(bolts.enemies()[0].curseStacks == 1);
+    CHECK(bolts.enemies()[1].curseStacks == 0);
+    CHECK(bolts.enemies()[0].curseRemaining == 6.0);
+    for (int i = 0; i < 5; ++i) {
+        cast(bolts, 0);
+        step(bolts, 0.25f);
+    }
+    CHECK(bolts.enemies()[0].curseStacks == 5);
+    CHECK(bolts.enemies()[0].curseRemaining == 6.0);
+    step(bolts, 5.75f);
+    CHECK(bolts.enemies()[0].curseStacks == 5);
+    cast(bolts, 0);
+    step(bolts, 0.25f);
+    CHECK(bolts.enemies()[0].curseStacks == 1);
+    CHECK(bolts.enemies()[0].curseRemaining == 6.0);
+    step(bolts, 6.f);
+    CHECK(bolts.enemies()[0].curseStacks == 0);
+    CHECK(bolts.enemies()[0].curseRemaining == 0.0);
+
+    World lostTarget = setup(revenant);
+    enemyAt(lostTarget, {520.f, 450.f});
+    enemyAt(lostTarget, {620.f, 450.f});
+    cast(lostTarget, 0);
+    CHECK(lostTarget.projectiles().size() == 1);
+    lostTarget.enemiesMutable()[0].alive = false;
+    step(lostTarget, 0.25f);
+    CHECK(lostTarget.projectiles().empty());
+    CHECK(lostTarget.enemies().size() == 1);
+    CHECK(lostTarget.enemies()[0].curseStacks == 0);
+    lostTarget.enemiesMutable()[0].pos = {1100.f, 450.f};
+    cast(lostTarget, 0);
+    CHECK(lostTarget.projectiles().empty());
+
+    World zones = setup(revenant);
+    enemyAt(zones, {520.f, 450.f});
+    enemyAt(zones, {1100.f, 450.f});
+    cast(zones, 1);
+    CHECK(zones.dragon().skillCd[1] == def.skills[1].cooldown);
+    cast(zones, 1);
+    CHECK(zones.dots().size() == 2);
+    CHECK(zones.enemies()[0].curseStacks == 0);
+    step(zones, 0.125f);
+    CHECK(zones.enemies()[0].curseStacks == 1);
+    CHECK(zones.enemies()[1].curseStacks == 0);
+    zones.enemiesMutable()[1].pos = {530.f, 450.f};
+    step(zones, 0.5f);
+    CHECK(zones.enemies()[0].curseStacks == 1);
+    CHECK(zones.enemies()[1].curseStacks == 1);
+    CHECK(zones.enemies()[0].curseRemaining < zones.enemies()[1].curseRemaining);
+    step(zones, 0.375f);
+    CHECK(zones.enemies()[0].curseStacks == 1);
+    step(zones, 0.125f);
+    CHECK(zones.enemies()[0].curseStacks == 2);
+    CHECK(zones.enemies()[1].curseStacks == 1);
+    for (int i = 0; i < 3; ++i) step(zones, 1.f);
+    CHECK(zones.enemies()[0].curseStacks == 5);
+    step(zones, 1.f);  // 만료를 넘긴 마지막 피해 틱은 저주를 갱신하지 않는다.
+    CHECK(zones.dots().empty());
+    CHECK(zones.enemies()[0].curseStacks == 5);
+    CHECK(zones.enemies()[0].curseRemaining == 5.0);
+    zones.enemiesMutable()[0].hp = 1.f;
+    cast(zones, 0);
+    step(zones, 0.25f);
+    CHECK(zones.enemies().size() == 1);
+    enemyAt(zones, {520.f, 450.f});
+    CHECK(zones.enemies().back().curseStacks == 0);
+    CHECK(zones.enemies().back().curseZoneCooldown == 0.0);
+
+    World basic = setup(revenant);
+    enemyAt(basic, {470.f, 450.f});
+    basic.dragon().basicCd = 0.f;
+    step(basic, 0.25f);
+    CHECK(basic.enemies()[0].hp < 100000.f);
+    CHECK(basic.enemies()[0].curseStacks == 0);
+
+    SpeciesDef otherDef = def;
+    otherDef.key = "test-curse-other";
+    const Species otherSpecies = registerOrUpdateSpecies(otherDef);
+    World other = setup(otherSpecies);
+    World compare = setup(revenant);
+    for (World* w : {&other, &compare}) {
+        enemyAt(*w, {520.f, 450.f});
+        cast(*w, 0);
+        step(*w, 0.25f);
+        cast(*w, 1);
+        step(*w, 0.25f);
+    }
+    CHECK(other.enemies()[0].curseStacks == 0);
+    CHECK(compare.enemies()[0].curseStacks == 2);
+    CHECK(other.enemies()[0].hp == compare.enemies()[0].hp);
+
+    const std::string oldFormat =
+        "version=1\ndragon.present=1\ndragon.id=7\ndragon.species=revenant\n"
+        "dragon.alive=1\ndragon.level=6\ndragon.slots=0,1,2,3\n";
+    SaveData loaded;
+    CHECK(deserializeSave(oldFormat, loaded));
+    CHECK(loaded.hasDragon && loaded.dragon.species == revenant);
+    const std::array<int, kSkillSlots> oldSlots{0, 1, 2, 3};
+    CHECK(loaded.dragon.slots == oldSlots);
+    const std::string reserialized = serializeSave(loaded);
+    CHECK(reserialized.find("curse") == std::string::npos);
+}
+
 static void testZoneSprite() {
     const auto data = parseDragonText(
         "[dragon]\nname=Zone QA\n"
@@ -2682,6 +2827,11 @@ static void testZoneSprite() {
 }
 
 int main(int argc, char** argv) {
+    if (argc == 2 && std::string(argv[1]) == "--revenant-curse") {
+        testRevenantCurse("assets");
+        std::printf("%d passed, %d failed\n", g_passed, g_failed);
+        return g_failed == 0 ? 0 : 1;
+    }
     if (argc == 2 && std::string(argv[1]) == "--zone-sprite") {
         testZoneSprite();
         std::printf("%d passed, %d failed\n", g_passed, g_failed);
@@ -2757,7 +2907,11 @@ int main(int argc, char** argv) {
     testEnemyArtFromParse();
     testEnemyArtFromScanWarnings();
     // 실제 assets 를 읽는 것은 등록부를 바꾸므로 맨 마지막에 돈다
-    if (argc > 1) testEliteVariantsSpawn(std::filesystem::path(argv[1]));
+    if (argc > 1) {
+        const std::filesystem::path assets(argv[1]);
+        testEliteVariantsSpawn(assets);
+        testRevenantCurse(assets);
+    }
     else std::printf("[elite variants spawn] assets 경로 인자가 없어 건너뜀\n");
     std::printf("\n%d passed, %d failed\n", g_passed, g_failed);
     return g_failed == 0 ? 0 : 1;
