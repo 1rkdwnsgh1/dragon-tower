@@ -5,7 +5,7 @@
 
 작업을 끝낼 때 이 문서를 같은 PR 에서 고친다. **낡은 상태 문서는 없는 것보다 해롭다.**
 
-최종 갱신: 2026-11-18 (그림자 가르기 타격 프레임 PR)
+최종 갱신: 2026-11-19 (망령룡 WALK24 에셋 적용 PR)
 
 ---
 
@@ -21,6 +21,7 @@
 | 알려진 문제 | **1건** — [known-issues.md](known-issues.md) 4번 `make_sheet.py` 가 칸을 꽉 채우는 그림에 안 맞는다(우회 있음). 1~3번은 고쳤다 ([#77](https://github.com/1rkdwnsgh1/dragon-tower/issues/77) → #82, [#78](https://github.com/1rkdwnsgh1/dragon-tower/issues/78) → #80, [#79](https://github.com/1rkdwnsgh1/dragon-tower/issues/79) → #83). **Windows 확인 59~78번과 그림자 가르기 타격 프레임 4개가 남아 있다** |
 
 - 제작 중인 캐릭터 모션과 스킬은 [미리보기 도구](character-pipeline.md#모션과-스킬-미리보기)에서 확인할 수 있다.
+- 망령룡 WALK24는 `assets/revenant-walk24` 브랜치에서 이동 시트에 적용했다(main 반영은 PR 검토 대기). 원본·이전 8프레임 보존, 검사·빌드 결과와 Windows 미검증 항목은 [제작 진행사항](characters/revenant-dragon-progress.md#walk24-2026-11-19)에 있다. 기존 작업 순서와 스킬 효과 수치 조정 대기는 유지한다.
 
 ## 운영 방식
 
