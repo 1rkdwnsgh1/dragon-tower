@@ -114,6 +114,7 @@ struct SkillDef {
     float fxHold = 0.f;
     float fxTail = 0.f;
     float fxDelay = 0.f;  // Seconds from the triggering event to the visual effect.
+    bool fxZoneSpriteOnly = false;  // Render the zone's sheet on the zone's own clock.
     AnimDef fxAnim{12.f, false, 0, 1.f};
     std::string layeredBreath;  // Optional five-sheet breath package, relative to the dragon folder.
     float breathInputLock = 0.f;
@@ -128,6 +129,7 @@ struct SkillDef {
     bool hasFxAnchor = false;
     float fxAnchorX = 0.f, fxAnchorY = 0.f;    // fx_anchor= fx_frame 에서 효과를 붙일 본체 칸 안 좌표(px, 오른쪽 지향)
     float fxOriginX = -1.f, fxOriginY = -1.f;  // fx_origin= 효과 칸 안에서 fx_anchor 에 맞출 점(px). 음수면 칸 가운데
+    bool appliesCurse = false;  // Projectile 명중 또는 Zone 피해 판정에서만 사용한다.
     bool usesTimedHit() const { return hitFrame > 0 && !motion.empty() && layeredBreath.empty() && kind == SkillKind::Line; }
 };
 

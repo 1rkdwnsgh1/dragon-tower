@@ -245,6 +245,7 @@ DragonParseResult parseDragonText(const std::string& text, const std::string& fo
             else if (key == "motion_render_scale") ok = parseFloat(val, s.motionAnim.renderScale);
             // v1.6 스킬 효과(FX) 스프라이트. 파일은 fx_<fx>.png 이다. 적지 않으면 전처럼 도형만 그린다.
             else if (key == "fx_alpha") ok = parseFloat(val, s.fxAlpha);
+            else if (key == "apply_curse") ok = parseBool(val, s.appliesCurse);
             else if (key == "scale_with_size") ok = parseBool(val, s.scaleWithSize);
             else if (key == "fx") s.fx = val;
             else if (key == "fx_impact") s.fxImpact = val;
@@ -267,6 +268,7 @@ DragonParseResult parseDragonText(const std::string& text, const std::string& fo
                 if (ok && key == "fx_origin") { s.fxOriginX = x; s.fxOriginY = y; }
             }
             else if (key == "fx_front") ok = parseBool(val, s.fxInFront);
+            else if (key == "fx_zone_sprite_only") ok = parseBool(val, s.fxZoneSpriteOnly);
             else if (key == "fx_scale") ok = parseFloat(val, s.fxScale);
             else if (key == "fx_offset_x") ok = parseFloat(val, s.fxOffsetX);
             else if (key == "fx_offset_y") ok = parseFloat(val, s.fxOffsetY);

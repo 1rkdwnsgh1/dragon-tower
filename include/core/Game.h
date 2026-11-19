@@ -71,6 +71,8 @@ public:
     // v1.6: 층 구성이 데이터(assets/tower/floors.txt)에서 온다. 파일이 없으면 내장 3층이다.
     // 층 수가 더 이상 상수가 아니므로 화면에 쓸 때는 이 함수를 쓴다.
     int towerFloorCount() const { return static_cast<int>(floors_.size()); }
+    // T3: 지금 드래곤의 바탕화면 사냥 층(테스트·화면 표시용). floors.txt 층 수를 넘지 않는다.
+    int huntFloor() const;
     // floor는 1부터 센다. 범위를 벗어나면 가장 가까운 층을 돌려준다(빈 목록은 만들지 않는다).
     const TowerFloorDef& towerFloorDef(int floor) const;
     // 데이터로 읽은 층으로 갈아끼운다. 빈 목록이면 내장 구성을 쓴다.
@@ -203,6 +205,11 @@ public:
 
 private:
     EnemyKind randomMelee();
+    // 탑 100층 T3(2026-11-18): 바탕화면 디펜스에 나올 적 후보. 드래곤이 머무는 층의 직전 일반 층
+    // (huntFloorFor) 구성에서 일반 적만, 마리 수만큼 넣는다. 비면 randomMelee 로 대신한다.
+    std::vector<EnemyKind> huntPool() const;
+    // 탑 층을 돌파했을 때 그 드래곤의 진행(floor·cleared)과 계정 첫 돌파 기록을 올린다.
+    void recordFloorCleared(int floor);
     void enterBattleArea();  // #47: 전투를 시작할 때 "아래쪽에만" 설정에 따라 싸울 영역을 정한다
     void spawnWave();
     int waveNumber_ = 0;  // 이번 전투에서 보낸 웨이브 수

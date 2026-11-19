@@ -1,5 +1,7 @@
 # 망령룡 스킬 기획 V1
 
+저주 중첩 PR 1만 [확정 규칙](../game-design.md#확정-망령룡-저주-중첩-2026-11-19)을 따른다. 아래 V1의 저주 응용·소모, 영혼 자원, 궁극기는 후속 설계 후 결정한다.
+
 상태: **콘셉트 제안 / 기술 설계 대기 / 구현 미승인 / 밸런스 미확정**. 기록일: 2026-11-13.
 
 출처: 사용자가 제공한 `REVENANT_SKILL_GITHUB_WORK_HANDOFF.zip` 안의 `REVENANT_DRAGON_SKILL_PLAN_V1.md` 전체와 `WORK_GITHUB_PUSH_PROMPT.md`. 기존 [캐릭터 기획](revenant-dragon.md)을 보완하는 스킬 상세의 단일 기준 문서다. 시각 콘셉트 후보 60종의 목록과 선호 기록은 [추가 스킬 시각 기획](revenant-dragon-skill-concepts.md)에 따로 있고, 그 60종은 이 문서의 스킬 구성과 아직 대응되지 않았다. 이번 반영은 문서만 추가·수정하며 코드·게임 데이터·이미지·개발 우선순위는 변경하지 않는다.

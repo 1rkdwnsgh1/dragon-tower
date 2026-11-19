@@ -4,6 +4,7 @@
 #pragma once
 
 #include <string>
+#include <set>
 #include <vector>
 
 namespace dt {
@@ -45,5 +46,9 @@ int fieldBossLevelCap(int floor);
 
 // 출전 드래곤이 정확히 kFieldBossPartySize 마리이고 각각 상한 이하인가.
 bool partyMeetsLevelCap(int floor, const std::vector<int>& levels);
+
+// 탑 100층 T2(2026-11-18): 계정이 깬 필드 보스층 목록으로 드래곤 슬롯 수를 낸다.
+// kMaxStable + (깬 층 중 kStableBonusEvery 의 배수인 필드 보스층 수). 결과는 kMaxStableTotal 이하.
+int stableCapacityFor(const std::set<int>& fieldBossCleared);
 
 }  // namespace dt

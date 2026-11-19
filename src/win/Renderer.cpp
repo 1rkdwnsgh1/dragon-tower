@@ -120,6 +120,8 @@ void Renderer::shutdown() {
     stopBreathWorker();  // 뒤 스레드가 GDI+ 를 쓰는 중에 GDI+ 를 끄면 안 된다
     for (auto& f : breathCache_.frames) f.reset();
     breathCache_.pack = nullptr;
+    curseBadges_.clear();
+    curseFlashes_.clear();
     pieceCache_.clear();  // GDI+ 를 끄기 전에 합성해 둔 그림을 먼저 놓는다
     fonts_.clear();
     family_.reset();
@@ -827,15 +829,66 @@ void Renderer::drawEnemy(Graphics& g, const Enemy& e, const Sprites& sprites, fl
         }
     }
 
+    // 그림이 있으면 그림 위에, 도형이면 예전 자리에
+    const float barY = (drawnBySheet || bmp) ? std::min(e.pos.y - e.radius - 18.f, artY - height * 0.5f - 10.f)
+                                            : e.pos.y - e.radius - 18.f;
     // 체력 바(보스는 탑 HUD에 크게 표시)
     if (!isBoss) {
         float w = 56.f;
-        // 그림이 있으면 그림 위에, 도형이면 예전 자리에
-        float barY = (drawnBySheet || bmp) ? std::min(e.pos.y - e.radius - 18.f, artY - height * 0.5f - 10.f)
-                                           : e.pos.y - e.radius - 18.f;
         bar(g, RectF(x - w * 0.5f, barY, w, 7.f), e.hp / e.maxHp, 0xFFFF6B6B);
         text(g, "Lv." + std::to_string(e.level), x, barY - 18.f, 12.f, 0xFFE0D0FF, 1, false, true);
     }
+    if (e.alive && e.curseStacks > 0 && e.curseRemaining > 0.0) {
+        const float spriteTop = drawnBySheet ? artY + height * (240.f / 256.f - 0.5f) -
+            height * ed.anims[static_cast<int>(st)].renderScale * (240.f / 256.f) : barY;
+        const CurseBadge badge{&e, x, std::min(barY - 40.f, spriteTop - 23.f)};
+        if (forcedState) drawCurseBadge(g, badge, time);
+        else curseBadges_.push_back(badge);
+    }
+}
+
+void Renderer::drawCurseBadge(Graphics& g, const CurseBadge& badge, float time) {
+    const Enemy& e = *badge.enemy;
+    auto& flash = curseFlashes_[e.id];
+    const bool maxStacks = e.curseStacks == kCurseMaxStacks;
+    const bool reappliedAfterExpiry = e.curseStacks == 1 && e.curseRemaining > flash.remainingAtLastDraw;
+    if (e.curseStacks > flash.stackAtLastDraw || reappliedAfterExpiry)
+        flash.started = time - static_cast<float>(std::max(0.0, kCurseDuration - e.curseRemaining));
+    flash.stackAtLastDraw = e.curseStacks;
+    flash.remainingAtLastDraw = e.curseRemaining;
+    flash.seen = true;
+    const float duration = maxStacks ? 0.25f : 0.16f;
+    const float pulse = std::clamp(1.f - (time - flash.started) / duration, 0.f, 1.f);
+
+    constexpr float width = 36.f, height = 17.f;
+    const float center = width_ >= width ? std::clamp(badge.x, width * 0.5f, width_ - width * 0.5f) : badge.x;
+    const float x = center - width * 0.5f;
+    const float y = std::max(3.f, badge.top);
+    fillRound(g, RectF(x, y, width, height), 4.f, Color(228, 24, 12, 34));
+
+    const float iconX = x + 8.f, iconY = y + 7.f;
+    const Color ink(255, static_cast<BYTE>(170 + 62 * pulse),
+                    static_cast<BYTE>(100 + 90 * pulse), static_cast<BYTE>(220 + 35 * pulse));
+    if (maxStacks && pulse > 0.f) {
+        Pen halo(Color(static_cast<BYTE>(200 * pulse), 200, 125, 255), 1.f);
+        const float radius = 5.8f + pulse;
+        g.DrawEllipse(&halo, iconX - radius, iconY - radius, radius * 2.f, radius * 2.f);
+    }
+    const PointF rune[] = {{iconX, iconY - 4.4f}, {iconX + 4.3f, iconY},
+                           {iconX, iconY + 4.4f}, {iconX - 4.3f, iconY}};
+    Pen outline(ink, 1.3f);
+    g.DrawPolygon(&outline, rune, 4);
+    g.DrawLine(&outline, iconX, iconY - 2.f, iconX, iconY + 2.f);
+
+    constexpr wchar_t counts[][3] = {L"", L"×1", L"×2", L"×3", L"×4", L"×5"};
+    SolidBrush label(Color(255, 249, 235, 255));
+    g.DrawString(counts[e.curseStacks], 2, font(11.f, true), PointF(x + 14.f, y - 0.5f), &label);
+
+    const float fraction = static_cast<float>(std::clamp(e.curseRemaining / kCurseDuration, 0.0, 1.0));
+    SolidBrush track(Color(255, 65, 43, 80));
+    SolidBrush gauge(ink);
+    g.FillRectangle(&track, x + 3.f, y + 13.f, width - 6.f, 2.f);
+    g.FillRectangle(&gauge, x + 3.f, y + 13.f, (width - 6.f) * fraction, 2.f);
 }
 
 void Renderer::drawWorld(Graphics& g, const Game& game, const Sprites& sprites, const RenderContext& ctx) {
@@ -844,7 +897,7 @@ void Renderer::drawWorld(Graphics& g, const Game& game, const Sprites& sprites, 
     const SpeciesDef& dragonSp = speciesDef(w.dragon().species);
     uint32_t spColor = dragonSp.color;
 
-    drawDotZones(g, w, spColor, time);
+    drawDotZones(g, w, sprites, time);
 
     // 적 공격 예고
     for (const AttackZone& z : w.zones()) {
@@ -873,6 +926,8 @@ void Renderer::drawWorld(Graphics& g, const Game& game, const Sprites& sprites, 
 
     // v0.8: 캐릭터 보기 크기. 그림만 커지고 충돌·사거리 판정은 그대로다.
     const float cs = game.charScale();
+    curseBadges_.clear();
+    for (auto& entry : curseFlashes_) entry.second.seen = false;
     for (const Enemy& e : w.enemies()) drawEnemy(g, e, sprites, time, cs);
 
     // v1.6: 본체 뒤 효과(fx_front=0)를 드래곤보다 먼저 그린다.
@@ -913,6 +968,14 @@ void Renderer::drawWorld(Graphics& g, const Game& game, const Sprites& sprites, 
 
     drawFx(g, w, sprites, dragonSp, cs, true);
 
+    // FX 위에 배지를 그리고 피해 숫자는 기존처럼 가장 뒤에 올린다.
+    for (const CurseBadge& badge : curseBadges_) drawCurseBadge(g, badge, time);
+    curseBadges_.clear();
+    for (auto it = curseFlashes_.begin(); it != curseFlashes_.end();) {
+        if (!it->second.seen) it = curseFlashes_.erase(it);
+        else ++it;
+    }
+
     for (const FloatText& t : w.texts()) {
         float a = 1.f - std::clamp((t.t - t.duration * 0.6f) / (t.duration * 0.4f), 0.f, 1.f);
         uint32_t c = (t.color & 0x00FFFFFF) | (static_cast<uint32_t>(255 * a) << 24);
@@ -920,9 +983,28 @@ void Renderer::drawWorld(Graphics& g, const Game& game, const Sprites& sprites, 
     }
 }
 
-void Renderer::drawDotZones(Graphics& g, const World& w, uint32_t spColor, float time) {
+void Renderer::drawDotZones(Graphics& g, const World& w, const Sprites& sprites, float time) {
+    const SpeciesDef& species = speciesDef(w.dragon().species);
+    const uint32_t spColor = species.color;
     // 지속 피해 장판
     for (const DotZone& z : w.dots()) {
+        if (z.spriteSkill >= 0 && z.spriteSkill < static_cast<int>(species.skills.size())) {
+            const SkillDef& skill = species.skills[static_cast<size_t>(z.spriteSkill)];
+            const Sheet sheet = sprites.fxSheet(species.key, skill.fx);
+            if (sheet.bmp && sheet.frames > 0 && sheet.frameH > 0 && skill.radius > 0.f) {
+                // Use the cast's stored radius so later changes to character size
+                // cannot move the art away from the active damage zone.
+                const float scale = z.radius / skill.radius;
+                const float h = cfg::kDragonRadius * 3.f * scale * skill.fxScale * skill.fxAnim.renderScale;
+                const float x = z.pos.x + skill.fxOffsetX * scale;
+                const float y = z.pos.y + skill.fxOffsetY * scale;
+                const float width = h * sheet.frameW / sheet.frameH;
+                markRegion(RectF(x - width * 0.5f, y - h * 0.5f, width, h));
+                drawSheetFrame(g, sheet, animFrame(z.duration - z.remaining, skill.fxAnim.fps, sheet.frames, false),
+                               x, y, h, false, 0.f, skill.fxAlpha);
+                continue;
+            }
+        }
         float life = std::clamp(z.remaining / std::max(0.01f, z.duration), 0.f, 1.f);
         fillCircle(g, z.pos.x, z.pos.y, z.radius, col(spColor, 0.22f * (0.4f + 0.6f * life)));
         GraphicsState st = g.Save();
@@ -985,7 +1067,7 @@ void Renderer::drawAnimationPreview(Graphics& g, const World& w, const Sprites& 
     const DragonActor& d = w.dragon();
     const SpeciesDef& species = speciesDef(d.species);
     if (effects) {
-        drawDotZones(g, w, species.color, time);
+        drawDotZones(g, w, sprites, time);
         drawFx(g, w, sprites, species, charScale, false);
         drawBreath(g, d, sprites, charScale);
     }

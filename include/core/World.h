@@ -21,6 +21,10 @@ struct PlayerInput {
     bool skill[kSkillSlots] = {false, false, false, false};
 };
 
+// 전투와 표시가 같은 중첩 상한과 지속 시간을 읽는다.
+inline constexpr int kCurseMaxStacks = 5;
+inline constexpr double kCurseDuration = 6.0;
+
 struct Enemy {
     int id = 0;
     EnemyKind kind{};
@@ -42,6 +46,9 @@ struct Enemy {
     bool phase2 = false;
     bool spawnedAdds = false;
     int patternIndex = 0;
+    int curseStacks = 0;
+    double curseRemaining = 0.0;
+    double curseZoneCooldown = 0.0;  // 같은 적에게 닿는 모든 저주 장판이 공유한다.
 };
 
 enum class ZoneShape { Circle, Line };
@@ -68,6 +75,7 @@ struct Projectile {
     // 따라갈 수 없어서, 발사체가 자기 스킬 번호와 재생 시간을 들고 다닌다.
     int skill = -1;   // 스킬 목록 번호. -1 이면 전처럼 동그라미로 그린다
     float t = 0.f;    // 애니메이션 시간
+    bool appliesCurse = false;
 };
 
 struct DotZone {
@@ -76,6 +84,8 @@ struct DotZone {
     float dps = 1.f;
     float remaining = 1.f;
     float duration = 1.f;
+    bool appliesCurse = false;
+    int spriteSkill = -1;
 };
 
 enum class FxType { Ring, Heal, Dodge, Hit, Poof, LineBlast, Dash, LevelUp, Death, Shield };

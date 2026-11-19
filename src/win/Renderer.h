@@ -118,11 +118,25 @@ private:
                 bool danger = false);
     void bar(Gdiplus::Graphics& g, const Gdiplus::RectF& r, float ratio, uint32_t color, const std::string& label = "");
 
+    struct CurseBadge {
+        const Enemy* enemy;
+        float x, top;
+    };
+    struct CurseFlash {
+        int stackAtLastDraw = 0;  // 증가 감지용. 표시값은 매번 Enemy에서 읽는다.
+        double remainingAtLastDraw = 0.0;
+        float started = 0.f;
+        bool seen = false;
+    };
+    void drawCurseBadge(Gdiplus::Graphics& g, const CurseBadge& badge, float time);
+    std::vector<CurseBadge> curseBadges_;
+    std::map<int, CurseFlash> curseFlashes_;
+
     void drawWorld(Gdiplus::Graphics& g, const Game& game, const Sprites& sprites, const RenderContext& ctx);
     void drawDragon(Gdiplus::Graphics& g, const DragonActor& d, const Sprites& sprites, float time, float x, float y,
                     float height, bool preview);
     // charScale은 보기 배수다. 그림 크기만 바꾸고 판정에는 쓰지 않는다.
-    void drawDotZones(Gdiplus::Graphics& g, const World& w, uint32_t spColor, float time);
+    void drawDotZones(Gdiplus::Graphics& g, const World& w, const Sprites& sprites, float time);
     void drawBreath(Gdiplus::Graphics& g, const DragonActor& dragon, const Sprites& sprites, float charScale);
     // 장착한 숨결이 있으면 지금 배율의 캐시를 뒤에서 만들어 둔다(첫 숨결이 끊기지 않게).
     void warmBreathCache(Gdiplus::Graphics& g, const World& w, const Sprites& sprites, float charScale);

@@ -21,6 +21,12 @@ constexpr uint32_t kColorDamageToDragon = 0xFFFF5A5A;
 constexpr uint32_t kColorDamageToEnemy = 0xFFFFF2B0;
 constexpr uint32_t kColorDodge = 0xFF9FF0FF;
 constexpr uint32_t kColorHeal = 0xFF7CFF8A;
+constexpr double kCurseZoneInterval = 1.0;
+
+void applyCurse(Enemy& enemy) {
+    enemy.curseStacks = std::min(enemy.curseStacks + 1, kCurseMaxStacks);
+    enemy.curseRemaining = kCurseDuration;
+}
 }  // namespace
 
 World::World() = default;
@@ -366,6 +372,7 @@ bool World::castSkill(int i, bool aiChoice) {
             p.speed = cfg::kProjectileSpeed * 1.1f;
             p.damage = d.stats.atk * s.power;
             p.big = true;
+            p.appliesCurse = sp.key == "revenant" && s.appliesCurse;
             p.skill = i;  // 날아가는 동안 쓸 효과 그림을 그리는 쪽에서 찾는다(2026-11-17)
             projectiles_.push_back(p);
             break;
@@ -483,13 +490,16 @@ bool World::castSkill(int i, bool aiChoice) {
             z.dps = d.stats.atk * s.power;
             z.remaining = s.duration;
             z.duration = s.duration;
+            z.appliesCurse = sp.key == "revenant" && s.appliesCurse;
+            if (s.fxZoneSpriteOnly && !s.fx.empty()) z.spriteSkill = i;
             dots_.push_back(z);
             // 2026-11-17: 장판에도 효과 그림을 쓸 수 있게 했다(implementation-notes 의
             // "필요하면 장판 수명 전체를 덮는 Fx 를 하나 띄운다" 안 그대로).
             // **fx= 를 적은 스킬만** Fx 를 띄운다 — 안 적은 장판은 전과 똑같이 dots_ 로만 그려진다.
             // 길이는 fx_windup+fx_hold+fx_tail 로 정해지므로 dragon.txt 에서 duration 과 맞춘다.
             // 안 맞추면 잔류가 장판이 사라진 뒤에 남는다(그게 예전에 미뤘던 이유다).
-            if (!s.fx.empty()) addSkillFx(s, FxType::Ring, z.pos, z.pos, z.radius, s.duration, sp.color);
+            if (!s.fx.empty() && z.spriteSkill < 0)
+                addSkillFx(s, FxType::Ring, z.pos, z.pos, z.radius, s.duration, sp.color);
             break;
         }
         case SkillKind::PassiveStat:
@@ -1021,6 +1031,9 @@ void World::damageEnemy(Enemy& e, float raw, bool showNumber) {
     if (showNumber) addText(intText(dmg), e.pos - Vec2{0.f, e.radius + 14.f}, kColorDamageToEnemy, 16.f, 0.8f);
     if (e.hp <= 0.f) {
         e.alive = false;
+        e.curseStacks = 0;
+        e.curseRemaining = 0.0;
+        e.curseZoneCooldown = 0.0;
         events_.push_back({WorldEventType::EnemyKilled, e.kind, e.expReward});
         addFx(FxType::Death, e.pos, e.pos, e.radius * 1.6f, 0.5f, 0xFFFFFFFF);
         addText("+" + std::to_string(e.expReward) + " EXP", e.pos - Vec2{0.f, e.radius + 34.f}, 0xFFB6E3FF, 14.f, 1.1f);
@@ -1084,6 +1097,12 @@ void World::updateCombat(float dt, CombatMode mode, const PlayerInput& in) {
     d.hitFlash = std::max(0.f, d.hitFlash - dt);
     if (d.shieldTime > 0.f) d.shieldTime -= dt;
     if (d.hasteTime > 0.f) d.hasteTime -= dt;
+
+    for (Enemy& enemy : enemies_) {
+        enemy.curseRemaining = std::max(0.0, enemy.curseRemaining - dt);
+        enemy.curseZoneCooldown = std::max(0.0, enemy.curseZoneCooldown - dt);
+        if (enemy.curseRemaining == 0.0) enemy.curseStacks = 0;
+    }
 
     advanceBreath(dt);
     advanceSkillCast(dt);
@@ -1150,6 +1169,7 @@ void World::updateCombat(float dt, CombatMode mode, const PlayerInput& in) {
         Vec2 to = t->pos - p.pos;
         float step = p.speed * dt;
         if (to.length() <= step + t->radius * 0.6f) {
+            if (p.appliesCurse) applyCurse(*t);
             damageEnemy(*t, p.damage);
             // 2026-11-17: fx_impact 를 적은 스킬이면 그 시트를, 아니면 전처럼 도형을 띄운다.
             const SpeciesDef& psp = speciesDef(d.species);
@@ -1175,7 +1195,13 @@ void World::updateCombat(float dt, CombatMode mode, const PlayerInput& in) {
     for (DotZone& z : dots_) {
         z.remaining -= dt;
         for (Enemy& e : enemies_) {
-            if (e.alive && distance(e.pos, z.pos) <= z.radius + e.radius * 0.5f) damageEnemy(e, z.dps * dt, false);
+            if (e.alive && distance(e.pos, z.pos) <= z.radius + e.radius * 0.5f) {
+                if (z.appliesCurse && dt > 0.f && z.remaining >= 0.f && e.curseZoneCooldown == 0.0) {
+                    applyCurse(e);
+                    e.curseZoneCooldown = kCurseZoneInterval;
+                }
+                damageEnemy(e, z.dps * dt, false);
+            }
         }
     }
     dots_.erase(std::remove_if(dots_.begin(), dots_.end(), [](const DotZone& z) { return z.remaining <= 0.f; }), dots_.end());

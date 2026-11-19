@@ -19,6 +19,8 @@ tests/                     코어 규칙 검증
 
 | 바꾸려는 것 | 파일 | 찾을 이름 |
 |---|---|---|
+| 망령룡 저주 중첩 표시 | `src/win/Renderer.cpp` | `drawEnemy`가 배치하고 `drawCurseBadge`가 실제 적 상태를 그린다 |
+| 망령룡 저주 중첩과 장판 간격 | `include/core/World.h`, `src/core/World.cpp` | `Enemy::curseStacks`, `applyCurse`, `updateCombat`의 투사체·장판 분기 |
 | 드래곤 능력치·스킬 수치 | `assets/dragons/<키>/dragon.txt` | (코드 아님) |
 | 내장 4종의 기본값 | `src/core/Species.cpp` | `builtinSpecies` |
 | 전투 공통 수치(사거리, 회피, 회복 등) | `include/core/Config.h` | `cfg::k...` |
@@ -47,6 +49,7 @@ tests/                     코어 규칙 검증
 | 메뉴 열고 닫기 | `src/core/Game.cpp` | `setMenuOpen`, 상태창의 `≡` 버튼 |
 | 띠로 날아 내려가기 | `src/core/World.cpp` | `beginConfine`, `confining_` |
 | 입력 받을 영역 수집 | `src/win/Renderer.cpp` | `markRegion`, `g_regions` |
+| 장판 그림과 기본 도형 | `src/win/Renderer.cpp`, `src/core/World.cpp` | `drawDotZones`, `DotZone::spriteSkill`, `fx_zone_sprite_only` |
 | 트레이 아이콘·메뉴 | `src/win/App.cpp` | `createTray`, `showTrayMenu` |
 | 트레이 풍선 알림 | `src/win/App.cpp` | `showBalloon`, `pumpAlerts` |
 | 중요한 일 알림 모으기 | `src/core/Game.cpp` | `alert`, `takeAlert` |
@@ -78,6 +81,8 @@ tests/                     코어 규칙 검증
 | 드래곤 보유·교체 | `src/core/Game.cpp` | `switchDragon`, `beginAddDragon`, `canSwitchDragon` |
 | 보관 중 체력 회복 | `src/core/Game.cpp` | `Game::update` 앞부분, `cfg::kStableRegenRatio` |
 | 보유 목록 저장 | `src/core/SaveData.cpp` | `stable.*` 키와 옛 저장 파일 변환 |
+| 바탕화면 사냥 적 구성(T3) | `src/core/Game.cpp` | `huntFloor`, `huntPool`(직전 일반 층의 일반 적), `spawnWave`, 탑 돌파 기록 `recordFloorCleared` |
+| 탑 100층 저장(T2) | `src/core/SaveData.cpp`, `include/core/Tower.h` | `stable.N.floor`·`cleared`, `credits`, `tower.firstClear`·`fieldBossCleared`, 슬롯 수 `stableCapacityFor`/`SaveData::stableCapacity` |
 | 관리창 그리기 | `src/win/Renderer.cpp` | `drawStable` |
 | 싸울 때 유지할 간격 | `src/core/World.cpp` | `desiredRange`, `Game::setKeepRange` |
 | 쉴 때 엎드리기 | `src/core/World.cpp` | `updateDragonAnim`의 `restTime`, `cfg::kRestLieDelay` |

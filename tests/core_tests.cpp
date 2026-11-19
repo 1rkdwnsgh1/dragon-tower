@@ -113,6 +113,85 @@ static void testMultiLevelUp() {
     CHECK(grantExp(dead, 100, false).granted == 0);
 }
 
+// 탑 100층 T2(2026-11-18): 드래곤별 층·돌파 기록, 크레딧, 필드 보스·첫 돌파 기록 저장.
+static void testTowerSaveKeys() {
+    std::printf("[tower save keys]\n");
+    SaveData s;
+    s.nextDragonId = 3;
+    DragonRecord a;
+    a.id = 1; a.species = Species::Fire; a.level = 30; a.floor = 23; a.cleared = 22;
+    DragonRecord b;
+    b.id = 2; b.species = Species::Water; b.level = 5; b.floor = 11; b.cleared = 9;
+    s.stable = {a, b};
+    s.activeIndex = 1;
+    s.dragon = b;
+    s.hasDragon = true;
+    s.credits = 123456789012LL;
+    s.firstClear = 22;
+    s.fieldBossCleared = {10, 20};
+
+    SaveData l;
+    CHECK(deserializeSave(serializeSave(s), l));
+    CHECK(l.stable.size() == 2);
+    CHECK(l.stable[0].floor == 23 && l.stable[0].cleared == 22);
+    CHECK(l.stable[1].floor == 11 && l.stable[1].cleared == 9);
+    CHECK(l.dragon.floor == 11 && l.dragon.cleared == 9);  // 지금 개체는 보유 목록에서 복원된다
+    CHECK(l.credits == 123456789012LL);
+    CHECK(l.firstClear == 22);
+    CHECK(l.fieldBossCleared == std::set<int>({10, 20}));
+    {
+        SaveData l2;  // 한 번 읽은 것을 다시 저장·읽어도 같다(읽을 때 장착 칸 채우기 등은 첫 번에 끝난다)
+        CHECK(deserializeSave(serializeSave(l), l2));
+        CHECK(serializeSave(l2) == serializeSave(l));
+    }
+
+    // 슬롯: 기본 4 + 깬 20의 배수 필드 보스층 수
+    CHECK(l.stableCapacity() == cfg::kMaxStable + 1);  // 20층만 해당
+    CHECK(stableCapacityFor({}) == cfg::kMaxStable);
+    CHECK(stableCapacityFor({10, 30, 50}) == cfg::kMaxStable);
+    CHECK(stableCapacityFor({20, 40, 60, 80, 100}) == cfg::kMaxStableTotal);
+
+    // 옛 저장 파일(새 키 없음): 기본값으로 읽힌다
+    const std::string old =
+        "version=1\nnextDragonId=2\ndragon.present=1\ndragon.id=1\ndragon.species=fire\ndragon.alive=1\n"
+        "dragon.level=7\nstable.count=1\nstable.active=0\nstable.0.id=1\nstable.0.species=fire\n"
+        "stable.0.alive=1\nstable.0.level=7\n";
+    SaveData o;
+    CHECK(deserializeSave(old, o));
+    CHECK(o.dragon.floor == 1 && o.dragon.cleared == 0);
+    CHECK(o.stable.size() == 1 && o.stable[0].floor == 1);
+    CHECK(o.credits == 0 && o.firstClear == 0 && o.fieldBossCleared.empty());
+
+    // 손으로 고친 이상한 값은 범위로 자른다
+    const std::string bad =
+        "version=1\nstable.count=1\nstable.active=0\nstable.0.id=1\nstable.0.species=fire\nstable.0.alive=1\n"
+        "stable.0.floor=999\nstable.0.cleared=-5\ncredits=-100\ntower.firstClear=500\n"
+        "tower.fieldBossCleared=10,15,21,abc,200,40\n";
+    SaveData x;
+    CHECK(deserializeSave(bad, x));
+    CHECK(x.stable[0].floor == cfg::kTowerTopFloor && x.stable[0].cleared == 0);
+    CHECK(x.credits == 0 && x.firstClear == cfg::kTowerTopFloor);
+    CHECK(x.fieldBossCleared == std::set<int>({10, 40}));  // 필드 보스층만 남는다
+    SaveData huge;
+    CHECK(deserializeSave("version=1\ncredits=99999999999999999\n", huge));
+    CHECK(huge.credits == cfg::kMaxCredits);
+
+    // 슬롯이 늘어난 저장(5마리)도 잘리지 않는다
+    std::string five = "version=1\nstable.count=5\nstable.active=0\ntower.fieldBossCleared=20\n";
+    for (int i = 0; i < 5; ++i) {
+        const std::string pre = "stable." + std::to_string(i) + ".";
+        five += pre;
+        five += "id=" + std::to_string(i + 1) + "\n";
+        five += pre;
+        five += "species=fire\n";
+        five += pre;
+        five += "alive=1\n";
+    }
+    SaveData f;
+    CHECK(deserializeSave(five, f));
+    CHECK(f.stable.size() == 5);
+}
+
 static void testSaveRoundTrip() {
     std::printf("[save round trip]\n");
     SaveData s;
@@ -975,7 +1054,7 @@ static void testLoadDragonFolders() {
     CHECK(!speciesFromKey("_skipme", sp));
 
     // 없는 폴더를 가리켜도 안전하다
-    DragonScanResult none = loadDragonFolders(root / "없음");
+    DragonScanResult none = loadDragonFolders(root / std::filesystem::u8path("없음"));
     CHECK(none.folderCount == 0 && none.warnings.empty());
     fs::remove_all(root, ec);
 }
@@ -1071,7 +1150,7 @@ static void testEnemyFolderScan() {
     CHECK(!enemyFromKey("_skip", k));
     CHECK(enemyFromKey("slime", k) && enemyDef(k).desc == "덮어쓴 설명");
 
-    EnemyScanResult none = loadEnemyFolders(root / "없음");
+    EnemyScanResult none = loadEnemyFolders(root / std::filesystem::u8path("없음"));
     CHECK(none.folderCount == 0 && none.warnings.empty());
     fs::remove_all(root, ec);
 }
@@ -1159,6 +1238,80 @@ static void testDefenseBattle() {
 
 // #47(2026-11-16 사용자 결정): "아래쪽에만"을 끄면 바탕화면 전투도 화면 전체에서 한다.
 // 적은 여전히 왼쪽 밖에서 들어오고(디펜스), 드래곤이 있는 높이 근처로 온다.
+// 탑 100층 T3(2026-11-18): 바탕화면 디펜스는 드래곤이 머무는 층의 직전 일반 층 구성으로 나온다.
+// 탑 층을 돌파하면 그 드래곤의 진행(floor·cleared)과 계정 첫 돌파 기록이 오른다.
+static void testHuntFloorPool() {
+    std::printf("[hunt floor pool]\n");
+    EnemyKind slime{}, goblin{}, ogre{};
+    CHECK(enemyFromKey("slime", slime) && enemyFromKey("goblin", goblin) && enemyFromKey("ogre", ogre));
+    std::vector<TowerFloorDef> floors(4);
+    floors[0].spawns = {{"slime", 2, 4, 0.f}};
+    floors[1].spawns = {{"goblin", 2, 6, 0.f}, {"ogre", 1, 6, 0.f}};
+    floors[2].boss = true;
+    floors[2].spawns = {{"", 1, 8, 0.f}};  // 보스층: 바탕화면에는 쓰지 않는다
+    floors[3].spawns = {{"ogre", 1, 9, 0.f}};
+    const auto hunt = [&](int dragonFloor) {
+        Game g;
+        SaveData s;
+        s.hasDragon = true;
+        s.dragon.species = Species::Fire;
+        s.dragon.level = 8;
+        s.dragon.floor = dragonFloor;
+        s.huntMode = CombatMode::SkillManual;
+        g.setTowerFloors(floors);
+        g.init(s, kDesk);
+        return g;
+    };
+    {
+        Game g = hunt(1);  // 1층 → 1층 구성(슬라임)
+        CHECK(g.huntFloor() == 1);
+        g.startHunt();
+        PlayerInput in;
+        for (int i = 0; i < 30 * 10 && g.world().enemies().empty(); ++i) g.update(1.f / 30.f, in, false, true);
+        CHECK(!g.world().enemies().empty());
+        g_silentFailed = false;
+        for (const Enemy& e : g.world().enemies()) CHECK_SILENT(e.kind == slime);
+        CHECK(!g_silentFailed);
+    }
+    {
+        Game g = hunt(3);  // 3층 → 직전 일반 층 2층(고블린·오우거)
+        CHECK(g.huntFloor() == 2);
+        g.startHunt();
+        PlayerInput in;
+        for (int i = 0; i < 30 * 10 && g.world().enemies().empty(); ++i) g.update(1.f / 30.f, in, false, true);
+        g_silentFailed = false;
+        for (const Enemy& e : g.world().enemies()) CHECK_SILENT(e.kind == goblin || e.kind == ogre);
+        CHECK(!g_silentFailed);
+    }
+    // 층 수보다 높이 있으면 마지막 층까지만 본다(floors.txt 가 아직 100층이 아님)
+    CHECK(hunt(30).huntFloor() <= 4);
+
+    // 돌파 기록: 그 드래곤만 오르고, 계정 첫 돌파는 가장 높은 값을 남긴다
+    {
+        Game g;
+        SaveData s;
+        DragonRecord a;
+        a.id = 1; a.species = Species::Fire; a.level = 8;
+        s.stable = {a};
+        s.activeIndex = 0;
+        s.dragon = a;
+        s.hasDragon = true;
+        g.setTowerFloors(floors);
+        g.init(s, kDesk);
+        g.openTowerWarning();
+        g.enterTower(CombatMode::Direct);
+        CHECK(g.screen() == Screen::Tower);
+        g.world().clearEnemies(false);
+        PlayerInput in;
+        g.update(1.f / 30.f, in, false, true);
+        CHECK(g.screen() == Screen::FloorClear);
+        const SaveData snap = g.snapshotForSave();
+        CHECK(snap.dragon.cleared == 1 && snap.dragon.floor == 2);
+        CHECK(snap.stable[0].cleared == 1 && snap.stable[0].floor == 2);
+        CHECK(snap.firstClear == 1);
+    }
+}
+
 static void testBattleWithoutConfine() {
     std::printf("[battle without confine]\n");
     Game g;
@@ -2131,35 +2284,45 @@ static void testEliteVariantsSpawn(const std::filesystem::path& assets) {
     CHECK(enemyDef(el).role == EnemyRole::Boss);
     CHECK(defaultBoss() == li);
 
-    // 바탕화면 사냥: 일반 적 두 변종이 실제로 섞여 나온다
-    Game g;
-    SaveData s;
-    s.hasDragon = true;
-    s.dragon.species = Species::Fire;
-    s.dragon.level = 60;  // 치이지 않게 높게 둔다. 매 무리를 바로 치운다
-    s.dragon.hp = -1.f;
-    s.huntMode = CombatMode::SkillManual;
-    g.init(s, kDesk);
-    g.startHunt();
-    PlayerInput in;
-    bool sawSlime = false, sawGoblin = false;
-    int waves = 0;
-    for (int w = 0; w < 200 && !(sawSlime && sawGoblin); ++w) {
-        for (int i = 0; i < 30 * 20 && g.world().enemies().empty(); ++i) g.update(1.f / 30.f, in, false, true);
-        if (g.world().enemies().empty()) break;
-        ++waves;
-        for (const Enemy& e : g.world().enemies()) {
-            if (e.kind == es) sawSlime = true;
-            if (e.kind == eg) sawGoblin = true;
+    // 바탕화면 사냥: 일반 적 두 변종이 실제로 나온다.
+    // T3(2026-11-18)부터 나오는 적은 드래곤이 머무는 층의 직전 일반 층 구성을 따른다 —
+    // 실제 floors.txt 에서 정예 슬라임은 8층, 정예 고블린은 7층에 있다(9층→8층, 8층→7층).
+    TowerScanResult towerScan = loadTowerFloors(assets / "tower");
+    CHECK(towerScan.found);
+    const auto sawInHunt = [&](int dragonFloor, EnemyKind want, int& wavesOut) {
+        Game g;
+        SaveData s;
+        s.hasDragon = true;
+        s.dragon.species = Species::Fire;
+        s.dragon.level = 60;  // 치이지 않게 높게 둔다. 매 무리를 바로 치운다
+        s.dragon.hp = -1.f;
+        s.dragon.floor = dragonFloor;
+        s.huntMode = CombatMode::SkillManual;
+        g.setTowerFloors(towerScan.floors);
+        g.init(s, kDesk);
+        g.startHunt();
+        PlayerInput in;
+        bool saw = false;
+        for (int w = 0; w < 200 && !saw; ++w) {
+            for (int i = 0; i < 30 * 20 && g.world().enemies().empty(); ++i) g.update(1.f / 30.f, in, false, true);
+            if (g.world().enemies().empty()) break;
+            ++wavesOut;
+            for (const Enemy& e : g.world().enemies())
+                if (e.kind == want) saw = true;
+            g.world().clearEnemies(false);
         }
-        g.world().clearEnemies(false);
-    }
+        return saw;
+    };
+    int waves = 0;
+    const bool sawSlime = sawInHunt(9, es, waves);
+    const bool sawGoblin = sawInHunt(8, eg, waves);
     CHECK(waves > 0);  // 무리가 실제로 나왔다(안 나왔으면 아래 두 줄이 뜻이 없다)
     CHECK(sawSlime);
     CHECK(sawGoblin);
     std::printf("  무리 %d번 안에 두 변종이 모두 나왔다\n", waves);
 
     // 보스 변종: 체력 절반에서 정예 슬라임 3마리를 부른다
+    PlayerInput in;
     World wd;
     wd.setBounds(kDesk);
     wd.setupDragon(Species::Fire, 20, -1.f, {400.f, 500.f});
@@ -2483,7 +2646,197 @@ static void testTimedHit() {
     CHECK(ended.dragon().skillCd[0] == 0.f);
 }
 
+static void testRevenantCurse(const std::filesystem::path& assets) {
+    std::printf("[revenant curse stacks]\n");
+    loadDragonFolders(assets / "dragons");
+    Species revenant{};
+    const bool found = speciesFromKey("revenant", revenant);
+    CHECK(found);
+    if (!found) return;
+
+    const auto& def = speciesDef(revenant);
+    CHECK(def.skills.size() >= 2);
+    if (def.skills.size() < 2) return;
+    CHECK(def.skills[0].appliesCurse && def.skills[1].appliesCurse);
+    CHECK(def.skills[1].fxZoneSpriteOnly && def.skills[1].fxAnim.fps == 10.f);
+
+    auto setup = [](Species species) {
+        World w;
+        w.setBounds({0.f, 0.f, 1400.f, 650.f});
+        w.setupDragon(species, 3, -1.f, {420.f, 450.f});
+        w.setSlots({0, 1, -1, -1});
+        w.dragon().basicCd = 100.f;
+        return w;
+    };
+    auto enemyAt = [](World& w, Vec2 at) {
+        Enemy& e = w.spawnEnemy(defaultMelee(), 1, at);
+        e.hp = e.maxHp = 100000.f;
+        e.stun = 100.f;
+    };
+    auto cast = [](World& w, int slot) {
+        w.dragon().skillCd[static_cast<size_t>(slot)] = 0.f;
+        PlayerInput in{};
+        in.skill[slot] = true;
+        w.updateCombat(0.f, CombatMode::Direct, in);
+    };
+    auto step = [](World& w, float seconds) { w.updateCombat(seconds, CombatMode::Direct, {}); };
+
+    World bolts = setup(revenant);
+    enemyAt(bolts, {520.f, 450.f});
+    enemyAt(bolts, {720.f, 450.f});
+    cast(bolts, 0);
+    CHECK(bolts.enemies()[0].curseStacks == 0);
+    CHECK(bolts.dragon().skillCd[0] == def.skills[0].cooldown);
+    step(bolts, 0.25f);
+    CHECK(bolts.enemies()[0].curseStacks == 1);
+    CHECK(bolts.enemies()[1].curseStacks == 0);
+    CHECK(bolts.enemies()[0].curseRemaining == 6.0);
+    for (int i = 0; i < 5; ++i) {
+        cast(bolts, 0);
+        step(bolts, 0.25f);
+    }
+    CHECK(bolts.enemies()[0].curseStacks == 5);
+    CHECK(bolts.enemies()[0].curseRemaining == 6.0);
+    step(bolts, 5.75f);
+    CHECK(bolts.enemies()[0].curseStacks == 5);
+    cast(bolts, 0);
+    step(bolts, 0.25f);
+    CHECK(bolts.enemies()[0].curseStacks == 1);
+    CHECK(bolts.enemies()[0].curseRemaining == 6.0);
+    step(bolts, 6.f);
+    CHECK(bolts.enemies()[0].curseStacks == 0);
+    CHECK(bolts.enemies()[0].curseRemaining == 0.0);
+
+    World lostTarget = setup(revenant);
+    enemyAt(lostTarget, {520.f, 450.f});
+    enemyAt(lostTarget, {620.f, 450.f});
+    cast(lostTarget, 0);
+    CHECK(lostTarget.projectiles().size() == 1);
+    lostTarget.enemiesMutable()[0].alive = false;
+    step(lostTarget, 0.25f);
+    CHECK(lostTarget.projectiles().empty());
+    CHECK(lostTarget.enemies().size() == 1);
+    CHECK(lostTarget.enemies()[0].curseStacks == 0);
+    lostTarget.enemiesMutable()[0].pos = {1100.f, 450.f};
+    cast(lostTarget, 0);
+    CHECK(lostTarget.projectiles().empty());
+
+    World zones = setup(revenant);
+    enemyAt(zones, {520.f, 450.f});
+    enemyAt(zones, {1100.f, 450.f});
+    cast(zones, 1);
+    CHECK(zones.dragon().skillCd[1] == def.skills[1].cooldown);
+    cast(zones, 1);
+    CHECK(zones.dots().size() == 2);
+    CHECK(zones.enemies()[0].curseStacks == 0);
+    step(zones, 0.125f);
+    CHECK(zones.enemies()[0].curseStacks == 1);
+    CHECK(zones.enemies()[1].curseStacks == 0);
+    zones.enemiesMutable()[1].pos = {530.f, 450.f};
+    step(zones, 0.5f);
+    CHECK(zones.enemies()[0].curseStacks == 1);
+    CHECK(zones.enemies()[1].curseStacks == 1);
+    CHECK(zones.enemies()[0].curseRemaining < zones.enemies()[1].curseRemaining);
+    step(zones, 0.375f);
+    CHECK(zones.enemies()[0].curseStacks == 1);
+    step(zones, 0.125f);
+    CHECK(zones.enemies()[0].curseStacks == 2);
+    CHECK(zones.enemies()[1].curseStacks == 1);
+    for (int i = 0; i < 3; ++i) step(zones, 1.f);
+    CHECK(zones.enemies()[0].curseStacks == 5);
+    step(zones, 1.f);  // 만료를 넘긴 마지막 피해 틱은 저주를 갱신하지 않는다.
+    CHECK(zones.dots().empty());
+    CHECK(zones.enemies()[0].curseStacks == 5);
+    CHECK(zones.enemies()[0].curseRemaining == 5.0);
+    zones.enemiesMutable()[0].hp = 1.f;
+    cast(zones, 0);
+    step(zones, 0.25f);
+    CHECK(zones.enemies().size() == 1);
+    enemyAt(zones, {520.f, 450.f});
+    CHECK(zones.enemies().back().curseStacks == 0);
+    CHECK(zones.enemies().back().curseZoneCooldown == 0.0);
+
+    World basic = setup(revenant);
+    enemyAt(basic, {470.f, 450.f});
+    basic.dragon().basicCd = 0.f;
+    step(basic, 0.25f);
+    CHECK(basic.enemies()[0].hp < 100000.f);
+    CHECK(basic.enemies()[0].curseStacks == 0);
+
+    SpeciesDef otherDef = def;
+    otherDef.key = "test-curse-other";
+    const Species otherSpecies = registerOrUpdateSpecies(otherDef);
+    World other = setup(otherSpecies);
+    World compare = setup(revenant);
+    for (World* w : {&other, &compare}) {
+        enemyAt(*w, {520.f, 450.f});
+        cast(*w, 0);
+        step(*w, 0.25f);
+        cast(*w, 1);
+        step(*w, 0.25f);
+    }
+    CHECK(other.enemies()[0].curseStacks == 0);
+    CHECK(compare.enemies()[0].curseStacks == 2);
+    CHECK(other.enemies()[0].hp == compare.enemies()[0].hp);
+
+    const std::string oldFormat =
+        "version=1\ndragon.present=1\ndragon.id=7\ndragon.species=revenant\n"
+        "dragon.alive=1\ndragon.level=6\ndragon.slots=0,1,2,3\n";
+    SaveData loaded;
+    CHECK(deserializeSave(oldFormat, loaded));
+    CHECK(loaded.hasDragon && loaded.dragon.species == revenant);
+    const std::array<int, kSkillSlots> oldSlots{0, 1, 2, 3};
+    CHECK(loaded.dragon.slots == oldSlots);
+    const std::string reserialized = serializeSave(loaded);
+    CHECK(reserialized.find("curse") == std::string::npos);
+}
+
+static void testZoneSprite() {
+    const auto data = parseDragonText(
+        "[dragon]\nname=Zone QA\n"
+        "[skill.1]\nkind=Zone\nduration=5\nradius=140\nrange=340\n"
+        "scale_with_size=yes\nfx=fog\nfx_zone_sprite_only=yes\nfx_fps=10\n"
+        "[skill.2]\nkind=Zone\nduration=5\nradius=140\nrange=340\nfx=legacy\n",
+        "zone-sprite-qa", nullptr);
+    CHECK(data.warnings.empty());
+    const auto species = registerOrUpdateSpecies(data.def);
+    World world;
+    world.setBounds({0, 0, 1000, 500});
+    world.setSizeScale(3.f);
+    world.setupDragon(species, cfg::kMaxLevel, 0.f, {400, 250});
+    world.dragon().basicCd = 99.f;
+    world.setSlots({0, 1, -1, -1});
+    auto& target = world.spawnEnemy(defaultMelee(), 1, {480, 250});
+    target.stun = 100.f;
+    target.hp = target.maxHp = 10000.f;
+    PlayerInput input{};
+    input.skill[0] = input.skill[1] = true;
+    world.updateCombat(0.f, CombatMode::Direct, input);
+    CHECK(world.dots().size() == 2);
+    if (world.dots().size() != 2) return;
+    CHECK(world.dots()[0].spriteSkill == 0 && world.dots()[0].radius == 420.f);
+    CHECK(world.dots()[1].spriteSkill == -1 && world.dots()[1].radius == 140.f);
+    CHECK(std::none_of(world.fx().begin(), world.fx().end(), [](const Fx& fx) { return fx.key == "fog"; }));
+    CHECK(std::any_of(world.fx().begin(), world.fx().end(), [](const Fx& fx) { return fx.key == "legacy"; }));
+    for (int tick = 0; tick < 499; ++tick)
+        world.updateCombat(0.01f, CombatMode::Direct, {});
+    CHECK(world.dots().size() == 2);
+    CHECK(world.enemies().empty() || world.enemies().front().hp < 10000.f);
+    world.updateCombat(0.02f, CombatMode::Direct, {});
+    CHECK(world.dots().empty());
+}
+
 int main(int argc, char** argv) {
+    if (argc == 2 && std::string(argv[1]) == "--revenant-curse") {
+        testRevenantCurse("assets");
+        std::printf("%d passed, %d failed\n", g_passed, g_failed);
+        return g_failed == 0 ? 0 : 1;
+    }
+    if (argc == 2 && std::string(argv[1]) == "--zone-sprite") {
+        testZoneSprite();
+        std::printf("%d passed, %d failed\n", g_passed, g_failed);
+        return g_failed == 0 ? 0 : 1;
+    }
     if (argc == 2 && std::string(argv[1]) == "--layered-breath") {
         testLayeredBreath();
         std::printf("%d passed, %d failed\n", g_passed, g_failed);
@@ -2498,6 +2851,7 @@ int main(int argc, char** argv) {
     testAutoCapClamp();
     testMultiLevelUp();
     testSaveRoundTrip();
+    testTowerSaveKeys();
     testSelectAndDeath();
     testModeRules();
     testHiddenRules();
@@ -2526,6 +2880,7 @@ int main(int argc, char** argv) {
     testBossPhase2Summons();
     testDefenseBattle();
     testBattleWithoutConfine();
+    testHuntFloorPool();
     testDefenseWaveGrows();
     testAutoBattleNoLongerCapped();
     testUiSettingsSaved();
@@ -2552,7 +2907,11 @@ int main(int argc, char** argv) {
     testEnemyArtFromParse();
     testEnemyArtFromScanWarnings();
     // 실제 assets 를 읽는 것은 등록부를 바꾸므로 맨 마지막에 돈다
-    if (argc > 1) testEliteVariantsSpawn(std::filesystem::path(argv[1]));
+    if (argc > 1) {
+        const std::filesystem::path assets(argv[1]);
+        testEliteVariantsSpawn(assets);
+        testRevenantCurse(assets);
+    }
     else std::printf("[elite variants spawn] assets 경로 인자가 없어 건너뜀\n");
     std::printf("\n%d passed, %d failed\n", g_passed, g_failed);
     return g_failed == 0 ? 0 : 1;
