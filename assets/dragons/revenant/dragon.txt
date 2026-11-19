@@ -40,7 +40,7 @@ frame_w=256
 ; render_scale=1.13은 이전 8프레임의 보정값을 유지한 것(새 시트의 재보정 승인 아님).
 ; 원본·이전 모션·변환/QA: references/revenant-dragon/walk24-2026-11-19/README.txt
 [anim.move]
-fps=8
+fps=24
 loop=yes
 frame_w=256
 render_scale=1.13
@@ -50,7 +50,7 @@ render_scale=1.13
 ; Windows 실제 재생 미검증 / 이미지 품질 NEEDS_REVIEW.
 ; 원본·기존 8프레임·QA: references/revenant-dragon/fly24-2026-11-19/README.txt
 [anim.fly]
-fps=10
+fps=30
 loop=yes
 frame_w=256
 render_scale=1.37
