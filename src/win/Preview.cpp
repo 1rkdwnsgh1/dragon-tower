@@ -475,8 +475,11 @@ bool PreviewWindow::saveCapture(const fs::path& file, const Enemy* enemy, AnimSt
         // At large character sizes, effects can extend well beyond the body and below the floor.
         // Keep the framing fixed across directions, layers and frames at each size.
         const float extraRoom = std::clamp((scale - 1.f) / 2.f, 0.f, 1.f);
-        const float camera = (0.85f - 0.20f * extraRoom) / std::max(1.f, scale * 0.50f);
-        canvas.TranslateTransform(width * 0.5f, height * (0.65f - 0.10f * extraRoom));
+        const SkillDef* sk = enemy ? nullptr : skill();
+        const bool longBreath = sk && sk->layeredBreath == "bonestorm";
+        const float camera = longBreath ? 0.48f / std::max(1.f, scale)
+            : (0.85f - 0.20f * extraRoom) / std::max(1.f, scale * 0.50f);
+        canvas.TranslateTransform(width * 0.5f, height * (longBreath ? 0.5f : 0.65f - 0.10f * extraRoom));
         canvas.ScaleTransform(camera, camera);
         canvas.TranslateTransform(-kWorldWidth * 0.5f, -kFloorY);
         if (enemy) renderer_.drawEnemyPreview(canvas, *enemy, sprites_, state, time, scale);
@@ -585,8 +588,10 @@ void PreviewWindow::paint() {
             }
             if (!folder_.empty()) {
                 constexpr float zoom[] = {0.5f, 1.f, 1.5f, 2.f, 3.f};
+                const SkillDef* sk = skill();
+                const float framing = sk && sk->layeredBreath == "bonestorm" ? 0.60f : 1.f;
                 const float scale = std::min(width / kWorldWidth, height / kWorldHeight) *
-                                    zoom[std::clamp(selected(Zoom), 0, 4)];
+                                    zoom[std::clamp(selected(Zoom), 0, 4)] * framing;
                 canvas.TranslateTransform(width * 0.5f, height * 0.5f);
                 canvas.ScaleTransform(scale, scale);
                 canvas.TranslateTransform(-kWorldWidth * 0.5f, -kWorldHeight * 0.5f);

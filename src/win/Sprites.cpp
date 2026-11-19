@@ -169,7 +169,7 @@ void Sprites::loadBreathSheets(const std::filesystem::path& dir, const SpeciesDe
             auto bmp = loadPng(folder / name, detachFiles_ || !umbral);
             if (bmp && bmp->GetWidth() == columns * 1024 && bmp->GetHeight() == rows * 512) {
                 if (umbral || maskBreathAtlas(*bmp, [](int, int x) {
-                        // Past the old 300-unit tip, retain only faint residual light.
+                        // Soften the far end, leaving only faint residual light beyond the core.
                         constexpr float oldTip = bonestorm::anchorX +
                             (bonestorm::coreTipX - bonestorm::anchorX) / bonestorm::reachScale;
                         return 1.f - 0.85f * smoothRamp((x - oldTip + 56.f) / 56.f);

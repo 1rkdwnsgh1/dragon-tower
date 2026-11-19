@@ -1116,13 +1116,13 @@ void Renderer::drawBreath(Graphics& g, const DragonActor& dragon, const Sprites&
                                         cfg::kDragonRadius + (anchor.y - 240.f) / 256.f * bodyHeight};
     // Keep the visible stream at the configured reach from the mouth, even when
     // the enlarged sprite's muzzle is beyond the center-based hit segment.
-    const float reach = cast.range * (umbral ? 1.f : bonestorm::reachScale);
-    const float scaleX = reach / ((umbral ? 967.f : bonestorm::coreTipX) - bonestorm::anchorX);
-    if (scaleX <= 0.f) return;
     // At alpha 128 the firing body silhouette is 175px high and the core is 88px high.
-    const float scaleY = umbral ? scaleX : bodyHeight * (175.f / 256.f) / 88.f;
-    const float center = (512.f - bonestorm::anchorX) * scaleX;
-    const float halfW = 512.f * scaleX, halfH = 256.f * scaleY;
+    // Scale both axes from that thickness so the internal shapes keep their proportions.
+    const float scale = umbral ? cast.range / (967.f - bonestorm::anchorX)
+                               : bodyHeight * (175.f / 256.f) / 88.f;
+    if (scale <= 0.f) return;
+    const float center = (512.f - bonestorm::anchorX) * scale;
+    const float halfW = 512.f * scale, halfH = 256.f * scale;
     const float extentX = std::fabs(cast.aim.x) * halfW + std::fabs(cast.aim.y) * halfH;
     const float extentY = std::fabs(cast.aim.y) * halfW + std::fabs(cast.aim.x) * halfH;
     const Vec2 middle = mouth + cast.aim * center;
@@ -1131,11 +1131,11 @@ void Renderer::drawBreath(Graphics& g, const DragonActor& dragon, const Sprites&
     const GraphicsState state = g.Save();
     g.TranslateTransform(mouth.x, mouth.y);
     g.RotateTransform(std::atan2(cast.aim.y, cast.aim.x) * 57.2957795f);
-    g.ScaleTransform(1.f, (left ? -1.f : 1.f) * scaleY / scaleX);
+    if (left) g.ScaleTransform(1.f, -1.f);
     const auto layer = [&](Bitmap* bitmap, int frames, int index, float alpha = 1.f) {
         if (alpha > 0.f)
             drawSheetFrame(g, Sheet{bitmap, frames, 1024, 512, frames == 1 ? 1 : 4},
-                           index, center, 0.f, 512.f * scaleX, false, 0.f, alpha);
+                           index, center, 0.f, 512.f * scale, false, 0.f, alpha);
     };
     const auto loop = [&](int phase, float alpha = 1.f) {
         layer(pack->core.get(), 8, phase, alpha);
