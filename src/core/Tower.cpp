@@ -67,4 +67,12 @@ bool partyMeetsLevelCap(int floor, const std::vector<int>& levels) {
     return true;
 }
 
+int stableCapacityFor(const std::set<int>& fieldBossCleared) {
+    int bonus = 0;
+    for (int f : fieldBossCleared) {
+        if (floorType(f) == FloorType::FieldBoss && f % cfg::kStableBonusEvery == 0) ++bonus;
+    }
+    return std::min(cfg::kMaxStableTotal, cfg::kMaxStable + bonus);
+}
+
 }  // namespace dt
