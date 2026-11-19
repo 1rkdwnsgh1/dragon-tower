@@ -3259,7 +3259,7 @@ static void testRevenantProcession() {
     CHECK(def.skills[skill].processionShots == 3);
     CHECK(def.skills[skill].processionInterval == 0.4f);
     CHECK(def.skills[skill].processionSpeed == 620.f && def.skills[skill].processionLifetime == 2.f);
-    CHECK(def.skills[skill].power == 1.67f && def.skills[skill].radius == 110.f);
+    CHECK(def.skills[skill].power == 11.69f && def.skills[skill].radius == 110.f);
 
     World w = setup();
     const int firstId = w.enemies()[0].id, secondId = w.enemies()[1].id, thirdId = w.enemies()[2].id;
@@ -3341,6 +3341,29 @@ static void testRevenantProcession() {
     step(single, 2.5f);
     CHECK(!single.dragon().procession);
     CHECK(std::fabs((100000.f - single.enemies()[0].hp) - 3.f * oneHit) < 0.03f);
+
+    for (const auto& [kind, level] : {std::pair{defaultMelee(), 1}, std::pair{defaultMelee(), 8},
+                                     std::pair{defaultMelee(), 20}, std::pair{defaultBoss(), 8}}) {
+        World balance = setup();
+        balance.enemiesMutable().clear();
+        auto& enemy = balance.spawnEnemy(kind, level, {620.f, 300.f});
+        const float naturalHp = enemy.maxHp;
+        enemy.hp = enemy.maxHp = 100000.f;
+        enemy.stun = 100.f;
+        enemy.curseStacks = kCurseMaxStacks;
+        enemy.curseRemaining = kCurseDuration;
+        const float oldOne = mitigate(balance.dragon().stats.atk * 1.67f, enemy.def);
+        cast(balance);
+        step(balance, 2.f);
+        const float first = 100000.f - balance.enemies()[0].hp;
+        step(balance, 3.f);
+        const float total = 100000.f - balance.enemies()[0].hp;
+        std::printf("  procession %s Lv.%d: hp=%.1f old=%.1f/%.1f new=%.1f/%.1f\n",
+                    enemyDef(kind).key.c_str(), level, naturalHp, oldOne, 3.f * oldOne, first, total);
+        CHECK(std::fabs(first - 7.f * oldOne) < 0.01f);
+        CHECK(std::fabs(total - 21.f * oldOne) < 0.03f);
+        CHECK(balance.enemies()[0].curseStacks == kCurseMaxStacks && balance.dragon().souls == 0);
+    }
 
     World kills = setup();
     kills.enemiesMutable()[0].hp = 1.f;
