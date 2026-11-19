@@ -199,6 +199,7 @@ extra=1.2
 name=망자의 발톱
 desc=가까이 붙은 적을 발톱으로 휘두른다.
 kind=Line
+detonate_curse=yes
 cooldown=3.5
 power=1.6
 range=140
@@ -230,6 +231,7 @@ fx_tail=0.15
 name=혼령 관통
 desc=영혼 창을 응축해 앞의 적을 꿰뚫는다.
 kind=Line
+detonate_curse=yes
 ; 몸집이 커지면 판정 반경도 같이 커진다(2026-11-17). 사거리는 커지지 않는다.
 scale_with_size=yes
 cooldown=9
@@ -266,6 +268,7 @@ fx_tail=0.20
 name=망계의 숨결
 desc=턱을 열어 전방으로 거대한 영혼 격류를 쏟아낸다.
 kind=Line
+detonate_curse=yes
 ; 몸집이 커지면 판정 반경도 같이 커진다(2026-11-17). 사거리는 커지지 않는다.
 scale_with_size=yes
 cooldown=14

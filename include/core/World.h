@@ -381,7 +381,7 @@ private:
     std::array<int, kSkillSlots> slots_{-1, -1, -1, -1};
     void autoFillSlots();  // 빈 칸을 해제된 액티브로 채운다(이미 든 칸은 그대로)
     bool castSkill(int i, bool aiChoice);  // i = 스킬 목록 번호
-    void hitLine(Vec2 start, Vec2 end, float radius, float damage);
+    void hitLine(Vec2 start, Vec2 end, float radius, float damage, bool detonatesCurse = false);
     void advanceBreath(float dt, bool combatEnded = false);
     // 2026-11-18: 타격 프레임 스킬. 타격 전에 끊기면 쿨타임의 일부를 돌려준다.
     void advanceProcession(float dt);
@@ -398,7 +398,7 @@ private:
     void updateEnemies(float dt);
     void enemyAttack(Enemy& e);
     void resolveZone(const AttackZone& z, CombatMode mode);
-    void damageEnemy(Enemy& e, float raw, bool showNumber = true);
+    void damageEnemy(Enemy& e, float raw, bool showNumber = true, bool detonatesCurse = false);
     void damageDragon(float raw);
     float dragonDodgeChance() const;
 

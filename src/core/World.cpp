@@ -517,7 +517,7 @@ bool World::castSkill(int i, bool aiChoice) {
                 d.breath->facingLeft = std::fabs(dir.x) > 0.01f ? dir.x < 0.f : d.facing.x < 0.f;
                 if (!s.breathDeferHit) {
                     d.breath->hit = true;
-                    hitLine(d.pos, d.pos + dir * s.range, d.breath->radius, d.breath->damage);
+                    hitLine(d.pos, d.pos + dir * s.range, d.breath->radius, d.breath->damage, s.detonatesCurse);
                 }
                 if (!s.usesUmbralBreath()) {
                     if (std::fabs(dir.x) > 0.01f) d.facing = {dir.x < 0.f ? -1.f : 1.f, 0.f};
@@ -527,7 +527,7 @@ bool World::castSkill(int i, bool aiChoice) {
                 break;
             }
             Vec2 end = d.pos + dir * s.range;
-            hitLine(d.pos, end, skillRadius(s), d.stats.atk * s.power);
+            hitLine(d.pos, end, skillRadius(s), d.stats.atk * s.power, s.detonatesCurse);
             addSkillFx(s, FxType::LineBlast, d.pos, end, skillRadius(s), 0.45f, sp.color);
             break;
         }
@@ -729,10 +729,10 @@ void World::advanceProcession(float dt) {
         (cast.launched == skill.processionShots && cast.waves.empty())) cancelProcession();
 }
 
-void World::hitLine(Vec2 start, Vec2 end, float radius, float damage) {
+void World::hitLine(Vec2 start, Vec2 end, float radius, float damage, bool detonatesCurse) {
     for (Enemy& e : enemies_) {
         if (e.alive && distancePointSegment(e.pos, start, end) <= radius + scaledBody(e.radius, sizeScale_))
-            damageEnemy(e, damage);
+            damageEnemy(e, damage, true, detonatesCurse);
     }
 }
 
@@ -745,14 +745,15 @@ void World::advanceBreath(float dt, bool combatEnded) {
         return;
     }
     BreathCast& cast = *d.breath;
+    const SkillDef& skill = speciesDef(d.species).skills[static_cast<size_t>(cast.skill)];
     cast.elapsed += dt;
     constexpr float epsilon = 1e-6f;
     if (!cast.hit && cast.elapsed + epsilon >= BreathCast::impactTime) {
         cast.hit = true;
-        hitLine(cast.origin, cast.origin + cast.aim * cast.range, cast.radius, cast.damage);
+        hitLine(cast.origin, cast.origin + cast.aim * cast.range, cast.radius, cast.damage, skill.detonatesCurse);
     }
     if (cast.elapsed + epsilon >= BreathCast::duration) {
-        const bool umbral = speciesDef(d.species).skills[static_cast<size_t>(cast.skill)].usesUmbralBreath();
+        const bool umbral = skill.usesUmbralBreath();
         d.breath.reset();
         if (!umbral && d.anim == AnimState::Attack) {
             const float fps = speciesDef(d.species).anims[static_cast<int>(AnimState::Attack)].fps;
@@ -789,7 +790,7 @@ void World::advanceSkillCast(float dt, bool combatEnded) {
     }
     if (!c.hitDone && c.elapsed + epsilon >= c.hitTime) {
         c.hitDone = true;
-        hitLine(d.pos, d.pos + c.aim * s.range, skillRadius(s), d.stats.atk * s.power);
+        hitLine(d.pos, d.pos + c.aim * s.range, skillRadius(s), d.stats.atk * s.power, s.detonatesCurse);
     }
     if (c.fxDone && c.hitDone && c.elapsed + epsilon >= c.lockTime) d.skillCast.reset();
 }
@@ -1233,12 +1234,21 @@ void World::updateEnemies(float dt) {
     }
 }
 
-void World::damageEnemy(Enemy& e, float raw, bool showNumber) {
+void World::damageEnemy(Enemy& e, float raw, bool showNumber, bool detonatesCurse) {
     if (!e.alive) return;
-    float dmg = mitigate(raw, e.def);
+    const bool exploded = detonatesCurse && e.curseStacks == kCurseMaxStacks && e.curseRemaining > 0.0;
+    if (exploded) {
+        e.curseStacks = 0;
+        e.curseRemaining = 0.0;
+    }
+    const float dmg = mitigate(exploded ? raw * 2.f : raw, e.def);
     e.hp -= dmg;
     e.hitFlash = 0.15f;
-    if (showNumber) addText(intText(dmg), e.pos - Vec2{0.f, e.radius + 14.f}, kColorDamageToEnemy, 16.f, 0.8f);
+    if (showNumber) {
+        const std::string number = exploded ? "저주 폭발! " + intText(dmg) : intText(dmg);
+        addText(number, e.pos - Vec2{0.f, e.radius + 14.f},
+                exploded ? 0xFFE4AEFF : kColorDamageToEnemy, exploded ? 19.f : 16.f, 0.8f);
+    }
     if (e.hp <= 0.f) {
         e.alive = false;
         e.curseStacks = 0;
