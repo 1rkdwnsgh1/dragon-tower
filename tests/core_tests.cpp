@@ -2483,7 +2483,47 @@ static void testTimedHit() {
     CHECK(ended.dragon().skillCd[0] == 0.f);
 }
 
+static void testZoneSprite() {
+    const auto data = parseDragonText(
+        "[dragon]\nname=Zone QA\n"
+        "[skill.1]\nkind=Zone\nduration=5\nradius=140\nrange=340\n"
+        "scale_with_size=yes\nfx=fog\nfx_zone_sprite_only=yes\nfx_fps=10\n"
+        "[skill.2]\nkind=Zone\nduration=5\nradius=140\nrange=340\nfx=legacy\n",
+        "zone-sprite-qa", nullptr);
+    CHECK(data.warnings.empty());
+    const auto species = registerOrUpdateSpecies(data.def);
+    World world;
+    world.setBounds({0, 0, 1000, 500});
+    world.setSizeScale(3.f);
+    world.setupDragon(species, cfg::kMaxLevel, 0.f, {400, 250});
+    world.dragon().basicCd = 99.f;
+    world.setSlots({0, 1, -1, -1});
+    auto& target = world.spawnEnemy(defaultMelee(), 1, {480, 250});
+    target.stun = 100.f;
+    target.hp = target.maxHp = 10000.f;
+    PlayerInput input{};
+    input.skill[0] = input.skill[1] = true;
+    world.updateCombat(0.f, CombatMode::Direct, input);
+    CHECK(world.dots().size() == 2);
+    if (world.dots().size() != 2) return;
+    CHECK(world.dots()[0].spriteSkill == 0 && world.dots()[0].radius == 420.f);
+    CHECK(world.dots()[1].spriteSkill == -1 && world.dots()[1].radius == 140.f);
+    CHECK(std::none_of(world.fx().begin(), world.fx().end(), [](const Fx& fx) { return fx.key == "fog"; }));
+    CHECK(std::any_of(world.fx().begin(), world.fx().end(), [](const Fx& fx) { return fx.key == "legacy"; }));
+    for (int tick = 0; tick < 499; ++tick)
+        world.updateCombat(0.01f, CombatMode::Direct, {});
+    CHECK(world.dots().size() == 2);
+    CHECK(world.enemies().empty() || world.enemies().front().hp < 10000.f);
+    world.updateCombat(0.02f, CombatMode::Direct, {});
+    CHECK(world.dots().empty());
+}
+
 int main(int argc, char** argv) {
+    if (argc == 2 && std::string(argv[1]) == "--zone-sprite") {
+        testZoneSprite();
+        std::printf("%d passed, %d failed\n", g_passed, g_failed);
+        return g_failed == 0 ? 0 : 1;
+    }
     if (argc == 2 && std::string(argv[1]) == "--layered-breath") {
         testLayeredBreath();
         std::printf("%d passed, %d failed\n", g_passed, g_failed);

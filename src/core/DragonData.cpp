@@ -267,6 +267,7 @@ DragonParseResult parseDragonText(const std::string& text, const std::string& fo
                 if (ok && key == "fx_origin") { s.fxOriginX = x; s.fxOriginY = y; }
             }
             else if (key == "fx_front") ok = parseBool(val, s.fxInFront);
+            else if (key == "fx_zone_sprite_only") ok = parseBool(val, s.fxZoneSpriteOnly);
             else if (key == "fx_scale") ok = parseFloat(val, s.fxScale);
             else if (key == "fx_offset_x") ok = parseFloat(val, s.fxOffsetX);
             else if (key == "fx_offset_y") ok = parseFloat(val, s.fxOffsetY);

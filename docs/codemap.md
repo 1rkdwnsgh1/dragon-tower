@@ -47,6 +47,7 @@ tests/                     코어 규칙 검증
 | 메뉴 열고 닫기 | `src/core/Game.cpp` | `setMenuOpen`, 상태창의 `≡` 버튼 |
 | 띠로 날아 내려가기 | `src/core/World.cpp` | `beginConfine`, `confining_` |
 | 입력 받을 영역 수집 | `src/win/Renderer.cpp` | `markRegion`, `g_regions` |
+| 장판 그림과 기본 도형 | `src/win/Renderer.cpp`, `src/core/World.cpp` | `drawDotZones`, `DotZone::spriteSkill`, `fx_zone_sprite_only` |
 | 트레이 아이콘·메뉴 | `src/win/App.cpp` | `createTray`, `showTrayMenu` |
 | 트레이 풍선 알림 | `src/win/App.cpp` | `showBalloon`, `pumpAlerts` |
 | 중요한 일 알림 모으기 | `src/core/Game.cpp` | `alert`, `takeAlert` |
