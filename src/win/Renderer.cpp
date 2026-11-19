@@ -112,7 +112,14 @@ bool Renderer::init() {
     return family_ != nullptr;
 }
 
+Renderer::~Renderer() {
+    stopBreathWorker();
+}
+
 void Renderer::shutdown() {
+    stopBreathWorker();  // 뒤 스레드가 GDI+ 를 쓰는 중에 GDI+ 를 끄면 안 된다
+    for (auto& f : breathCache_.frames) f.reset();
+    breathCache_.pack = nullptr;
     pieceCache_.clear();  // GDI+ 를 끄기 전에 합성해 둔 그림을 먼저 놓는다
     fonts_.clear();
     family_.reset();
@@ -872,6 +879,7 @@ void Renderer::drawWorld(Graphics& g, const Game& game, const Sprites& sprites, 
     // 지금은 fx= 를 적은 스킬이 하나도 없어서 이 층에 걸리는 효과가 없다 — 화면은 그대로다.
     drawFx(g, w, sprites, dragonSp, cs, false);
     drawBreath(g, w.dragon(), sprites, cs);
+    if (game.hasDragon()) warmBreathCache(g, w, sprites, cs);
 
     const DragonActor& d = w.dragon();
     if (d.alive && game.hasDragon()) {
@@ -1076,6 +1084,27 @@ static void drawLineBlast(Graphics& g, const Fx& f, float fade) {
     g.DrawLine(&core, f.a.x, f.a.y, f.b.x, f.b.y);
 }
 
+// 숨결 한 층의 원본 1px 이 논리 몇 px 로 그려지는가. drawBreath 와 캐시 미리 채우기가 같이 쓴다.
+static float breathScale(const SpeciesDef& sp, const SkillDef& skill, float range, float charScale) {
+    // Keep the visible stream at the configured reach from the mouth, even when
+    // the enlarged sprite's muzzle is beyond the center-based hit segment.
+    if (skill.usesUmbralBreath()) return range / (967.f - bonestorm::anchorX);
+    // At alpha 128 the firing body silhouette is 175px high and the core is 88px high.
+    // Scale both axes from that thickness so the internal shapes keep their proportions.
+    const AnimDef& pose = sp.anims[static_cast<int>(AnimState::Attack)];
+    const float bodyHeight = cfg::kDragonRadius * 3.f * charScale * pose.renderScale;
+    return bodyHeight * (175.f / 256.f) / 88.f;
+}
+
+// 지금 변환에서 논리 1px 이 장치 몇 px 인가(App 의 dpi 배율). 회전 전에 부른다.
+static float deviceScale(Graphics& g) {
+    Matrix m;
+    g.GetTransform(&m);
+    REAL e[6];
+    m.GetElements(e);
+    return std::sqrt(e[0] * e[0] + e[1] * e[1]);
+}
+
 void Renderer::drawBreath(Graphics& g, const DragonActor& dragon, const Sprites& sprites, float charScale) {
     if (!dragon.alive || !dragon.breath) return;
     const BreathCast& cast = *dragon.breath;
@@ -1114,12 +1143,7 @@ void Renderer::drawBreath(Graphics& g, const DragonActor& dragon, const Sprites&
     const Vec2 mouth = dragon.pos + Vec2{(left ? -1.f : 1.f) * (anchor.x - 128.f) / 256.f *
                                             bodyHeight * body.frameW / body.frameH,
                                         cfg::kDragonRadius + (anchor.y - 240.f) / 256.f * bodyHeight};
-    // Keep the visible stream at the configured reach from the mouth, even when
-    // the enlarged sprite's muzzle is beyond the center-based hit segment.
-    // At alpha 128 the firing body silhouette is 175px high and the core is 88px high.
-    // Scale both axes from that thickness so the internal shapes keep their proportions.
-    const float scale = umbral ? cast.range / (967.f - bonestorm::anchorX)
-                               : bodyHeight * (175.f / 256.f) / 88.f;
+    const float scale = breathScale(sp, skill, cast.range, charScale);
     if (scale <= 0.f) return;
     const float center = (512.f - bonestorm::anchorX) * scale;
     const float halfW = 512.f * scale, halfH = 256.f * scale;
@@ -1128,55 +1152,169 @@ void Renderer::drawBreath(Graphics& g, const DragonActor& dragon, const Sprites&
     const Vec2 middle = mouth + cast.aim * center;
     markRegion(RectF(middle.x - extentX, middle.y - extentY, extentX * 2.f, extentY * 2.f));
 
-    const GraphicsState state = g.Save();
-    g.TranslateTransform(mouth.x, mouth.y);
-    g.RotateTransform(std::atan2(cast.aim.y, cast.aim.x) * 57.2957795f);
-    if (left) g.ScaleTransform(1.f, -1.f);
-    const auto layer = [&](Bitmap* bitmap, int frames, int index, float alpha = 1.f) {
-        if (alpha > 0.f)
-            drawSheetFrame(g, Sheet{bitmap, frames, 1024, 512, frames == 1 ? 1 : 4},
-                           index, center, 0.f, 512.f * scale, false, 0.f, alpha);
-    };
-    const auto loop = [&](int phase, float alpha = 1.f) {
-        layer(pack->core.get(), 8, phase, alpha);
-        layer(pack->ribbons.get(), 8, phase, alpha);
-        layer(pack->outer.get(), 8, phase, alpha);
-    };
+    // 이번 프레임의 그림 key(0~3 시작, 4~11 반복, 12~15 끝).
+    // 망령룡의 끝 첫 칸은 반복 그림에서 끝 그림으로 0.096초 동안 넘어간다(blendKey).
     constexpr float loopPhaseSeconds = BreathCast::frameSeconds / 2.5f;
     constexpr float endBlendSeconds = 0.096f;
     const auto loopPhase = [](float time) {
         return static_cast<int>((time + 1e-6f) / loopPhaseSeconds) % 8;
     };
     const int frame = cast.frame();
-    if (frame < 4) {
-        constexpr float bonestormAlpha[] = {0.f, 0.12f, 0.45f, 0.96f};
-        constexpr float umbralAlpha[] = {0.f, 0.08f, 0.43f, 0.96f};
-        layer(pack->start.get(), 4, frame);
-        if (umbral) {
-            layer(pack->startRibbons.get(), 4, frame, umbralAlpha[frame]);
-            layer(pack->startOuter.get(), 4, frame, umbralAlpha[frame]);
-        } else {
-            layer(pack->ribbons.get(), 8, (frame + 5) % 8, bonestormAlpha[frame]);
-            layer(pack->outer.get(), 8, (frame + 5) % 8, bonestormAlpha[frame]);
-        }
-    } else if (frame < 12) {
-        loop(umbral ? frame - 4 : loopPhase(cast.elapsed - BreathCast::impactTime));
-    } else {
-        constexpr float alpha[] = {0.85f, 0.50f, 0.20f, 0.025f};
-        const int index = frame - 12;
-        float endAlpha = 1.f;
-        if (!umbral && index == 0) {
-            const float elapsed = std::max(0.f, cast.elapsed - BreathCast::endTime);
-            endAlpha = std::min(1.f, elapsed / endBlendSeconds);
-            const float from = BreathCast::endTime - BreathCast::impactTime - loopPhaseSeconds * 0.5f;
-            loop(loopPhase(from + elapsed), 1.f - endAlpha);
-        }
-        layer(pack->end.get(), 4, index, endAlpha);
-        if (umbral) layer(pack->endRibbonFrames[index].get(), 1, 0);
-        else layer(pack->endRibbons.get(), 4, index, alpha[index] * endAlpha);
-        layer(pack->endOuter[index].get(), 1, 0, endAlpha);
+    int key = frame, blendKey = -1;
+    float keyAlpha = 1.f;
+    if (frame >= 4 && frame < 12) {
+        key = 4 + (umbral ? frame - 4 : loopPhase(cast.elapsed - BreathCast::impactTime));
+    } else if (frame == 12 && !umbral) {
+        const float elapsed = std::max(0.f, cast.elapsed - BreathCast::endTime);
+        keyAlpha = std::min(1.f, elapsed / endBlendSeconds);
+        const float from = BreathCast::endTime - BreathCast::impactTime - loopPhaseSeconds * 0.5f;
+        blendKey = 4 + loopPhase(from + elapsed);
     }
+
+    const float devScale = scale * deviceScale(g);
+    updateBreathCache(sprites, *pack, devScale);
+    const GraphicsState state = g.Save();
+    g.TranslateTransform(mouth.x, mouth.y);
+    g.RotateTransform(std::atan2(cast.aim.y, cast.aim.x) * 57.2957795f);
+    if (left) g.ScaleTransform(1.f, -1.f);
+    const InterpolationMode savedMode = g.GetInterpolationMode();
+    const RectF dest(center - halfW, -halfH, halfW * 2.f, halfH * 2.f);
+    const bool cacheUsable = breathCache_.pack == pack;
+    const auto paste = [&](int k, float alpha) {
+        if (alpha <= 0.f) return;
+        ImageAttributes ia;
+        if (alpha < 1.f) {
+            ColorMatrix cm = {{{1.f, 0.f, 0.f, 0.f, 0.f},
+                               {0.f, 1.f, 0.f, 0.f, 0.f},
+                               {0.f, 0.f, 1.f, 0.f, 0.f},
+                               {0.f, 0.f, 0.f, alpha, 0.f},
+                               {0.f, 0.f, 0.f, 0.f, 1.f}}};
+            ia.SetColorMatrix(&cm, ColorMatrixFlagsDefault, ColorAdjustTypeBitmap);
+        }
+        Bitmap* cached = cacheUsable ? breathCache_.frames[static_cast<size_t>(k)].get() : nullptr;
+        if (cached) {
+            // 캐시는 장치 픽셀 크기라 1:1 이다(상한에 걸린 큰 배율에서만 늘어난다).
+            // 최근접 보간은 양선형보다 열 배 넘게 빠르고, 1:1 에서는 원본 픽셀을 그대로 옮긴다.
+            const float cs = breathCache_.cacheScale;
+            g.SetInterpolationMode(InterpolationModeNearestNeighbor);
+            g.DrawImage(cached, dest, 0.f, 0.f, BreathSheets::kWidth * cs, BreathSheets::kHeight * cs, UnitPixel,
+                        alpha < 1.f ? &ia : nullptr);
+            return;
+        }
+        // 캐시가 아직 없으면(켠 직후·크기를 바꾼 직후) 합성본 한 장을 그대로 확대한다.
+        ia.SetWrapMode(WrapModeTileFlipXY);
+        g.SetInterpolationMode(savedMode);
+        g.DrawImage(pack->frames[static_cast<size_t>(k)].get(), dest, 0.f, 0.f,
+                    static_cast<float>(BreathSheets::kWidth), static_cast<float>(BreathSheets::kHeight), UnitPixel,
+                    &ia);
+    };
+    if (blendKey >= 0) paste(blendKey, 1.f - keyAlpha);
+    paste(key, keyAlpha);
+    g.SetInterpolationMode(savedMode);
     g.Restore(state);
+}
+
+void Renderer::stopBreathWorker() {
+    BreathCache& c = breathCache_;
+    if (c.job) c.job->cancel = true;
+    // 만드는 중인 한 장(큰 배율에서 길어야 수십 ms)이 끝나면 멈춘다.
+    if (c.worker.joinable()) c.worker.join();
+    c.job.reset();
+}
+
+void Renderer::updateBreathCache(const Sprites& sprites, const BreathSheets& pack, float devScale) {
+    if (!cfg::kBreathCache || devScale <= 0.f) return;
+    BreathCache& c = breathCache_;
+
+    // 뒤에서 다 만든 그림을 가져온다. 잠겨 있으면 다음 프레임에 가져간다(그리는 스레드를 세우지 않는다).
+    if (c.job) {
+        std::unique_lock<std::mutex> lock(c.job->m, std::try_to_lock);
+        if (lock.owns_lock()) {
+            for (size_t k = 0; k < c.frames.size(); ++k)
+                if (c.job->done[k]) c.frames[k] = std::move(c.job->done[k]);
+        }
+    }
+
+    const float maxScale = std::sqrt(static_cast<float>(cfg::kBreathCacheMaxPixels) /
+                                     (static_cast<float>(BreathSheets::kWidth) * BreathSheets::kHeight));
+    const float target = std::min(devScale, maxScale);
+    const bool samePack = c.pack == &pack && c.generation == sprites.generation();
+    if (samePack && std::fabs(c.cacheScale - target) < 1e-4f) return;
+
+    if (samePack) {
+        // 배율만 바뀌었다 — 크기를 끄는 중일 수 있으니 같은 배율이 이어질 때까지 기다린다.
+        // 그동안은 지금 캐시를 늘려 그린다(최근접이라 조금 거칠 뿐 느려지지 않는다).
+        if (std::fabs(c.wantScale - target) > 1e-4f) {
+            c.wantScale = target;
+            c.wantFrames = 0;
+        }
+        if (++c.wantFrames < cfg::kBreathCacheSettleFrames) return;
+    }
+
+    stopBreathWorker();
+    for (auto& f : c.frames) f.reset();
+    c.pack = &pack;
+    c.generation = sprites.generation();
+    c.cacheScale = target;
+    c.wantScale = target;
+    c.wantFrames = 0;
+
+    // 뒤 스레드가 읽을 복사본. 원본(pack)은 그리는 스레드가 계속 쓰므로 넘기지 않는다.
+    std::array<std::unique_ptr<Bitmap>, BreathSheets::kFrames> sources;
+    for (size_t k = 0; k < sources.size(); ++k) {
+        Bitmap* from = pack.frames[k].get();
+        if (!from) return;
+        auto copy = std::make_unique<Bitmap>(BreathSheets::kWidth, BreathSheets::kHeight, PixelFormat32bppPARGB);
+        if (copy->GetLastStatus() != Ok) return;
+        Graphics cg(copy.get());
+        cg.SetCompositingMode(CompositingModeSourceCopy);
+        if (cg.DrawImage(from, 0, 0, BreathSheets::kWidth, BreathSheets::kHeight) != Ok) return;
+        sources[k] = std::move(copy);
+    }
+
+    auto job = std::make_shared<BreathJob>();
+    c.job = job;
+    const int devW = static_cast<int>(std::ceil(BreathSheets::kWidth * target));
+    const int devH = static_cast<int>(std::ceil(BreathSheets::kHeight * target));
+    c.worker = std::thread([job, sources = std::move(sources), devW, devH, target]() mutable {
+        // 쏘는 순서대로 만든다(시작 → 반복 → 끝).
+        for (size_t k = 0; k < sources.size() && !job->cancel; ++k) {
+            auto bmp = std::make_unique<Bitmap>(devW, devH, PixelFormat32bppPARGB);
+            if (bmp->GetLastStatus() != Ok) continue;
+            {
+                Graphics g(bmp.get());
+                // 화면과 같은 품질로 키워야 결과가 같다(App::render 의 설정).
+                g.SetCompositingMode(CompositingModeSourceCopy);
+                g.Clear(Color(0, 0, 0, 0));
+                g.SetCompositingMode(CompositingModeSourceOver);
+                g.SetInterpolationMode(InterpolationModeBilinear);
+                ImageAttributes ia;
+                ia.SetWrapMode(WrapModeTileFlipXY);
+                g.DrawImage(sources[k].get(),
+                            RectF(0.f, 0.f, BreathSheets::kWidth * target, BreathSheets::kHeight * target), 0.f,
+                            0.f, static_cast<float>(BreathSheets::kWidth),
+                            static_cast<float>(BreathSheets::kHeight), UnitPixel, &ia);
+            }
+            sources[k].reset();
+            std::lock_guard<std::mutex> lock(job->m);
+            job->done[k] = std::move(bmp);
+        }
+    });
+}
+
+void Renderer::warmBreathCache(Graphics& g, const World& w, const Sprites& sprites, float charScale) {
+    const DragonActor& d = w.dragon();
+    if (!cfg::kBreathCache || !d.alive || d.breath) return;
+    const SpeciesDef& sp = speciesDef(d.species);
+    for (int s : w.slots()) {
+        if (s < 0 || s >= static_cast<int>(sp.skills.size())) continue;
+        const SkillDef& skill = sp.skills[static_cast<size_t>(s)];
+        if (skill.layeredBreath.empty()) continue;
+        const BreathSheets* pack = sprites.breathSheets(sp.key, skill.layeredBreath);
+        if (!pack || !sprites.breathBody(sp, skill).bmp) continue;
+        updateBreathCache(sprites, *pack, breathScale(sp, skill, skill.range, charScale) * deviceScale(g));
+        return;
+    }
 }
 
 void Renderer::drawFx(Graphics& g, const World& w, const Sprites& sprites, const SpeciesDef& sp, float charScale,

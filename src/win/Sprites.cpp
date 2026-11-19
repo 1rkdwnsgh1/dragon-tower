@@ -83,12 +83,73 @@ std::unique_ptr<Gdiplus::Bitmap> makeUmbralStart(Gdiplus::Bitmap& loop) {
         })) return nullptr;
     return start;
 }
+// 숨결 그림 key 하나의 층들을 원본 크기 그대로(1:1) 겹친다. 투명도는 예전 drawBreath 와 같다.
+// 1:1 정수 좌표라 GDI+ 가 다시 샘플링하지 않는다 — 결과는 층을 각각 그려 겹친 것과 같다.
+std::unique_ptr<Gdiplus::Bitmap> composeBreathFrame(const BreathLayers& pack, bool umbral, int key) {
+    using namespace Gdiplus;
+    constexpr int w = BreathSheets::kWidth, h = BreathSheets::kHeight;
+    auto out = std::make_unique<Bitmap>(w, h, PixelFormat32bppPARGB);
+    if (out->GetLastStatus() != Ok) return nullptr;
+    Graphics g(out.get());
+    g.SetCompositingMode(CompositingModeSourceCopy);
+    g.Clear(Color(0, 0, 0, 0));
+    g.SetCompositingMode(CompositingModeSourceOver);
+    g.SetInterpolationMode(InterpolationModeNearestNeighbor);
+    bool ok = true;
+    const auto layer = [&](Bitmap* bitmap, int frames, int index, float alpha = 1.f) {
+        if (!bitmap || alpha <= 0.f) return;
+        const int columns = frames == 1 ? 1 : 4;
+        const Rect dst(0, 0, w, h);
+        const int sx = w * (index % columns), sy = h * (index / columns);
+        Status st;
+        if (alpha >= 1.f) {
+            st = g.DrawImage(bitmap, dst, sx, sy, w, h, UnitPixel);
+        } else {
+            ColorMatrix cm = {{{1.f, 0.f, 0.f, 0.f, 0.f},
+                               {0.f, 1.f, 0.f, 0.f, 0.f},
+                               {0.f, 0.f, 1.f, 0.f, 0.f},
+                               {0.f, 0.f, 0.f, alpha, 0.f},
+                               {0.f, 0.f, 0.f, 0.f, 1.f}}};
+            ImageAttributes ia;
+            ia.SetColorMatrix(&cm, ColorMatrixFlagsDefault, ColorAdjustTypeBitmap);
+            st = g.DrawImage(bitmap, dst, sx, sy, w, h, UnitPixel, &ia);
+        }
+        ok = ok && st == Ok;
+    };
+    if (key < 4) {
+        constexpr float bonestormAlpha[] = {0.f, 0.12f, 0.45f, 0.96f};
+        constexpr float umbralAlpha[] = {0.f, 0.08f, 0.43f, 0.96f};
+        layer(pack.start.get(), 4, key);
+        if (umbral) {
+            layer(pack.startRibbons.get(), 4, key, umbralAlpha[key]);
+            layer(pack.startOuter.get(), 4, key, umbralAlpha[key]);
+        } else {
+            layer(pack.ribbons.get(), 8, (key + 5) % 8, bonestormAlpha[key]);
+            layer(pack.outer.get(), 8, (key + 5) % 8, bonestormAlpha[key]);
+        }
+    } else if (key < 12) {
+        const int phase = key - 4;
+        layer(pack.core.get(), 8, phase);
+        layer(pack.ribbons.get(), 8, phase);
+        layer(pack.outer.get(), 8, phase);
+    } else {
+        constexpr float alpha[] = {0.85f, 0.50f, 0.20f, 0.025f};
+        const int index = key - 12;
+        layer(pack.end.get(), 4, index);
+        if (umbral) layer(pack.endRibbonFrames[index].get(), 1, 0);
+        else layer(pack.endRibbons.get(), 4, index, alpha[index]);
+        layer(pack.endOuter[index].get(), 1, 0);
+    }
+    return ok ? std::move(out) : nullptr;
+}
+
 }  // namespace
 
 void Sprites::loadPreviewDragon(const std::filesystem::path& dir, const SpeciesDef& def) {
     images_.clear();
     sheets_.clear();
     breathSheets_.clear();
+    ++generation_;
     warnings_.clear();
     detachFiles_ = true;
     if (auto bmp = loadPng(dir / "dragon.png", true)) images_["dragon_" + def.key] = std::move(bmp);
@@ -103,6 +164,7 @@ void Sprites::loadPreviewEnemy(const std::filesystem::path& dir, const EnemyDef&
     images_.clear();
     sheets_.clear();
     breathSheets_.clear();
+    ++generation_;
     warnings_.clear();
     detachFiles_ = true;
     loadSheetsFor(dir, def.anims, "enemy:" + def.key, def.key);
@@ -113,6 +175,7 @@ void Sprites::load(const std::filesystem::path& assetDir) {
     images_.clear();
     sheets_.clear();
     breathSheets_.clear();
+    ++generation_;
     warnings_.clear();
 
     for (const char* key : kSpriteKeys) {
@@ -179,7 +242,7 @@ void Sprites::loadBreathSheets(const std::filesystem::path& dir, const SpeciesDe
                                 ": missing or invalid breath atlas; using fallback");
             return nullptr;
         };
-        BreathSheets bundle;
+        BreathLayers bundle;
         bundle.start = read(umbral ? "umbral_vortex_L1_start.png" : "bonestorm_L1_start.png", 4, 1);
         bundle.core = read(umbral ? "umbral_vortex_L1_loop.png" : "bonestorm_L1_loop.png", 4, 2);
         bundle.end = read(umbral ? "umbral_vortex_L1_end.png" : "bonestorm_L1_end.png", 4, 1);
@@ -216,7 +279,17 @@ void Sprites::loadBreathSheets(const std::filesystem::path& dir, const SpeciesDe
                 continue;
             }
         }
-        breathSheets_.emplace(key, std::move(bundle));
+        // 층을 16장으로 합치고 원본 층은 여기서 버린다(그리는 쪽은 합친 것만 쓴다).
+        BreathSheets sheets;
+        for (int k = 0; k < BreathSheets::kFrames && complete; ++k) {
+            sheets.frames[static_cast<size_t>(k)] = composeBreathFrame(bundle, umbral, k);
+            complete = sheets.frames[static_cast<size_t>(k)] != nullptr;
+        }
+        if (!complete) {
+            warnings_.push_back(label + "/" + skill.layeredBreath + ": could not compose breath frames; using fallback");
+            continue;
+        }
+        breathSheets_.emplace(key, std::move(sheets));
     }
 }
 

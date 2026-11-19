@@ -46,10 +46,19 @@ inline constexpr float coreTipX = 965.f;
 inline constexpr float reachScale = 1.15f;
 }
 
-struct BreathSheets {
+// 레이어형 숨결의 원본 층. 읽을 때만 쓰고, 아래 16장으로 합친 뒤 버린다.
+struct BreathLayers {
     std::unique_ptr<Gdiplus::Bitmap> start, core, end, ribbons, outer, endRibbons;
     std::unique_ptr<Gdiplus::Bitmap> startRibbons, startOuter;
     std::array<std::unique_ptr<Gdiplus::Bitmap>, 4> endRibbonFrames, endOuter;
+};
+
+// 숨결 그림 key(0~3 시작, 4~11 반복, 12~15 끝)마다 층을 원본 크기(1024x512)로 미리 합친 것.
+// 그리는 쪽은 한 장만 확대·회전하면 된다(예전에는 매 프레임 세 장).
+struct BreathSheets {
+    static constexpr int kFrames = 16;
+    static constexpr int kWidth = 1024, kHeight = 512;
+    std::array<std::unique_ptr<Gdiplus::Bitmap>, kFrames> frames;
 };
 
 class Sprites {
@@ -86,6 +95,8 @@ public:
     int loadedCount() const { return static_cast<int>(images_.size()); }
     int sheetCount() const { return static_cast<int>(sheets_.size()); }
     const std::vector<std::string>& warnings() const { return warnings_; }
+    // 그림을 다시 읽을 때마다 1씩 는다. 그린 결과를 캐시하는 쪽이 낡았는지 확인하는 데 쓴다.
+    unsigned generation() const { return generation_; }
 
 private:
     struct SheetData {
@@ -120,6 +131,7 @@ private:
     std::map<std::string, BreathSheets> breathSheets_;
     std::vector<std::string> warnings_;
     bool detachFiles_ = false;
+    unsigned generation_ = 0;
 };
 
 }  // namespace dt::win
