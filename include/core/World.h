@@ -2,6 +2,7 @@
 #pragma once
 
 #include <array>
+#include <cstdint>
 #include <optional>
 #include <string>
 #include <vector>
@@ -24,6 +25,21 @@ struct PlayerInput {
 // 전투와 표시가 같은 중첩 상한과 지속 시간을 읽는다.
 inline constexpr int kCurseMaxStacks = 5;
 inline constexpr int kRevenantSoulCap = 10;
+inline constexpr int kUltimateSoulCost = 10;
+
+struct UltimateCharge {
+    bool soulHarvestUnlocked = false;
+    int souls = 0;
+    int percent() const { return 100 * souls / kUltimateSoulCost; }
+    bool full() const { return soulHarvestUnlocked && souls == kUltimateSoulCost; }
+};
+
+// 실제 궁극기가 생기면 호출자가 해제·전투·시전 제한을 각각 평가해 전달한다.
+struct UltimateUseConditions {
+    bool skillUnlocked = false;
+    bool inCombat = false;
+    bool castAllowed = false;
+};
 inline constexpr double kCurseDuration = 6.0;
 
 struct Enemy {
@@ -233,7 +249,13 @@ public:
     void seed(uint32_t s) { rng_.seed(s); }
 
     void setupDragon(Species s, int level, float hp, Vec2 pos);
-    void resetSouls() { dragon_.souls = 0; }
+    void resetSouls();
+    UltimateCharge ultimateCharge() const;
+    bool canUseUltimate(const UltimateUseConditions& conditions) const;
+    // 준비는 영혼을 건드리지 않는다. 성공한 타격 한 번에만 같은 ID로 확정한다.
+    std::optional<uint64_t> beginUltimatePayment(const UltimateUseConditions& conditions);
+    bool commitUltimatePayment(uint64_t id);
+    void cancelUltimatePayment(uint64_t id);
     void setDragonLevel(int level);  // 레벨업 시 능력치 갱신(늘어난 최대 체력만큼 회복)
     DragonActor& dragon() { return dragon_; }
     const DragonActor& dragon() const { return dragon_; }
@@ -309,6 +331,9 @@ public:
     float desiredRange() const;
 
 private:
+    uint64_t nextUltimatePayment_ = 1;
+    std::optional<uint64_t> pendingUltimatePayment_;
+
     void wander(float dt);     // 애니메이션 진행을 포함하지 않는 배회(내부용)
     void pickBehavior();       // 다음 행동을 확률로 고르고 목적지를 정한다
     Vec2 randomRoamTarget(bool fly);

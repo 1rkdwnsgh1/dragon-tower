@@ -1577,7 +1577,7 @@ void Renderer::drawStatusCard(Graphics& g, const Game& game, const Sprites& spri
     const SpeciesDef& sp = speciesDef(rec.species);
     const float cardW = 270.f;
     const bool showSouls = sp.key == "revenant";
-    const float expandedHeight = showSouls ? 310.f : 292.f;
+    const float expandedHeight = showSouls ? 340.f : 292.f;
     const float cardH = game.panelCollapsed() ? 44.f : expandedHeight;
     Vec2 saved = game.panelPos();
     float rx = saved.x >= 0.f ? saved.x : width_ - 96.f - cardW;
@@ -1638,9 +1638,22 @@ void Renderer::drawStatusCard(Graphics& g, const Game& game, const Sprites& spri
     }
 
     if (showSouls) {
-        text(g, "영혼 " + std::to_string(d.souls) + " / " + std::to_string(kRevenantSoulCap),
+        const UltimateCharge charge = game.world().ultimateCharge();
+        const bool full = charge.full();
+        text(g, "영혼 " + std::to_string(charge.souls) + " / " + std::to_string(kUltimateSoulCost),
              x, y, 13.f, 0xFFA6FFF0);
-        y += 18.f;
+        text(g, std::to_string(charge.percent()) + "%", x + w, y, 12.f,
+             full ? 0xFFA6FFF0 : kSub, 2, full);
+        const RectF gauge(x, y + 18.f, w, 7.f);
+        if (full)
+            fillRound(g, RectF(gauge.X - 1.f, gauge.Y - 2.f, gauge.Width + 2.f, gauge.Height + 4.f),
+                      4.f, Color(65, 75, 255, 222));
+        bar(g, gauge, static_cast<float>(charge.percent()) / 100.f, full ? 0xFF78FCE5 : 0xFF36C9B4);
+        if (full)
+            text(g, "충전 완료 · 스킬 미구현", x, y + 27.f, 12.f, 0xFFA6FFF0, 0, true);
+        else if (!charge.soulHarvestUnlocked)
+            text(g, "영혼 수확 미해제", x, y + 27.f, 12.f, kSub);
+        y += 48.f;
     }
 
     std::string state;

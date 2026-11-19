@@ -35,8 +35,47 @@ World::World() = default;
 // 그리기 쪽(Renderer)은 자기 몫으로 charScale 을 따로 곱하므로 여기서 e.radius 를 바꾸지 않는다.
 static inline float scaledBody(float r, float k) { return r * k; }
 
+void World::resetSouls() {
+    dragon_.souls = 0;
+    pendingUltimatePayment_.reset();
+}
+
+UltimateCharge World::ultimateCharge() const {
+    const SpeciesDef& species = speciesDef(dragon_.species);
+    if (species.key != "revenant" || !dragon_.alive) return {};
+    for (const SkillDef& skill : species.skills) {
+        if (skill.kind == SkillKind::PassiveOnKill && skill.grantsSoul && dragon_.level >= skill.unlockLevel)
+            return {true, std::clamp(dragon_.souls, 0, kUltimateSoulCost)};
+    }
+    return {};
+}
+
+bool World::canUseUltimate(const UltimateUseConditions& conditions) const {
+    return conditions.skillUnlocked && conditions.inCombat && conditions.castAllowed &&
+           !pendingUltimatePayment_ && ultimateCharge().full();
+}
+
+std::optional<uint64_t> World::beginUltimatePayment(const UltimateUseConditions& conditions) {
+    if (!canUseUltimate(conditions) || nextUltimatePayment_ == 0) return std::nullopt;
+    pendingUltimatePayment_ = nextUltimatePayment_++;
+    return pendingUltimatePayment_;
+}
+
+bool World::commitUltimatePayment(uint64_t id) {
+    if (pendingUltimatePayment_ != id) return false;
+    pendingUltimatePayment_.reset();
+    if (!ultimateCharge().full()) return false;
+    dragon_.souls -= kUltimateSoulCost;
+    return true;
+}
+
+void World::cancelUltimatePayment(uint64_t id) {
+    if (pendingUltimatePayment_ == id) pendingUltimatePayment_.reset();
+}
+
 void World::setupDragon(Species s, int level, float hp, Vec2 pos) {
     dragon_ = DragonActor{};
+    resetSouls();
     dragon_.species = s;
     dragon_.level = level;
     dragon_.stats = statsFor(s, level);

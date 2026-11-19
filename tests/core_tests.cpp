@@ -2992,7 +2992,104 @@ static void testRevenantSouls(const std::filesystem::path& assets) {
     CHECK(game.screen() == Screen::Death && game.world().dragon().souls == 0);
 }
 
+static void testRevenantUltimateCharge() {
+    std::printf("[revenant ultimate charge]\n");
+    loadDragonFolders("assets/dragons");
+    Species revenant{}, shadow{};
+    const bool loaded = speciesFromKey("revenant", revenant) && speciesFromKey("shadow", shadow);
+    CHECK(loaded);
+    if (!loaded) return;
+
+    const SpeciesDef& def = speciesDef(revenant);
+    const auto harvest = std::find_if(def.skills.begin(), def.skills.end(), [](const SkillDef& skill) {
+        return skill.kind == SkillKind::PassiveOnKill && skill.grantsSoul;
+    });
+    CHECK(harvest != def.skills.end());
+    if (harvest == def.skills.end()) return;
+
+    World world;
+    world.setupDragon(revenant, harvest->unlockLevel, -1.f, {400.f, 250.f});
+    const UltimateUseConditions allowed{true, true, true};
+    for (const int souls : {0, 1, 5, 9, 10, 11}) {
+        world.dragon().souls = souls;
+        const auto charge = world.ultimateCharge();
+        CHECK(charge.souls == std::min(souls, 10));
+        CHECK(charge.percent() == std::min(souls * 10, 100));
+        CHECK(charge.full() == (souls >= 10));
+        CHECK(world.canUseUltimate(allowed) == charge.full());
+    }
+
+    world.dragon().souls = 10;
+    CHECK(!world.canUseUltimate({false, true, true}));
+    CHECK(!world.canUseUltimate({true, false, true}));
+    CHECK(!world.canUseUltimate({true, true, false}));
+    CHECK(!world.beginUltimatePayment({}));
+    CHECK(!world.commitUltimatePayment(0));
+    auto cancelled = world.beginUltimatePayment(allowed);
+    CHECK(cancelled.has_value());
+    if (!cancelled) return;
+    CHECK(world.ultimateCharge().full() && world.dragon().souls == 10);
+    CHECK(!world.canUseUltimate(allowed) && !world.beginUltimatePayment(allowed));
+    world.cancelUltimatePayment(*cancelled + 1);
+    CHECK(!world.canUseUltimate(allowed));
+    world.cancelUltimatePayment(*cancelled);
+    CHECK(world.canUseUltimate(allowed) && world.dragon().souls == 10);
+    CHECK(!world.commitUltimatePayment(*cancelled));
+
+    auto hit = world.beginUltimatePayment(allowed);
+    CHECK(hit.has_value());
+    if (!hit) return;
+    CHECK(!world.commitUltimatePayment(*cancelled));
+    CHECK(world.commitUltimatePayment(*hit));
+    CHECK(world.ultimateCharge().percent() == 0 && !world.ultimateCharge().full());
+    world.dragon().souls = 10;
+    CHECK(!world.commitUltimatePayment(*hit) && world.dragon().souls == 10);
+
+    auto shortfall = world.beginUltimatePayment(allowed);
+    CHECK(shortfall.has_value());
+    if (!shortfall) return;
+    world.dragon().souls = 9;
+    CHECK(!world.commitUltimatePayment(*shortfall) && world.dragon().souls == 9);
+    CHECK(!world.beginUltimatePayment(allowed));
+    world.dragon().souls = 10;
+    auto oldSession = world.beginUltimatePayment(allowed);
+    CHECK(oldSession.has_value());
+    if (!oldSession) return;
+    world.resetSouls();
+    CHECK(world.ultimateCharge().percent() == 0);
+    world.dragon().souls = 10;
+    CHECK(!world.commitUltimatePayment(*oldSession) && world.dragon().souls == 10);
+    auto beforeSwitch = world.beginUltimatePayment(allowed);
+    CHECK(beforeSwitch.has_value());
+    if (!beforeSwitch) return;
+    world.setupDragon(revenant, harvest->unlockLevel, -1.f, {400.f, 250.f});
+    world.dragon().souls = 10;
+    CHECK(!world.commitUltimatePayment(*beforeSwitch));
+
+    world.setupDragon(revenant, harvest->unlockLevel - 1, -1.f, {400.f, 250.f});
+    world.dragon().souls = 10;
+    CHECK(!world.ultimateCharge().soulHarvestUnlocked && world.ultimateCharge().percent() == 0);
+    CHECK(!world.beginUltimatePayment(allowed));
+    world.setupDragon(shadow, harvest->unlockLevel, -1.f, {400.f, 250.f});
+    world.dragon().souls = 10;
+    CHECK(!world.ultimateCharge().full() && !world.canUseUltimate(allowed));
+
+    SaveData saved;
+    CHECK(deserializeSave("version=1\ndragon.present=1\ndragon.species=revenant\n"
+                          "dragon.alive=1\ndragon.level=7\ndragon.slots=0,1,2,3\n", saved));
+    CHECK(saved.hasDragon && saved.dragon.species == revenant && saved.dragon.slots[0] == 0);
+    Game game;
+    game.init(saved, {0.f, 0.f, 960.f, 540.f});
+    CHECK(game.world().ultimateCharge().percent() == 0);
+    CHECK(serializeSave(saved).find("ultimate") == std::string::npos);
+}
+
 int main(int argc, char** argv) {
+    if (argc == 2 && std::string(argv[1]) == "--revenant-ultimate-charge") {
+        testRevenantUltimateCharge();
+        std::printf("\n%d passed, %d failed\n", g_passed, g_failed);
+        return g_failed == 0 ? 0 : 1;
+    }
     if (argc == 2 && std::string(argv[1]) == "--revenant-souls") {
         testRevenantSouls("assets");
         std::printf("%d passed, %d failed\n", g_passed, g_failed);
