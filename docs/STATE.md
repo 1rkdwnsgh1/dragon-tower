@@ -5,7 +5,7 @@
 
 작업을 끝낼 때 이 문서를 같은 PR 에서 고친다. **낡은 상태 문서는 없는 것보다 해롭다.**
 
-최종 갱신: 2026-11-19 (저주의 안개 V2와 망령룡 저주 중첩·표시 통합)
+최종 갱신: 2026-11-19 (저주의 안개 V2와 망령룡 저주 중첩·표시 통합, 그림 캐시)
 
 ---
 
@@ -17,12 +17,12 @@
 | 저장소 | **공개(public)** — 2026-11-17 전환 |
 | CI | **정상** (2026-11-17 16:10 `main` build·quality 통과) |
 | 자동 작업 큐 | **없음** — 두 큐 모두 종료 (11-15 20:00, 11-17 08:00) |
-| 열린 PR | 탑 100층 T2·T3 저장 키 및 사냥 층(#102) |
+| 열린 PR | 망령룡 영혼 자원(#104, `feat/revenant-soul-resource`), 그림 캐시(`perf/fx-frame-cache`) |
 | 알려진 문제 | **1건** — [known-issues.md](known-issues.md) 4번 `make_sheet.py` 가 칸을 꽉 채우는 그림에 안 맞는다(우회 있음). 1~3번은 고쳤다 ([#77](https://github.com/1rkdwnsgh1/dragon-tower/issues/77) → #82, [#78](https://github.com/1rkdwnsgh1/dragon-tower/issues/78) → #80, [#79](https://github.com/1rkdwnsgh1/dragon-tower/issues/79) → #83). **Windows 확인 59~78번과 그림자 가르기 타격 프레임 4개가 남아 있다** |
 
 - 제작 중인 캐릭터 모션과 스킬은 [미리보기 도구](character-pipeline.md#모션과-스킬-미리보기)에서 확인할 수 있다.
 - 저주의 안개 V2(#101)는 PNG 50칸을 장판 수명 5초에 맞춰 재생한다. #99·#100에서 같은 장판의 저주 중첩과 적 머리 위 표시를 통합했다. [망령룡 제작 진행사항](characters/revenant-dragon-progress.md)
-- 망계의 숨결을 쏠 때 프레임이 9fps 까지 떨어지던 문제를 숨결 그림 캐시로 고쳤다([측정](implementation-notes.md#망계의-숨결-프레임-저하-2026-11-19)). Windows 실제 확인은 [windows-checklist.md](windows-checklist.md) 79~81번.
+- 숨결·저주의 안개처럼 큰 효과가 프레임을 떨어뜨리던 문제를 **모든 스프라이트 공통 그림 캐시**로 고쳤다([측정](implementation-notes.md#그림-캐시--스프라이트효과-공통-2026-11-19)). 새 스킬 효과도 따로 할 일이 없다. Windows 실제 확인은 [windows-checklist.md](windows-checklist.md) 79~84번.
 - 망령룡 WALK24는 **#96으로 main 병합 완료**. 이번 에셋 PR은 FLY24도 게임용 시트로 반영하며 기존 비행과 원본을 보존한다. [WALK24 기록](characters/revenant-dragon-progress.md#walk24-2026-11-19)·[FLY24 기록](characters/revenant-dragon-progress.md#fly24-2026-11-19)에 검사 결과와 Windows 실제 재생 미검증 항목이 있다. 기존 작업 순서와 스킬 효과 수치 조정 대기는 유지한다.
 
 - 망령룡 [저주 중첩 PR 1](game-design.md#확정-망령룡-저주-중첩-2026-11-19)은 영혼 탄 명중과 저주의 안개에 연결했다. 후속 순서는 영혼 획득 → 궁극기 충전 → 죽음의 행렬이다.

@@ -70,6 +70,7 @@ tests/                     코어 규칙 검증
 | 프레임 시간 측정(시계·토글) | `src/win/FrameProfiler.{h,cpp}` | 트레이 메뉴로 켠다. 기본 꺼짐 |
 | 프레임 측정 표시 | `Renderer::drawFrameStats` | 왼쪽 위 표. 켜 둔 동안만 |
 | UI 조각 캐시 | `Renderer::drawPieceCached` | 장치 픽셀로 미리 그려 1:1 로 붙인다. `cfg::kUiPieceCache` |
+| 그림 캐시(스프라이트·효과·장판·투사체·숨결 공통) | `src/win/FrameCache.{h,cpp}`, `Renderer::drawFrameCached` | 칸 자르기(`FrameCache::cell`), 뒤 스레드로 화면 크기 그림 만들기(`find`·`prefetch`·`beginFrame`), 대신 그리기·예전 그리기(`drawFrameDirect`), 장치 크기 계산(`frameDeviceSize`). `drawSprite`·`drawSheetFrame` 이 여기로 온다. 설정 `cfg::kFrameCache*` |
 | 스킬 파일 유무 표 | `tools/asset_check.cpp` | 스킬마다 아이콘·본체 모션·효과 시트. 표 정렬은 `displayWidth`·`pad` (한글 두 칸) |
 | Windows 코드를 리눅스에서 컴파일 | `tools/check_win_build.sh` | mingw-w64. 푸시 전에 9초. [설명](quality-tools.md) |
 | 정적 분석(기준선과 비교) | `tools/check_static.py` | cppcheck + clang-tidy. 기준선은 `tools/static-baseline.txt` |
@@ -122,7 +123,7 @@ tests/                     코어 규칙 검증
 | 효과 단계 기본 길이·개수 상한 | `include/core/Config.h` | `kFxWindup`, `kFxHold`, `kFxTail`, `kMaxFx` |
 | 효과를 도형으로 그리기 | `src/win/Renderer.cpp` | `drawFx` (시트가 없는 효과) |
 | 레이어형 숨결 로드·렌더링 | `src/win/Sprites.cpp`, `src/win/Renderer.cpp` | `layered_breath` 에 지정한 효과 팩을 읽고 시작·지속·종료 레이어를 그린다 |
-| 레이어형 숨결 캐시 | `src/win/Sprites.cpp`, `src/win/Renderer.cpp`, `include/core/Config.h` | 읽을 때 층을 16장으로 합치기: `composeBreathFrame`(`BreathLayers` → `BreathSheets::frames`). 화면 크기 캐시: `updateBreathCache`(뒤 스레드로 만들고 다 된 것을 가져옴)·`stopBreathWorker`·`warmBreathCache`(장착하면 미리 만들기). 설정 `cfg::kBreathCache`·`kBreathCacheMaxPixels`·`kBreathCacheSettleFrames`. 다시 읽기 확인은 `Sprites::generation` |
+| 레이어형 숨결 합성 | `src/win/Sprites.cpp` | 읽을 때 층을 16장으로 합친다: `composeBreathFrame`(`BreathLayers` → `BreathSheets::frames`). 그리기는 그림 캐시를 탄다. 장착하면 미리 만들기: `Renderer::warmBreathCache`(`cfg::kBreathCacheSettleFrames`) |
 | 레이어형 숨결 판정 | `src/core/DragonData.cpp`, `src/core/World.cpp` | `breath_defer_hit` 와 `breath_input_lock` 을 읽어 피해와 입력 잠금 시점을 처리한다 |
 | 타격 프레임 스킬(`hit_frame=`) | `src/core/World.cpp` | `castSkill` 의 `usesTimedHit` 분기, `advanceSkillCast`(효과·피해 시점), `cancelSkillCast`, `spawnAnchoredFx`(`fx_anchor`→화면 좌표). 상태는 `World.h` 의 `SkillCast`, 키 읽기는 `DragonData.cpp`, 상수는 `cfg::kSkillCastRecover`·`kSkillCastCancelCooldown` |
 | 발사체 효과 그리기(따라다님) | `src/win/Renderer.cpp` | 투사체 루프에서 `Projectile::skill` 로 스킬을 찾아 현재 위치에 시트를 그린다(반복 재생) |

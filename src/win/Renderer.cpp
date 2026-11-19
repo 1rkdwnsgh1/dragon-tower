@@ -113,13 +113,11 @@ bool Renderer::init() {
 }
 
 Renderer::~Renderer() {
-    stopBreathWorker();
+    frameCache_.shutdown();
 }
 
 void Renderer::shutdown() {
-    stopBreathWorker();  // 뒤 스레드가 GDI+ 를 쓰는 중에 GDI+ 를 끄면 안 된다
-    for (auto& f : breathCache_.frames) f.reset();
-    breathCache_.pack = nullptr;
+    frameCache_.shutdown();  // 뒤 스레드가 GDI+ 를 쓰는 중에 GDI+ 를 끄면 안 된다
     curseBadges_.clear();
     curseFlashes_.clear();
     pieceCache_.clear();  // GDI+ 를 끄기 전에 합성해 둔 그림을 먼저 놓는다
@@ -442,6 +440,7 @@ void Renderer::drawOverlay(Graphics& g, const Game& game, const Sprites& sprites
                            std::vector<UiButton>& out, FrameRegions* outRegions) {
     // v0.9: 이번 프레임에 쓸 UI 스킨을 정한다(드래곤마다 다를 수 있다).
     sprites_ = &sprites;
+    frameCache_.beginFrame(sprites.generation());
     skin_ = game.uiSkin();
     scale_ = ctx.scale > 0.f ? ctx.scale : 1.f;
     g_regions = outRegions;
@@ -534,7 +533,7 @@ void Renderer::drawFrameStats(Graphics& g, const FrameStats& st) {
     };
     const float rowH = 20.f;
     const int rows = static_cast<int>(sizeof(kLines) / sizeof(kLines[0]));
-    RectF r(16.f, 16.f, 268.f, 82.f + rowH * (rows + 1));  // +16: UI 캐시 줄
+    RectF r(16.f, 16.f, 268.f, 98.f + rowH * (rows + 1));  // +16: UI 캐시 줄, +16: 그림 캐시 줄
     panel(g, r, 232);
     markRegion(r);  // 클릭 통과 규칙: 우리가 그린 것 위에서는 마우스를 받는다
 
@@ -578,6 +577,10 @@ void Renderer::drawFrameStats(Graphics& g, const FrameStats& st) {
     std::snprintf(buf, sizeof(buf), "UI 캐시 %zu개 · %.1f MB%s", uiCacheCount(),
                   uiCacheBytes() / (1024.0 * 1024.0), cfg::kUiPieceCache ? "" : " (꺼짐)");
     text(g, buf, x0, y + 20.f, 12.f, kSub, 0);
+    // 그림 캐시(FrameCache). "만드는 중"이 줄지 않고 계속 쌓이면 키가 매 프레임 달라지고 있다는 뜻이다.
+    std::snprintf(buf, sizeof(buf), "그림 캐시 %zu장 · %.0f MB · 만드는 중 %zu%s", frameCache_.count(),
+                  frameCache_.bytes() / (1024.0 * 1024.0), frameCache_.pending(), cfg::kFrameCache ? "" : " (꺼짐)");
+    text(g, buf, x0, y + 36.f, 12.f, kSub, 0);
 }
 
 // ---------------------------------------------------------------------------
@@ -586,33 +589,56 @@ void Renderer::drawFrameStats(Graphics& g, const FrameStats& st) {
 
 void Renderer::drawSprite(Graphics& g, Bitmap* bmp, float cx, float cy, float height, bool flip, float flash,
                           float alpha) {
-    float bw = static_cast<float>(bmp->GetWidth());
-    float bh = static_cast<float>(bmp->GetHeight());
-    float h = height;
-    float w = h * bw / bh;
-    GraphicsState st = g.Save();
-    g.TranslateTransform(cx, cy);
-    if (flip) g.ScaleTransform(-1.f, 1.f);
-    ColorMatrix cm = {{{1.f, 0.f, 0.f, 0.f, 0.f},
-                       {0.f, 1.f, 0.f, 0.f, 0.f},
-                       {0.f, 0.f, 1.f, 0.f, 0.f},
-                       {0.f, 0.f, 0.f, alpha, 0.f},
-                       {flash, flash, flash, 0.f, 1.f}}};
-    ImageAttributes ia;
-    ia.SetColorMatrix(&cm, ColorMatrixFlagsDefault, ColorAdjustTypeBitmap);
-    g.DrawImage(bmp, RectF(-w * 0.5f, -h * 0.5f, w, h), 0.f, 0.f, bw, bh, UnitPixel, &ia);
-    g.Restore(st);
+    if (!bmp || bmp->GetHeight() == 0) return;
+    const float bw = static_cast<float>(bmp->GetWidth());
+    const float bh = static_cast<float>(bmp->GetHeight());
+    const FrameCache::Source src{bmp, 0, 0, static_cast<int>(bw), static_cast<int>(bh)};
+    drawFrameCached(g, src, cx, cy, height * bw / bh, height, flip, flash, alpha);
 }
 
 void Renderer::drawSheetFrame(Graphics& g, const Sheet& sh, int frame, float cx, float cy, float height, bool flip,
                               float flash, float alpha) {
-    if (!sh.bmp || sh.frames <= 0) return;
-    int f = std::clamp(frame, 0, sh.frames - 1);
-    float fw = static_cast<float>(sh.frameW);
-    float fh = static_cast<float>(sh.frameH);
+    if (!sh.bmp || sh.frames <= 0 || sh.frameH <= 0) return;
+    const int f = std::clamp(frame, 0, sh.frames - 1);
     const int columns = sh.columns > 0 ? sh.columns : sh.frames;
-    float h = height;
-    float w = h * fw / fh;
+    const auto cellOf = [&](int i) {
+        return FrameCache::Source{sh.bmp, sh.frameW * (i % columns), sh.frameH * (i / columns), sh.frameW, sh.frameH};
+    };
+    const float w = height * static_cast<float>(sh.frameW) / static_cast<float>(sh.frameH);
+    drawFrameCached(g, cellOf(f), cx, cy, w, height, flip, flash, alpha);
+    // 애니메이션의 다음 두 칸을 미리 맡긴다 — 지금 칸이 이미 있으면(크기가 자리 잡았으면) 뒤 스레드가
+    // 앞서 나가 있어 칸이 바뀌는 순간에도 키운 그림을 쓴다.
+    int devW = 0, devH = 0;
+    const InterpolationMode interp = g.GetInterpolationMode();
+    if (cfg::kFrameCache && sh.frames > 1 && frameDeviceSize(g, w, height, devW, devH) &&
+        frameCache_.find(cellOf(f), devW, devH, flip, flash, interp)) {
+        for (int step = 1; step <= 2; ++step)
+            frameCache_.prefetch(cellOf((f + step) % sh.frames), devW, devH, flip, flash, interp);
+    }
+}
+
+bool Renderer::frameDeviceSize(Graphics& g, float w, float h, int& devW, int& devH) {
+    Matrix m;
+    g.GetTransform(&m);
+    REAL e[6];
+    m.GetElements(e);
+    const float ds = std::sqrt(std::fabs(e[0] * e[3] - e[1] * e[2]));
+    float dw = std::fabs(w) * ds, dh = std::fabs(h) * ds;
+    bool full = true;
+    const float px = dw * dh;
+    if (px > static_cast<float>(cfg::kFrameCacheMaxPixels)) {
+        const float k = std::sqrt(static_cast<float>(cfg::kFrameCacheMaxPixels) / px);
+        dw *= k;
+        dh *= k;
+        full = false;
+    }
+    devW = std::max(1, static_cast<int>(std::lround(dw)));
+    devH = std::max(1, static_cast<int>(std::lround(dh)));
+    return full;
+}
+
+void Renderer::drawFrameDirect(Graphics& g, const FrameCache::Source& src, float cx, float cy, float w, float h,
+                               bool flip, float flash, float alpha) {
     GraphicsState st = g.Save();
     g.TranslateTransform(cx, cy);
     if (flip) g.ScaleTransform(-1.f, 1.f);
@@ -624,9 +650,65 @@ void Renderer::drawSheetFrame(Graphics& g, const Sheet& sh, int frame, float cx,
     ImageAttributes ia;
     ia.SetColorMatrix(&cm, ColorMatrixFlagsDefault, ColorAdjustTypeBitmap);
     ia.SetWrapMode(WrapModeTileFlipXY);  // 칸 경계에서 옆 칸 픽셀이 번지지 않게 한다
-    g.DrawImage(sh.bmp, RectF(-w * 0.5f, -h * 0.5f, w, h), fw * (f % columns), fh * (f / columns),
-                fw, fh, UnitPixel, &ia);
+    g.DrawImage(src.bmp, RectF(-w * 0.5f, -h * 0.5f, w, h), static_cast<REAL>(src.x), static_cast<REAL>(src.y),
+                static_cast<REAL>(src.w), static_cast<REAL>(src.h), UnitPixel, &ia);
     g.Restore(st);
+}
+
+void Renderer::drawFrameCached(Graphics& g, const FrameCache::Source& src, float cx, float cy, float w, float h,
+                               bool flip, float flash, float alpha) {
+    if (!src.bmp || alpha <= 0.004f || w <= 0.f || h <= 0.f) return;
+    if (!cfg::kFrameCache) return drawFrameDirect(g, src, cx, cy, w, h, flip, flash, alpha);
+
+    int devW = 0, devH = 0;
+    const bool fullRes = frameDeviceSize(g, w, h, devW, devH);
+    Matrix m;
+    g.GetTransform(&m);
+    REAL e[6];
+    m.GetElements(e);
+    // 회전·뒤집기가 없는 보통 화면이면 장치 좌표에 정수로 찍는다(가장 빠르다).
+    const bool axisAligned = fullRes && std::fabs(e[1]) < 1e-5f && std::fabs(e[2]) < 1e-5f && e[0] > 0.f && e[3] > 0.f;
+
+    ImageAttributes fade;
+    const bool faded = alpha < 0.996f;
+    if (faded) {
+        ColorMatrix cm = {{{1.f, 0.f, 0.f, 0.f, 0.f},
+                           {0.f, 1.f, 0.f, 0.f, 0.f},
+                           {0.f, 0.f, 1.f, 0.f, 0.f},
+                           {0.f, 0.f, 0.f, alpha, 0.f},
+                           {0.f, 0.f, 0.f, 0.f, 1.f}}};
+        fade.SetColorMatrix(&cm, ColorMatrixFlagsDefault, ColorAdjustTypeBitmap);
+    }
+
+    if (Bitmap* scaled = frameCache_.find(src, devW, devH, flip, flash, g.GetInterpolationMode())) {
+        if (axisAligned) {
+            const float dcx = e[0] * cx + e[2] * cy + e[4];
+            const float dcy = e[1] * cx + e[3] * cy + e[5];
+            const INT x0 = static_cast<INT>(std::floor(dcx - devW * 0.5f + 0.5f));
+            const INT y0 = static_cast<INT>(std::floor(dcy - devH * 0.5f + 0.5f));
+            g.ResetTransform();
+            g.DrawImage(scaled, Rect(x0, y0, devW, devH), 0, 0, devW, devH, UnitPixel, faded ? &fade : nullptr);
+            g.SetTransform(&m);
+            return;
+        }
+        // 회전이 있거나(숨결) 상한에 걸려 늘려야 하면 최근접으로 붙인다. 1:1 이면 원본 픽셀 그대로다.
+        const InterpolationMode saved = g.GetInterpolationMode();
+        g.SetInterpolationMode(InterpolationModeNearestNeighbor);
+        g.DrawImage(scaled, RectF(cx - w * 0.5f, cy - h * 0.5f, w, h), 0.f, 0.f, static_cast<REAL>(devW),
+                    static_cast<REAL>(devH), UnitPixel, faded ? &fade : nullptr);
+        g.SetInterpolationMode(saved);
+        return;
+    }
+
+    // 키운 그림이 아직 없다 — 잘라 둔 칸을 대신 그린다. 긴 시트를 통째로 다루지 않으니 그것만으로도 빠르고,
+    // 작은 그림은 양선형(예전과 같은 모양), 큰 그림은 최근접(한두 프레임만 조금 거칠다)으로 그린다.
+    Bitmap* cell = frameCache_.cell(src);
+    if (!cell) return drawFrameDirect(g, src, cx, cy, w, h, flip, flash, alpha);
+    const InterpolationMode saved = g.GetInterpolationMode();
+    const bool smooth = static_cast<size_t>(devW) * devH <= cfg::kFrameCacheSmoothFallbackPixels;
+    g.SetInterpolationMode(smooth ? saved : InterpolationModeNearestNeighbor);
+    drawFrameDirect(g, FrameCache::Source{cell, 0, 0, src.w, src.h}, cx, cy, w, h, flip, flash, alpha);
+    g.SetInterpolationMode(saved);
 }
 
 void Renderer::drawDragon(Graphics& g, const DragonActor& d, const Sprites& sprites, float time, float x, float y,
@@ -1059,11 +1141,13 @@ void Renderer::drawProjectiles(Graphics& g, const World& w, const Sprites& sprit
 
 void Renderer::drawEnemyPreview(Graphics& g, const Enemy& enemy, const Sprites& sprites,
                                 AnimState state, float time, float charScale) {
+    frameCache_.beginFrame(sprites.generation());
     drawEnemy(g, enemy, sprites, time, charScale, &state);
 }
 
 void Renderer::drawAnimationPreview(Graphics& g, const World& w, const Sprites& sprites,
                                     float time, bool body, bool effects, float charScale) {
+    frameCache_.beginFrame(sprites.generation());
     const DragonActor& d = w.dragon();
     const SpeciesDef& species = speciesDef(d.species);
     if (effects) {
@@ -1178,15 +1262,6 @@ static float breathScale(const SpeciesDef& sp, const SkillDef& skill, float rang
     return bodyHeight * (175.f / 256.f) / 88.f;
 }
 
-// 지금 변환에서 논리 1px 이 장치 몇 px 인가(App 의 dpi 배율). 회전 전에 부른다.
-static float deviceScale(Graphics& g) {
-    Matrix m;
-    g.GetTransform(&m);
-    REAL e[6];
-    m.GetElements(e);
-    return std::sqrt(e[0] * e[0] + e[1] * e[1]);
-}
-
 void Renderer::drawBreath(Graphics& g, const DragonActor& dragon, const Sprites& sprites, float charScale) {
     if (!dragon.alive || !dragon.breath) return;
     const BreathCast& cast = *dragon.breath;
@@ -1253,140 +1328,23 @@ void Renderer::drawBreath(Graphics& g, const DragonActor& dragon, const Sprites&
         blendKey = 4 + loopPhase(from + elapsed);
     }
 
-    const float devScale = scale * deviceScale(g);
-    updateBreathCache(sprites, *pack, devScale);
     const GraphicsState state = g.Save();
     g.TranslateTransform(mouth.x, mouth.y);
     g.RotateTransform(std::atan2(cast.aim.y, cast.aim.x) * 57.2957795f);
     if (left) g.ScaleTransform(1.f, -1.f);
-    const InterpolationMode savedMode = g.GetInterpolationMode();
-    const RectF dest(center - halfW, -halfH, halfW * 2.f, halfH * 2.f);
-    const bool cacheUsable = breathCache_.pack == pack;
     const auto paste = [&](int k, float alpha) {
-        if (alpha <= 0.f) return;
-        ImageAttributes ia;
-        if (alpha < 1.f) {
-            ColorMatrix cm = {{{1.f, 0.f, 0.f, 0.f, 0.f},
-                               {0.f, 1.f, 0.f, 0.f, 0.f},
-                               {0.f, 0.f, 1.f, 0.f, 0.f},
-                               {0.f, 0.f, 0.f, alpha, 0.f},
-                               {0.f, 0.f, 0.f, 0.f, 1.f}}};
-            ia.SetColorMatrix(&cm, ColorMatrixFlagsDefault, ColorAdjustTypeBitmap);
-        }
-        Bitmap* cached = cacheUsable ? breathCache_.frames[static_cast<size_t>(k)].get() : nullptr;
-        if (cached) {
-            // 캐시는 장치 픽셀 크기라 1:1 이다(상한에 걸린 큰 배율에서만 늘어난다).
-            // 최근접 보간은 양선형보다 열 배 넘게 빠르고, 1:1 에서는 원본 픽셀을 그대로 옮긴다.
-            const float cs = breathCache_.cacheScale;
-            g.SetInterpolationMode(InterpolationModeNearestNeighbor);
-            g.DrawImage(cached, dest, 0.f, 0.f, BreathSheets::kWidth * cs, BreathSheets::kHeight * cs, UnitPixel,
-                        alpha < 1.f ? &ia : nullptr);
-            return;
-        }
-        // 캐시가 아직 없으면(켠 직후·크기를 바꾼 직후) 합성본 한 장을 그대로 확대한다.
-        ia.SetWrapMode(WrapModeTileFlipXY);
-        g.SetInterpolationMode(savedMode);
-        g.DrawImage(pack->frames[static_cast<size_t>(k)].get(), dest, 0.f, 0.f,
-                    static_cast<float>(BreathSheets::kWidth), static_cast<float>(BreathSheets::kHeight), UnitPixel,
-                    &ia);
+        Bitmap* frame = pack->frames[static_cast<size_t>(k)].get();
+        drawFrameCached(g, FrameCache::Source{frame, 0, 0, BreathSheets::kWidth, BreathSheets::kHeight}, center, 0.f,
+                        halfW * 2.f, halfH * 2.f, false, 0.f, alpha);
     };
     if (blendKey >= 0) paste(blendKey, 1.f - keyAlpha);
     paste(key, keyAlpha);
-    g.SetInterpolationMode(savedMode);
     g.Restore(state);
-}
-
-void Renderer::stopBreathWorker() {
-    BreathCache& c = breathCache_;
-    if (c.job) c.job->cancel = true;
-    // 만드는 중인 한 장(큰 배율에서 길어야 수십 ms)이 끝나면 멈춘다.
-    if (c.worker.joinable()) c.worker.join();
-    c.job.reset();
-}
-
-void Renderer::updateBreathCache(const Sprites& sprites, const BreathSheets& pack, float devScale) {
-    if (!cfg::kBreathCache || devScale <= 0.f) return;
-    BreathCache& c = breathCache_;
-
-    // 뒤에서 다 만든 그림을 가져온다. 잠겨 있으면 다음 프레임에 가져간다(그리는 스레드를 세우지 않는다).
-    if (c.job) {
-        std::unique_lock<std::mutex> lock(c.job->m, std::try_to_lock);
-        if (lock.owns_lock()) {
-            for (size_t k = 0; k < c.frames.size(); ++k)
-                if (c.job->done[k]) c.frames[k] = std::move(c.job->done[k]);
-        }
-    }
-
-    const float maxScale = std::sqrt(static_cast<float>(cfg::kBreathCacheMaxPixels) /
-                                     (static_cast<float>(BreathSheets::kWidth) * BreathSheets::kHeight));
-    const float target = std::min(devScale, maxScale);
-    const bool samePack = c.pack == &pack && c.generation == sprites.generation();
-    if (samePack && std::fabs(c.cacheScale - target) < 1e-4f) return;
-
-    if (samePack) {
-        // 배율만 바뀌었다 — 크기를 끄는 중일 수 있으니 같은 배율이 이어질 때까지 기다린다.
-        // 그동안은 지금 캐시를 늘려 그린다(최근접이라 조금 거칠 뿐 느려지지 않는다).
-        if (std::fabs(c.wantScale - target) > 1e-4f) {
-            c.wantScale = target;
-            c.wantFrames = 0;
-        }
-        if (++c.wantFrames < cfg::kBreathCacheSettleFrames) return;
-    }
-
-    stopBreathWorker();
-    for (auto& f : c.frames) f.reset();
-    c.pack = &pack;
-    c.generation = sprites.generation();
-    c.cacheScale = target;
-    c.wantScale = target;
-    c.wantFrames = 0;
-
-    // 뒤 스레드가 읽을 복사본. 원본(pack)은 그리는 스레드가 계속 쓰므로 넘기지 않는다.
-    std::array<std::unique_ptr<Bitmap>, BreathSheets::kFrames> sources;
-    for (size_t k = 0; k < sources.size(); ++k) {
-        Bitmap* from = pack.frames[k].get();
-        if (!from) return;
-        auto copy = std::make_unique<Bitmap>(BreathSheets::kWidth, BreathSheets::kHeight, PixelFormat32bppPARGB);
-        if (copy->GetLastStatus() != Ok) return;
-        Graphics cg(copy.get());
-        cg.SetCompositingMode(CompositingModeSourceCopy);
-        if (cg.DrawImage(from, 0, 0, BreathSheets::kWidth, BreathSheets::kHeight) != Ok) return;
-        sources[k] = std::move(copy);
-    }
-
-    auto job = std::make_shared<BreathJob>();
-    c.job = job;
-    const int devW = static_cast<int>(std::ceil(BreathSheets::kWidth * target));
-    const int devH = static_cast<int>(std::ceil(BreathSheets::kHeight * target));
-    c.worker = std::thread([job, sources = std::move(sources), devW, devH, target]() mutable {
-        // 쏘는 순서대로 만든다(시작 → 반복 → 끝).
-        for (size_t k = 0; k < sources.size() && !job->cancel; ++k) {
-            auto bmp = std::make_unique<Bitmap>(devW, devH, PixelFormat32bppPARGB);
-            if (bmp->GetLastStatus() != Ok) continue;
-            {
-                Graphics g(bmp.get());
-                // 화면과 같은 품질로 키워야 결과가 같다(App::render 의 설정).
-                g.SetCompositingMode(CompositingModeSourceCopy);
-                g.Clear(Color(0, 0, 0, 0));
-                g.SetCompositingMode(CompositingModeSourceOver);
-                g.SetInterpolationMode(InterpolationModeBilinear);
-                ImageAttributes ia;
-                ia.SetWrapMode(WrapModeTileFlipXY);
-                g.DrawImage(sources[k].get(),
-                            RectF(0.f, 0.f, BreathSheets::kWidth * target, BreathSheets::kHeight * target), 0.f,
-                            0.f, static_cast<float>(BreathSheets::kWidth),
-                            static_cast<float>(BreathSheets::kHeight), UnitPixel, &ia);
-            }
-            sources[k].reset();
-            std::lock_guard<std::mutex> lock(job->m);
-            job->done[k] = std::move(bmp);
-        }
-    });
 }
 
 void Renderer::warmBreathCache(Graphics& g, const World& w, const Sprites& sprites, float charScale) {
     const DragonActor& d = w.dragon();
-    if (!cfg::kBreathCache || !d.alive || d.breath) return;
+    if (!cfg::kFrameCache || !d.alive || d.breath) return;
     const SpeciesDef& sp = speciesDef(d.species);
     for (int s : w.slots()) {
         if (s < 0 || s >= static_cast<int>(sp.skills.size())) continue;
@@ -1394,7 +1352,20 @@ void Renderer::warmBreathCache(Graphics& g, const World& w, const Sprites& sprit
         if (skill.layeredBreath.empty()) continue;
         const BreathSheets* pack = sprites.breathSheets(sp.key, skill.layeredBreath);
         if (!pack || !sprites.breathBody(sp, skill).bmp) continue;
-        updateBreathCache(sprites, *pack, breathScale(sp, skill, skill.range, charScale) * deviceScale(g));
+        const float scale = breathScale(sp, skill, skill.range, charScale);
+        if (scale <= 0.f) return;
+        int devW = 0, devH = 0;
+        frameDeviceSize(g, BreathSheets::kWidth * scale, BreathSheets::kHeight * scale, devW, devH);
+        // 크기를 끄는 동안은 맡기지 않는다 — 같은 크기가 몇 프레임 이어진 뒤에 16장을 맡긴다.
+        const float devScale = static_cast<float>(devW) / BreathSheets::kWidth;
+        if (std::fabs(devScale - breathWarmScale_) > 1e-4f) {
+            breathWarmScale_ = devScale;
+            breathWarmFrames_ = 0;
+        }
+        if (++breathWarmFrames_ < cfg::kBreathCacheSettleFrames) return;
+        for (const auto& frame : pack->frames)
+            frameCache_.prefetch(FrameCache::Source{frame.get(), 0, 0, BreathSheets::kWidth, BreathSheets::kHeight},
+                                 devW, devH, false, 0.f, g.GetInterpolationMode());
         return;
     }
 }
