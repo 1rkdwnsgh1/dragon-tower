@@ -1088,6 +1088,7 @@ void Renderer::drawDotZones(Graphics& g, const World& w, const Sprites& sprites,
                                x, y, h, false, 0.f, skill.fxAlpha);
                 continue;
             }
+            if (skill.fxZoneSpriteOnly) continue;
         }
         float life = std::clamp(z.remaining / std::max(0.01f, z.duration), 0.f, 1.f);
         fillCircle(g, z.pos.x, z.pos.y, z.radius, col(spColor, 0.22f * (0.4f + 0.6f * life)));
