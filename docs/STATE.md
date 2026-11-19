@@ -5,7 +5,7 @@
 
 작업을 끝낼 때 이 문서를 같은 PR 에서 고친다. **낡은 상태 문서는 없는 것보다 해롭다.**
 
-최종 갱신: 2026-11-19 (망령룡 WALK24 병합·FLY24 적용, 숨결 프레임 저하 수정)
+최종 갱신: 2026-11-19 (망령룡 저주 중첩 PR 1)
 
 ---
 
@@ -23,6 +23,8 @@
 - 제작 중인 캐릭터 모션과 스킬은 [미리보기 도구](character-pipeline.md#모션과-스킬-미리보기)에서 확인할 수 있다.
 - 망계의 숨결을 쏠 때 프레임이 9fps 까지 떨어지던 문제를 숨결 그림 캐시로 고쳤다([측정](implementation-notes.md#망계의-숨결-프레임-저하-2026-11-19)). Windows 실제 확인은 [windows-checklist.md](windows-checklist.md) 79~81번.
 - 망령룡 WALK24는 **#96으로 main 병합 완료**. 이번 에셋 PR은 FLY24도 게임용 시트로 반영하며 기존 비행과 원본을 보존한다. [WALK24 기록](characters/revenant-dragon-progress.md#walk24-2026-11-19)·[FLY24 기록](characters/revenant-dragon-progress.md#fly24-2026-11-19)에 검사 결과와 Windows 실제 재생 미검증 항목이 있다. 기존 작업 순서와 스킬 효과 수치 조정 대기는 유지한다.
+
+- 망령룡 [저주 중첩 PR 1](game-design.md#확정-망령룡-저주-중첩-2026-11-19)은 영혼 탄 명중과 저주의 안개에 연결했다. 후속 순서는 영혼 획득 → 궁극기 충전 → 죽음의 행렬이다.
 
 ## 운영 방식
 
@@ -44,7 +46,7 @@
 | 자동 사냥 사망 위험의 허용 수준 | 사람 | [game-design.md 10장](game-design.md#10-확정-사항과-남은-미결정-사항) |
 | 스킬 자동 채움을 끌 수 있게 할지 | 사람 (보류 — 칸을 비워 두고 싶은 사람이 실제로 있는지 먼저 본다) | [decisions.md D](decisions.md#d-망령룡-장판-스킬-중복-2026-11-15) |
 | 작업표시줄 띠가 바탕화면을 얼마나 먹어도 되는지 (지금은 작업표시줄과 같은 높이) | 사람 | [known-issues.md 1번](known-issues.md) |
-| **낙인(중첩)·궁극기(충전) 기능을 만들지** — 그림 4장은 있는데 **게임에 그 개념 자체가 없다**(`SkillKind` 10종에 없고 기획서에 한 글자도 없다). 새 전투 메커니즘 설계다 | 사람 | [characters/revenant-dragon-skill-concepts.md](characters/revenant-dragon-skill-concepts.md) |
+| **저주 낙인 표시, 영혼 자원과 궁극기 충전** — 저주 중첩의 내부 규칙만 PR 1 범위이며, 표시와 후속 전투 메커니즘은 설계가 필요하다 | 사람 | [characters/revenant-dragon-skill-concepts.md](characters/revenant-dragon-skill-concepts.md) |
 | **죽음의 행렬을 자동으로 할지 수동으로 할지, 영혼을 소모할지** — 정해져야 그림 6장을 붙인다 | 사람 | [characters/revenant-dragon-skills-v1.md](characters/revenant-dragon-skills-v1.md) |
 | **영혼 수확 연출을 체력이 가득 찼을 때도 띄울지** — 지금은 회복량이 0이면 연출도 없다(기존 회복 연출 조건 그대로) | 사람 | [windows-checklist.md 78번](windows-checklist.md) |
 | 드래곤 첫 제작 목표 종 수 (2명 기준으로 다시 정해야 한다) | 사람 | [character-pipeline.md 1장](character-pipeline.md) |

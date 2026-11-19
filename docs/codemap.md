@@ -19,6 +19,7 @@ tests/                     코어 규칙 검증
 
 | 바꾸려는 것 | 파일 | 찾을 이름 |
 |---|---|---|
+| 망령룡 저주 중첩과 장판 간격 | `include/core/World.h`, `src/core/World.cpp` | `Enemy::curseStacks`, `applyCurse`, `updateCombat`의 투사체·장판 분기 |
 | 드래곤 능력치·스킬 수치 | `assets/dragons/<키>/dragon.txt` | (코드 아님) |
 | 내장 4종의 기본값 | `src/core/Species.cpp` | `builtinSpecies` |
 | 전투 공통 수치(사거리, 회피, 회복 등) | `include/core/Config.h` | `cfg::k...` |
