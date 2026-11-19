@@ -2772,6 +2772,65 @@ static void testRevenantCurse(const std::filesystem::path& assets) {
         }));
     }
 
+    const auto breathWorld = [&] {
+        World w = setup(revenant);
+        w.setupDragon(revenant, 8, -1.f, {420.f, 450.f});
+        w.dragon().basicCd = 100.f;
+        w.setSlots({5, -1, -1, -1});
+        enemyAt(w, {520.f, 450.f});
+        enemyAt(w, {600.f, 620.f});
+        auto& boss = w.spawnEnemy(defaultBoss(), 8, {650.f, 450.f});
+        boss.hp = boss.maxHp = 100000.f;
+        boss.stun = 100.f;
+        cast(w, 0);
+        return w;
+    };
+    World sustained = breathWorld();
+    CHECK(sustained.dragon().skillCd[5] == 25.f);
+    auto& target = sustained.enemiesMutable()[0];
+    const float tick = mitigate(sustained.dragon().stats.atk * 0.78f, target.def);
+    target.curseStacks = kCurseMaxStacks;
+    target.curseRemaining = kCurseDuration;
+    step(sustained, 0.47f);
+    CHECK(target.hp == 100000.f);
+    step(sustained, 0.01f);
+    CHECK(target.curseStacks == 0 && target.pos.x == 524.f);
+    CHECK(std::fabs(100000.f - target.hp - 2.f * tick) < 0.01f);
+    target.curseStacks = kCurseMaxStacks;
+    target.curseRemaining = kCurseDuration;
+    step(sustained, 0.75f);
+    CHECK(target.curseStacks == kCurseMaxStacks);
+    CHECK(std::fabs(100000.f - target.hp - 5.f * tick) < 0.04f);
+    target.pos.y = 620.f;
+    step(sustained, 0.25f);
+    const float outsideHp = target.hp;
+    target.pos.y = 450.f;
+    step(sustained, 0.25f);
+    CHECK(std::fabs(outsideHp - target.hp - tick) < 0.01f);
+    step(sustained, 3.f);
+    CHECK(!sustained.dragon().breath && sustained.enemies()[1].hp == 100000.f);
+    CHECK(sustained.enemies()[2].hp < 100000.f && sustained.enemies()[2].pos.x == 650.f);
+
+    World coarse = breathWorld();
+    World fine = breathWorld();
+    step(coarse, 4.f);
+    for (int i = 0; i < 400; ++i) step(fine, 0.01f);
+    CHECK(coarse.enemies()[0].hp == fine.enemies()[0].hp && coarse.enemies()[0].pos.x == 560.f);
+    CHECK(std::fabs(100000.f - coarse.enemies()[0].hp - 10.f * tick) < 0.05f);
+    World interrupted = breathWorld();
+    step(interrupted, 0.5f);
+    const float interruptedHp = interrupted.enemies()[0].hp;
+    interrupted.updateFx(10.f, true);
+    step(interrupted, 4.f);
+    CHECK(!interrupted.dragon().breath && interrupted.enemies()[0].hp == interruptedHp);
+
+    World edge = breathWorld();
+    const float rightEdge = 543.f - edge.enemies()[0].radius;
+    edge.setBounds({0.f, 0.f, 543.f, 650.f});
+    edge.enemiesMutable()[0].pos.x = rightEdge - 0.5f;
+    step(edge, 0.5f);
+    CHECK(edge.enemies()[0].pos.x == rightEdge);
+
     World lostTarget = setup(revenant);
     enemyAt(lostTarget, {520.f, 450.f});
     enemyAt(lostTarget, {620.f, 450.f});

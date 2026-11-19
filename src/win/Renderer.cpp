@@ -1369,9 +1369,9 @@ void Renderer::drawBreath(Graphics& g, const DragonActor& dragon, const Sprites&
     if (frame >= 4 && frame < 12) {
         key = 4 + (umbral ? frame - 4 : loopPhase(cast.elapsed - BreathCast::impactTime));
     } else if (frame == 12 && !umbral) {
-        const float elapsed = std::max(0.f, cast.elapsed - BreathCast::endTime);
+        const float elapsed = std::max(0.f, cast.elapsed - cast.tailStart());
         keyAlpha = std::min(1.f, elapsed / endBlendSeconds);
-        const float from = BreathCast::endTime - BreathCast::impactTime - loopPhaseSeconds * 0.5f;
+        const float from = cast.tailStart() - BreathCast::impactTime - loopPhaseSeconds * 0.5f;
         blendKey = 4 + loopPhase(from + elapsed);
     }
 

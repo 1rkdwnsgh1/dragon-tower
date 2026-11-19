@@ -271,13 +271,13 @@ kind=Line
 detonate_curse=yes
 ; 몸집이 커지면 판정 반경도 같이 커진다(2026-11-17). 사거리는 커지지 않는다.
 scale_with_size=yes
-cooldown=14
-power=2.6
+cooldown=25
+power=7.8
 range=700
 radius=70
 fx=breath
 layered_breath=bonestorm
-breath_input_lock=1.92
+breath_sustained=yes
 ; 효과가 본체를 덮어 드래곤이 잘 안 보였다(#79). 임시값 — 눈으로 보고 조정한다.
 fx_alpha=0.65
 fx_scale=2.2

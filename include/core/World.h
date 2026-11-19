@@ -178,6 +178,9 @@ struct BreathCast {
     static constexpr float impactTime = 4 * frameSeconds;
     static constexpr float endTime = 12 * frameSeconds;
     static constexpr float duration = 16 * frameSeconds;
+    static constexpr int sustainedTicks = 10;
+    static constexpr float tickInterval = 0.25f;
+    static constexpr float tickKnockback = 4.f;
     static constexpr int openMouthFrame = 3;  // Zero-based frame of the Revenant attack sheet.
     int skill = -1;
     Vec2 origin, aim;
@@ -187,7 +190,16 @@ struct BreathCast {
     bool hit = false;
     bool facingLeft = false;
 
+    bool sustained = false;
+    int ticksApplied = 0;
+    std::vector<int> curseChecked;
+
+    float tailStart() const { return sustained ? impactTime + sustainedTicks * tickInterval : endTime; }
+    float length() const { return tailStart() + (duration - endTime); }
     int frame() const {
+        if (sustained && elapsed >= impactTime && elapsed < tailStart()) return 4;
+        if (sustained && elapsed >= tailStart())
+            return 12 + std::min(3, static_cast<int>((elapsed - tailStart() + 1e-6f) / frameSeconds));
         return std::min(15, static_cast<int>((elapsed + 1e-6f) / frameSeconds));
     }
     int bodyFrame(const SkillDef& definition) const {
@@ -382,6 +394,7 @@ private:
     void autoFillSlots();  // 빈 칸을 해제된 액티브로 채운다(이미 든 칸은 그대로)
     bool castSkill(int i, bool aiChoice);  // i = 스킬 목록 번호
     void hitLine(Vec2 start, Vec2 end, float radius, float damage, bool detonatesCurse = false);
+    void hitBreathTick(BreathCast& cast, const SkillDef& skill);
     void advanceBreath(float dt, bool combatEnded = false);
     // 2026-11-18: 타격 프레임 스킬. 타격 전에 끊기면 쿨타임의 일부를 돌려준다.
     void advanceProcession(float dt);

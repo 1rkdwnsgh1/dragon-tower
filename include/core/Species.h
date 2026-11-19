@@ -125,6 +125,7 @@ struct SkillDef {
     AnimDef fxAnim{12.f, false, 0, 1.f};
     std::string layeredBreath;  // Optional five-sheet breath package, relative to the dragon folder.
     float breathInputLock = 0.f;
+    bool sustainedBreath = false;
     bool breathDeferHit = true;  // Compatibility with Bonestorm's impact at LOOP entry.
     bool usesUmbralBreath() const { return layeredBreath == "umbral_vortex_v2"; }
     // ---- 2026-11-18: 타격 프레임 (그림자룡 가르기로 처음 검증) ----

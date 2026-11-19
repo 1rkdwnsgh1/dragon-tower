@@ -513,9 +513,11 @@ bool World::castSkill(int i, bool aiChoice) {
                 if (dir.length() < 0.01f) dir = facingDir;
                 dir = dir.normalized();
                 d.breath = BreathCast{i, d.pos, dir, 0.f, s.range, skillRadius(s),
-                                      d.stats.atk * s.power, s.breathInputLock};
+                                      d.stats.atk * s.power, s.breathInputLock, false, false,
+                                      s.sustainedBreath, 0, {}};
+                if (s.sustainedBreath) d.breath->inputLock = std::max(d.breath->inputLock, d.breath->length());
                 d.breath->facingLeft = std::fabs(dir.x) > 0.01f ? dir.x < 0.f : d.facing.x < 0.f;
-                if (!s.breathDeferHit) {
+                if (!s.breathDeferHit && !s.sustainedBreath) {
                     d.breath->hit = true;
                     hitLine(d.pos, d.pos + dir * s.range, d.breath->radius, d.breath->damage, s.detonatesCurse);
                 }
@@ -617,7 +619,7 @@ bool World::castSkill(int i, bool aiChoice) {
     } else {
         d.skillMotion = -1;
     }
-    if (d.breath && d.breath->skill == i && !s.usesUmbralBreath()) hold = std::max(hold, BreathCast::duration);
+    if (d.breath && d.breath->skill == i && !s.usesUmbralBreath()) hold = std::max(hold, d.breath->length());
     setDragonAnim(AnimState::Attack, hold);
     addText(s.name, d.pos - Vec2{0.f, 78.f}, sp.color | 0xFF000000, 15.f, 0.9f);
     return true;
@@ -736,10 +738,28 @@ void World::hitLine(Vec2 start, Vec2 end, float radius, float damage, bool deton
     }
 }
 
+void World::hitBreathTick(BreathCast& cast, const SkillDef& skill) {
+    const Vec2 end = cast.origin + cast.aim * cast.range;
+    for (Enemy& enemy : enemies_) {
+        if (!enemy.alive) continue;
+        const Vec2 offset = enemy.pos - cast.origin;
+        if (offset.x * cast.aim.x + offset.y * cast.aim.y < 0.f ||
+            distancePointSegment(enemy.pos, cast.origin, end) > cast.radius + scaledBody(enemy.radius, sizeScale_))
+            continue;
+
+        const bool firstHit = skill.detonatesCurse &&
+            std::find(cast.curseChecked.begin(), cast.curseChecked.end(), enemy.id) == cast.curseChecked.end();
+        if (firstHit) cast.curseChecked.push_back(enemy.id);
+        damageEnemy(enemy, cast.damage / BreathCast::sustainedTicks, true, firstHit);
+        if (enemy.alive && !enemy.entering && enemyDef(enemy.kind).role != EnemyRole::Boss)
+            enemy.pos = bounds_.clampPoint(enemy.pos + cast.aim * BreathCast::tickKnockback, enemy.radius);
+    }
+}
+
 void World::advanceBreath(float dt, bool combatEnded) {
     DragonActor& d = dragon_;
     if (!d.breath) return;
-    if (!d.alive || d.held || (combatEnded && !d.breath->hit)) {
+    if (!d.alive || d.held || (combatEnded && (!d.breath->hit || d.breath->sustained))) {
         if (d.breath->inputLock > 0.f) d.animHold = 0.f;
         d.breath.reset();
         return;
@@ -748,11 +768,17 @@ void World::advanceBreath(float dt, bool combatEnded) {
     const SkillDef& skill = speciesDef(d.species).skills[static_cast<size_t>(cast.skill)];
     cast.elapsed += dt;
     constexpr float epsilon = 1e-6f;
-    if (!cast.hit && cast.elapsed + epsilon >= BreathCast::impactTime) {
+    if (cast.sustained) {
+        while (cast.ticksApplied < BreathCast::sustainedTicks &&
+               cast.elapsed + epsilon >= BreathCast::impactTime + cast.ticksApplied * BreathCast::tickInterval) {
+            ++cast.ticksApplied;
+            hitBreathTick(cast, skill);
+        }
+    } else if (!cast.hit && cast.elapsed + epsilon >= BreathCast::impactTime) {
         cast.hit = true;
         hitLine(cast.origin, cast.origin + cast.aim * cast.range, cast.radius, cast.damage, skill.detonatesCurse);
     }
-    if (cast.elapsed + epsilon >= BreathCast::duration) {
+    if (cast.elapsed + epsilon >= cast.length()) {
         const bool umbral = skill.usesUmbralBreath();
         d.breath.reset();
         if (!umbral && d.anim == AnimState::Attack) {
