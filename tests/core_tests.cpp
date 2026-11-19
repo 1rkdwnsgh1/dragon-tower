@@ -1498,6 +1498,20 @@ static void testPlaceAndPanel() {
     w.updateWander(0.01f);
     CHECK(actor.anim == AnimState::Move);
 
+    w.seed(271);
+    int flightFrames = 0, restFrames = 0, walkFrames = 0, landFrames = 0;
+    for (int i = 0; i < 12000; ++i) {
+        w.updateWander(0.1f);
+        if (actor.flying) ++flightFrames;
+        else if (actor.behavior == IdleBehavior::Rest) ++restFrames;
+        else if (actor.behavior == IdleBehavior::Walk) ++walkFrames;
+        if (actor.landing) ++landFrames;
+    }
+    std::printf("  roaming samples: fly=%d rest=%d walk=%d landing=%d\n",
+                flightFrames, restFrames, walkFrames, landFrames);
+    CHECK(flightFrames > 7200 && restFrames > 0 && walkFrames > 0 && landFrames > 0);
+    CHECK(w.bounds().contains(actor.pos.x, actor.pos.y));
+
     // 상태창 위치·접힘은 저장 요청을 남긴다
     g.setPanelPos({10.f, 20.f});
     CHECK(g.panelPos().x == 10.f && g.panelPos().y == 20.f);
