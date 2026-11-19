@@ -115,6 +115,7 @@ struct SkillDef {
     float fxTail = 0.f;
     float fxDelay = 0.f;  // Seconds from the triggering event to the visual effect.
     bool fxZoneSpriteOnly = false;  // Render the zone's sheet on the zone's own clock.
+    bool grantsSoul = false;  // Opt-in for Revenant's on-kill passive.
     AnimDef fxAnim{12.f, false, 0, 1.f};
     std::string layeredBreath;  // Optional five-sheet breath package, relative to the dragon folder.
     float breathInputLock = 0.f;

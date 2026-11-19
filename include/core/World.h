@@ -23,6 +23,7 @@ struct PlayerInput {
 
 // 전투와 표시가 같은 중첩 상한과 지속 시간을 읽는다.
 inline constexpr int kCurseMaxStacks = 5;
+inline constexpr int kRevenantSoulCap = 10;
 inline constexpr double kCurseDuration = 6.0;
 
 struct Enemy {
@@ -167,6 +168,7 @@ struct SkillCast {
 };
 
 struct DragonActor {
+    int souls = 0;  // Current combat session only.
     Species species = Species::Fire;
     int level = 1;
     DragonStats stats{};
@@ -231,6 +233,7 @@ public:
     void seed(uint32_t s) { rng_.seed(s); }
 
     void setupDragon(Species s, int level, float hp, Vec2 pos);
+    void resetSouls() { dragon_.souls = 0; }
     void setDragonLevel(int level);  // 레벨업 시 능력치 갱신(늘어난 최대 체력만큼 회복)
     DragonActor& dragon() { return dragon_; }
     const DragonActor& dragon() const { return dragon_; }

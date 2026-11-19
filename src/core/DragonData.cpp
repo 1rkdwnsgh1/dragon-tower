@@ -246,6 +246,7 @@ DragonParseResult parseDragonText(const std::string& text, const std::string& fo
             // v1.6 스킬 효과(FX) 스프라이트. 파일은 fx_<fx>.png 이다. 적지 않으면 전처럼 도형만 그린다.
             else if (key == "fx_alpha") ok = parseFloat(val, s.fxAlpha);
             else if (key == "apply_curse") ok = parseBool(val, s.appliesCurse);
+            else if (key == "grant_soul") ok = parseBool(val, s.grantsSoul);
             else if (key == "scale_with_size") ok = parseBool(val, s.scaleWithSize);
             else if (key == "fx") s.fx = val;
             else if (key == "fx_impact") s.fxImpact = val;

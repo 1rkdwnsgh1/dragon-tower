@@ -639,9 +639,15 @@ void World::onEnemyKilled(Vec2 at) {
     DragonActor& d = dragon_;
     if (!d.alive) return;
     const SpeciesDef& sp = speciesDef(d.species);
+    bool soulAwarded = false;
     for (const SkillDef& s : sp.skills) {
         if (s.kind != SkillKind::PassiveOnKill) continue;
         if (d.level < s.unlockLevel) continue;
+        if (!soulAwarded && sp.key == "revenant" && s.grantsSoul && d.souls < kRevenantSoulCap) {
+            ++d.souls;
+            soulAwarded = true;
+            addText("영혼 +1", d.pos - Vec2{0.f, 86.f}, 0xFFA6FFF0, 12.f, 0.7f);
+        }
         if (s.power <= 0.f) continue;
         float before = d.hp;
         d.hp = std::min(d.stats.maxHp, d.hp + d.stats.maxHp * s.power);
@@ -1055,6 +1061,7 @@ void World::damageDragon(float raw) {
     if (d.hp <= 0.f) {
         d.hp = 0.f;
         d.alive = false;
+        resetSouls();
         d.breath.reset();
         events_.push_back({WorldEventType::DragonDied, EnemyKind{}, 0});
         addFx(FxType::Death, d.pos, d.pos, 90.f, 0.9f, speciesDef(d.species).color);

@@ -102,7 +102,8 @@ tests/                     코어 규칙 검증
 | 스킬 해제 레벨 배정(레벨당 하나) | `src/core/Species.cpp` | `assignUnlockLevels` (`registerOrUpdateSpecies`가 항상 부른다) |
 | 액티브·패시브 구분 | `include/core/Species.h`, `src/core/Species.cpp` | `SkillKind`, `skillIsPassive` |
 | 패시브 능력치 보정 | `src/core/Species.cpp` | `statsFor` 뒤쪽의 `PassiveStat` |
-| 처치 패시브(회복) | `src/core/World.cpp` | `onEnemyKilled` (`damageEnemy`에서 부른다) |
+| 처치 패시브(회복·영혼) | `src/core/World.cpp` | `damageEnemy`에서 확정한 처치를 `onEnemyKilled`가 처리 |
+| 망령룡 영혼 보유량·초기화·표시 | `include/core/World.h`, `src/core/Game.cpp`, `src/win/Renderer.cpp` | `DragonActor::souls`, 전투 세션 전환, `drawStatusCard` |
 | 장착 4칸(저장되는 값) | `include/core/Progression.h` | `DragonRecord::slots`, `fillEmptySkillSlots` |
 | 장착 바꾸기·관리창 열기 | `src/core/Game.cpp` | `equipSkill`, `clearSlot`, `syncSkillSlots`, `openSkills` |
 | 키 1~4와 자동 전투의 스킬 선택 | `src/core/World.cpp` | `slotSkill`, `slotReady`, `dragonAi`의 `castSkills` |

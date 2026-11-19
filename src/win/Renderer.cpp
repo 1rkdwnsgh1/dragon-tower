@@ -1576,10 +1576,12 @@ void Renderer::drawStatusCard(Graphics& g, const Game& game, const Sprites& spri
     const DragonActor& d = game.world().dragon();
     const SpeciesDef& sp = speciesDef(rec.species);
     const float cardW = 270.f;
-    float cardH = game.panelCollapsed() ? 44.f : 292.f;
+    const bool showSouls = sp.key == "revenant";
+    const float expandedHeight = showSouls ? 310.f : 292.f;
+    const float cardH = game.panelCollapsed() ? 44.f : expandedHeight;
     Vec2 saved = game.panelPos();
     float rx = saved.x >= 0.f ? saved.x : width_ - 96.f - cardW;
-    float ry = saved.y >= 0.f ? saved.y : height_ - 16.f - 292.f;
+    float ry = saved.y >= 0.f ? saved.y : height_ - 16.f - expandedHeight;
     // 화면 밖으로 나가지 않게 맞춘다(해상도가 바뀌어도 사라지지 않게)
     rx = std::clamp(rx, 0.f, std::max(0.f, width_ - cardW));
     ry = std::clamp(ry, 0.f, std::max(0.f, height_ - cardH));
@@ -1633,6 +1635,12 @@ void Renderer::drawStatusCard(Graphics& g, const Game& game, const Sprites& spri
         y += 20.f;
     } else {
         y += 3.f;
+    }
+
+    if (showSouls) {
+        text(g, "영혼 " + std::to_string(d.souls) + " / " + std::to_string(kRevenantSoulCap),
+             x, y, 13.f, 0xFFA6FFF0);
+        y += 18.f;
     }
 
     std::string state;

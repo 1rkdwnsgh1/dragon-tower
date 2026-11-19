@@ -66,6 +66,8 @@ if(DRAGON_BUILD_TESTS)
     add_test(NAME zone_sprite COMMAND core_tests --zone-sprite)
     add_test(NAME revenant_curse COMMAND core_tests --revenant-curse
         WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}")
+    add_test(NAME revenant_souls COMMAND core_tests --revenant-souls
+        WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}")
 
     add_executable(balance_sim tests/balance_sim.cpp)
     target_compile_definitions(balance_sim PRIVATE DT_ASSETS_DIR="${CMAKE_CURRENT_SOURCE_DIR}/assets")
