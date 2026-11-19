@@ -111,6 +111,21 @@ int main(int argc, char** argv) {
             // 효과 시트: dragon.txt 의 fx= 가 가리키는 fx_<키>.png (큐 8번이 그린다).
             // main 의 SkillDef 에는 아직 fx 칸이 없다 — PR #25(큐 2번)가 병합되면 여기서 함께 센다.
             std::string fx = "(fx= 미지원)";
+            if (sk.kind == dt::SkillKind::Procession && s.key == "revenant") {
+                fx = "행렬 FX 7종";
+                for (const char* layer : dt::kProcessionLayers) {
+                    const std::string file = std::string("fx_") + layer + ".png";
+                    referenced.insert(file);
+                    if (!fileExists(dir / file)) {
+                        std::printf("  [경고] %s: 행렬 효과 시트 %s 없음\n", s.key.c_str(), file.c_str());
+                        ++warned;
+                    }
+                }
+                if (!fileExists(dir / ("skill_" + sk.motion + ".png"))) {
+                    std::printf("  [경고] %s: 행렬 본체 모션 시트 없음\n", s.key.c_str());
+                    ++warned;
+                }
+            }
 
             std::printf("      %s%s%s%s%s%s%s\n", pad("Lv" + std::to_string(sk.unlockLevel), 6).c_str(),
                         pad(sk.name, 16).c_str(), pad(dt::skillKindName(sk.kind), 14).c_str(),

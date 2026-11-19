@@ -285,6 +285,7 @@ void PreviewWindow::reset() {
         world_.addSkillFx(*sk, FxType::Heal, target_, origin, 44.f, 0.5f, def.color);
     } else if (!skillIsPassive(sk->kind)) {
         dragon.anim = AnimState::Idle;
+        if (sk->kind == SkillKind::Procession) dragon.souls = kUltimateSoulCost;
         world_.setSlots({selected(Motion) - kAnimStateCount, -1, -1, -1});
         PlayerInput input{};
         input.skill[0] = true;

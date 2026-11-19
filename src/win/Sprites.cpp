@@ -364,6 +364,13 @@ void Sprites::loadSkillSheets(const std::filesystem::path& dir, const SpeciesDef
 // 그러면 그리는 쪽이 예전처럼 도형으로 그려서 깨진 그림이 나오지 않는다.
 void Sprites::loadFxSheets(const std::filesystem::path& dir, const SpeciesDef& def, const std::string& label) {
     for (const SkillDef& sk : def.skills) {
+        if (sk.kind == SkillKind::Procession && def.key == "revenant") {
+            const AnimDef sheet{8.f, false, 256, 1.f};
+            for (const char* layer : kProcessionLayers) {
+                const std::string name = std::string("fx_") + layer;
+                loadSheetFile(dir / (name + ".png"), sheet, def.key + "/" + name, label + "/" + name + ".png");
+            }
+        }
         for (const std::string* effect : {&sk.fx, &sk.fxImpact}) {
             if (effect->empty()) continue;
             std::string key = def.key + "/fx_" + *effect;

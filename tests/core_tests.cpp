@@ -2834,8 +2834,8 @@ static void testRevenantSouls(const std::filesystem::path& assets) {
     CHECK(loaded);
     if (!loaded) return;
     const auto& skills = speciesDef(revenant).skills;
-    CHECK(skills.size() == 7);
-    if (skills.size() != 7) return;
+    CHECK(skills.size() >= 7);
+    if (skills.size() < 7) return;
     const SkillDef& harvest = skills[6];
     CHECK(harvest.grantsSoul && harvest.kind == SkillKind::PassiveOnKill && harvest.power == 0.06f);
 
@@ -3084,7 +3084,161 @@ static void testRevenantUltimateCharge() {
     CHECK(serializeSave(saved).find("ultimate") == std::string::npos);
 }
 
+static void testRevenantProcession() {
+    std::printf("[revenant procession]\n");
+    loadDragonFolders("assets/dragons");
+    Species revenant{}, shadow{};
+    const bool loaded = speciesFromKey("revenant", revenant) && speciesFromKey("shadow", shadow);
+    CHECK(loaded);
+    if (!loaded) return;
+    constexpr int skill = 7;
+    const auto& def = speciesDef(revenant);
+    CHECK(def.skills.size() == 8);
+    if (def.skills.size() != 8) return;
+    CHECK(def.skills[skill].kind == SkillKind::Procession && def.skills[skill].unlockLevel == 8);
+    CHECK(def.skills[skill].cooldown == 30.f && def.skills[skill].motion == "procession");
+    for (int i = 0; i < 7; ++i) CHECK(def.skills[i].kind != SkillKind::Procession);
+
+    const auto setup = [&](int souls = 10, int level = 8) {
+        World w;
+        w.setBounds({0.f, 0.f, 1400.f, 640.f});
+        w.setupDragon(revenant, level, -1.f, {400.f, 300.f});
+        w.dragon().souls = souls;
+        w.dragon().basicCd = 90.f;
+        w.setSlots({skill, -1, -1, -1});
+        for (Vec2 position : {Vec2{620.f, 300.f}, Vec2{680.f, 330.f}, Vec2{900.f, 300.f}}) {
+            auto& e = w.spawnEnemy(defaultMelee(), 1, position);
+            e.hp = e.maxHp = 100000.f;
+            e.stun = 100.f;
+        }
+        return w;
+    };
+    PlayerInput input{};
+    input.skill[0] = true;
+    const auto cast = [&](World& w, CombatMode mode = CombatMode::Direct) { w.updateCombat(0.f, mode, input); };
+    const auto step = [](World& w, float dt) { w.updateCombat(dt, CombatMode::Direct, {}); };
+    World shortfall = setup(9);
+    cast(shortfall);
+    CHECK(!shortfall.dragon().procession && shortfall.dragon().souls == 9);
+    World locked = setup(10, 7);
+    cast(locked);
+    CHECK(!locked.dragon().procession && locked.dragon().souls == 10);
+    World unequipped = setup();
+    unequipped.setSlots({-1, -1, -1, -1});
+    cast(unequipped);
+    CHECK(!unequipped.dragon().procession && unequipped.dragon().souls == 10);
+    World automatic = setup();
+    cast(automatic, CombatMode::Auto);
+    CHECK(!automatic.dragon().procession && automatic.dragon().souls == 10);
+
+    World w = setup();
+    w.enemiesMutable()[0].curseStacks = 3;
+    w.enemiesMutable()[0].curseRemaining = 6.0;
+    cast(w, CombatMode::SkillManual);
+    CHECK(w.dragon().procession.has_value());
+    if (!w.dragon().procession) return;
+    CHECK(w.dragon().skillMotion == skill && w.dragon().souls == 10);
+    CHECK(w.dragon().procession->target.x == 620.f);
+    step(w, 1.75f);
+    CHECK(w.dragon().procession && !w.dragon().procession->hit);
+    CHECK(w.enemies()[0].hp == 100000.f && w.dragon().souls == 10);
+    step(w, 0.25f);
+    CHECK(w.dragon().procession && w.dragon().procession->hit);
+    CHECK(w.dragon().souls == 0 && w.ultimateCharge().percent() == 0 && w.dragon().skillCd[skill] == 30.f);
+    CHECK(w.enemies()[0].hp < 100000.f && w.enemies()[1].hp < 100000.f && w.enemies()[2].hp == 100000.f);
+    CHECK(w.enemies()[0].curseStacks == 3 && w.enemies()[1].curseStacks == 0);
+    const float firstHitHp = w.enemies()[0].hp;
+    w.dragon().souls = 10;
+    step(w, 0.5f);
+    CHECK(w.enemies()[0].hp == firstHitHp && w.dragon().souls == 10);
+    step(w, 0.5f);
+    CHECK(!w.dragon().procession);
+    cast(w);
+    CHECK(!w.dragon().procession);  // 재사용 대기 중이다.
+
+    World kills = setup();
+    kills.enemiesMutable()[0].hp = 1.f;
+    kills.enemiesMutable()[1].hp = 1.f;
+    cast(kills);
+    step(kills, 2.f);
+    CHECK(kills.enemies().size() == 1 && kills.dragon().souls == 2);
+
+    World dodged = setup();
+    cast(dodged);
+    PlayerInput dodge{};
+    dodge.dodge = true;
+    dodged.updateCombat(2.f, CombatMode::Direct, dodge);
+    CHECK(!dodged.dragon().procession && dodged.dragon().souls == 10 && dodged.dragon().skillCd[skill] == 0.f);
+    CHECK(dodged.enemies()[0].hp == 100000.f);
+
+    World missed = setup();
+    cast(missed);
+    for (auto& enemy : missed.enemiesMutable()) enemy.pos.x += 500.f;
+    step(missed, 2.f);
+    CHECK(!missed.dragon().procession && missed.dragon().souls == 10);
+    CHECK(missed.enemies()[0].hp == 100000.f);
+
+    World ended = setup();
+    cast(ended);
+    ended.updateFx(0.f, true);
+    CHECK(!ended.dragon().procession && ended.dragon().souls == 10);
+    CHECK(ended.dragon().anim == AnimState::Idle);
+    cast(ended);
+    ended.resetSouls();
+    CHECK(!ended.dragon().procession && ended.dragon().souls == 0);
+    ended.dragon().souls = 10;
+    cast(ended);
+    ended.clearEnemies(false);
+    CHECK(!ended.dragon().procession && ended.dragon().souls == 10);
+    World died = setup();
+    cast(died);
+    died.dragon().alive = false;
+    step(died, 2.f);
+    CHECK(!died.dragon().procession && died.enemies()[0].hp == 100000.f);
+    World swapped = setup();
+    cast(swapped);
+    swapped.setupDragon(shadow, 8, -1.f, {400.f, 300.f});
+    CHECK(!swapped.dragon().procession && swapped.dragon().souls == 0);
+    cast(swapped);
+    CHECK(!swapped.dragon().procession);
+
+    World mirrored = setup();
+    for (auto& enemy : mirrored.enemiesMutable()) enemy.pos.x = 800.f - enemy.pos.x;
+    cast(mirrored);
+    CHECK(mirrored.dragon().procession && mirrored.dragon().procession->facingLeft);
+
+    SaveData saved;
+    CHECK(deserializeSave("version=1\ndragon.present=1\ndragon.species=revenant\ndragon.alive=1\n"
+                          "dragon.level=8\ndragon.slots=0,1,2,3\n", saved));
+    const std::array<int, kSkillSlots> originalSlots{0, 1, 2, 3};
+    CHECK(saved.dragon.slots == originalSlots);
+    Game game;
+    game.init(saved, {0.f, 0.f, 1280.f, 720.f});
+    CHECK(game.equipSkill(3, skill));
+    CHECK(game.skillSlots()[3] == skill);
+    SaveData reloaded;
+    CHECK(deserializeSave(serializeSave(game.snapshotForSave()), reloaded));
+    CHECK(reloaded.dragon.slots[3] == skill);
+
+    SpeciesDef testDef;
+    testDef.key = "test-procession-autofill";
+    testDef.skills = {def.skills[skill]};
+    DragonRecord record;
+    record.species = registerOrUpdateSpecies(testDef);
+    record.level = 8;
+    fillEmptySkillSlots(record);
+    CHECK(record.slots[0] == -1);
+    World autoFill;
+    autoFill.setupDragon(record.species, 8, -1.f, {400.f, 300.f});
+    CHECK(autoFill.slotSkill(0) == -1);
+}
+
 int main(int argc, char** argv) {
+    if (argc == 2 && std::string(argv[1]) == "--revenant-procession") {
+        testRevenantProcession();
+        std::printf("\n%d passed, %d failed\n", g_passed, g_failed);
+        return g_failed == 0 ? 0 : 1;
+    }
     if (argc == 2 && std::string(argv[1]) == "--revenant-ultimate-charge") {
         testRevenantUltimateCharge();
         std::printf("\n%d passed, %d failed\n", g_passed, g_failed);

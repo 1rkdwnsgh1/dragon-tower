@@ -42,6 +42,19 @@ struct UltimateUseConditions {
 };
 inline constexpr double kCurseDuration = 6.0;
 
+struct ProcessionCast {
+    static constexpr float chargeStart = 1.40f;
+    static constexpr float impactTime = 1.88f;
+    static constexpr float duration = impactTime + 1.04f;
+    int skill;
+    uint64_t payment;
+    Vec2 origin;
+    Vec2 target;
+    bool facingLeft;
+    float elapsed = 0.f;
+    bool hit = false;
+};
+
 struct Enemy {
     int id = 0;
     EnemyKind kind{};
@@ -185,6 +198,7 @@ struct SkillCast {
 
 struct DragonActor {
     int souls = 0;  // Current combat session only.
+    std::optional<ProcessionCast> procession;
     Species species = Species::Fire;
     int level = 1;
     DragonStats stats{};
@@ -252,6 +266,7 @@ public:
     void resetSouls();
     UltimateCharge ultimateCharge() const;
     bool canUseUltimate(const UltimateUseConditions& conditions) const;
+    const char* processionBlockedReason(int skill, bool inCombat, bool automatic) const;
     // 준비는 영혼을 건드리지 않는다. 성공한 타격 한 번에만 같은 ID로 확정한다.
     std::optional<uint64_t> beginUltimatePayment(const UltimateUseConditions& conditions);
     bool commitUltimatePayment(uint64_t id);
@@ -352,6 +367,8 @@ private:
     void hitLine(Vec2 start, Vec2 end, float radius, float damage);
     void advanceBreath(float dt, bool combatEnded = false);
     // 2026-11-18: 타격 프레임 스킬. 타격 전에 끊기면 쿨타임의 일부를 돌려준다.
+    void advanceProcession(float dt);
+    void cancelProcession();
     void advanceSkillCast(float dt, bool combatEnded = false);
     void cancelSkillCast(float refundRatio);
     void spawnAnchoredFx(const SkillDef& s, bool facingLeft);

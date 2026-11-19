@@ -35,7 +35,12 @@ World::World() = default;
 // 그리기 쪽(Renderer)은 자기 몫으로 charScale 을 따로 곱하므로 여기서 e.radius 를 바꾸지 않는다.
 static inline float scaledBody(float r, float k) { return r * k; }
 
+static bool inSkillCircle(const Enemy& enemy, Vec2 center, float radius, float scale) {
+    return enemy.alive && distance(enemy.pos, center) <= radius + scaledBody(enemy.radius, scale);
+}
+
 void World::resetSouls() {
+    cancelProcession();
     dragon_.souls = 0;
     pendingUltimatePayment_.reset();
 }
@@ -98,6 +103,7 @@ void World::setupDragon(Species s, int level, float hp, Vec2 pos) {
 void World::autoFillSlots() {
     const SpeciesDef& sp = speciesDef(dragon_.species);
     for (int idx : unlockedActiveSkills(sp, dragon_.level)) {
+        if (sp.skills[static_cast<size_t>(idx)].kind == SkillKind::Procession) continue;
         bool already = false;
         for (int v : slots_) if (v == idx) { already = true; break; }
         if (already) continue;
@@ -123,7 +129,7 @@ void World::updateDragonAnim(float dt) {
     d.animTime += dt;
     d.animHold = std::max(0.f, d.animHold - dt);
     // v1.5: 사람이 고른 모션이 있으면 그대로 둔다. 죽음만 예외다.
-    if (d.animForced && d.alive) {
+    if (d.animForced && d.alive && !d.procession) {
         setDragonAnim(d.forcedAnim, 0.f);
         return;
     }
@@ -213,6 +219,7 @@ Vec2 World::randomEdgePoint(float margin) {
 }
 
 void World::clearEnemies(bool withPoof) {
+    cancelProcession();
     if (dragon_.breath) {
         if (dragon_.breath->inputLock > 0.f) dragon_.animHold = 0.f;
         dragon_.breath.reset();
@@ -383,13 +390,55 @@ void World::basicAttack() {
     setDragonAnim(AnimState::Attack, cfg::kAnimAttackHold);
 }
 
+const char* World::processionBlockedReason(int i, bool inCombat, bool automatic) const {
+    const DragonActor& d = dragon_;
+    const SpeciesDef& species = speciesDef(d.species);
+    if (species.key != "revenant" || !skillUnlocked(i) || i >= static_cast<int>(d.skillCd.size()) ||
+        species.skills[static_cast<size_t>(i)].kind != SkillKind::Procession)
+        return "궁극기 미해제";
+    if (std::find(slots_.begin(), slots_.end(), i) == slots_.end()) return "궁극기 장착 필요";
+    if (automatic) return "궁극기는 수동 모드 전용";
+    if (d.procession || d.skillCast || (d.breath && d.breath->elapsed < d.breath->inputLock) || d.held)
+        return "시전 중 잠금";
+    if (d.skillCd[static_cast<size_t>(i)] > 0.f) return "궁극기 재사용 대기";
+    if (!ultimateCharge().full()) return "영혼 10개 필요";
+    if (!inCombat) return "전투 중에 사용 가능";
+    const float range = species.skills[static_cast<size_t>(i)].range;
+    if (std::none_of(enemies_.begin(), enemies_.end(), [&](const Enemy& enemy) {
+            return enemy.alive && distance(enemy.pos, d.pos) - enemy.radius <= range;
+        })) return "대상 없음";
+    return nullptr;
+}
+
 bool World::castSkill(int i, bool aiChoice) {
     DragonActor& d = dragon_;
     if (d.breath && d.breath->elapsed < d.breath->inputLock) return false;
-    if (d.skillCast) return false;  // 2026-11-18: 타격 프레임 스킬이 끝날 때까지 다른 스킬을 막는다
+    if (d.skillCast || d.procession) return false;  // 2026-11-18: 타격 프레임 스킬이 끝날 때까지 다른 스킬을 막는다
     const SpeciesDef& sp = speciesDef(d.species);
     if (i < 0 || i >= static_cast<int>(sp.skills.size())) return false;
     const SkillDef& s = sp.skills[static_cast<size_t>(i)];
+    if (s.kind == SkillKind::Procession) {
+        if (aiChoice || currentMode_ == CombatMode::Auto) return false;
+        const char* blocked = processionBlockedReason(i, true, false);
+        const Enemy* target = blocked ? nullptr : nearestEnemy(d.pos, s.range);
+        if (!blocked && !target) blocked = "대상 없음";
+        if (blocked) {
+            addText(blocked, d.pos - Vec2{0.f, 60.f}, 0xFFCCCCCC, 14.f, 0.8f);
+            return false;
+        }
+        const auto payment = beginUltimatePayment({true, true, true});
+        if (!payment) return false;
+        const float dx = target->pos.x - d.pos.x;
+        const bool left = std::fabs(dx) > 0.01f ? dx < 0.f : d.facing.x < 0.f;
+        d.procession = ProcessionCast{i, *payment, d.pos, target->pos, left};
+        d.facing = {left ? -1.f : 1.f, 0.f};
+        d.dashTime = 0.f;
+        d.moving = false;
+        d.skillMotion = i;
+        d.animTime = 0.f;
+        setDragonAnim(AnimState::Attack, ProcessionCast::duration);
+        return true;
+    }
     if (!skillUnlocked(i)) {
         if (!aiChoice) addText("Lv." + std::to_string(s.unlockLevel) + " 필요", d.pos - Vec2{0.f, 60.f}, 0xFFCCCCCC, 14.f, 0.8f);
         return false;
@@ -419,10 +468,10 @@ bool World::castSkill(int i, bool aiChoice) {
         case SkillKind::Burst: {
             bool any = false;
             for (Enemy& e : enemies_)
-                if (e.alive && distance(e.pos, d.pos) <= skillRadius(s) + scaledBody(e.radius, sizeScale_)) any = true;
+                if (inSkillCircle(e, d.pos, skillRadius(s), sizeScale_)) any = true;
             if (aiChoice && !any) return false;
             for (Enemy& e : enemies_) {
-                if (!e.alive || distance(e.pos, d.pos) > skillRadius(s) + scaledBody(e.radius, sizeScale_)) continue;
+                if (!inSkillCircle(e, d.pos, skillRadius(s), sizeScale_)) continue;
                 damageEnemy(e, d.stats.atk * s.power);
                 if (s.extra > 0.f) e.stun = std::max(e.stun, s.extra);
             }
@@ -541,6 +590,7 @@ bool World::castSkill(int i, bool aiChoice) {
                 addSkillFx(s, FxType::Ring, z.pos, z.pos, z.radius, s.duration, sp.color);
             break;
         }
+        case SkillKind::Procession:  // 위에서 수동 시전만 받는다.
         case SkillKind::PassiveStat:
         case SkillKind::PassiveOnKill:
             // 패시브는 발동하는 스킬이 아니다. skillUnlocked에서 이미 걸러지지만,
@@ -563,6 +613,43 @@ bool World::castSkill(int i, bool aiChoice) {
     setDragonAnim(AnimState::Attack, hold);
     addText(s.name, d.pos - Vec2{0.f, 78.f}, sp.color | 0xFF000000, 15.f, 0.9f);
     return true;
+}
+
+void World::cancelProcession() {
+    DragonActor& d = dragon_;
+    if (!d.procession) return;
+    cancelUltimatePayment(d.procession->payment);
+    d.procession.reset();
+    d.animHold = 0.f;
+    d.skillMotion = -1;
+    if (d.alive && d.anim == AnimState::Attack) setDragonAnim(AnimState::Idle, 0.f);
+}
+
+void World::advanceProcession(float dt) {
+    DragonActor& d = dragon_;
+    if (!d.procession) return;
+    if (!d.alive || d.held || currentMode_ == CombatMode::Auto) {
+        cancelProcession();
+        return;
+    }
+    ProcessionCast& cast = *d.procession;
+    cast.elapsed += dt;
+    if (!cast.hit && cast.elapsed >= ProcessionCast::impactTime) {
+        const SkillDef& skill = speciesDef(d.species).skills[static_cast<size_t>(cast.skill)];
+        const float radius = skillRadius(skill);
+        const auto inImpact = [&](const Enemy& e) {
+            return inSkillCircle(e, cast.target, radius, sizeScale_);
+        };
+        if (std::none_of(enemies_.begin(), enemies_.end(), inImpact) || !commitUltimatePayment(cast.payment)) {
+            cancelProcession();
+            return;
+        }
+        cast.hit = true;
+        d.skillCd[static_cast<size_t>(cast.skill)] = skill.cooldown;
+        for (Enemy& enemy : enemies_)
+            if (inImpact(enemy)) damageEnemy(enemy, d.stats.atk * skill.power);
+    }
+    if (cast.elapsed >= ProcessionCast::duration) cancelProcession();
 }
 
 void World::hitLine(Vec2 start, Vec2 end, float radius, float damage) {
@@ -713,7 +800,7 @@ float World::desiredRange() const {
             // v1.4: 장착한 칸만 본다. 해제만 되고 빼 둔 스킬 때문에 멀찍이 서 있으면 안 된다.
             for (int slot = 0; slot < kSkillSlots; ++slot) {
                 int i = slotSkill(slot);
-                if (!skillUnlocked(i)) continue;
+                if (!skillUnlocked(i) || sp.skills[static_cast<size_t>(i)].kind == SkillKind::Procession) continue;
                 best = std::max(best, sp.skills[static_cast<size_t>(i)].range);
             }
             // 쓸 수 있는 스킬이 없으면 붙어서 기본 공격으로 싸우는 수밖에 없다
@@ -1094,7 +1181,7 @@ void World::damageDragon(float raw) {
     if (d.shieldTime > 0.f) dmg *= (1.f - d.shieldPct);
     d.hp -= dmg;
     d.hitFlash = 0.2f;
-    if (!d.breath || d.breath->inputLock <= 0.f) setDragonAnim(AnimState::Hit, cfg::kAnimHitHold);
+    if (!d.procession && (!d.breath || d.breath->inputLock <= 0.f)) setDragonAnim(AnimState::Hit, cfg::kAnimHitHold);
     statHitsTaken++;
     addText(intText(dmg), d.pos - Vec2{0.f, 52.f}, kColorDamageToDragon, 20.f, 0.9f);
     addFx(FxType::Hit, d.pos, d.pos, 46.f, 0.25f, kColorDamageToDragon);
@@ -1151,13 +1238,16 @@ void World::updateCombat(float dt, CombatMode mode, const PlayerInput& in) {
         if (enemy.curseRemaining == 0.0) enemy.curseStacks = 0;
     }
 
+    if (mode == CombatMode::Direct && in.dodge && d.dodgeCd <= 0.f && d.procession && !d.procession->hit)
+        cancelProcession();
+    advanceProcession(dt);
     advanceBreath(dt);
     advanceSkillCast(dt);
     if (d.alive && d.stats.regen > 0.f) d.hp = std::min(d.stats.maxHp, d.hp + d.stats.regen * dt);
     // 2026-11-18: 타격 전 직접 조작 회피는 시전을 끊고 회피한다(쿨타임 일부 반환).
     if (mode == CombatMode::Direct && in.dodge && d.dodgeCd <= 0.f && d.skillCast && !d.skillCast->hitDone)
         cancelSkillCast(cfg::kSkillCastCancelCooldown);
-    if (d.alive && (!d.breath || d.breath->elapsed >= d.breath->inputLock) && !skillCastLocked()) {
+    if (d.alive && !d.procession && (!d.breath || d.breath->elapsed >= d.breath->inputLock) && !skillCastLocked()) {
         if (mode == CombatMode::Direct) {
             if (in.dodge && d.dodgeCd <= 0.f && d.dashTime <= 0.f) {
                 Vec2 dir{in.moveX, in.moveY};
@@ -1188,7 +1278,7 @@ void World::updateCombat(float dt, CombatMode mode, const PlayerInput& in) {
                 castSkill(i, false);
             }
         }
-        basicAttack();
+        if (!d.procession) basicAttack();
     }
 
     updateEnemies(dt);
@@ -1259,6 +1349,7 @@ void World::updateCombat(float dt, CombatMode mode, const PlayerInput& in) {
 }
 
 void World::updateFx(float dt, bool combatEnded) {
+    if (combatEnded) cancelProcession();
     if (combatEnded && dragon_.breath) {
         advanceBreath(dt, true);
         updateDragonAnim(dt);

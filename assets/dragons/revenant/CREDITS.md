@@ -112,3 +112,10 @@ Image.open(p).convert("RGBA").resize((256, 256), Image.LANCZOS)
 
 남은 두 세트(`damage_pulse`, `ghost_hand`)는 "피해를 주는 순간"과 "손이 솟는 연출"이라
 지금 구조에 띄울 자리가 없다.
+
+## 죽음의 행렬 검수용 시트
+
+`skill_procession.png`과 `fx_procession_*.png` 7종은 프로젝트에 복구한
+`11_march_of_the_dead_body`, `12_march_of_the_dead_effects`의 manifest 순서대로 변환했다.
+원본 위치는 `assets/references/revenant-dragon/recovered-2026-11-16/original/`이다.
+원본은 검수 대기 자료이며 게임 내 시각 승인과 배율·레이어 성능 검수가 남아 있다.

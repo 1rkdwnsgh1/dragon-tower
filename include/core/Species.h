@@ -23,6 +23,11 @@ constexpr int kBuiltinSpeciesCount = 0;
 // 현재 레지스트리에 등록된 종의 수(내장 + 폴더에서 추가된 종)
 int speciesCount();
 
+inline constexpr const char* kProcessionLayers[] = {
+    "procession_ritual", "procession_soul_eruption", "procession_spectral_crown",
+    "procession_army_emergence", "procession_spirit_charge", "procession_final_impact", "procession_aftermath"
+};
+
 enum class SkillKind {
     // ---- 액티브: 장착 칸(최대 kSkillSlots개)에 넣어야 쓸 수 있다 ----
     Projectile,  // 가장 가까운 적에게 유도탄
@@ -36,6 +41,7 @@ enum class SkillKind {
     // ---- 패시브(v1.4): 칸을 쓰지 않고 해제되면 항상 적용된다 ----
     PassiveStat,    // 능력치 상시 보정(stat = 어떤 능력치, power = 보정량)
     PassiveOnKill,  // 적을 쓰러뜨릴 때 최대 체력의 power 비율만큼 회복
+    Procession,     // 망령룡 전용 수동 궁극기
 };
 
 // 액티브와 패시브를 가르는 유일한 기준. 스킬 종류를 새로 추가할 때 여기만 고치면

@@ -932,6 +932,7 @@ void Renderer::drawWorld(Graphics& g, const Game& game, const Sprites& sprites, 
 
     // v1.6: 본체 뒤 효과(fx_front=0)를 드래곤보다 먼저 그린다.
     // 지금은 fx= 를 적은 스킬이 하나도 없어서 이 층에 걸리는 효과가 없다 — 화면은 그대로다.
+    drawProcession(g, w.dragon(), sprites, cs, false);
     drawFx(g, w, sprites, dragonSp, cs, false);
     drawBreath(g, w.dragon(), sprites, cs);
     if (game.hasDragon()) warmBreathCache(g, w, sprites, cs);
@@ -967,6 +968,7 @@ void Renderer::drawWorld(Graphics& g, const Game& game, const Sprites& sprites, 
     drawProjectiles(g, w, sprites, dragonSp, cs);
 
     drawFx(g, w, sprites, dragonSp, cs, true);
+    drawProcession(g, d, sprites, cs, true);
 
     // FX 위에 배지를 그리고 피해 숫자는 기존처럼 가장 뒤에 올린다.
     for (const CurseBadge& badge : curseBadges_) drawCurseBadge(g, badge, time);
@@ -1021,6 +1023,44 @@ void Renderer::drawDotZones(Graphics& g, const World& w, const Sprites& sprites,
     }
 }
 
+void Renderer::drawProcession(Graphics& g, const DragonActor& dragon, const Sprites& sprites,
+                              float scale, bool inFront) {
+    if (!dragon.alive || !dragon.procession) return;
+    const ProcessionCast& cast = *dragon.procession;
+    const float t = cast.elapsed;
+    const float body = cfg::kDragonRadius * 3.f * scale;
+    const Vec2 aim = (cast.target - cast.origin).normalized();
+    const Vec2 rear = cast.origin - aim * (body * 0.6f);
+    const float travel = std::clamp((t - ProcessionCast::chargeStart) /
+        (ProcessionCast::impactTime - ProcessionCast::chargeStart), 0.f, 1.f);
+    const Vec2 host = rear + (cast.target - rear) * travel;
+    const auto drawLayer = [&](const char* key, float start, float duration, Vec2 at, float height, float opacity) {
+        if (t < start || t >= start + duration) return;
+        const Sheet sheet = sprites.fxSheet("revenant", key);
+        if (!sheet.bmp) return;
+        const float local = t - start;
+        const float fade = std::min(1.f, (duration - local) / 0.10f);
+        const int frame = animFrame(local, sheet.frames / duration, sheet.frames, false);
+        drawSheetFrame(g, sheet, frame, at.x, at.y, height, cast.facingLeft, 0.f, opacity * fade);
+    };
+    if (!inFront) {
+        drawLayer("procession_ritual", 0.f, 0.72f, cast.origin + Vec2{0.f, body * 0.24f}, body * 1.55f, 0.72f);
+        drawLayer("procession_army_emergence", 0.70f, 0.72f, rear, body * 1.45f, 0.80f);
+        if (cast.hit)
+            drawLayer("procession_aftermath", ProcessionCast::impactTime, 1.04f, cast.target, body * 1.9f, 0.56f);
+    } else {
+        const float direction = cast.facingLeft ? -1.f : 1.f;
+        drawLayer("procession_soul_eruption", 0.48f, 0.52f,
+                  cast.origin + Vec2{body * 0.12f * direction, -body * 0.24f}, body, 0.73f);
+        drawLayer("procession_spectral_crown", 0.70f, 0.80f,
+                  cast.origin + Vec2{body * 0.26f * direction, -body * 0.57f}, body * 0.60f, 0.78f);
+        drawLayer("procession_spirit_charge", ProcessionCast::chargeStart,
+                  ProcessionCast::impactTime - ProcessionCast::chargeStart, host, body * 1.75f, 0.78f);
+        if (cast.hit)
+            drawLayer("procession_final_impact", ProcessionCast::impactTime, 0.44f, cast.target, body * 2.2f, 0.86f);
+    }
+}
+
 void Renderer::drawProjectiles(Graphics& g, const World& w, const Sprites& sprites,
                                const SpeciesDef& dragonSp, float cs) {
     const uint32_t spColor = dragonSp.color;
@@ -1068,6 +1108,7 @@ void Renderer::drawAnimationPreview(Graphics& g, const World& w, const Sprites& 
     const SpeciesDef& species = speciesDef(d.species);
     if (effects) {
         drawDotZones(g, w, sprites, time);
+        drawProcession(g, d, sprites, charScale, false);
         drawFx(g, w, sprites, species, charScale, false);
         drawBreath(g, d, sprites, charScale);
     }
@@ -1079,6 +1120,7 @@ void Renderer::drawAnimationPreview(Graphics& g, const World& w, const Sprites& 
     if (effects) {
         drawProjectiles(g, w, sprites, species, charScale);
         drawFx(g, w, sprites, species, charScale, true);
+        drawProcession(g, d, sprites, charScale, true);
     }
 }
 
@@ -1649,10 +1691,22 @@ void Renderer::drawStatusCard(Graphics& g, const Game& game, const Sprites& spri
             fillRound(g, RectF(gauge.X - 1.f, gauge.Y - 2.f, gauge.Width + 2.f, gauge.Height + 4.f),
                       4.f, Color(65, 75, 255, 222));
         bar(g, gauge, static_cast<float>(charge.percent()) / 100.f, full ? 0xFF78FCE5 : 0xFF36C9B4);
-        if (full)
-            text(g, "충전 완료 · 스킬 미구현", x, y + 27.f, 12.f, 0xFFA6FFF0, 0, true);
-        else if (!charge.soulHarvestUnlocked)
-            text(g, "영혼 수확 미해제", x, y + 27.f, 12.f, kSub);
+        const auto ultimate = std::find_if(sp.skills.begin(), sp.skills.end(), [](const SkillDef& skill) {
+            return skill.kind == SkillKind::Procession;
+        });
+        const bool inTower = game.screen() == Screen::Tower;
+        const bool inCombat = inTower || (game.screen() == Screen::Desktop && game.hunting() &&
+                                          game.waveActive() && !game.combatPaused());
+        const bool automatic = (inTower ? game.towerMode() : game.huntMode()) == CombatMode::Auto;
+        const char* status = "영혼 수확 미해제";
+        if (charge.soulHarvestUnlocked) {
+            if (ultimate != sp.skills.end())
+                status = game.world().processionBlockedReason(static_cast<int>(ultimate - sp.skills.begin()),
+                                                             inCombat, automatic);
+            else
+                status = full ? "충전 완료 · 스킬 미구현" : "영혼 10개 필요";
+        }
+        text(g, status ? status : "궁극기 사용 가능", x, y + 27.f, 12.f, full ? 0xFFA6FFF0 : kSub, 0, full);
         y += 48.f;
     }
 

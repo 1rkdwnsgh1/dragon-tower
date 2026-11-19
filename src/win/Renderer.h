@@ -169,6 +169,8 @@ private:
     // 캐시를 이 팩·배율에 맞추고 다 만든 그림을 가져온다. 다른 숨결이면 바로, 배율만 다르면 잠시 뒤 다시 만든다.
     void updateBreathCache(const Sprites& sprites, const BreathSheets& pack, float devScale);
     void stopBreathWorker();
+    void drawProcession(Gdiplus::Graphics& g, const DragonActor& dragon, const Sprites& sprites,
+                        float scale, bool inFront);
     void drawProjectiles(Gdiplus::Graphics& g, const World& w, const Sprites& sprites,
                          const SpeciesDef& dragonSp, float cs);
     void drawEnemy(Gdiplus::Graphics& g, const Enemy& e, const Sprites& sprites, float time, float charScale,
