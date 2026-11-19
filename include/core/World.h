@@ -81,6 +81,7 @@ struct DotZone {
     float remaining = 1.f;
     float duration = 1.f;
     bool appliesCurse = false;
+    int spriteSkill = -1;
 };
 
 enum class FxType { Ring, Heal, Dodge, Hit, Poof, LineBlast, Dash, LevelUp, Death, Shield };

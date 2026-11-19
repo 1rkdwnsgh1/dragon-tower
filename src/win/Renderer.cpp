@@ -844,7 +844,7 @@ void Renderer::drawWorld(Graphics& g, const Game& game, const Sprites& sprites, 
     const SpeciesDef& dragonSp = speciesDef(w.dragon().species);
     uint32_t spColor = dragonSp.color;
 
-    drawDotZones(g, w, spColor, time);
+    drawDotZones(g, w, sprites, time);
 
     // 적 공격 예고
     for (const AttackZone& z : w.zones()) {
@@ -920,9 +920,28 @@ void Renderer::drawWorld(Graphics& g, const Game& game, const Sprites& sprites, 
     }
 }
 
-void Renderer::drawDotZones(Graphics& g, const World& w, uint32_t spColor, float time) {
+void Renderer::drawDotZones(Graphics& g, const World& w, const Sprites& sprites, float time) {
+    const SpeciesDef& species = speciesDef(w.dragon().species);
+    const uint32_t spColor = species.color;
     // 지속 피해 장판
     for (const DotZone& z : w.dots()) {
+        if (z.spriteSkill >= 0 && z.spriteSkill < static_cast<int>(species.skills.size())) {
+            const SkillDef& skill = species.skills[static_cast<size_t>(z.spriteSkill)];
+            const Sheet sheet = sprites.fxSheet(species.key, skill.fx);
+            if (sheet.bmp && sheet.frames > 0 && sheet.frameH > 0 && skill.radius > 0.f) {
+                // Use the cast's stored radius so later changes to character size
+                // cannot move the art away from the active damage zone.
+                const float scale = z.radius / skill.radius;
+                const float h = cfg::kDragonRadius * 3.f * scale * skill.fxScale * skill.fxAnim.renderScale;
+                const float x = z.pos.x + skill.fxOffsetX * scale;
+                const float y = z.pos.y + skill.fxOffsetY * scale;
+                const float width = h * sheet.frameW / sheet.frameH;
+                markRegion(RectF(x - width * 0.5f, y - h * 0.5f, width, h));
+                drawSheetFrame(g, sheet, animFrame(z.duration - z.remaining, skill.fxAnim.fps, sheet.frames, false),
+                               x, y, h, false, 0.f, skill.fxAlpha);
+                continue;
+            }
+        }
         float life = std::clamp(z.remaining / std::max(0.01f, z.duration), 0.f, 1.f);
         fillCircle(g, z.pos.x, z.pos.y, z.radius, col(spColor, 0.22f * (0.4f + 0.6f * life)));
         GraphicsState st = g.Save();
@@ -985,7 +1004,7 @@ void Renderer::drawAnimationPreview(Graphics& g, const World& w, const Sprites& 
     const DragonActor& d = w.dragon();
     const SpeciesDef& species = speciesDef(d.species);
     if (effects) {
-        drawDotZones(g, w, species.color, time);
+        drawDotZones(g, w, sprites, time);
         drawFx(g, w, sprites, species, charScale, false);
         drawBreath(g, d, sprites, charScale);
     }

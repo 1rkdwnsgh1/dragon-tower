@@ -122,7 +122,7 @@ private:
     void drawDragon(Gdiplus::Graphics& g, const DragonActor& d, const Sprites& sprites, float time, float x, float y,
                     float height, bool preview);
     // charScale은 보기 배수다. 그림 크기만 바꾸고 판정에는 쓰지 않는다.
-    void drawDotZones(Gdiplus::Graphics& g, const World& w, uint32_t spColor, float time);
+    void drawDotZones(Gdiplus::Graphics& g, const World& w, const Sprites& sprites, float time);
     void drawBreath(Gdiplus::Graphics& g, const DragonActor& dragon, const Sprites& sprites, float charScale);
     // 장착한 숨결이 있으면 지금 배율의 캐시를 뒤에서 만들어 둔다(첫 숨결이 끊기지 않게).
     void warmBreathCache(Gdiplus::Graphics& g, const World& w, const Sprites& sprites, float charScale);
