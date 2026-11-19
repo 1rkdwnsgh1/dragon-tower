@@ -483,13 +483,15 @@ bool World::castSkill(int i, bool aiChoice) {
             z.dps = d.stats.atk * s.power;
             z.remaining = s.duration;
             z.duration = s.duration;
+            if (s.fxZoneSpriteOnly && !s.fx.empty()) z.spriteSkill = i;
             dots_.push_back(z);
             // 2026-11-17: 장판에도 효과 그림을 쓸 수 있게 했다(implementation-notes 의
             // "필요하면 장판 수명 전체를 덮는 Fx 를 하나 띄운다" 안 그대로).
             // **fx= 를 적은 스킬만** Fx 를 띄운다 — 안 적은 장판은 전과 똑같이 dots_ 로만 그려진다.
             // 길이는 fx_windup+fx_hold+fx_tail 로 정해지므로 dragon.txt 에서 duration 과 맞춘다.
             // 안 맞추면 잔류가 장판이 사라진 뒤에 남는다(그게 예전에 미뤘던 이유다).
-            if (!s.fx.empty()) addSkillFx(s, FxType::Ring, z.pos, z.pos, z.radius, s.duration, sp.color);
+            if (!s.fx.empty() && z.spriteSkill < 0)
+                addSkillFx(s, FxType::Ring, z.pos, z.pos, z.radius, s.duration, sp.color);
             break;
         }
         case SkillKind::PassiveStat:
