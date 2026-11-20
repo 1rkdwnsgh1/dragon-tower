@@ -785,7 +785,7 @@ Vec2 App::clampToDesktop(Vec2 p, const Gdiplus::RectF& drawn) const {
 void App::dragTowerScroll(float y) {
     const float fraction = std::clamp((y - dragDY_) / std::max(1.f, dragDX_), 0.f, 1.f);
     const int range = std::max(0, game_.towerFloorCount() - Game::visibleTowerFloors);
-    game_.scrollTowerFloors(1 + static_cast<int>(std::round(fraction * range)));
+    game_.scrollTowerFloors(1 + static_cast<int>(std::round((1.f - fraction) * range)));
 }
 
 bool App::startDrag(float lx, float ly) {
@@ -796,7 +796,7 @@ bool App::startDrag(float lx, float ly) {
             const int range = std::max(1, game_.towerFloorCount() - Game::visibleTowerFloors);
             drag_ = Drag::TowerScroll;
             dragDX_ = b.rect.Height - thumb;
-            const float top = b.rect.Y + dragDX_ * (game_.firstVisibleTowerFloor() - 1) / range;
+            const float top = b.rect.Y + dragDX_ * (range - (game_.firstVisibleTowerFloor() - 1)) / range;
             const float grab = ly >= top && ly <= top + thumb ? ly - top : thumb * 0.5f;
             dragDY_ = b.rect.Y + grab;
             dragTowerScroll(ly);
@@ -868,7 +868,7 @@ LRESULT App::handle(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
             if (renderer_.towerListRect().Contains(PointF(x, y))) {
                 const int delta = GET_WHEEL_DELTA_WPARAM(wp);
                 const int steps = std::max(1, std::abs(delta) / WHEEL_DELTA);
-                if (delta) game_.scrollTowerFloors(game_.firstVisibleTowerFloor() + (delta > 0 ? -steps : steps));
+                if (delta) game_.scrollTowerFloors(game_.firstVisibleTowerFloor() + (delta > 0 ? steps : -steps));
             }
             return 0;
         }

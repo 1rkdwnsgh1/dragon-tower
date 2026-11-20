@@ -471,6 +471,7 @@ void Renderer::drawOverlay(Graphics& g, const Game& game, const Sprites& sprites
         drawTowerSelection(g, game, sprites, ctx, out, outRegions);
         return;
     }
+    towerArtTime_ = -1.f;
 
     // #48: 키보드를 받는 동안 화면 전체를 살짝 어둡게 하던 표시를 없앴다. 바탕화면 전투를 시작하면
     // 키보드가 저절로 켜져서(syncKeyboard) 화면 전체에 필터를 씌운 것처럼 보였다.
@@ -2064,23 +2065,41 @@ void Renderer::drawTowerSelection(Graphics& g, const Game& game, const Sprites& 
 
     const RectF tower(12.f, 82.f, 199.f, 371.f);
     box(tower, 0xFF211936, 0xFF6D517B);
-    if (!art("tower_illustration", tower)) {
-        // 교체용 일러스트가 오기 전 표시하는 야간 석탑.
-        fillCircle(g, 66.f, 149.f, 36.f, Color(105, 168, 128, 233));
-        for (int tier = 0; tier < 7; ++tier) {
-            const float width = 45.f + tier * 12.f;
-            const float y = 119.f + tier * 43.f;
-            box(RectF(103.f - width * 0.5f, y, width, 49.f), 0xFF322543, 0xFF674E7B);
+    const int first = game.firstVisibleTowerFloor();
+    const int scrollRange = std::max(0, game.towerFloorCount() - Game::visibleTowerFloors);
+    const float target = scrollRange > 0 ? static_cast<float>(first - 1) / scrollRange : 0.f;
+    if (towerArtTime_ < 0.f || ctx.time < towerArtTime_) {
+        towerArtProgress_ = target;
+    } else {
+        const float elapsed = std::min(0.1f, ctx.time - towerArtTime_);
+        towerArtProgress_ += (target - towerArtProgress_) * (1.f - std::exp(-12.f * elapsed));
+    }
+    towerArtTime_ = ctx.time;
+
+    // 목록을 올라가면 같은 창을 통해 석탑의 더 높은 부분을 본다.
+    constexpr float travel = 140.f;
+    const float shift = travel * (towerArtProgress_ - 1.f);
+    const auto towerClip = g.Save();
+    g.SetClip(tower, CombineModeIntersect);
+    const RectF tallArt(tower.X, tower.Y + shift, tower.Width, tower.Height + travel);
+    if (!art("tower_illustration", tallArt)) {
+        fillCircle(g, 66.f, 149.f + shift * 0.35f, 36.f, Color(105, 168, 128, 233));
+        for (int tier = 0; tier < 10; ++tier) {
+            const float width = std::min(174.f, 45.f + tier * 12.f);
+            const float y = 119.f + tier * 48.f + shift;
+            box(RectF(103.f - width * 0.5f, y, width, 55.f), 0xFF322543, 0xFF674E7B);
             box(RectF(98.f, y + 11.f, 10.f, 23.f), 0xFFB16F56, 0xFFE7A765);
         }
     }
+    g.Restore(towerClip);
+    strokeRound(g, tower, 9.f, col(0xFF6D517B), 1.4f);
     Pen route(col(0xFFBF936C), 2.f);
     g.DrawLine(&route, 162.f, 119.f, 162.f, 411.f);
     const auto& dragon = game.dragonRecord();
-    const int first = game.firstVisibleTowerFloor();
     const int selected = game.selectedTowerFloor();
-    for (int row = 0; row < Game::visibleTowerFloors && first + row <= game.towerFloorCount(); ++row) {
-        const int floor = first + row;
+    const int topFloor = game.topVisibleTowerFloor();
+    for (int floor = topFloor; floor >= first; --floor) {
+        const int row = topFloor - floor;
         const auto kind = floorType(floor);
         const auto& def = game.towerFloorDef(floor);
         const bool active = floor == selected;
@@ -2108,11 +2127,10 @@ void Renderer::drawTowerSelection(Graphics& g, const Game& game, const Sprites& 
         fillCircle(g, 162.f, y + 32.f, active ? 9.f : 6.f, col(active ? gold : accent));
         if (active) g.DrawLine(&route, 171.f, y + 32.f, 215.f, y + 32.f);
     }
-    const int scrollRange = game.towerFloorCount() - Game::visibleTowerFloors;
     box(track, 0xFF211B33, 0xFF6D517B);
     if (scrollRange > 0) {
         constexpr float thumb = 42.f;
-        const float top = track.Y + (track.Height - thumb) * (first - 1) / scrollRange;
+        const float top = track.Y + (track.Height - thumb) * (scrollRange - (first - 1)) / scrollRange;
         fillRound(g, RectF(track.X + 2.f, top, track.Width - 4.f, thumb), 4.f, col(gold));
         controls.push_back({track, UiAction::DragTowerScroll, static_cast<int>(thumb * ratio * 100.f), true});
     }

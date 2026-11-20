@@ -452,7 +452,9 @@ static void testTowerSelection(const std::filesystem::path& assets) {
     CHECK(g.selectedTowerFloor() == 25 && g.towerRecommendedLevel(25) == 125);
     CHECK(g.firstVisibleTowerFloor() <= 25 && g.firstVisibleTowerFloor() + Game::visibleTowerFloors > 25);
     g.scrollTowerFloors(200);
-    CHECK(g.firstVisibleTowerFloor() == 96);
+    CHECK(g.firstVisibleTowerFloor() == 96 && g.topVisibleTowerFloor() == 100);
+    g.scrollTowerFloors(-200);
+    CHECK(g.firstVisibleTowerFloor() == 1 && g.topVisibleTowerFloor() == 5);
     g.selectTowerFloor(10);
     g.openTowerWarning();
     g.closeModal();

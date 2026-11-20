@@ -142,7 +142,7 @@ python tools/tint_ui.py --out assets/ui/shadow --hue -75
 
 | 파일 | 권장 픽셀 | 대체 그림 |
 |---|---:|---|
-| `tower_illustration.png` | 400 × 760 | 밤의 석탑 도형 |
+| `tower_illustration.png` | 400 × 1024 | 밤의 석탑 도형 |
 | `tower_card_normal.png`, `tower_card_mid.png`, `tower_card_field.png` | 1050 × 128 | 층 유형 색과 적 스프라이트 |
 | `tower_floor_<층번호>.png` | 584 × 310 | 해당 층 대표 적 |
 | `tower_portrait_<종키>.png` | 260 × 236 | 대기 모션 첫 프레임 |
@@ -150,3 +150,5 @@ python tools/tint_ui.py --out assets/ui/shadow --hue -75
 | `tower_selection.png`, `tower_enter.png` | 1050 × 128 / 508 × 124 | 금색 선택 테두리 / 보라색 버튼 |
 
 스킬 번호는 `dragon.txt`의 `skill.N`과 같은 1부터 시작한다. 선택 테두리는 투명 중앙을 권장한다.
+
+탑 그림은 목록과 함께 세로로 이동한다. 높은 층으로 가면 그림의 위쪽이 보이고, 1층 쪽에서는 아래쪽이 보인다. 전체 그림의 상단과 하단을 각각 탑 꼭대기와 바닥으로 구성하면 교체 즉시 같은 동작이 적용된다.

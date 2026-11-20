@@ -58,6 +58,7 @@ public:
     int selectedTowerFloor() const { return selectedTowerFloor_; }
     int firstVisibleTowerFloor() const { return firstVisibleTowerFloor_; }
     static constexpr int visibleTowerFloors = 5;
+    int topVisibleTowerFloor() const;
     int towerRecommendedLevel(int floor) const;
     bool towerFinalRewardGranted() const { return towerFinalRewardGranted_; }
     void enterTower(CombatMode m);

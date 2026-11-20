@@ -682,6 +682,10 @@ void Game::selectTowerFloor(int floor) {
         scrollTowerFloors(selectedTowerFloor_ - visibleTowerFloors + 1);
 }
 
+int Game::topVisibleTowerFloor() const {
+    return std::min(towerFloorCount(), firstVisibleTowerFloor_ + visibleTowerFloors - 1);
+}
+
 void Game::scrollTowerFloors(int first) {
     if (screen_ == Screen::TowerSelect)
         firstVisibleTowerFloor_ = std::clamp(first, 1, std::max(1, towerFloorCount() - visibleTowerFloors + 1));

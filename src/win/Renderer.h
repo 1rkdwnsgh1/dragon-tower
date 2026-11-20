@@ -105,6 +105,8 @@ public:
 
 private:
     Gdiplus::RectF towerListRect_{};
+    float towerArtProgress_ = 0.f;
+    float towerArtTime_ = -1.f;
     void drawTowerSelection(Gdiplus::Graphics& g, const Game& game, const Sprites& sprites,
                             const RenderContext& ctx, std::vector<UiButton>& out, FrameRegions* regions);
     Gdiplus::Font* font(float size, bool bold);
