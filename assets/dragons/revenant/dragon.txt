@@ -138,6 +138,7 @@ range=380
 ; (반복 재생), fx_impact= 는 맞는 순간 한 번 터진다. 세 단계 값은 맞을 때만 쓰인다.
 fx=bolt
 fx_impact=bolt_hit
+fx_impact_fps=14
 fx_scale=0.55
 fx_fps=14
 fx_frame_w=256

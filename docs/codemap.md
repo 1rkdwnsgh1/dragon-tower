@@ -96,7 +96,10 @@ tests/                     코어 규칙 검증
 | 싸울 때 유지할 간격 | `src/core/World.cpp` | `desiredRange`, `Game::setKeepRange` |
 | 쉴 때 엎드리기 | `src/core/World.cpp` | `updateDragonAnim`의 `restTime`, `cfg::kRestLieDelay` |
 | 대쉬할 때 나는 모션 | `src/core/World.cpp` | `updateDragonAnim`의 `dashTime` |
-| 모션 고르기(우클릭)와 대기 행동 | `src/core/Game.cpp`, `src/core/World.cpp`, `src/win/Renderer.cpp` | `setForcedMotion`, `updateDragonAnim`, `pickBehavior`, `drawMotionMenu` |
+| 창 크기에 따른 생성·관리·스킬 배치 | `src/win/Renderer.cpp` | `drawModal`, `modalPanel`, `drawSelect`, `drawStable`, `drawSkills` |
+| Esc 닫기·기록 도감 | `src/core/Game.cpp`, `src/win/App.cpp`, `src/win/Renderer.cpp` | `dismissWindow`, `pollKeys`, `drawCodex` |
+| 투사체 명중 효과 FPS | `include/core/Species.h`, `src/win/Renderer.cpp`, `src/win/Preview.cpp` | `fxPlaybackFps`, `drawFxSheet`, `updateInfo` |
+| 모션 고르기(우클릭)와 대기 행동 | `src/core/Game.cpp`, `src/core/World.cpp`, `src/win/Renderer.cpp` | `setForcedMotion`, `updateDragonAnim`, `pickBehavior`, `sampleRoamCursor`, `drawMotionMenu` |
 | 적 좌우 뒤집기 | `src/win/Renderer.cpp` | `drawEnemy`의 `artFacesRight` (`enemy.txt`의 `art_facing`, 읽는 곳은 `parseEnemyText`) |
 | 스킬 아이콘 | `src/win/Sprites.cpp` | `skillicon_<종>_<번호>` ← `assets/dragons/<키>/icon_N.png` |
 | 메뉴 창 위치·크기 | `src/win/Renderer.cpp` | `drawMenu`의 `menuScale`, `menuPos` |

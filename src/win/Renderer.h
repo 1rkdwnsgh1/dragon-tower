@@ -121,6 +121,7 @@ private:
                Gdiplus::RectF* content = nullptr);
     // #50: 같은 크기·투명도의 조각은 한 번만 합성해 두고 다시 붙인다(piece 가 부른다).
     // hit 가 false 면 마우스를 받지 않는다(눌러도 아무 일이 없는 표 — 클릭이 아래로 통과한다).
+    Gdiplus::RectF modalPanel(Gdiplus::Graphics& g, Gdiplus::RectF content, uint8_t alpha);
     void panel(Gdiplus::Graphics& g, const Gdiplus::RectF& r, uint8_t alpha = 236, bool hit = true);
     void button(Gdiplus::Graphics& g, std::vector<UiButton>& out, const RenderContext& ctx, const Gdiplus::RectF& r,
                 const std::string& label, UiAction action, int arg = 0, bool enabled = true, bool selected = false,

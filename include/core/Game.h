@@ -65,6 +65,7 @@ public:
     void nextFloor();
     void leaveTower();
     void openCodex();
+    void dismissWindow();
     void closeModal();          // 경고·도감 닫기
     void acknowledgeDeath();    // 사망 화면 → 새 드래곤 선택
 

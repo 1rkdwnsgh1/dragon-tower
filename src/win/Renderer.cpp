@@ -363,6 +363,34 @@ void Renderer::panel(Graphics& g, const RectF& r, uint8_t alpha, bool hit) {
     strokeRound(g, r, 14.f, Color(255, 86, 96, 140), 1.5f);
 }
 
+RectF Renderer::modalPanel(Graphics& g, RectF content, uint8_t alpha) {
+    UiPiece frame = sprites_ ? sprites_->ui(skin_, "panel") : UiPiece{};
+    if (frame.valid() && frame.fit == UiFit::Nine && frame.stretch()) {
+        // 기본·그림자 패널의 보라색/녹색 안쪽 기준선. 꼭대기와 모서리 장식은 이 밖에 둔다.
+        const float w = static_cast<float>(frame.bmp->GetWidth());
+        const float h = static_cast<float>(frame.bmp->GetHeight());
+        frame.left = frame.right = static_cast<int>(std::round(w * 0.052f));
+        frame.top = static_cast<int>(std::round(h * 0.172f));
+        frame.bottom = static_cast<int>(std::round(h * 0.103f));
+        const float sides = static_cast<float>(frame.left + frame.right);
+        const float ends = static_cast<float>(frame.top + frame.bottom);
+        const float share = kBorderShare / (1.f - kBorderShare);
+        const float borderScale = std::min({1.f, content.Width * share / std::max(1.f, sides),
+                                                content.Height * share / std::max(1.f, ends)});
+        const RectF outer(content.X - sides * borderScale * 0.5f, content.Y - ends * borderScale * 0.5f,
+                          content.Width + sides * borderScale, content.Height + ends * borderScale);
+        RectF inner = content;
+        if (drawPieceCached(g, frame, outer, alpha / 255.f, scale_, &inner)) {
+            markRegion(outer);
+            return inner;
+        }
+    }
+    markRegion(content);
+    fillRound(g, content, 14.f, Color(alpha, 24, 26, 38));
+    strokeRound(g, content, 14.f, Color(255, 86, 96, 140), 1.5f);
+    return content;
+}
+
 void Renderer::button(Graphics& g, std::vector<UiButton>& out, const RenderContext& ctx, const RectF& r,
                       const std::string& label, UiAction action, int arg, bool enabled, bool selected, bool danger) {
     bool hover = enabled && r.Contains(PointF(ctx.mouseX, ctx.mouseY));
@@ -1263,7 +1291,10 @@ bool Renderer::drawFxSheet(Graphics& g, const Fx& f, const Sprites& sprites, con
 
     const SkillDef* sk = findSkillByFx(sp, f.key);
     AnimDef ad;  // 스킬을 못 찾는 일은 없어야 하지만, 못 찾으면 AnimDef 기본값으로 그린다
-    if (sk) ad = sk->fxAnim;
+    if (sk) {
+        ad = sk->fxAnim;
+        ad.fps = sk->fxPlaybackFps(f.key);
+    }
 
     float k = 1.f, alpha = 1.f;
     fxPhaseLook(f, k, alpha);
@@ -2292,19 +2323,44 @@ void Renderer::drawModal(Graphics& g, const Game& game, const Sprites& sprites, 
     float cy = height_ * 0.5f;
     const DragonRecord& rec = game.dragonRecord();
 
+    if (sc == Screen::Select || sc == Screen::Stable || sc == Screen::Skills) {
+        // 좁은 작업 영역에서는 창과 클릭 좌표에 동일한 축소율을 적용한다.
+        const float factor = std::min({1.f, width_ / 870.f, height_ / 1010.f});
+        if (factor <= 0.f) return;
+        const float originalWidth = width_, originalHeight = height_, originalScale = scale_;
+        const size_t first = out.size();
+        const size_t firstRegion = g_regions ? g_regions->hit.size() : 0;
+        const auto transform = g.Save();
+        g.ScaleTransform(factor, factor);
+        width_ /= factor;
+        height_ /= factor;
+        if (factor < 1.f) scale_ = 0.f;  // 캐시의 장치 좌표 붙이기 대신 현재 변환으로 그린다.
+        RenderContext local = ctx;
+        local.mouseX /= factor;
+        local.mouseY /= factor;
+        if (sc == Screen::Select) drawSelect(g, game, sprites, local, out);
+        else if (sc == Screen::Stable) drawStable(g, game, sprites, local, out);
+        else drawSkills(g, game, sprites, local, out);
+        const auto scaleRect = [factor](RectF& r) {
+            r.X *= factor; r.Y *= factor; r.Width *= factor; r.Height *= factor;
+        };
+        for (size_t i = first; i < out.size(); ++i) scaleRect(out[i].rect);
+        if (g_regions)
+            for (size_t i = firstRegion; i < g_regions->hit.size(); ++i) scaleRect(g_regions->hit[i]);
+        g.Restore(transform);
+        width_ = originalWidth;
+        height_ = originalHeight;
+        scale_ = originalScale;
+        return;
+    }
     switch (sc) {
         case Screen::TowerSelect: break;  // drawOverlay에서 전용 레이아웃으로 처리
         case Screen::Select:
-            drawSelect(g, game, sprites, ctx, out);
+        case Screen::Stable:
+        case Screen::Skills:
             break;
         case Screen::Codex:
             drawCodex(g, game, ctx, out);
-            break;
-        case Screen::Stable:
-            drawStable(g, game, sprites, ctx, out);
-            break;
-        case Screen::Skills:
-            drawSkills(g, game, sprites, ctx, out);
             break;
         case Screen::AutoWarning: {
             RectF r(cx - 290.f, cy - 160.f, 580.f, 320.f);
@@ -2418,7 +2474,7 @@ void Renderer::drawSelect(Graphics& g, const Game& game, const Sprites& sprites,
     const float gap = 14.f;
     const float minCardW = 150.f;
     const float maxCardW = 222.f;
-    const float availW = width_ - 80.f - 48.f;  // 양옆 여백과 패널 안쪽 여백
+    const float availW = width_ - 150.f - 48.f;  // 양옆 여백과 패널 안쪽 여백
     int total = speciesCount();
     int shown = std::max(1, total);
     float cardW = maxCardW;
@@ -2432,7 +2488,9 @@ void Renderer::drawSelect(Graphics& g, const Game& game, const Sprites& sprites,
     const float pw = cardW * shown + gap * (shown - 1) + 48.f;
     const float ph = 600.f;
     RectF r(width_ * 0.5f - pw * 0.5f, height_ * 0.5f - ph * 0.5f, pw, ph);
-    panel(g, r, 242);
+    r = modalPanel(g, r, 242);
+    const auto contentClip = g.Save();
+    g.SetClip(r, CombineModeIntersect);
     // v1.3: 관리창에서 "새 드래곤"으로 들어왔으면 돌아갈 수 있어야 한다.
     bool adding = game.addingDragon();
     text(g, adding ? "새 드래곤 데려오기" : "드래곤 선택", r.X + 24.f, r.Y + 18.f, 22.f, kText, 0, true);
@@ -2477,13 +2535,17 @@ void Renderer::drawSelect(Graphics& g, const Game& game, const Sprites& sprites,
         if (st.regen > 0.f) line2 += " · 재생";
         text(g, line2, x, y, 12.f, kText);
         y += 26.f;
-        for (const SkillDef& s : sp.skills) {
+        const size_t previewSkills = std::min<size_t>(2, sp.skills.size());
+        for (size_t skillIndex = 0; skillIndex < previewSkills; ++skillIndex) {
+            const auto& s = sp.skills[skillIndex];
             text(g, s.name, x, y, 12.f, 0xFFE8EAF2, 0, true);
             text(g, "Lv." + std::to_string(s.unlockLevel), c.GetRight() - 14.f, y, 12.f, kSub, 2);
             y += 17.f;
             paragraph(g, s.desc, RectF(x, y, c.Width - 28.f, 30.f), 11.f, 0xFF9AA2B4);
             y += 30.f;
         }
+        if (sp.skills.size() > previewSkills)
+            text(g, "외 " + std::to_string(sp.skills.size() - previewSkills) + "개 · 스킬 관리에서 확인", x, y, 10.f, kSub);
         button(g, out, ctx, RectF(c.X + 14.f, c.GetBottom() - 52.f, c.Width - 28.f, 40.f), "이 드래곤으로 시작",
                UiAction::ChooseSpecies, i);
     }
@@ -2491,6 +2553,7 @@ void Renderer::drawSelect(Graphics& g, const Game& game, const Sprites& sprites,
     fillRound(g, warn, 8.f, Color(110, 120, 20, 24));
     text(g, "드래곤이 쓰러지면 그 개체는 되살릴 수 없습니다. 탑 최고 기록과 도감은 남습니다.", warn.X + warn.Width * 0.5f,
          warn.Y + 10.f, 14.f, 0xFFFFC2C2, 1, true);
+    g.Restore(contentClip);
 }
 
 void Renderer::drawStable(Graphics& g, const Game& game, const Sprites& sprites, const RenderContext& ctx,
@@ -2498,8 +2561,10 @@ void Renderer::drawStable(Graphics& g, const Game& game, const Sprites& sprites,
     const std::vector<DragonRecord>& list = game.stable();
     const SaveData& s = game.save();
     const int rows = cfg::kMaxStable;
-    RectF r(width_ * 0.5f - 350.f, height_ * 0.5f - 270.f, 700.f, 540.f);
-    panel(g, r, 244);
+    RectF r(width_ * 0.5f - 350.f, height_ * 0.5f - 290.f, 700.f, 580.f);
+    r = modalPanel(g, r, 244);
+    const auto contentClip = g.Save();
+    g.SetClip(r, CombineModeIntersect);
     text(g, "드래곤 관리", r.X + 24.f, r.Y + 18.f, 22.f, kText, 0, true);
     text(g, std::to_string(list.size()) + " / " + std::to_string(cfg::kMaxStable) + " 마리",
          r.GetRight() - 24.f, r.Y + 24.f, 14.f, kSub, 2);
@@ -2587,6 +2652,7 @@ void Renderer::drawStable(Graphics& g, const Game& game, const Sprites& sprites,
     bool canClose = game.hasDragon();
     button(g, out, ctx, RectF(r.GetRight() - 150.f, r.GetBottom() - 54.f, 130.f, 40.f),
            canClose ? "닫기" : "띄울 드래곤을 고르세요", UiAction::CloseStable, 0, canClose);
+    g.Restore(contentClip);
 }
 // ---------------------------------------------------------------------------
 // v1.4 스킬 관리창
@@ -2608,16 +2674,18 @@ void Renderer::drawSkills(Graphics& g, const Game& game, const Sprites& sprites,
     const float listHeadH = 28.f;
     const float footerH = 66.f;
     const float chromeH = headTop + slotsH + listHeadH + footerH;
-    float maxH = std::max(320.f, height_ - 60.f);
+    float maxH = std::max(320.f, height_ - 400.f);
     float ph = std::min(chromeH + rowH * static_cast<float>(std::max(1, total)), maxH);
     int rowsPerPage = static_cast<int>((ph - chromeH) / rowH);
     if (rowsPerPage < 1) rowsPerPage = 1;
     const int pages = (total + rowsPerPage - 1) / rowsPerPage;
     const int page = std::clamp(game.skillPage(), 0, std::max(0, pages - 1));
 
-    const float pw = std::min(760.f, std::max(560.f, width_ - 60.f));
+    const float pw = std::min(760.f, std::max(560.f, width_ - 150.f));
     RectF r(width_ * 0.5f - pw * 0.5f, std::max(10.f, height_ * 0.5f - ph * 0.5f), pw, ph);
-    panel(g, r, 244);
+    r = modalPanel(g, r, 244);
+    const auto contentClip = g.Save();
+    g.SetClip(r, CombineModeIntersect);
     text(g, "스킬 관리", r.X + 24.f, r.Y + 18.f, 22.f, kText, 0, true);
     text(g, std::string(sp.name) + " Lv." + std::to_string(rec.level), r.GetRight() - 24.f, r.Y + 24.f, 14.f, kSub, 2);
 
@@ -2710,7 +2778,7 @@ void Renderer::drawSkills(Graphics& g, const Game& game, const Sprites& sprites,
         } else if (!passive) {
             desc += "  (재사용 " + fmtInt(s.cooldown) + "초)";
         }
-        text(g, desc, tx, row.Y + 24.f, 12.f, kSub);
+        paragraph(g, desc, RectF(tx, row.Y + 24.f, std::max(1.f, labelRight - tx - 105.f), 16.f), 12.f, kSub);
 
         RectF btn(rx - 126.f, row.Y + 6.f, 116.f, 30.f);
         if (passive) {
@@ -2731,6 +2799,7 @@ void Renderer::drawSkills(Graphics& g, const Game& game, const Sprites& sprites,
 
     button(g, out, ctx, RectF(r.GetRight() - 150.f, r.GetBottom() - 52.f, 130.f, 38.f), "닫기",
            UiAction::CloseSkills);
+    g.Restore(contentClip);
 }
 
 

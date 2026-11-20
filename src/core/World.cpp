@@ -4,6 +4,7 @@
 #include <cmath>
 #include <cstdio>
 #include <limits>
+#include <utility>
 
 #include "core/Config.h"
 
@@ -471,7 +472,7 @@ bool World::castSkill(int i, bool aiChoice) {
         d.moving = false;
         d.skillMotion = i;
         d.animTime = 0.f;
-        setDragonAnim(AnimState::Attack, ProcessionCast::maxDuration(s, flightLimit));
+        setDragonAnim(AnimState::Attack, ProcessionCast::firstLaunch);
         return true;
     }
     if (!skillUnlocked(i)) {
@@ -731,7 +732,7 @@ bool World::advanceProcessionWaves(ProcessionCast& cast, const SkillDef& skill, 
 void World::advanceProcession(float dt) {
     DragonActor& d = dragon_;
     if (!d.procession) return;
-    if (!d.alive || d.held || currentMode_ == CombatMode::Auto) {
+    if (!d.alive || d.held) {
         cancelProcession();
         return;
     }
@@ -997,24 +998,32 @@ const char* idleBehaviorName(IdleBehavior b) {
     return "";
 }
 
+void World::sampleRoamCursor(float normalizedX, float dt) {
+    // 이동 평균은 화면 좌우 비율로 유지한다. 중앙 부근에서는 기존 방향을 유지한다.
+    roamCursorX_ += (std::clamp(normalizedX, 0.f, 1.f) - roamCursorX_) *
+                    (1.f - std::exp(-std::max(0.f, dt) / 10.f));
+    if (roamCursorX_ < 0.45f) roamSide_ = 1;
+    if (roamCursorX_ > 0.55f) roamSide_ = -1;
+}
+
 float World::randomRoamX() {
-    const float m = 80.f;
-    return rng_.uniform(bounds_.x + m, bounds_.right() - m);
+    const float center = bounds_.center().x;
+    const float margin = std::min(80.f, bounds_.w * 0.2f);
+    const float left = roamSide_ > 0 ? center : bounds_.x + margin;
+    const float right = roamSide_ < 0 ? center : bounds_.right() - margin;
+    return rng_.uniform(left, right);
 }
 
 // 서 있을 수 있는 가장 아래 줄. 영역이 얇아도 발이 바닥 밖으로 나가지 않는다.
 float World::groundLine() const { return bounds_.bottom() - cfg::kDragonRadius; }
 
 Vec2 World::randomRoamTarget(bool fly) {
-    const float m = 80.f;
     // 걷기는 아래쪽 바닥을 따라, 날기는 화면 위쪽까지 올라간다.
     float topRatio = fly ? cfg::kIdleFlyTopRatio : cfg::kIdleWalkTopRatio;
     float top = bounds_.y + bounds_.h * topRatio;
     float bottom = groundLine();
     if (top > bottom) top = bottom;  // 영역이 드래곤보다 얇을 때(얇은 전투 띠)를 대비
-    float lx = bounds_.x + m, rx = bounds_.right() - m;
-    if (lx > rx) { lx = rx = (bounds_.x + bounds_.right()) * 0.5f; }
-    return {rng_.uniform(lx, rx), rng_.uniform(top, bottom)};
+    return {randomRoamX(), rng_.uniform(top, bottom)};
 }
 
 float World::randomGroundY() {
@@ -1144,7 +1153,8 @@ void World::wander(float dt) {
     d.restTime = 0.f;
 
     // 목적지에 닿았을 때
-    if (distance(d.pos, d.wanderTarget) < 8.f) {
+    const bool wrongSide = !d.landing && (d.wanderTarget.x - bounds_.center().x) * roamSide_ < 0.f;
+    if (wrongSide || distance(d.pos, d.wanderTarget) < 8.f) {
         if (d.behavior != IdleBehavior::Fly) {
             d.wanderTarget = {randomRoamX(), d.groundY};  // 수평으로만
         } else {
@@ -1399,8 +1409,13 @@ void World::updateCombat(float dt, CombatMode mode, const PlayerInput& in) {
         if (enemy.curseRemaining == 0.0) enemy.curseStacks = 0;
     }
 
+    const bool ultimateInput = std::exchange(ultimateRequested_, false) || (mode != CombatMode::Auto && in.ultimate);
     if (mode == CombatMode::Direct && in.dodge && d.dodgeCd <= 0.f && d.procession)
         cancelProcession();
+    const auto& activeProcession = d.procession;
+    const float windupLeft = activeProcession && activeProcession->launched == 0
+        ? std::max(0.f, ProcessionCast::firstLaunch - activeProcession->elapsed) : 0.f;
+    const float moveDt = std::max(0.f, dt - windupLeft);
     advanceProcession(dt);
     advanceBreath(dt);
     advanceSkillCast(dt);
@@ -1408,7 +1423,10 @@ void World::updateCombat(float dt, CombatMode mode, const PlayerInput& in) {
     // 2026-11-18: 타격 전 직접 조작 회피는 시전을 끊고 회피한다(쿨타임 일부 반환).
     if (mode == CombatMode::Direct && in.dodge && d.dodgeCd <= 0.f && d.skillCast && !d.skillCast->hitDone)
         cancelSkillCast(cfg::kSkillCastCancelCooldown);
-    if (d.alive && !d.procession && (!d.breath || d.breath->elapsed >= d.breath->inputLock) && !skillCastLocked()) {
+    if (d.alive && ultimateInput) castUltimate(false);
+    const auto& procession = d.procession;
+    const bool preparingProcession = procession && procession->launched == 0;
+    if (d.alive && !preparingProcession && (!d.breath || d.breath->elapsed >= d.breath->inputLock) && !skillCastLocked()) {
         if (mode == CombatMode::Direct) {
             if (in.dodge && d.dodgeCd <= 0.f && d.dashTime <= 0.f) {
                 Vec2 dir{in.moveX, in.moveY};
@@ -1420,14 +1438,14 @@ void World::updateCombat(float dt, CombatMode mode, const PlayerInput& in) {
                 d.dodgeCd = cfg::kDodgeCooldown;
                 addFx(FxType::Dash, d.pos, d.pos + dir * cfg::kDodgeDistance, cfg::kDragonRadius, 0.3f, 0xFFDDF6FF);
             }
-            moveDragon(dt, {in.moveX, in.moveY}, 1.f);
+            moveDragon(moveDt, {in.moveX, in.moveY}, 1.f);
         } else {
             // 스킬 수동에서는 방향키로 직접 밀 수 있다. 자동은 손대지 않는다.
-            dragonAi(dt, mode == CombatMode::Auto, in, mode == CombatMode::SkillManual);
+            dragonAi(moveDt, mode == CombatMode::Auto && !d.procession, in, mode == CombatMode::SkillManual);
         }
-        if (d.dashTime > 0.f) d.dashTime -= dt;
+        if (d.dashTime > 0.f) d.dashTime -= moveDt;
 
-        if (mode != CombatMode::Auto) {
+        if (mode != CombatMode::Auto && !d.procession) {
             // v1.4: 키 1~4는 장착 칸이다. 빈 칸을 누르면 아무 일도 일어나지 않는다.
             for (int slot = 0; slot < kSkillSlots; ++slot) {
                 if (!in.skill[slot]) continue;
@@ -1438,12 +1456,6 @@ void World::updateCombat(float dt, CombatMode mode, const PlayerInput& in) {
                 }
                 castSkill(i, false);
             }
-            if (in.ultimate) castUltimate(false);
-        }
-        // 상태창 아이콘 클릭은 모드와 상관없이 받는다(자동 모드에서도 사람이 직접 쓸 수 있게).
-        if (ultimateRequested_) {
-            ultimateRequested_ = false;
-            castUltimate(false);
         }
         if (!d.procession) basicAttack();
     }

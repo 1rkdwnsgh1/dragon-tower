@@ -270,6 +270,11 @@ DragonParseResult parseDragonText(const std::string& text, const std::string& fo
             else if (key == "scale_with_size") ok = parseBool(val, s.scaleWithSize);
             else if (key == "fx") s.fx = val;
             else if (key == "fx_impact") s.fxImpact = val;
+            else if (key == "fx_impact_fps") {
+                float fps = 0.f;
+                ok = parseFloat(val, fps) && (fps == 0.f || (fps >= 1.f && fps <= 60.f));
+                if (ok) s.fxImpactFps = fps;
+            }
             else if (key == "layered_breath") {
                 ok = !val.empty() && val.find_first_not_of("abcdefghijklmnopqrstuvwxyz0123456789_-") == std::string::npos;
                 if (ok) s.layeredBreath = val;

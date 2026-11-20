@@ -127,6 +127,10 @@ struct SkillDef {
     bool ultimate = false;
     bool ultimateUsesSouls = false;
     AnimDef fxAnim{12.f, false, 0, 1.f};
+    float fxImpactFps = 0.f;  // Zero inherits the projectile sheet's FPS.
+    float fxPlaybackFps(const std::string& key) const {
+        return key == fxImpact && key != fx && fxImpactFps > 0.f ? fxImpactFps : fxAnim.fps;
+    }
     std::string layeredBreath;  // Optional five-sheet breath package, relative to the dragon folder.
     float breathInputLock = 0.f;
     bool sustainedBreath = false;
