@@ -1498,10 +1498,26 @@ static void testPlaceAndPanel() {
     w.updateWander(0.01f);
     CHECK(actor.anim == AnimState::Move);
 
+    const Vec2 stationary = actor.pos;
+    for (AnimState pose : {AnimState::Idle, AnimState::Rest}) {
+        g.setForcedMotion(pose);
+        w.updateWander(1.f);
+        CHECK(actor.anim == pose && distance(actor.pos, stationary) == 0.f);
+    }
+    g.setForcedMotion(AnimState::Fly);
+    actor.behavior = IdleBehavior::Rest;
+    actor.wanderTarget = actor.pos;
+    actor.behaviorLeft = 2.f;
+    w.updateWander(0.1f);
+    CHECK(actor.anim == AnimState::Fly && !actor.flying && distance(actor.pos, stationary) > 0.f);
+    g.clearForcedMotion();
+
     w.seed(271);
     int flightFrames = 0, restFrames = 0, walkFrames = 0, landFrames = 0;
     for (int i = 0; i < 12000; ++i) {
+        const Vec2 before = actor.pos;
         w.updateWander(0.1f);
+        CHECK_SILENT(actor.anim != AnimState::Fly || distance(actor.pos, before) > 0.f);
         if (actor.flying) ++flightFrames;
         else if (actor.behavior == IdleBehavior::Rest) ++restFrames;
         else if (actor.behavior == IdleBehavior::Walk) ++walkFrames;
@@ -2765,8 +2781,8 @@ static void testRevenantCurse(const std::filesystem::path& assets) {
         cast(blast, 0);
         const float normal = mitigate(blast.dragon().stats.atk * def.skills[index].power, blast.enemies()[0].def);
         CHECK(std::fabs((100000.f - blast.enemies()[0].hp) - 2.f * normal) < 0.01f);
-        CHECK(std::fabs((100000.f - blast.enemies()[1].hp) - normal) < 0.01f);
-        CHECK(blast.enemies()[0].curseStacks == 0 && blast.enemies()[1].curseStacks == 4);
+        CHECK(std::fabs((100000.f - blast.enemies()[1].hp) - 1.8f * normal) < 0.01f);
+        CHECK(blast.enemies()[0].curseStacks == 0 && blast.enemies()[1].curseStacks == 0);
         CHECK(std::any_of(blast.texts().begin(), blast.texts().end(), [](const FloatText& text) {
             return text.text.find("저주 폭발!") != std::string::npos;
         }));
@@ -2779,7 +2795,7 @@ static void testRevenantCurse(const std::filesystem::path& assets) {
         w.setSlots({5, -1, -1, -1});
         enemyAt(w, {520.f, 450.f});
         enemyAt(w, {600.f, 620.f});
-        auto& boss = w.spawnEnemy(defaultBoss(), 8, {650.f, 450.f});
+        auto& boss = w.spawnEnemy(defaultBoss(), 8, {650.f, 520.f});
         boss.hp = boss.maxHp = 100000.f;
         boss.stun = 100.f;
         cast(w, 0);
@@ -2788,13 +2804,13 @@ static void testRevenantCurse(const std::filesystem::path& assets) {
     World sustained = breathWorld();
     CHECK(sustained.dragon().skillCd[5] == 25.f);
     auto& target = sustained.enemiesMutable()[0];
-    const float tick = mitigate(sustained.dragon().stats.atk * 0.78f, target.def);
+    const float tick = mitigate(sustained.dragon().stats.atk * 1.56f, target.def);
     target.curseStacks = kCurseMaxStacks;
     target.curseRemaining = kCurseDuration;
     step(sustained, 0.47f);
     CHECK(target.hp == 100000.f);
     step(sustained, 0.01f);
-    CHECK(target.curseStacks == 0 && target.pos.x == 524.f);
+    CHECK(target.curseStacks == 0 && target.pos.x == 550.f);
     CHECK(std::fabs(100000.f - target.hp - 2.f * tick) < 0.01f);
     target.curseStacks = kCurseMaxStacks;
     target.curseRemaining = kCurseDuration;
@@ -2815,7 +2831,7 @@ static void testRevenantCurse(const std::filesystem::path& assets) {
     World fine = breathWorld();
     step(coarse, 4.f);
     for (int i = 0; i < 400; ++i) step(fine, 0.01f);
-    CHECK(coarse.enemies()[0].hp == fine.enemies()[0].hp && coarse.enemies()[0].pos.x == 560.f);
+    CHECK(coarse.enemies()[0].hp == fine.enemies()[0].hp && coarse.enemies()[0].pos.x == 820.f);
     CHECK(std::fabs(100000.f - coarse.enemies()[0].hp - 10.f * tick) < 0.05f);
     World interrupted = breathWorld();
     step(interrupted, 0.5f);
@@ -2823,6 +2839,23 @@ static void testRevenantCurse(const std::filesystem::path& assets) {
     interrupted.updateFx(10.f, true);
     step(interrupted, 4.f);
     CHECK(!interrupted.dragon().breath && interrupted.enemies()[0].hp == interruptedHp);
+
+    for (int level : {7, 8, 9, 24}) {
+        World control = breathWorld();
+        auto& enemy = control.enemiesMutable()[0];
+        enemy.level = level;
+        step(control, 0.47f);
+        enemy.stun = 0.f;
+        const float before = enemy.pos.x;
+        step(control, 0.01f);
+        step(control, 0.10f);
+        if (level < 8) CHECK(enemy.pos.x == before + 12.f);
+        else if (level == 8) CHECK(enemy.pos.x == before);
+        else {
+            const float factor = level == 9 ? 0.35f : 0.75f;
+            CHECK(std::fabs(enemy.pos.x - (before - enemy.speed * 0.11f * factor)) < 0.01f);
+        }
+    }
 
     World edge = breathWorld();
     const float rightEdge = 543.f - edge.enemies()[0].radius;

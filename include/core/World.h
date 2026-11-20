@@ -95,6 +95,8 @@ struct Enemy {
     int patternIndex = 0;
     int curseStacks = 0;
     double curseRemaining = 0.0;
+    float breathSlowLeft = 0.f;
+    float breathMoveFactor = 1.f;
     double curseZoneCooldown = 0.0;  // 같은 적에게 닿는 모든 저주 장판이 공유한다.
 };
 
@@ -180,7 +182,6 @@ struct BreathCast {
     static constexpr float duration = 16 * frameSeconds;
     static constexpr int sustainedTicks = 10;
     static constexpr float tickInterval = 0.25f;
-    static constexpr float tickKnockback = 4.f;
     static constexpr int openMouthFrame = 3;  // Zero-based frame of the Revenant attack sheet.
     int skill = -1;
     Vec2 origin, aim;

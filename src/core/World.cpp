@@ -751,8 +751,14 @@ void World::hitBreathTick(BreathCast& cast, const SkillDef& skill) {
             std::find(cast.curseChecked.begin(), cast.curseChecked.end(), enemy.id) == cast.curseChecked.end();
         if (firstHit) cast.curseChecked.push_back(enemy.id);
         damageEnemy(enemy, cast.damage / BreathCast::sustainedTicks, true, firstHit);
-        if (enemy.alive && !enemy.entering && enemyDef(enemy.kind).role != EnemyRole::Boss)
-            enemy.pos = bounds_.clampPoint(enemy.pos + cast.aim * BreathCast::tickKnockback, enemy.radius);
+        if (!enemy.alive || enemyDef(enemy.kind).role == EnemyRole::Boss) continue;
+        const int gap = enemy.level - dragon_.level;
+        enemy.breathSlowLeft = BreathCast::tickInterval;
+        enemy.breathMoveFactor = gap <= 0 ? 0.f : std::min(0.75f, 0.30f + 0.05f * gap);
+        if (gap < 0 && !enemy.entering) {
+            const float push = std::min(30.f, 12.f + 3.f * (-gap - 1));
+            enemy.pos = bounds_.clampPoint(enemy.pos + cast.aim * push, enemy.radius);
+        }
     }
 }
 
@@ -1083,10 +1089,24 @@ void World::wander(float dt) {
         return;
     }
 
-    d.behaviorLeft -= dt;
-    if (d.behaviorLeft <= 0.f) pickBehavior();
+    if (d.animForced && !d.landing && (d.forcedAnim == AnimState::Idle || d.forcedAnim == AnimState::Rest)) {
+        d.moving = false;
+        return;
+    }
 
-    if (d.behavior == IdleBehavior::Rest) {
+    d.behaviorLeft -= dt;
+    if (d.behaviorLeft <= 0.f && !d.landing) pickBehavior();
+    if (d.landing && distance(d.pos, d.wanderTarget) < 8.f) {
+        d.pos.y = d.groundY;
+        pickBehavior();
+        d.moving = false;
+        d.flying = false;
+        return;
+    }
+
+    const bool walkForFlyPose = d.animForced && d.forcedAnim == AnimState::Fly && d.behavior == IdleBehavior::Rest;
+
+    if (d.behavior == IdleBehavior::Rest && !walkForFlyPose) {
         d.flying = false;
         d.moving = false;
         d.restTime += dt;  // 오래 쉬면 엎드린다
@@ -1096,13 +1116,7 @@ void World::wander(float dt) {
 
     // 목적지에 닿았을 때
     if (distance(d.pos, d.wanderTarget) < 8.f) {
-        if (d.landing) {
-            d.pos.y = d.groundY;  // 지면에 정확히 맞춘다
-            pickBehavior();       // 내려왔으니 바로 다음 행동을 고른다
-            d.moving = false;
-            return;               // 착지한 프레임에는 더 움직이지 않는다
-        }
-        if (d.behavior == IdleBehavior::Walk) {
+        if (d.behavior != IdleBehavior::Fly) {
             d.wanderTarget = {randomRoamX(), d.groundY};  // 수평으로만
         } else {
             d.wanderTarget = randomRoamTarget(true);
@@ -1115,7 +1129,8 @@ void World::wander(float dt) {
     float step = d.stats.speed * mul * dt;
     if (dir.length() <= step) {
         d.pos = d.wanderTarget;
-        d.moving = false;
+        d.moving = dir.length() > 0.f;
+        if (std::fabs(dir.x) > 0.01f) d.facing = {dir.x > 0.f ? 1.f : -1.f, 0.f};
     } else {
         moveDragon(dt, dir, mul);
     }
@@ -1189,6 +1204,9 @@ void World::updateEnemies(float dt) {
     for (Enemy& e : enemies_) {
         if (!e.alive) continue;
         e.hitFlash = std::max(0.f, e.hitFlash - dt);
+        const float slowed = std::min(dt, e.breathSlowLeft);
+        const float moveTime = dt - slowed * (1.f - e.breathMoveFactor);
+        e.breathSlowLeft -= slowed;
         if (e.stun > 0.f) {
             e.stun -= dt;
             continue;
@@ -1234,7 +1252,7 @@ void World::updateEnemies(float dt) {
             enemyAttack(e);
             continue;
         }
-        if (dist > keepDist) e.pos += to.normalized() * (e.speed * dt);
+        if (dist > keepDist) e.pos += to.normalized() * (e.speed * moveTime);
         if (e.entering) {
             // 경계 안으로 완전히 들어오면 그때부터 가둔다
             if (bounds_.contains(e.pos.x, e.pos.y)) e.entering = false;
@@ -1253,8 +1271,8 @@ void World::updateEnemies(float dt) {
             float minD = a.radius + b.radius;
             if (len < minD && len > 0.01f) {
                 Vec2 push = d.normalized() * ((minD - len) * 0.5f);
-                if (enemyDef(a.kind).role != EnemyRole::Boss) a.pos -= push;
-                if (enemyDef(b.kind).role != EnemyRole::Boss) b.pos += push;
+                if (enemyDef(a.kind).role != EnemyRole::Boss && !(a.breathSlowLeft > 0.f && a.breathMoveFactor == 0.f)) a.pos -= push;
+                if (enemyDef(b.kind).role != EnemyRole::Boss && !(b.breathSlowLeft > 0.f && b.breathMoveFactor == 0.f)) b.pos += push;
             }
         }
     }
@@ -1262,12 +1280,13 @@ void World::updateEnemies(float dt) {
 
 void World::damageEnemy(Enemy& e, float raw, bool showNumber, bool detonatesCurse) {
     if (!e.alive) return;
-    const bool exploded = detonatesCurse && e.curseStacks == kCurseMaxStacks && e.curseRemaining > 0.0;
+    const int consumed = detonatesCurse && e.curseRemaining > 0.0 ? e.curseStacks : 0;
+    const bool exploded = consumed > 0;
     if (exploded) {
         e.curseStacks = 0;
         e.curseRemaining = 0.0;
     }
-    const float dmg = mitigate(exploded ? raw * 2.f : raw, e.def);
+    const float dmg = mitigate(raw * (1.f + static_cast<float>(consumed) / kCurseMaxStacks), e.def);
     e.hp -= dmg;
     e.hitFlash = 0.15f;
     if (showNumber) {

@@ -19,7 +19,7 @@ tests/                     코어 규칙 검증
 
 | 바꾸려는 것 | 파일 | 찾을 이름 |
 |---|---|---|
-| 망령룡 기본 명중·저주 폭발·숨결 틱과 넉백 | `src/core/World.cpp` | `updateCombat`, `damageEnemy`, `advanceBreath`, `hitBreathTick` |
+| 망령룡 기본 명중·저주 비례 폭발·숨결 레벨별 이동 제한 | `src/core/World.cpp` | `updateCombat`, `damageEnemy`, `advanceBreath`, `hitBreathTick`, `updateEnemies` |
 | 죽음의 행렬 수동 발동·화면 전체 추적·충돌·연출 | `src/core/World.cpp`, `src/win/Renderer.cpp` | `processionBlockedReason`, `advanceProcession`, `chooseProcessionTarget`, `advanceProcessionWaves`, `drawProcession` |
 | 망령룡 궁극기 충전 | `src/core/World.cpp`, `src/win/Renderer.cpp` | `ultimateCharge`, `canUseUltimate`, `beginUltimatePayment`·`commitUltimatePayment`·`cancelUltimatePayment`, `drawStatusCard` |
 | 망령룡 저주 중첩 표시 | `src/win/Renderer.cpp` | `drawEnemy`가 배치하고 `drawCurseBadge`가 실제 적 상태를 그린다 |
