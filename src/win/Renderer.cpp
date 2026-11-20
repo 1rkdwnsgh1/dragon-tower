@@ -363,6 +363,34 @@ void Renderer::panel(Graphics& g, const RectF& r, uint8_t alpha, bool hit) {
     strokeRound(g, r, 14.f, Color(255, 86, 96, 140), 1.5f);
 }
 
+RectF Renderer::modalPanel(Graphics& g, RectF content, uint8_t alpha) {
+    UiPiece frame = sprites_ ? sprites_->ui(skin_, "panel") : UiPiece{};
+    if (frame.valid() && frame.fit == UiFit::Nine && frame.stretch()) {
+        // 기본·그림자 패널의 보라색/녹색 안쪽 기준선. 꼭대기와 모서리 장식은 이 밖에 둔다.
+        const float w = static_cast<float>(frame.bmp->GetWidth());
+        const float h = static_cast<float>(frame.bmp->GetHeight());
+        frame.left = frame.right = static_cast<int>(std::round(w * 0.052f));
+        frame.top = static_cast<int>(std::round(h * 0.172f));
+        frame.bottom = static_cast<int>(std::round(h * 0.103f));
+        const float sides = static_cast<float>(frame.left + frame.right);
+        const float ends = static_cast<float>(frame.top + frame.bottom);
+        const float share = kBorderShare / (1.f - kBorderShare);
+        const float borderScale = std::min({1.f, content.Width * share / std::max(1.f, sides),
+                                                content.Height * share / std::max(1.f, ends)});
+        const RectF outer(content.X - sides * borderScale * 0.5f, content.Y - ends * borderScale * 0.5f,
+                          content.Width + sides * borderScale, content.Height + ends * borderScale);
+        RectF inner = content;
+        if (drawPieceCached(g, frame, outer, alpha / 255.f, scale_, &inner)) {
+            markRegion(outer);
+            return inner;
+        }
+    }
+    markRegion(content);
+    fillRound(g, content, 14.f, Color(alpha, 24, 26, 38));
+    strokeRound(g, content, 14.f, Color(255, 86, 96, 140), 1.5f);
+    return content;
+}
+
 void Renderer::button(Graphics& g, std::vector<UiButton>& out, const RenderContext& ctx, const RectF& r,
                       const std::string& label, UiAction action, int arg, bool enabled, bool selected, bool danger) {
     bool hover = enabled && r.Contains(PointF(ctx.mouseX, ctx.mouseY));
@@ -2294,7 +2322,7 @@ void Renderer::drawModal(Graphics& g, const Game& game, const Sprites& sprites, 
 
     if (sc == Screen::Select || sc == Screen::Stable || sc == Screen::Skills) {
         // 좁은 작업 영역에서는 창과 클릭 좌표에 동일한 축소율을 적용한다.
-        const float factor = std::min({1.f, width_ / 760.f, height_ / 650.f});
+        const float factor = std::min({1.f, width_ / 870.f, height_ / 1010.f});
         if (factor <= 0.f) return;
         const float originalWidth = width_, originalHeight = height_, originalScale = scale_;
         const size_t first = out.size();
@@ -2440,7 +2468,7 @@ void Renderer::drawSelect(Graphics& g, const Game& game, const Sprites& sprites,
     const float gap = 14.f;
     const float minCardW = 150.f;
     const float maxCardW = 222.f;
-    const float availW = width_ - 80.f - 48.f;  // 양옆 여백과 패널 안쪽 여백
+    const float availW = width_ - 150.f - 48.f;  // 양옆 여백과 패널 안쪽 여백
     int total = speciesCount();
     int shown = std::max(1, total);
     float cardW = maxCardW;
@@ -2454,7 +2482,7 @@ void Renderer::drawSelect(Graphics& g, const Game& game, const Sprites& sprites,
     const float pw = cardW * shown + gap * (shown - 1) + 48.f;
     const float ph = 600.f;
     RectF r(width_ * 0.5f - pw * 0.5f, height_ * 0.5f - ph * 0.5f, pw, ph);
-    panel(g, r, 242);
+    r = modalPanel(g, r, 242);
     const auto contentClip = g.Save();
     g.SetClip(r, CombineModeIntersect);
     // v1.3: 관리창에서 "새 드래곤"으로 들어왔으면 돌아갈 수 있어야 한다.
@@ -2528,7 +2556,7 @@ void Renderer::drawStable(Graphics& g, const Game& game, const Sprites& sprites,
     const SaveData& s = game.save();
     const int rows = cfg::kMaxStable;
     RectF r(width_ * 0.5f - 350.f, height_ * 0.5f - 290.f, 700.f, 580.f);
-    panel(g, r, 244);
+    r = modalPanel(g, r, 244);
     const auto contentClip = g.Save();
     g.SetClip(r, CombineModeIntersect);
     text(g, "드래곤 관리", r.X + 24.f, r.Y + 18.f, 22.f, kText, 0, true);
@@ -2640,16 +2668,16 @@ void Renderer::drawSkills(Graphics& g, const Game& game, const Sprites& sprites,
     const float listHeadH = 28.f;
     const float footerH = 66.f;
     const float chromeH = headTop + slotsH + listHeadH + footerH;
-    float maxH = std::max(320.f, height_ - 60.f);
+    float maxH = std::max(320.f, height_ - 400.f);
     float ph = std::min(chromeH + rowH * static_cast<float>(std::max(1, total)), maxH);
     int rowsPerPage = static_cast<int>((ph - chromeH) / rowH);
     if (rowsPerPage < 1) rowsPerPage = 1;
     const int pages = (total + rowsPerPage - 1) / rowsPerPage;
     const int page = std::clamp(game.skillPage(), 0, std::max(0, pages - 1));
 
-    const float pw = std::min(760.f, std::max(560.f, width_ - 60.f));
+    const float pw = std::min(760.f, std::max(560.f, width_ - 150.f));
     RectF r(width_ * 0.5f - pw * 0.5f, std::max(10.f, height_ * 0.5f - ph * 0.5f), pw, ph);
-    panel(g, r, 244);
+    r = modalPanel(g, r, 244);
     const auto contentClip = g.Save();
     g.SetClip(r, CombineModeIntersect);
     text(g, "스킬 관리", r.X + 24.f, r.Y + 18.f, 22.f, kText, 0, true);
