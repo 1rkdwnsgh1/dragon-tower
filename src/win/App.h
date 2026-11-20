@@ -46,6 +46,7 @@ private:
     void render();
     PlayerInput pollKeys();
     void onClick(float lx, float ly);
+    void dragTowerScroll(float y);
     void doAction(const UiButton& b);
     void saveNow();
     void requestExit();
@@ -95,7 +96,7 @@ private:
     FrameRegions regions_;
     bool cursorOnUi_ = false;
     // v0.6 끌기
-    enum class Drag { None, Panel, Menu, MenuSize, Dragon, CharSlider };
+    enum class Drag { None, Panel, Menu, MenuSize, Dragon, CharSlider, TowerScroll };
     float dragStartScale_ = 1.f;  // 메뉴 크기 끌기를 시작할 때의 배수
     Drag drag_ = Drag::None;
     float dragDX_ = 0.f, dragDY_ = 0.f;

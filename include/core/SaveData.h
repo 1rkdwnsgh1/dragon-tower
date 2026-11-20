@@ -65,6 +65,7 @@ struct SaveData {
     // 탑 100층 T2(2026-11-18). 계정 공용 기록이다 — 드래곤이 죽어도 남는다.
     long long credits = 0;          // 크레딧(설계안 4.4). 얻고 쓰는 것은 T6
     std::set<int> fieldBossCleared; // 계정이 깬 필드 보스층(10, 20, ...)
+    std::set<int> firstClearFloors;
     int firstClear = 0;             // 계정이 처음 돌파한 가장 높은 층(첫 돌파 보상 판정)
     // 지금 가질 수 있는 드래곤 수 = kMaxStable + 깬 20의 배수 필드 보스층 수.
     int stableCapacity() const;

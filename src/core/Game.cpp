@@ -162,6 +162,7 @@ bool Game::needsInput() const {
 }
 
 bool Game::wantsKeyboard() const {
+    if (screen_ == Screen::TowerSelect) return true;  // 휠과 Esc를 받는 선택창
     if (screen_ == Screen::Tower) return towerMode_ != CombatMode::Auto;
     if (screen_ != Screen::Desktop) return false;
     return hunting_ && save_.huntMode != CombatMode::Auto;
@@ -613,9 +614,10 @@ std::vector<EnemyKind> Game::huntPool() const {
     return pool;
 }
 
-void Game::recordFloorCleared(int floor) {
-    if (!save_.hasDragon || floor < 1) return;
+bool Game::recordFloorCleared(int floor) {
+    if (!save_.hasDragon || floorType(floor) == FloorType::Invalid) return false;
     DragonRecord& d = save_.dragon;
+    d.clearedFloors.insert(floor);
     d.cleared = std::clamp(std::max(d.cleared, floor), 0, cfg::kTowerTopFloor);
     // 머무는 층은 돌파한 다음 층. 탑의 끝(floors.txt 마지막 층)을 넘지 않는다.
     const int top = std::max(1, std::min(cfg::kTowerTopFloor, towerFloorCount()));
@@ -625,7 +627,9 @@ void Game::recordFloorCleared(int floor) {
         DragonRecord& s = save_.stable[static_cast<size_t>(save_.activeIndex)];
         s.floor = d.floor;
         s.cleared = d.cleared;
+        s.clearedFloors = d.clearedFloors;
     }
+    return save_.firstClearFloors.insert(floor).second;
 }
 
 void Game::spawnWave() {
@@ -663,8 +667,36 @@ void Game::spawnWave() {
 
 // ---------------- 탑 ----------------
 
-void Game::openTowerWarning() {
+void Game::openTowerSelection() {
     if (!save_.hasDragon || screen_ != Screen::Desktop) return;
+    screen_ = Screen::TowerSelect;
+    selectTowerFloor(save_.dragon.cleared + 1);
+    scrollTowerFloors(selectedTowerFloor_ - visibleTowerFloors / 2);
+}
+
+void Game::selectTowerFloor(int floor) {
+    if (screen_ != Screen::TowerSelect) return;
+    selectedTowerFloor_ = std::clamp(floor, 1, towerFloorCount());
+    if (selectedTowerFloor_ < firstVisibleTowerFloor_) scrollTowerFloors(selectedTowerFloor_);
+    if (selectedTowerFloor_ >= firstVisibleTowerFloor_ + visibleTowerFloors)
+        scrollTowerFloors(selectedTowerFloor_ - visibleTowerFloors + 1);
+}
+
+void Game::scrollTowerFloors(int first) {
+    if (screen_ == Screen::TowerSelect)
+        firstVisibleTowerFloor_ = std::clamp(first, 1, std::max(1, towerFloorCount() - visibleTowerFloors + 1));
+}
+
+int Game::towerRecommendedLevel(int floor) const {
+    int level = 1;
+    for (const auto& spawn : towerFloorDef(floor).spawns) level = std::max(level, spawn.level);
+    return level;
+}
+
+void Game::openTowerWarning() {
+    if (!save_.hasDragon || (screen_ != Screen::Desktop && screen_ != Screen::TowerSelect)) return;
+    warningFromSelection_ = screen_ == Screen::TowerSelect;
+    if (!warningFromSelection_) selectedTowerFloor_ = 1;
     screen_ = Screen::TowerWarning;
 }
 
@@ -727,7 +759,8 @@ void Game::enterTower(CombatMode m) {
     }
     world_.clearEnemies(false);
     towerMode_ = m;
-    towerFloor_ = 1;
+    towerFloor_ = std::clamp(selectedTowerFloor_, 1, towerFloorCount());
+    towerFinalRewardGranted_ = false;
     save_.bestFloor = std::max(save_.bestFloor, towerFloor_);
     RectF a = arena();
     world_.setBounds(a);
@@ -771,7 +804,9 @@ void Game::openCodex() {
 }
 
 void Game::closeModal() {
-    if (screen_ == Screen::AutoWarning || screen_ == Screen::TowerWarning) {
+    if (screen_ == Screen::TowerWarning && warningFromSelection_) {
+        screen_ = Screen::TowerSelect;
+    } else if (screen_ == Screen::AutoWarning || screen_ == Screen::TowerWarning || screen_ == Screen::TowerSelect) {
         pendingAutoStart_ = false;
         screen_ = Screen::Desktop;
     } else if (screen_ == Screen::Codex) {
@@ -892,6 +927,7 @@ void Game::update(float dt, const PlayerInput& in, bool hidden, bool inputEnable
         case Screen::Desktop:
         case Screen::AutoWarning:
         case Screen::TowerWarning:
+        case Screen::TowerSelect:
         case Screen::Codex: {
             if (!save_.hasDragon) break;
             if (!hunting_) {
@@ -912,7 +948,7 @@ void Game::update(float dt, const PlayerInput& in, bool hidden, bool inputEnable
                 if (paused_) break;
             }
             // 자동 사냥은 숨겨진 동안에도 진행된다(숨김은 일시정지가 아니다).
-            const PlayerInput& use = (!isAuto && inputEnabled) ? in : none;
+            const PlayerInput& use = (!isAuto && inputEnabled && screen_ != Screen::TowerSelect) ? in : none;
             world_.updateCombat(dt, save_.huntMode, use);
             world_.updateFx(dt);
             if (!waveActive_) world_.regen(cfg::kRegenBetweenWaves, dt);
@@ -938,13 +974,16 @@ void Game::update(float dt, const PlayerInput& in, bool hidden, bool inputEnable
             processEvents(false);
             if (screen_ != Screen::Tower) break;
             if (world_.aliveEnemyCount() == 0) {
-                recordFloorCleared(towerFloor_);  // T3: 이 드래곤의 진행을 올린다
+                const bool firstClear = recordFloorCleared(towerFloor_);
                 if (towerFloor_ >= towerFloorCount()) {
                     world_.resetSouls();
                     save_.towerClears++;
-                    ExpResult r = grantExp(save_.dragon, cfg::kTowerClearExp, false);
-                    if (r.levelsGained > 0) { world_.setDragonLevel(save_.dragon.level); syncSkillSlots(); }
-                    alert("탑 정복", speciesDef(save_.dragon.species).name + "이(가) 탑을 모두 올랐습니다.");
+                    towerFinalRewardGranted_ = firstClear;
+                    if (firstClear) {
+                        ExpResult r = grantExp(save_.dragon, cfg::kTowerClearExp, false);
+                        if (r.levelsGained > 0) { world_.setDragonLevel(save_.dragon.level); syncSkillSlots(); }
+                    }
+                    alert("탑 정복", speciesDef(save_.dragon.species).name + "이(가) 탑의 마지막 층을 돌파했습니다.");
                     screen_ = Screen::TowerVictory;
                 } else {
                     world_.healPercent(cfg::kTowerFloorHeal);

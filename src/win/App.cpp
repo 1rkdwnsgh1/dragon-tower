@@ -293,7 +293,7 @@ PlayerInput App::pollKeys() {
 
     if (edge(VK_ESCAPE)) {
         Screen sc = game_.screen();
-        if (sc == Screen::AutoWarning || sc == Screen::TowerWarning || sc == Screen::Codex) game_.closeModal();
+        if (sc == Screen::AutoWarning || sc == Screen::TowerWarning || sc == Screen::TowerSelect || sc == Screen::Codex) game_.closeModal();
         else if (sc == Screen::Stable) game_.closeStable();  // 띄운 개체가 없으면 닫히지 않는다
         else if (sc == Screen::Skills) game_.closeSkills();
         else if (sc == Screen::Desktop) setInputEnabled(false);
@@ -572,7 +572,10 @@ void App::doAction(const UiButton& b) {
         case UiAction::StartHunt: game_.startHunt(); break;
         case UiAction::StopHunt: game_.stopHunt(); break;
         case UiAction::SetMode: game_.setHuntMode(static_cast<CombatMode>(b.arg)); break;
-        case UiAction::OpenTower: game_.openTowerWarning(); break;
+        case UiAction::OpenTower: game_.openTowerSelection(); break;
+        case UiAction::ConfirmTowerFloor: game_.openTowerWarning(); break;
+        case UiAction::SelectTowerFloor: game_.selectTowerFloor(b.arg); break;
+        case UiAction::DragTowerScroll: break;
         case UiAction::EnterTower: game_.enterTower(static_cast<CombatMode>(b.arg)); break;
         case UiAction::CloseModal: game_.closeModal(); break;
         case UiAction::ConfirmAuto: game_.confirmAutoWarning(); break;
@@ -779,7 +782,28 @@ Vec2 App::clampToDesktop(Vec2 p, const Gdiplus::RectF& drawn) const {
     return p;
 }
 
+void App::dragTowerScroll(float y) {
+    const float fraction = std::clamp((y - dragDY_) / std::max(1.f, dragDX_), 0.f, 1.f);
+    const int range = std::max(0, game_.towerFloorCount() - Game::visibleTowerFloors);
+    game_.scrollTowerFloors(1 + static_cast<int>(std::round(fraction * range)));
+}
+
 bool App::startDrag(float lx, float ly) {
+    if (game_.screen() == Screen::TowerSelect) {
+        for (const auto& b : buttons_) {
+            if (b.action != UiAction::DragTowerScroll || !b.rect.Contains(PointF(lx, ly))) continue;
+            const float thumb = static_cast<float>(b.arg) / 100.f;
+            const int range = std::max(1, game_.towerFloorCount() - Game::visibleTowerFloors);
+            drag_ = Drag::TowerScroll;
+            dragDX_ = b.rect.Height - thumb;
+            const float top = b.rect.Y + dragDX_ * (game_.firstVisibleTowerFloor() - 1) / range;
+            const float grab = ly >= top && ly <= top + thumb ? ly - top : thumb * 0.5f;
+            dragDY_ = b.rect.Y + grab;
+            dragTowerScroll(ly);
+            return true;
+        }
+        return false;
+    }
     for (const UiButton& b : buttons_) {
         if (!b.enabled || !b.rect.Contains(Gdiplus::PointF(lx, ly))) continue;
         if (b.action == UiAction::DragMenuSize) {
@@ -837,12 +861,25 @@ LRESULT App::handle(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
             if (!inputEnabled_) return MA_NOACTIVATE;
             return MA_ACTIVATE;
 
+        case WM_MOUSEWHEEL: {
+            if (game_.screen() != Screen::TowerSelect) break;
+            const float x = (static_cast<short>(LOWORD(lp)) - work_.left) / scale_;
+            const float y = (static_cast<short>(HIWORD(lp)) - work_.top) / scale_;
+            if (renderer_.towerListRect().Contains(PointF(x, y))) {
+                const int delta = GET_WHEEL_DELTA_WPARAM(wp);
+                const int steps = std::max(1, std::abs(delta) / WHEEL_DELTA);
+                if (delta) game_.scrollTowerFloors(game_.firstVisibleTowerFloor() + (delta > 0 ? -steps : steps));
+            }
+            return 0;
+        }
         case WM_MOUSEMOVE: {
             float x = static_cast<float>(static_cast<short>(LOWORD(lp)));
             float y = static_cast<float>(static_cast<short>(HIWORD(lp)));
             mouseX_ = x / scale_;
             mouseY_ = y / scale_;
-            if (drag_ == Drag::Panel) {
+            if (drag_ == Drag::TowerScroll) {
+                dragTowerScroll(mouseY_);
+            } else if (drag_ == Drag::Panel) {
                 game_.setPanelPos(clampToDesktop({mouseX_ - dragDX_, mouseY_ - dragDY_},
                                                  renderer_.lastCardRect()));
             } else if (drag_ == Drag::Menu) {

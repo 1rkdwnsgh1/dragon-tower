@@ -1,5 +1,6 @@
 #include "Platform.h"
 #include "Renderer.h"
+#include "core/TowerData.h"
 #include "core/Config.h"
 #include "core/DragonData.h"
 #include "core/EnemyData.h"
@@ -665,6 +666,41 @@ LRESULT PreviewWindow::handle(UINT message, WPARAM wp, LPARAM lp) {
     }
     return DefWindowProcW(hwnd_, message, wp, lp);
 }
+int captureTowerSelection(const fs::path& assets, const fs::path& output) {
+    loadDragonFolders(assets / "dragons");
+    loadEnemyFolders(assets / "enemies");
+    auto tower = loadTowerFloors(assets / "tower");
+    if (!tower.found || tower.floors.size() < 25) return 2;
+    SaveData save;
+    save.hasDragon = speciesFromKey("revenant", save.dragon.species);
+    if (!save.hasDragon) return 2;
+    save.dragon.id = 1;
+    save.dragon.level = 128;
+    save.dragon.cleared = 24;
+    for (int floor = 1; floor <= 24; ++floor) save.dragon.clearedFloors.insert(floor);
+    save.firstClearFloors = save.dragon.clearedFloors;
+    constexpr int w = 1440, h = 820;
+    Game game;
+    game.setTowerFloors(std::move(tower.floors));
+    game.init(save, {0.f, 0.f, static_cast<float>(w), static_cast<float>(h)});
+    game.openTowerSelection();
+
+    Sprites sprites;
+    sprites.load(assets);
+    Renderer renderer;
+    if (!renderer.init()) return 3;
+    Bitmap bitmap(w, h, PixelFormat32bppPARGB);
+    {
+        Graphics canvas(&bitmap);
+        canvas.Clear(Color(20, 18, 27));
+        canvas.SetSmoothingMode(SmoothingModeAntiAlias);
+        std::vector<UiButton> controls;
+        renderer.drawOverlay(canvas, game, sprites, RenderContext{}, controls);
+    }
+    CLSID png{};
+    if (FAILED(CLSIDFromString(L"{557CF406-1A04-11D3-9A73-0000F81EF32E}", &png))) return 3;
+    return bitmap.Save(output.c_str(), &png, nullptr) == Ok ? 0 : 3;
+}
 }  // namespace
 }  // namespace dt::win
 
@@ -677,10 +713,13 @@ int WINAPI WinMain(HINSTANCE instance, HINSTANCE, LPSTR, int show) {
         int count = 0;
         LPWSTR* args = CommandLineToArgvW(GetCommandLineW(), &count);
         const bool capture = args && count == 4 && std::wstring(args[1]) == L"--capture";
-        const std::filesystem::path initial = capture ? args[2] : (args && count > 1 ? args[1] : L"");
-        const std::filesystem::path jobs = capture ? args[3] : L"";
+        const bool towerCapture = args && count == 4 && std::wstring(args[1]) == L"--tower-capture";
+        const std::filesystem::path initial = (capture || towerCapture) ? args[2] : (args && count > 1 ? args[1] : L"");
+        const std::filesystem::path jobs = (capture || towerCapture) ? args[3] : L"";
         if (args) LocalFree(args);
-        {
+        if (towerCapture) {
+            status = dt::win::captureTowerSelection(initial, jobs);
+        } else {
             dt::win::PreviewWindow window(instance);
             status = window.run(initial, show, jobs);
         }
