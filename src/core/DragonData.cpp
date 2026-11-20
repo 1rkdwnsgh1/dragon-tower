@@ -262,6 +262,11 @@ DragonParseResult parseDragonText(const std::string& text, const std::string& fo
                 if (ok && key == "procession_lifetime") s.processionLifetime = value;
             }
             else if (key == "grant_soul") ok = parseBool(val, s.grantsSoul);
+            else if (key == "ultimate") ok = parseBool(val, s.ultimate);
+            else if (key == "ultimate_resource") {
+                ok = val == "souls" || val == "none";
+                if (ok) s.ultimateUsesSouls = val == "souls";
+            }
             else if (key == "scale_with_size") ok = parseBool(val, s.scaleWithSize);
             else if (key == "fx") s.fx = val;
             else if (key == "fx_impact") s.fxImpact = val;

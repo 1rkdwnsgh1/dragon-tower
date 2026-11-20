@@ -296,6 +296,10 @@ bool Game::equipSkill(int slot, int skillIndex) {
         notify("패시브는 칸에 넣지 않습니다. 해제되면 항상 적용됩니다.", kWarn, 2.5f);
         return false;
     }
+    if (s.ultimate) {
+        notify("궁극기는 칸에 넣지 않습니다. 키 5나 상태창 아이콘으로 씁니다.", kWarn, 2.5f);
+        return false;
+    }
     if (d.level < s.unlockLevel) {
         notify(s.name + "은(는) Lv." + std::to_string(s.unlockLevel) + "에 해제됩니다.", kWarn, 2.5f);
         return false;
@@ -332,10 +336,22 @@ void Game::clearSlot(int slot) {
     saveRequested_ = true;
 }
 
+void Game::useUltimate() {
+    // 전투 밖에서 받아 두면 다음 전투가 시작될 때 갑자기 나간다. 그래서 지금 싸우는 중일 때만 받는다.
+    const bool inCombat = screen() == Screen::Tower ||
+                          (screen() == Screen::Desktop && hunting() && waveActive() && !combatPaused());
+    if (!inCombat) {
+        notify("궁극기는 전투 중에 쓸 수 있습니다.", kWarn, 2.f);
+        return;
+    }
+    world_.requestUltimate();
+}
+
 bool Game::hasUnequippedSkill() const {
     if (!save_.hasDragon) return false;
     const SpeciesDef& sp = speciesDef(save_.dragon.species);
     for (int idx : unlockedActiveSkills(sp, save_.dragon.level)) {
+        if (sp.skills[static_cast<size_t>(idx)].ultimate) continue;  // 궁극기는 칸에 넣지 않는다
         bool found = false;
         for (int v : save_.dragon.slots) if (v == idx) { found = true; break; }
         if (!found) return true;

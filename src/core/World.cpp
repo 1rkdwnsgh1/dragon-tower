@@ -49,7 +49,7 @@ void World::resetSouls() {
 
 UltimateCharge World::ultimateCharge() const {
     const SpeciesDef& species = speciesDef(dragon_.species);
-    if (species.key != "revenant" || !dragon_.alive) return {};
+    if (!dragon_.alive) return {};
     for (const SkillDef& skill : species.skills) {
         if (skill.kind == SkillKind::PassiveOnKill && skill.grantsSoul && dragon_.level >= skill.unlockLevel)
             return {true, std::clamp(dragon_.souls, 0, kUltimateSoulCost)};
@@ -105,7 +105,7 @@ void World::setupDragon(Species s, int level, float hp, Vec2 pos) {
 void World::autoFillSlots() {
     const SpeciesDef& sp = speciesDef(dragon_.species);
     for (int idx : unlockedActiveSkills(sp, dragon_.level)) {
-        if (sp.skills[static_cast<size_t>(idx)].kind == SkillKind::Procession) continue;
+        if (sp.skills[static_cast<size_t>(idx)].ultimate) continue;
         bool already = false;
         for (int v : slots_) if (v == idx) { already = true; break; }
         if (already) continue;
@@ -393,21 +393,49 @@ void World::basicAttack() {
     setDragonAnim(AnimState::Attack, cfg::kAnimAttackHold);
 }
 
-const char* World::processionBlockedReason(int i, bool inCombat, bool automatic) const {
+void World::setSlots(const std::array<int, kSkillSlots>& s) {
+    slots_ = s;
+    const SpeciesDef& sp = speciesDef(dragon_.species);
+    for (int& v : slots_)
+        if (v >= 0 && v < static_cast<int>(sp.skills.size()) && sp.skills[static_cast<size_t>(v)].ultimate) v = -1;
+}
+
+int World::ultimateSkill() const {
+    const SpeciesDef& sp = speciesDef(dragon_.species);
+    for (size_t i = 0; i < sp.skills.size(); ++i)
+        if (sp.skills[i].ultimate) return static_cast<int>(i);
+    return -1;
+}
+
+// 2026-11-20: 궁극기는 장착 칸 밖의 전용 칸이고 자동 모드에서도 쓴다(사용자 결정). 그래서 예전의
+// "장착 필요"·"수동 모드 전용" 조건이 없다. 영혼을 쓰는 궁극기만 영혼 10개를 요구한다.
+const char* World::ultimateBlockedReason(bool inCombat) const {
     const DragonActor& d = dragon_;
-    const SpeciesDef& species = speciesDef(d.species);
-    if (species.key != "revenant" || !skillUnlocked(i) || i >= static_cast<int>(d.skillCd.size()) ||
-        species.skills[static_cast<size_t>(i)].kind != SkillKind::Procession)
-        return "궁극기 미해제";
-    if (std::find(slots_.begin(), slots_.end(), i) == slots_.end()) return "궁극기 장착 필요";
-    if (automatic) return "궁극기는 수동 모드 전용";
+    const int i = ultimateSkill();
+    if (i < 0 || !skillUnlocked(i) || i >= static_cast<int>(d.skillCd.size())) return "궁극기 미해제";
+    const SkillDef& s = speciesDef(d.species).skills[static_cast<size_t>(i)];
     if (d.procession || d.skillCast || (d.breath && d.breath->elapsed < d.breath->inputLock) || d.held)
         return "시전 중 잠금";
     if (d.skillCd[static_cast<size_t>(i)] > 0.f) return "궁극기 재사용 대기";
-    if (!ultimateCharge().full()) return "영혼 10개 필요";
+    if (s.ultimateUsesSouls && !ultimateCharge().full()) return "영혼 10개 필요";
     if (!inCombat) return "전투 중에 사용 가능";
     if (aliveEnemyCount() == 0) return "대상 없음";
     return nullptr;
+}
+
+bool World::castUltimate(bool aiChoice) {
+    const int i = ultimateSkill();
+    if (i < 0) return false;
+    if (const char* blocked = ultimateBlockedReason(true)) {
+        if (!aiChoice) addText(blocked, dragon_.pos - Vec2{0.f, 60.f}, 0xFFCCCCCC, 14.f, 0.8f);
+        return false;
+    }
+    const SkillDef& s = speciesDef(dragon_.species).skills[static_cast<size_t>(i)];
+    // 죽음의 행렬은 첫 충돌에서 영혼을 확정한다(시전 안에서 처리). 다른 궁극기는 시전 성공 때 바로 쓴다.
+    if (s.kind == SkillKind::Procession) return castSkill(i, aiChoice);
+    const bool cast = castSkill(i, aiChoice);
+    if (cast && s.ultimateUsesSouls) dragon_.souls = std::max(0, dragon_.souls - kUltimateSoulCost);
+    return cast;
 }
 
 bool World::castSkill(int i, bool aiChoice) {
@@ -418,12 +446,11 @@ bool World::castSkill(int i, bool aiChoice) {
     if (i < 0 || i >= static_cast<int>(sp.skills.size())) return false;
     const SkillDef& s = sp.skills[static_cast<size_t>(i)];
     if (s.kind == SkillKind::Procession) {
-        if (aiChoice || currentMode_ == CombatMode::Auto) return false;
-        const char* blocked = processionBlockedReason(i, true, false);
+        const char* blocked = i == ultimateSkill() ? ultimateBlockedReason(true) : "궁극기 미해제";
         const Enemy* target = blocked ? nullptr : nearestEnemy(d.pos, std::numeric_limits<float>::max());
         if (!blocked && !target) blocked = "대상 없음";
         if (blocked) {
-            addText(blocked, d.pos - Vec2{0.f, 60.f}, 0xFFCCCCCC, 14.f, 0.8f);
+            if (!aiChoice) addText(blocked, d.pos - Vec2{0.f, 60.f}, 0xFFCCCCCC, 14.f, 0.8f);
             return false;
         }
         const auto payment = beginUltimatePayment({true, true, true});
@@ -600,7 +627,7 @@ bool World::castSkill(int i, bool aiChoice) {
                 addSkillFx(s, FxType::Ring, z.pos, z.pos, z.radius, s.duration, sp.color);
             break;
         }
-        case SkillKind::Procession:  // 위에서 수동 시전만 받는다.
+        case SkillKind::Procession:  // 위의 Procession 분기에서 처리한다.
         case SkillKind::PassiveStat:
         case SkillKind::PassiveOnKill:
             // 패시브는 발동하는 스킬이 아니다. skillUnlocked에서 이미 걸러지지만,
@@ -910,7 +937,7 @@ float World::desiredRange() const {
             // v1.4: 장착한 칸만 본다. 해제만 되고 빼 둔 스킬 때문에 멀찍이 서 있으면 안 된다.
             for (int slot = 0; slot < kSkillSlots; ++slot) {
                 int i = slotSkill(slot);
-                if (!skillUnlocked(i) || sp.skills[static_cast<size_t>(i)].kind == SkillKind::Procession) continue;
+                if (!skillUnlocked(i) || sp.skills[static_cast<size_t>(i)].ultimate) continue;
                 best = std::max(best, sp.skills[static_cast<size_t>(i)].range);
             }
             // 쓸 수 있는 스킬이 없으면 붙어서 기본 공격으로 싸우는 수밖에 없다
@@ -946,6 +973,8 @@ void World::dragonAi(float dt, bool castSkills, const PlayerInput& in, bool allo
     // 물러나는 중에도 적을 바라본다(뒷걸음질). 그래야 스킬이 적 쪽으로 나간다.
     if (std::fabs(t->pos.x - d.pos.x) > 4.f) d.facing = Vec2{t->pos.x > d.pos.x ? 1.f : -1.f, 0.f};
     if (castSkills) {
+        // 2026-11-20: 궁극기는 쓸 수 있게 되면 가장 먼저 쓴다(자동 모드 AI 사용, 사용자 결정).
+        if (!ultimateBlockedReason(true) && castUltimate(true)) return;
         // v1.4: 자동 전투도 장착한 칸만 쓴다. 칸 순서가 곧 우선순위다.
         for (int slot = 0; slot < kSkillSlots; ++slot) {
             int i = slotSkill(slot);
@@ -1409,6 +1438,12 @@ void World::updateCombat(float dt, CombatMode mode, const PlayerInput& in) {
                 }
                 castSkill(i, false);
             }
+            if (in.ultimate) castUltimate(false);
+        }
+        // 상태창 아이콘 클릭은 모드와 상관없이 받는다(자동 모드에서도 사람이 직접 쓸 수 있게).
+        if (ultimateRequested_) {
+            ultimateRequested_ = false;
+            castUltimate(false);
         }
         if (!d.procession) basicAttack();
     }

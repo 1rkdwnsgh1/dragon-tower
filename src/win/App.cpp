@@ -290,6 +290,12 @@ PlayerInput App::pollKeys() {
         bool pad = edge(VK_NUMPAD1 + i);
         in.skill[i] = num || pad;
     }
+    // 2026-11-20: 키 5는 궁극기 전용 칸이다(장착 칸 1~4 와 따로).
+    {
+        const bool num = edge('5');
+        const bool pad = edge(VK_NUMPAD5);
+        in.ultimate = num || pad;
+    }
 
     if (edge(VK_ESCAPE)) {
         Screen sc = game_.screen();
@@ -573,6 +579,7 @@ void App::doAction(const UiButton& b) {
         case UiAction::StopHunt: game_.stopHunt(); break;
         case UiAction::SetMode: game_.setHuntMode(static_cast<CombatMode>(b.arg)); break;
         case UiAction::OpenTower: game_.openTowerSelection(); break;
+        case UiAction::UseUltimate: game_.useUltimate(); break;
         case UiAction::ConfirmTowerFloor: game_.openTowerWarning(); break;
         case UiAction::SelectTowerFloor: game_.selectTowerFloor(b.arg); break;
         case UiAction::DragTowerScroll: break;

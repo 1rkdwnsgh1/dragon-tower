@@ -20,8 +20,11 @@ tests/                     코어 규칙 검증
 | 바꾸려는 것 | 파일 | 찾을 이름 |
 |---|---|---|
 | 망령룡 기본 명중·저주 비례 폭발·숨결 레벨별 이동 제한 | `src/core/World.cpp` | `updateCombat`, `damageEnemy`, `advanceBreath`, `hitBreathTick`, `updateEnemies` |
-| 죽음의 행렬 수동 발동·화면 전체 추적·충돌·연출 | `src/core/World.cpp`, `src/win/Renderer.cpp` | `processionBlockedReason`, `advanceProcession`, `chooseProcessionTarget`, `advanceProcessionWaves`, `drawProcession` |
+| 죽음의 행렬 발동·화면 전체 추적·충돌·연출 | `src/core/World.cpp`, `src/win/Renderer.cpp` | `castSkill` 의 Procession 분기, `advanceProcession`, `chooseProcessionTarget`, `advanceProcessionWaves`, `drawProcession` |
+| 궁극기 전용 칸(키 5·클릭·자동 AI) | `include/core/Species.h`, `src/core/DragonData.cpp`, `src/core/World.cpp`, `src/core/Game.cpp`, `src/win/App.cpp` | `SkillDef::ultimate`·`ultimateUsesSouls`(`ultimate=`·`ultimate_resource=`), `World::ultimateSkill`·`ultimateBlockedReason`·`castUltimate`·`requestUltimate`·`setSlots`(궁극기 뺌), `dragonAi`(자동 AI 먼저 사용), `Game::useUltimate`·`equipSkill`, `PlayerInput::ultimate`(키 5), `UiAction::UseUltimate` |
 | 망령룡 궁극기 충전 | `src/core/World.cpp`, `src/win/Renderer.cpp` | `ultimateCharge`, `canUseUltimate`, `beginUltimatePayment`·`commitUltimatePayment`·`cancelUltimatePayment`, `drawStatusCard` |
+| 상태창 궁극기 줄·접기 버튼·탑 도전 버튼 | `src/win/Renderer.cpp` | `drawStatusCard`(영혼 또는 쿨타임 게이지 + 오른쪽 궁극기 아이콘, 접기 버튼 맨 왼쪽, 스킬 칸 아래 탑 도전), `drawSkills`(궁극기는 "전용 칸") |
+| 클릭 통과(상호작용 없는 그림) | `src/win/Renderer.cpp` | `markRegion` 은 드래곤·창·버튼만 부른다. 효과·장판·투사체·숨결은 부르지 않는다. `panel(..., hit=false)` |
 | 망령룡 저주 중첩 표시 | `src/win/Renderer.cpp` | `drawEnemy`가 배치하고 `drawCurseBadge`가 실제 적 상태를 그린다 |
 | 망령룡 저주 중첩과 장판 간격 | `include/core/World.h`, `src/core/World.cpp` | `Enemy::curseStacks`, `applyCurse`, `updateCombat`의 투사체·장판 분기 |
 | 드래곤 능력치·스킬 수치 | `assets/dragons/<키>/dragon.txt` | (코드 아님) |

@@ -3347,8 +3347,11 @@ static void testRevenantProcession() {
         }
         return w;
     };
+    // 2026-11-20: 궁극기는 장착 칸 밖의 전용 칸이다 — 키 5(PlayerInput::ultimate)로 쏜다.
+    CHECK(def.skills[skill].ultimate && def.skills[skill].ultimateUsesSouls);
+    for (int i = 0; i < 7; ++i) CHECK(!def.skills[i].ultimate);
     PlayerInput input{};
-    input.skill[0] = true;
+    input.ultimate = true;
     const auto cast = [&](World& w, CombatMode mode = CombatMode::Direct) { w.updateCombat(0.f, mode, input); };
     const auto step = [](World& w, float dt) { w.updateCombat(dt, CombatMode::Direct, {}); };
     const auto activeCast = [](const World& world) -> const ProcessionCast& {
@@ -3365,13 +3368,25 @@ static void testRevenantProcession() {
     World locked = setup(10, 7);
     cast(locked);
     CHECK(!locked.dragon().procession && locked.dragon().souls == 10);
+    // 칸에 넣으려 해도 빠지고, 칸에 없어도 쓸 수 있다.
     World unequipped = setup();
+    CHECK(unequipped.slotSkill(0) == -1);
     unequipped.setSlots({-1, -1, -1, -1});
+    CHECK(unequipped.ultimateSkill() == skill && !unequipped.ultimateBlockedReason(true));
     cast(unequipped);
-    CHECK(!unequipped.dragon().procession && unequipped.dragon().souls == 10);
+    CHECK(unequipped.dragon().procession && unequipped.dragon().souls == 10);
+    // 자동 모드에서는 AI 가 쓴다(키 입력이 없어도). 영혼이 모자라면 쓰지 않는다.
     World automatic = setup();
-    cast(automatic, CombatMode::Auto);
-    CHECK(!automatic.dragon().procession && automatic.dragon().souls == 10);
+    automatic.updateCombat(0.f, CombatMode::Auto, {});
+    CHECK(automatic.dragon().procession && automatic.dragon().souls == 10);
+    World autoShort = setup(9);
+    autoShort.updateCombat(0.f, CombatMode::Auto, {});
+    CHECK(!autoShort.dragon().procession && autoShort.dragon().souls == 9);
+    // 상태창 아이콘 클릭(요청)은 자동 모드에서도 받는다.
+    World clicked = setup();
+    clicked.requestUltimate();
+    clicked.updateCombat(0.f, CombatMode::SkillManual, {});
+    CHECK(clicked.dragon().procession.has_value());
 
     CHECK(def.skills[skill].processionShots == 3);
     CHECK(def.skills[skill].processionInterval == 0.4f);
@@ -3551,11 +3566,15 @@ static void testRevenantProcession() {
     CHECK(saved.dragon.slots == originalSlots);
     Game game;
     game.init(saved, {0.f, 0.f, 1280.f, 720.f});
-    CHECK(game.equipSkill(3, skill));
-    CHECK(game.skillSlots()[3] == skill);
-    SaveData reloaded;
-    CHECK(deserializeSave(serializeSave(game.snapshotForSave()), reloaded));
-    CHECK(reloaded.dragon.slots[3] == skill);
+    CHECK(!game.equipSkill(3, skill));  // 궁극기는 칸에 넣지 않는다
+    CHECK(game.skillSlots()[3] == 3);
+    // 예전 저장에서 칸에 들어 있던 궁극기는 불러올 때 빠진다.
+    SaveData legacy;
+    CHECK(deserializeSave("version=1\ndragon.present=1\ndragon.species=revenant\ndragon.alive=1\n"
+                          "dragon.level=8\ndragon.slots=7,1,2,3\n", legacy));
+    Game legacyGame;
+    legacyGame.init(legacy, {0.f, 0.f, 1280.f, 720.f});
+    for (int v : legacyGame.skillSlots()) CHECK(v != skill);
 
     SpeciesDef testDef;
     testDef.key = "test-procession-autofill";

@@ -181,7 +181,9 @@ public:
     void setSkillPage(int page) { skillPage_ = page < 0 ? 0 : page; }
     // 그 칸에 스킬을 넣는다. 다른 칸에 이미 있으면 두 칸을 맞바꾼다.
     // 해제되지 않았거나 패시브면 아무 일도 하지 않고 false.
-    bool equipSkill(int slot, int skillIndex);
+    bool equipSkill(int slot, int skillIndex);  // 궁극기는 넣지 않는다(전용 칸)
+    // 상태창 궁극기 아이콘 클릭. 전투 중이면 모드와 상관없이 다음 갱신에서 쓴다.
+    void useUltimate();
     void clearSlot(int slot);
     // 해제됐지만 어느 칸에도 없는 액티브가 있는가(관리창을 열어 보라고 표시할 때 쓴다)
     bool hasUnequippedSkill() const;

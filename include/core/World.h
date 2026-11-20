@@ -20,6 +20,7 @@ struct PlayerInput {
     float moveY = 0.f;
     bool dodge = false;
     bool skill[kSkillSlots] = {false, false, false, false};
+    bool ultimate = false;  // 키 5 — 장착 칸과 따로 쓰는 궁극기
 };
 
 // 전투와 표시가 같은 중첩 상한과 지속 시간을 읽는다.
@@ -296,7 +297,14 @@ public:
     void resetSouls();
     UltimateCharge ultimateCharge() const;
     bool canUseUltimate(const UltimateUseConditions& conditions) const;
-    const char* processionBlockedReason(int skill, bool inCombat, bool automatic) const;
+    // 이 종의 궁극기(ultimate=yes) 스킬 번호. 없으면 -1.
+    int ultimateSkill() const;
+    // 궁극기를 지금 쓸 수 없는 이유. 쓸 수 있으면 nullptr. 상태창 표시와 시전이 같은 판정을 쓴다.
+    const char* ultimateBlockedReason(bool inCombat) const;
+    // 궁극기를 쓴다(키 5·아이콘 클릭·자동 AI). aiChoice 면 막혔을 때 글자를 띄우지 않는다.
+    bool castUltimate(bool aiChoice);
+    // 상태창 아이콘 클릭. 다음 전투 갱신에서 모드와 상관없이 한 번 시도한다.
+    void requestUltimate() { ultimateRequested_ = true; }
     // 준비는 영혼을 건드리지 않는다. 성공한 타격 한 번에만 같은 ID로 확정한다.
     std::optional<uint64_t> beginUltimatePayment(const UltimateUseConditions& conditions);
     bool commitUltimatePayment(uint64_t id);
@@ -331,7 +339,7 @@ public:
 
     // v1.4 장착 칸. Game이 개체 기록(DragonRecord::slots)에서 넣어 준다.
     // 입력(키 1~4)과 자동 전투는 여기 들어 있는 스킬만 쓴다.
-    void setSlots(const std::array<int, kSkillSlots>& s) { slots_ = s; }
+    void setSlots(const std::array<int, kSkillSlots>& s);  // 궁극기는 칸에 넣지 않는다(빠진다)
 
     // 보기 크기(charScale)를 판정에도 쓴다(2026-11-17). Game이 설정이 바뀔 때마다 넣어 준다.
     // 몸 반지름은 항상, 스킬 반경은 scale_with_size 를 켠 스킬만 따라 커진다.
@@ -392,6 +400,7 @@ private:
     void dragonAi(float dt, bool castSkills, const PlayerInput& in, bool allowManual);
     int keepRange_ = 0;
     std::array<int, kSkillSlots> slots_{-1, -1, -1, -1};
+    bool ultimateRequested_ = false;
     void autoFillSlots();  // 빈 칸을 해제된 액티브로 채운다(이미 든 칸은 그대로)
     bool castSkill(int i, bool aiChoice);  // i = 스킬 목록 번호
     void hitLine(Vec2 start, Vec2 end, float radius, float damage, bool detonatesCurse = false);

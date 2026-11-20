@@ -286,10 +286,16 @@ void PreviewWindow::reset() {
         world_.addSkillFx(*sk, FxType::Heal, target_, origin, 44.f, 0.5f, def.color);
     } else if (!skillIsPassive(sk->kind)) {
         dragon.anim = AnimState::Idle;
-        if (sk->kind == SkillKind::Procession) dragon.souls = kUltimateSoulCost;
-        world_.setSlots({selected(Motion) - kAnimStateCount, -1, -1, -1});
+        if (sk->ultimateUsesSouls) dragon.souls = kUltimateSoulCost;
         PlayerInput input{};
-        input.skill[0] = true;
+        // 궁극기는 장착 칸에 들어가지 않는다 — 게임과 같이 키 5 입력으로 쏜다.
+        if (sk->ultimate) {
+            world_.setSlots({-1, -1, -1, -1});
+            input.ultimate = true;
+        } else {
+            world_.setSlots({selected(Motion) - kAnimStateCount, -1, -1, -1});
+            input.skill[0] = true;
+        }
         world_.updateCombat(0.f, CombatMode::Direct, input);
         dragon.invuln = 0.f;
     }
