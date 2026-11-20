@@ -148,9 +148,11 @@ python tools/tint_ui.py --out assets/ui/shadow --hue -75
 | `tower_card_normal.png`, `tower_card_mid.png`, `tower_card_field.png` | 1050 × 128 | 층 유형 색과 적 스프라이트 |
 | `tower_floor_<층번호>.png` | 584 × 310 | 해당 층 대표 적 |
 | `tower_portrait_<종키>.png` | 260 × 236 | 대기 모션 첫 프레임 |
-| `tower_skill_<종키>_<스킬번호>.png` | 108 × 102 | 기술 효과 프레임 또는 슬롯 번호 |
 | `tower_selection.png`, `tower_enter.png` | 1050 × 128 / 508 × 124 | 금색 선택 테두리 / 보라색 버튼 |
+| `tower_header_v2.png`, `tower_dragon_panel_v2.png` | 1380 × 82 / 1380 × 175 | 기본 제목창 / 드래곤 정보창 |
+| `tower_info_panel_v2.png` | 400 × 465 | 기존 층 상세 패널 |
+| `tower_enter_v2.png` | 508 × 124 | 기존 입장 버튼 및 텍스트 |
 
-스킬 번호는 `dragon.txt`의 `skill.N`과 같은 1부터 시작한다. 선택 테두리는 투명 중앙을 권장한다.
+장착 스킬은 종 폴더의 `icon_N.png`와 기존 상태창의 슬롯 표시를 공유한다. 선택 테두리는 투명 중앙을 권장한다. V2 배치는 PNG에 인쇄된 고정 라벨을 사용한다. 같은 키의 스킨 이미지를 교체할 때 원본의 라벨·닫기 위치를 유지한다.
 
 탑 그림은 목록과 함께 세로로 이동한다. 높은 층으로 가면 그림의 위쪽이 보이고, 1층 쪽에서는 아래쪽이 보인다. 전체 그림의 상단과 하단을 각각 탑 꼭대기와 바닥으로 구성하면 교체 즉시 같은 동작이 적용된다.
