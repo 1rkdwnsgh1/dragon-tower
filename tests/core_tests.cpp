@@ -1479,6 +1479,55 @@ static void testPlaceAndPanel() {
     g.placeDragon({-9999.f, 9999.f});
     CHECK(g.world().bounds().contains(g.world().dragon().pos.x, g.world().dragon().pos.y));
 
+    g.placeDragon({700.f, 500.f});
+    auto& w = g.world();
+    auto& actor = w.dragon();
+    actor.behavior = IdleBehavior::Walk;
+    actor.behaviorLeft = 2.f;
+    actor.wanderTarget = {800.f, 500.f};
+    g.setForcedMotion(AnimState::Fly);
+    w.updateWander(0.1f);
+    CHECK(actor.pos.x > 700.f && actor.pos.y == 500.f && !actor.flying);
+    CHECK(actor.anim == AnimState::Fly && actor.behaviorLeft < 2.f);
+    w.setDragonAnim(AnimState::Attack, 0.1f);
+    w.updateCombat(0.01f, CombatMode::Direct, {});
+    CHECK(actor.anim == AnimState::Attack);
+    w.updateWander(0.15f);
+    CHECK(actor.anim == AnimState::Fly);
+    g.clearForcedMotion();
+    w.updateWander(0.01f);
+    CHECK(actor.anim == AnimState::Move);
+
+    const Vec2 stationary = actor.pos;
+    for (AnimState pose : {AnimState::Idle, AnimState::Rest}) {
+        g.setForcedMotion(pose);
+        w.updateWander(1.f);
+        CHECK(actor.anim == pose && distance(actor.pos, stationary) == 0.f);
+    }
+    g.setForcedMotion(AnimState::Fly);
+    actor.behavior = IdleBehavior::Rest;
+    actor.wanderTarget = actor.pos;
+    actor.behaviorLeft = 2.f;
+    w.updateWander(0.1f);
+    CHECK(actor.anim == AnimState::Fly && !actor.flying && distance(actor.pos, stationary) > 0.f);
+    g.clearForcedMotion();
+
+    w.seed(271);
+    int flightFrames = 0, restFrames = 0, walkFrames = 0, landFrames = 0;
+    for (int i = 0; i < 12000; ++i) {
+        const Vec2 before = actor.pos;
+        w.updateWander(0.1f);
+        CHECK_SILENT(actor.anim != AnimState::Fly || distance(actor.pos, before) > 0.f);
+        if (actor.flying) ++flightFrames;
+        else if (actor.behavior == IdleBehavior::Rest) ++restFrames;
+        else if (actor.behavior == IdleBehavior::Walk) ++walkFrames;
+        if (actor.landing) ++landFrames;
+    }
+    std::printf("  roaming samples: fly=%d rest=%d walk=%d landing=%d\n",
+                flightFrames, restFrames, walkFrames, landFrames);
+    CHECK(flightFrames > 7200 && restFrames > 0 && walkFrames > 0 && landFrames > 0);
+    CHECK(w.bounds().contains(actor.pos.x, actor.pos.y));
+
     // 상태창 위치·접힘은 저장 요청을 남긴다
     g.setPanelPos({10.f, 20.f});
     CHECK(g.panelPos().x == 10.f && g.panelPos().y == 20.f);
@@ -2708,6 +2757,113 @@ static void testRevenantCurse(const std::filesystem::path& assets) {
     CHECK(bolts.enemies()[0].curseStacks == 0);
     CHECK(bolts.enemies()[0].curseRemaining == 0.0);
 
+    World basic = setup(revenant);
+    enemyAt(basic, {520.f, 450.f});
+    basic.dragon().basicCd = 0.f;
+    step(basic, 0.25f);
+    CHECK(basic.enemies()[0].curseStacks == 0 && basic.enemies()[0].hp < 100000.f);
+    basic.enemiesMutable()[0].curseStacks = 3;
+    basic.enemiesMutable()[0].curseRemaining = 1.0;
+    basic.dragon().basicCd = 0.f;
+    step(basic, 0.25f);
+    CHECK(basic.enemies()[0].curseStacks == 3 && basic.enemies()[0].curseRemaining == kCurseDuration);
+
+    for (int index : {2, 3, 4}) {
+        World blast = setup(revenant);
+        blast.setupDragon(revenant, 8, -1.f, {420.f, 450.f});
+        blast.dragon().basicCd = 100.f;
+        blast.setSlots({index, -1, -1, -1});
+        enemyAt(blast, {500.f, 450.f});
+        enemyAt(blast, {520.f, 452.f});
+        for (auto& enemy : blast.enemiesMutable()) enemy.curseRemaining = kCurseDuration;
+        blast.enemiesMutable()[0].curseStacks = kCurseMaxStacks;
+        blast.enemiesMutable()[1].curseStacks = kCurseMaxStacks - 1;
+        cast(blast, 0);
+        const float normal = mitigate(blast.dragon().stats.atk * def.skills[index].power, blast.enemies()[0].def);
+        CHECK(std::fabs((100000.f - blast.enemies()[0].hp) - 2.f * normal) < 0.01f);
+        CHECK(std::fabs((100000.f - blast.enemies()[1].hp) - 1.8f * normal) < 0.01f);
+        CHECK(blast.enemies()[0].curseStacks == 0 && blast.enemies()[1].curseStacks == 0);
+        CHECK(std::any_of(blast.texts().begin(), blast.texts().end(), [](const FloatText& text) {
+            return text.text.find("저주 폭발!") != std::string::npos;
+        }));
+    }
+
+    const auto breathWorld = [&] {
+        World w = setup(revenant);
+        w.setupDragon(revenant, 8, -1.f, {420.f, 450.f});
+        w.dragon().basicCd = 100.f;
+        w.setSlots({5, -1, -1, -1});
+        enemyAt(w, {520.f, 450.f});
+        enemyAt(w, {600.f, 620.f});
+        auto& boss = w.spawnEnemy(defaultBoss(), 8, {650.f, 520.f});
+        boss.hp = boss.maxHp = 100000.f;
+        boss.stun = 100.f;
+        cast(w, 0);
+        return w;
+    };
+    World sustained = breathWorld();
+    CHECK(sustained.dragon().skillCd[5] == 25.f);
+    auto& target = sustained.enemiesMutable()[0];
+    const float tick = mitigate(sustained.dragon().stats.atk * 1.56f, target.def);
+    target.curseStacks = kCurseMaxStacks;
+    target.curseRemaining = kCurseDuration;
+    step(sustained, 0.47f);
+    CHECK(target.hp == 100000.f);
+    step(sustained, 0.01f);
+    CHECK(target.curseStacks == 0 && target.pos.x == 550.f);
+    CHECK(std::fabs(100000.f - target.hp - 2.f * tick) < 0.01f);
+    target.curseStacks = kCurseMaxStacks;
+    target.curseRemaining = kCurseDuration;
+    step(sustained, 0.75f);
+    CHECK(target.curseStacks == kCurseMaxStacks);
+    CHECK(std::fabs(100000.f - target.hp - 5.f * tick) < 0.04f);
+    target.pos.y = 620.f;
+    step(sustained, 0.25f);
+    const float outsideHp = target.hp;
+    target.pos.y = 450.f;
+    step(sustained, 0.25f);
+    CHECK(std::fabs(outsideHp - target.hp - tick) < 0.01f);
+    step(sustained, 3.f);
+    CHECK(!sustained.dragon().breath && sustained.enemies()[1].hp == 100000.f);
+    CHECK(sustained.enemies()[2].hp < 100000.f && sustained.enemies()[2].pos.x == 650.f);
+
+    World coarse = breathWorld();
+    World fine = breathWorld();
+    step(coarse, 4.f);
+    for (int i = 0; i < 400; ++i) step(fine, 0.01f);
+    CHECK(coarse.enemies()[0].hp == fine.enemies()[0].hp && coarse.enemies()[0].pos.x == 820.f);
+    CHECK(std::fabs(100000.f - coarse.enemies()[0].hp - 10.f * tick) < 0.05f);
+    World interrupted = breathWorld();
+    step(interrupted, 0.5f);
+    const float interruptedHp = interrupted.enemies()[0].hp;
+    interrupted.updateFx(10.f, true);
+    step(interrupted, 4.f);
+    CHECK(!interrupted.dragon().breath && interrupted.enemies()[0].hp == interruptedHp);
+
+    for (int level : {7, 8, 9, 24}) {
+        World control = breathWorld();
+        auto& enemy = control.enemiesMutable()[0];
+        enemy.level = level;
+        step(control, 0.47f);
+        enemy.stun = 0.f;
+        const float before = enemy.pos.x;
+        step(control, 0.01f);
+        step(control, 0.10f);
+        if (level < 8) CHECK(enemy.pos.x == before + 12.f);
+        else if (level == 8) CHECK(enemy.pos.x == before);
+        else {
+            const float factor = level == 9 ? 0.35f : 0.75f;
+            CHECK(std::fabs(enemy.pos.x - (before - enemy.speed * 0.11f * factor)) < 0.01f);
+        }
+    }
+
+    World edge = breathWorld();
+    const float rightEdge = 543.f - edge.enemies()[0].radius;
+    edge.setBounds({0.f, 0.f, 543.f, 650.f});
+    edge.enemiesMutable()[0].pos.x = rightEdge - 0.5f;
+    step(edge, 0.5f);
+    CHECK(edge.enemies()[0].pos.x == rightEdge);
+
     World lostTarget = setup(revenant);
     enemyAt(lostTarget, {520.f, 450.f});
     enemyAt(lostTarget, {620.f, 450.f});
@@ -2756,13 +2912,6 @@ static void testRevenantCurse(const std::filesystem::path& assets) {
     enemyAt(zones, {520.f, 450.f});
     CHECK(zones.enemies().back().curseStacks == 0);
     CHECK(zones.enemies().back().curseZoneCooldown == 0.0);
-
-    World basic = setup(revenant);
-    enemyAt(basic, {470.f, 450.f});
-    basic.dragon().basicCd = 0.f;
-    step(basic, 0.25f);
-    CHECK(basic.enemies()[0].hp < 100000.f);
-    CHECK(basic.enemies()[0].curseStacks == 0);
 
     SpeciesDef otherDef = def;
     otherDef.key = "test-curse-other";
@@ -3143,7 +3292,7 @@ static void testRevenantProcession() {
     CHECK(def.skills[skill].processionShots == 3);
     CHECK(def.skills[skill].processionInterval == 0.4f);
     CHECK(def.skills[skill].processionSpeed == 620.f && def.skills[skill].processionLifetime == 2.f);
-    CHECK(def.skills[skill].power == 1.67f && def.skills[skill].radius == 110.f);
+    CHECK(def.skills[skill].power == 11.69f && def.skills[skill].radius == 110.f);
 
     World w = setup();
     const int firstId = w.enemies()[0].id, secondId = w.enemies()[1].id, thirdId = w.enemies()[2].id;
@@ -3225,6 +3374,29 @@ static void testRevenantProcession() {
     step(single, 2.5f);
     CHECK(!single.dragon().procession);
     CHECK(std::fabs((100000.f - single.enemies()[0].hp) - 3.f * oneHit) < 0.03f);
+
+    for (const auto& [kind, level] : {std::pair{defaultMelee(), 1}, std::pair{defaultMelee(), 8},
+                                     std::pair{defaultMelee(), 20}, std::pair{defaultBoss(), 8}}) {
+        World balance = setup();
+        balance.enemiesMutable().clear();
+        auto& enemy = balance.spawnEnemy(kind, level, {620.f, 300.f});
+        const float naturalHp = enemy.maxHp;
+        enemy.hp = enemy.maxHp = 100000.f;
+        enemy.stun = 100.f;
+        enemy.curseStacks = kCurseMaxStacks;
+        enemy.curseRemaining = kCurseDuration;
+        const float oldOne = mitigate(balance.dragon().stats.atk * 1.67f, enemy.def);
+        cast(balance);
+        step(balance, 2.f);
+        const float first = 100000.f - balance.enemies()[0].hp;
+        step(balance, 3.f);
+        const float total = 100000.f - balance.enemies()[0].hp;
+        std::printf("  procession %s Lv.%d: hp=%.1f old=%.1f/%.1f new=%.1f/%.1f\n",
+                    enemyDef(kind).key.c_str(), level, naturalHp, oldOne, 3.f * oldOne, first, total);
+        CHECK(std::fabs(first - 7.f * oldOne) < 0.01f);
+        CHECK(std::fabs(total - 21.f * oldOne) < 0.03f);
+        CHECK(balance.enemies()[0].curseStacks == kCurseMaxStacks && balance.dragon().souls == 0);
+    }
 
     World kills = setup();
     kills.enemiesMutable()[0].hp = 1.f;

@@ -95,6 +95,8 @@ struct Enemy {
     int patternIndex = 0;
     int curseStacks = 0;
     double curseRemaining = 0.0;
+    float breathSlowLeft = 0.f;
+    float breathMoveFactor = 1.f;
     double curseZoneCooldown = 0.0;  // 같은 적에게 닿는 모든 저주 장판이 공유한다.
 };
 
@@ -178,6 +180,8 @@ struct BreathCast {
     static constexpr float impactTime = 4 * frameSeconds;
     static constexpr float endTime = 12 * frameSeconds;
     static constexpr float duration = 16 * frameSeconds;
+    static constexpr int sustainedTicks = 10;
+    static constexpr float tickInterval = 0.25f;
     static constexpr int openMouthFrame = 3;  // Zero-based frame of the Revenant attack sheet.
     int skill = -1;
     Vec2 origin, aim;
@@ -187,7 +191,16 @@ struct BreathCast {
     bool hit = false;
     bool facingLeft = false;
 
+    bool sustained = false;
+    int ticksApplied = 0;
+    std::vector<int> curseChecked;
+
+    float tailStart() const { return sustained ? impactTime + sustainedTicks * tickInterval : endTime; }
+    float length() const { return tailStart() + (duration - endTime); }
     int frame() const {
+        if (sustained && elapsed >= impactTime && elapsed < tailStart()) return 4;
+        if (sustained && elapsed >= tailStart())
+            return 12 + std::min(3, static_cast<int>((elapsed - tailStart() + 1e-6f) / frameSeconds));
         return std::min(15, static_cast<int>((elapsed + 1e-6f) / frameSeconds));
     }
     int bodyFrame(const SkillDef& definition) const {
@@ -308,7 +321,7 @@ public:
     void regen(float pctPerSec, float dt);
 
     // 드래곤 애니메이션 상태를 진행한다. updateCombat/updateWander가 내부에서 부른다.
-    void updateDragonAnim(float dt);
+    void updateDragonAnim(float dt, bool allowForcedMotion = false);
     // 1회 재생 상태로 바꾼다(공격·피격·사망). hold 동안 다른 상태로 덮이지 않는다.
     void setDragonAnim(AnimState s, float hold);
 
@@ -381,7 +394,8 @@ private:
     std::array<int, kSkillSlots> slots_{-1, -1, -1, -1};
     void autoFillSlots();  // 빈 칸을 해제된 액티브로 채운다(이미 든 칸은 그대로)
     bool castSkill(int i, bool aiChoice);  // i = 스킬 목록 번호
-    void hitLine(Vec2 start, Vec2 end, float radius, float damage);
+    void hitLine(Vec2 start, Vec2 end, float radius, float damage, bool detonatesCurse = false);
+    void hitBreathTick(BreathCast& cast, const SkillDef& skill);
     void advanceBreath(float dt, bool combatEnded = false);
     // 2026-11-18: 타격 프레임 스킬. 타격 전에 끊기면 쿨타임의 일부를 돌려준다.
     void advanceProcession(float dt);
@@ -398,7 +412,7 @@ private:
     void updateEnemies(float dt);
     void enemyAttack(Enemy& e);
     void resolveZone(const AttackZone& z, CombatMode mode);
-    void damageEnemy(Enemy& e, float raw, bool showNumber = true);
+    void damageEnemy(Enemy& e, float raw, bool showNumber = true, bool detonatesCurse = false);
     void damageDragon(float raw);
     float dragonDodgeChance() const;
 

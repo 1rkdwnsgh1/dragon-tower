@@ -484,12 +484,6 @@ void App::tick(float dt) {
     if (drag_ != Drag::Dragon && game_.dragonHeld()) game_.setDragonHeld(false);
 
     PlayerInput in = pollKeys();
-    // v1.5: 키를 누르면 고른 모션을 푼다("다음 입력까지 유지").
-    if (game_.motionForced()) {
-        bool pressed = std::fabs(in.moveX) > 0.01f || std::fabs(in.moveY) > 0.01f || in.dodge;
-        for (bool s : in.skill) pressed = pressed || s;
-        if (pressed) game_.clearForcedMotion();
-    }
     game_.update(dt, in, hidden_, inputEnabled_);
     if (game_.consumeSaveRequest()) saveNow();
 
@@ -873,8 +867,7 @@ LRESULT App::handle(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
             float y = static_cast<float>(static_cast<short>(HIWORD(lp)));
             float lx = x / scale_, ly = y / scale_;
             SetCapture(hwnd);
-            // v1.5: 모션 목록 밖을 누르면 목록을 닫는다. 고른 모션은 "다음 입력까지" 유지되므로
-            // 드래곤을 끌어 옮기는 것(=모션 유지)을 뺀 나머지 입력에서 푼다.
+            // 모션 목록 밖을 누르면 목록만 닫는다.
             bool onMotionMenu = false;
             for (const UiButton& b : buttons_) {
                 if ((b.action == UiAction::SetMotion || b.action == UiAction::ClearMotion) &&
@@ -886,7 +879,6 @@ LRESULT App::handle(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
             if (!onMotionMenu && game_.motionMenuOpen()) game_.closeMotionMenu();
             bool dragging = startDrag(lx, ly);
             if (!dragging) {
-                if (!onMotionMenu) game_.clearForcedMotion();
                 onClick(lx, ly);
             }
             return 0;

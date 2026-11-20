@@ -1088,6 +1088,7 @@ void Renderer::drawDotZones(Graphics& g, const World& w, const Sprites& sprites,
                                x, y, h, false, 0.f, skill.fxAlpha);
                 continue;
             }
+            if (skill.fxZoneSpriteOnly) continue;
         }
         float life = std::clamp(z.remaining / std::max(0.01f, z.duration), 0.f, 1.f);
         fillCircle(g, z.pos.x, z.pos.y, z.radius, col(spColor, 0.22f * (0.4f + 0.6f * life)));
@@ -1368,9 +1369,9 @@ void Renderer::drawBreath(Graphics& g, const DragonActor& dragon, const Sprites&
     if (frame >= 4 && frame < 12) {
         key = 4 + (umbral ? frame - 4 : loopPhase(cast.elapsed - BreathCast::impactTime));
     } else if (frame == 12 && !umbral) {
-        const float elapsed = std::max(0.f, cast.elapsed - BreathCast::endTime);
+        const float elapsed = std::max(0.f, cast.elapsed - cast.tailStart());
         keyAlpha = std::min(1.f, elapsed / endBlendSeconds);
-        const float from = BreathCast::endTime - BreathCast::impactTime - loopPhaseSeconds * 0.5f;
+        const float from = cast.tailStart() - BreathCast::impactTime - loopPhaseSeconds * 0.5f;
         blendKey = 4 + loopPhase(from + elapsed);
     }
 
@@ -1624,7 +1625,17 @@ void Renderer::drawStatusCard(Graphics& g, const Game& game, const Sprites& spri
            game.panelCollapsed() ? "▴" : "▾", UiAction::TogglePanel);
     if (game.panelCollapsed()) {
         text(g, dragonName(rec) + "  Lv." + std::to_string(rec.level), r.X + 30.f, r.Y + 13.f, 14.f, kText, 0, true);
-        bar(g, RectF(r.X + 14.f, r.Y + 32.f, r.Width - 28.f, 8.f), d.hp / std::max(1.f, d.stats.maxHp), kHpC);
+        const float soulWidth = showSouls ? 75.f : 0.f;
+        bar(g, RectF(r.X + 14.f, r.Y + 32.f, r.Width - 28.f - soulWidth, 8.f),
+            d.hp / std::max(1.f, d.stats.maxHp), kHpC);
+        if (showSouls) {
+            const UltimateCharge charge = game.world().ultimateCharge();
+            const float right = r.GetRight() - 14.f;
+            if (charge.full())
+                fillRound(g, RectF(right - 64.f, r.Y + 28.f, 67.f, 14.f), 4.f, Color(65, 75, 255, 222));
+            text(g, "영혼 " + std::to_string(charge.souls) + "/" + std::to_string(kUltimateSoulCost),
+                 right, r.Y + 28.f, 11.f, charge.full() ? 0xFFA6FFF0 : 0xFF72D8CD, 2, charge.full());
+        }
         return;
     }
     float x = r.X + 14.f;

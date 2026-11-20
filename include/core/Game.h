@@ -152,7 +152,7 @@ public:
     void openMotionMenu(Vec2 at);
     void closeMotionMenu();
     void setForcedMotion(AnimState st);
-    void clearForcedMotion();     // 다음 입력이 들어오면 부른다
+    void clearForcedMotion();     // 모션 메뉴의 자동 선택
     bool motionForced() const { return world_.dragon().animForced; }
     AnimState forcedMotion() const { return world_.dragon().forcedAnim; }
 

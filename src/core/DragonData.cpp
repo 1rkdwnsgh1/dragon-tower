@@ -245,6 +245,7 @@ DragonParseResult parseDragonText(const std::string& text, const std::string& fo
             else if (key == "motion_render_scale") ok = parseFloat(val, s.motionAnim.renderScale);
             // v1.6 스킬 효과(FX) 스프라이트. 파일은 fx_<fx>.png 이다. 적지 않으면 전처럼 도형만 그린다.
             else if (key == "fx_alpha") ok = parseFloat(val, s.fxAlpha);
+            else if (key == "detonate_curse") ok = parseBool(val, s.detonatesCurse);
             else if (key == "apply_curse") ok = parseBool(val, s.appliesCurse);
             else if (key == "procession_shots") {
                 int value = 0;
@@ -269,6 +270,7 @@ DragonParseResult parseDragonText(const std::string& text, const std::string& fo
                 if (ok) s.layeredBreath = val;
             }
             else if (key == "breath_input_lock") ok = parseFloat(val, s.breathInputLock);
+            else if (key == "breath_sustained") ok = parseBool(val, s.sustainedBreath);
             else if (key == "breath_defer_hit") ok = parseBool(val, s.breathDeferHit);
             // 2026-11-18: 타격 프레임. 좌표는 "x,y" (칸 안 px)
             else if (key == "hit_frame") ok = parseInt(val, s.hitFrame) && s.hitFrame >= 0;

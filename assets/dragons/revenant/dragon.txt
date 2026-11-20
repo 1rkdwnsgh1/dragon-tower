@@ -185,6 +185,7 @@ fx_tail=0.8
 name=망령의 포효
 desc=주변 적에게 피해를 주고 잠시 기절시킨다.
 kind=Burst
+detonate_curse=yes
 ; 몸집이 커지면 판정 반경도 같이 커진다(2026-11-17). 사거리는 커지지 않는다.
 scale_with_size=yes
 level=6
@@ -199,6 +200,7 @@ extra=1.2
 name=망자의 발톱
 desc=가까이 붙은 적을 발톱으로 휘두른다.
 kind=Line
+detonate_curse=yes
 cooldown=3.5
 power=1.6
 range=140
@@ -230,6 +232,7 @@ fx_tail=0.15
 name=혼령 관통
 desc=영혼 창을 응축해 앞의 적을 꿰뚫는다.
 kind=Line
+detonate_curse=yes
 ; 몸집이 커지면 판정 반경도 같이 커진다(2026-11-17). 사거리는 커지지 않는다.
 scale_with_size=yes
 cooldown=9
@@ -258,7 +261,7 @@ fx_tail=0.20
 
 ; 2026-11-15 결정으로 망령의 침식(Zone)이 안개와 합쳐져 없어지고, 그 자리에
 ; 망계의 숨결(Line)이 들어왔다. 수치는 전부 임시값이다 — 관통(power 3.0 / cooldown 9)보다
-; 세고 느린 "강력한 일반 스킬"로 두었다(docs/characters/revenant-dragon-skills-v1.md 3절).
+; 강력한 전방 지속 피해 스킬로 조정했다(docs/characters/revenant-dragon-skills-v1.md 3절).
 ; 전용 본체 모션은 아직 없어 공용 attack 시트로 그려진다. 침식용 skill_erosion.png 는
 ; 당장 쓰이지 않지만 지우지 않고 둔다(안개에 모션을 줄 때 쓸 수 있다).
 ; 8프레임을 세 단계 합(0.18+0.45+0.25=0.88초)에 맞춰 fx_fps = 8 / 0.88 ~= 9 로 역산했다.
@@ -266,15 +269,16 @@ fx_tail=0.20
 name=망계의 숨결
 desc=턱을 열어 전방으로 거대한 영혼 격류를 쏟아낸다.
 kind=Line
+detonate_curse=yes
 ; 몸집이 커지면 판정 반경도 같이 커진다(2026-11-17). 사거리는 커지지 않는다.
 scale_with_size=yes
-cooldown=14
-power=2.6
+cooldown=25
+power=15.6
 range=700
 radius=70
 fx=breath
 layered_breath=bonestorm
-breath_input_lock=1.92
+breath_sustained=yes
 ; 효과가 본체를 덮어 드래곤이 잘 안 보였다(#79). 임시값 — 눈으로 보고 조정한다.
 fx_alpha=0.65
 fx_scale=2.2
@@ -317,7 +321,7 @@ desc=영혼 10개를 모아 수동으로 시전한다. 세 망령 군세가 적�
 kind=Procession
 level=8
 cooldown=30
-power=1.67
+power=11.69
 radius=110
 procession_shots=3
 procession_interval=0.4

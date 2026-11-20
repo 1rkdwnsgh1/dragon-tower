@@ -126,12 +126,13 @@ void World::setDragonAnim(AnimState s, float hold) {
     d.animHold = std::max(d.animHold, hold);
 }
 
-void World::updateDragonAnim(float dt) {
+void World::updateDragonAnim(float dt, bool allowForcedMotion) {
     DragonActor& d = dragon_;
     d.animTime += dt;
     d.animHold = std::max(0.f, d.animHold - dt);
-    // v1.5: 사람이 고른 모션이 있으면 그대로 둔다. 죽음만 예외다.
-    if (d.animForced && d.alive && !d.procession) {
+    if (allowForcedMotion && d.animForced && d.alive && !d.held && !confining_ && !d.landing &&
+        d.dashTime <= 0.f && d.animHold <= 0.f) {
+        d.skillMotion = -1;
         setDragonAnim(d.forcedAnim, 0.f);
         return;
     }
@@ -479,7 +480,7 @@ bool World::castSkill(int i, bool aiChoice) {
             if (aiChoice && !any) return false;
             for (Enemy& e : enemies_) {
                 if (!inSkillCircle(e, d.pos, skillRadius(s), sizeScale_)) continue;
-                damageEnemy(e, d.stats.atk * s.power);
+                damageEnemy(e, d.stats.atk * s.power, true, s.detonatesCurse);
                 if (s.extra > 0.f) e.stun = std::max(e.stun, s.extra);
             }
             addSkillFx(s, FxType::Ring, d.pos, d.pos, skillRadius(s), 0.45f, sp.color);
@@ -512,11 +513,13 @@ bool World::castSkill(int i, bool aiChoice) {
                 if (dir.length() < 0.01f) dir = facingDir;
                 dir = dir.normalized();
                 d.breath = BreathCast{i, d.pos, dir, 0.f, s.range, skillRadius(s),
-                                      d.stats.atk * s.power, s.breathInputLock};
+                                      d.stats.atk * s.power, s.breathInputLock, false, false,
+                                      s.sustainedBreath, 0, {}};
+                if (s.sustainedBreath) d.breath->inputLock = std::max(d.breath->inputLock, d.breath->length());
                 d.breath->facingLeft = std::fabs(dir.x) > 0.01f ? dir.x < 0.f : d.facing.x < 0.f;
-                if (!s.breathDeferHit) {
+                if (!s.breathDeferHit && !s.sustainedBreath) {
                     d.breath->hit = true;
-                    hitLine(d.pos, d.pos + dir * s.range, d.breath->radius, d.breath->damage);
+                    hitLine(d.pos, d.pos + dir * s.range, d.breath->radius, d.breath->damage, s.detonatesCurse);
                 }
                 if (!s.usesUmbralBreath()) {
                     if (std::fabs(dir.x) > 0.01f) d.facing = {dir.x < 0.f ? -1.f : 1.f, 0.f};
@@ -526,7 +529,7 @@ bool World::castSkill(int i, bool aiChoice) {
                 break;
             }
             Vec2 end = d.pos + dir * s.range;
-            hitLine(d.pos, end, skillRadius(s), d.stats.atk * s.power);
+            hitLine(d.pos, end, skillRadius(s), d.stats.atk * s.power, s.detonatesCurse);
             addSkillFx(s, FxType::LineBlast, d.pos, end, skillRadius(s), 0.45f, sp.color);
             break;
         }
@@ -616,7 +619,7 @@ bool World::castSkill(int i, bool aiChoice) {
     } else {
         d.skillMotion = -1;
     }
-    if (d.breath && d.breath->skill == i && !s.usesUmbralBreath()) hold = std::max(hold, BreathCast::duration);
+    if (d.breath && d.breath->skill == i && !s.usesUmbralBreath()) hold = std::max(hold, d.breath->length());
     setDragonAnim(AnimState::Attack, hold);
     addText(s.name, d.pos - Vec2{0.f, 78.f}, sp.color | 0xFF000000, 15.f, 0.9f);
     return true;
@@ -728,30 +731,61 @@ void World::advanceProcession(float dt) {
         (cast.launched == skill.processionShots && cast.waves.empty())) cancelProcession();
 }
 
-void World::hitLine(Vec2 start, Vec2 end, float radius, float damage) {
+void World::hitLine(Vec2 start, Vec2 end, float radius, float damage, bool detonatesCurse) {
     for (Enemy& e : enemies_) {
         if (e.alive && distancePointSegment(e.pos, start, end) <= radius + scaledBody(e.radius, sizeScale_))
-            damageEnemy(e, damage);
+            damageEnemy(e, damage, true, detonatesCurse);
+    }
+}
+
+void World::hitBreathTick(BreathCast& cast, const SkillDef& skill) {
+    const Vec2 end = cast.origin + cast.aim * cast.range;
+    for (Enemy& enemy : enemies_) {
+        if (!enemy.alive) continue;
+        const Vec2 offset = enemy.pos - cast.origin;
+        if (offset.x * cast.aim.x + offset.y * cast.aim.y < 0.f ||
+            distancePointSegment(enemy.pos, cast.origin, end) > cast.radius + scaledBody(enemy.radius, sizeScale_))
+            continue;
+
+        const bool firstHit = skill.detonatesCurse &&
+            std::find(cast.curseChecked.begin(), cast.curseChecked.end(), enemy.id) == cast.curseChecked.end();
+        if (firstHit) cast.curseChecked.push_back(enemy.id);
+        damageEnemy(enemy, cast.damage / BreathCast::sustainedTicks, true, firstHit);
+        if (!enemy.alive || enemyDef(enemy.kind).role == EnemyRole::Boss) continue;
+        const int gap = enemy.level - dragon_.level;
+        enemy.breathSlowLeft = BreathCast::tickInterval;
+        enemy.breathMoveFactor = gap <= 0 ? 0.f : std::min(0.75f, 0.30f + 0.05f * gap);
+        if (gap < 0 && !enemy.entering) {
+            const float push = std::min(30.f, 12.f + 3.f * (-gap - 1));
+            enemy.pos = bounds_.clampPoint(enemy.pos + cast.aim * push, enemy.radius);
+        }
     }
 }
 
 void World::advanceBreath(float dt, bool combatEnded) {
     DragonActor& d = dragon_;
     if (!d.breath) return;
-    if (!d.alive || d.held || (combatEnded && !d.breath->hit)) {
+    if (!d.alive || d.held || (combatEnded && (!d.breath->hit || d.breath->sustained))) {
         if (d.breath->inputLock > 0.f) d.animHold = 0.f;
         d.breath.reset();
         return;
     }
     BreathCast& cast = *d.breath;
+    const SkillDef& skill = speciesDef(d.species).skills[static_cast<size_t>(cast.skill)];
     cast.elapsed += dt;
     constexpr float epsilon = 1e-6f;
-    if (!cast.hit && cast.elapsed + epsilon >= BreathCast::impactTime) {
+    if (cast.sustained) {
+        while (cast.ticksApplied < BreathCast::sustainedTicks &&
+               cast.elapsed + epsilon >= BreathCast::impactTime + cast.ticksApplied * BreathCast::tickInterval) {
+            ++cast.ticksApplied;
+            hitBreathTick(cast, skill);
+        }
+    } else if (!cast.hit && cast.elapsed + epsilon >= BreathCast::impactTime) {
         cast.hit = true;
-        hitLine(cast.origin, cast.origin + cast.aim * cast.range, cast.radius, cast.damage);
+        hitLine(cast.origin, cast.origin + cast.aim * cast.range, cast.radius, cast.damage, skill.detonatesCurse);
     }
-    if (cast.elapsed + epsilon >= BreathCast::duration) {
-        const bool umbral = speciesDef(d.species).skills[static_cast<size_t>(cast.skill)].usesUmbralBreath();
+    if (cast.elapsed + epsilon >= cast.length()) {
+        const bool umbral = skill.usesUmbralBreath();
         d.breath.reset();
         if (!umbral && d.anim == AnimState::Attack) {
             const float fps = speciesDef(d.species).anims[static_cast<int>(AnimState::Attack)].fps;
@@ -788,7 +822,7 @@ void World::advanceSkillCast(float dt, bool combatEnded) {
     }
     if (!c.hitDone && c.elapsed + epsilon >= c.hitTime) {
         c.hitDone = true;
-        hitLine(d.pos, d.pos + c.aim * s.range, skillRadius(s), d.stats.atk * s.power);
+        hitLine(d.pos, d.pos + c.aim * s.range, skillRadius(s), d.stats.atk * s.power, s.detonatesCurse);
     }
     if (c.fxDone && c.hitDone && c.elapsed + epsilon >= c.lockTime) d.skillCast.reset();
 }
@@ -921,8 +955,8 @@ void World::dragonAi(float dt, bool castSkills, const PlayerInput& in, bool allo
 }
 
 void World::updateWander(float dt) {
-    wander(dt);
-    updateDragonAnim(dt);
+    if (dragon_.alive) wander(dt);
+    updateDragonAnim(dt, true);
 }
 
 const char* idleBehaviorName(IdleBehavior b) {
@@ -1055,10 +1089,24 @@ void World::wander(float dt) {
         return;
     }
 
-    d.behaviorLeft -= dt;
-    if (d.behaviorLeft <= 0.f) pickBehavior();
+    if (d.animForced && !d.landing && (d.forcedAnim == AnimState::Idle || d.forcedAnim == AnimState::Rest)) {
+        d.moving = false;
+        return;
+    }
 
-    if (d.behavior == IdleBehavior::Rest) {
+    d.behaviorLeft -= dt;
+    if (d.behaviorLeft <= 0.f && !d.landing) pickBehavior();
+    if (d.landing && distance(d.pos, d.wanderTarget) < 8.f) {
+        d.pos.y = d.groundY;
+        pickBehavior();
+        d.moving = false;
+        d.flying = false;
+        return;
+    }
+
+    const bool walkForFlyPose = d.animForced && d.forcedAnim == AnimState::Fly && d.behavior == IdleBehavior::Rest;
+
+    if (d.behavior == IdleBehavior::Rest && !walkForFlyPose) {
         d.flying = false;
         d.moving = false;
         d.restTime += dt;  // 오래 쉬면 엎드린다
@@ -1068,13 +1116,7 @@ void World::wander(float dt) {
 
     // 목적지에 닿았을 때
     if (distance(d.pos, d.wanderTarget) < 8.f) {
-        if (d.landing) {
-            d.pos.y = d.groundY;  // 지면에 정확히 맞춘다
-            pickBehavior();       // 내려왔으니 바로 다음 행동을 고른다
-            d.moving = false;
-            return;               // 착지한 프레임에는 더 움직이지 않는다
-        }
-        if (d.behavior == IdleBehavior::Walk) {
+        if (d.behavior != IdleBehavior::Fly) {
             d.wanderTarget = {randomRoamX(), d.groundY};  // 수평으로만
         } else {
             d.wanderTarget = randomRoamTarget(true);
@@ -1087,7 +1129,8 @@ void World::wander(float dt) {
     float step = d.stats.speed * mul * dt;
     if (dir.length() <= step) {
         d.pos = d.wanderTarget;
-        d.moving = false;
+        d.moving = dir.length() > 0.f;
+        if (std::fabs(dir.x) > 0.01f) d.facing = {dir.x > 0.f ? 1.f : -1.f, 0.f};
     } else {
         moveDragon(dt, dir, mul);
     }
@@ -1161,6 +1204,9 @@ void World::updateEnemies(float dt) {
     for (Enemy& e : enemies_) {
         if (!e.alive) continue;
         e.hitFlash = std::max(0.f, e.hitFlash - dt);
+        const float slowed = std::min(dt, e.breathSlowLeft);
+        const float moveTime = dt - slowed * (1.f - e.breathMoveFactor);
+        e.breathSlowLeft -= slowed;
         if (e.stun > 0.f) {
             e.stun -= dt;
             continue;
@@ -1206,7 +1252,7 @@ void World::updateEnemies(float dt) {
             enemyAttack(e);
             continue;
         }
-        if (dist > keepDist) e.pos += to.normalized() * (e.speed * dt);
+        if (dist > keepDist) e.pos += to.normalized() * (e.speed * moveTime);
         if (e.entering) {
             // 경계 안으로 완전히 들어오면 그때부터 가둔다
             if (bounds_.contains(e.pos.x, e.pos.y)) e.entering = false;
@@ -1225,19 +1271,29 @@ void World::updateEnemies(float dt) {
             float minD = a.radius + b.radius;
             if (len < minD && len > 0.01f) {
                 Vec2 push = d.normalized() * ((minD - len) * 0.5f);
-                if (enemyDef(a.kind).role != EnemyRole::Boss) a.pos -= push;
-                if (enemyDef(b.kind).role != EnemyRole::Boss) b.pos += push;
+                if (enemyDef(a.kind).role != EnemyRole::Boss && !(a.breathSlowLeft > 0.f && a.breathMoveFactor == 0.f)) a.pos -= push;
+                if (enemyDef(b.kind).role != EnemyRole::Boss && !(b.breathSlowLeft > 0.f && b.breathMoveFactor == 0.f)) b.pos += push;
             }
         }
     }
 }
 
-void World::damageEnemy(Enemy& e, float raw, bool showNumber) {
+void World::damageEnemy(Enemy& e, float raw, bool showNumber, bool detonatesCurse) {
     if (!e.alive) return;
-    float dmg = mitigate(raw, e.def);
+    const int consumed = detonatesCurse && e.curseRemaining > 0.0 ? e.curseStacks : 0;
+    const bool exploded = consumed > 0;
+    if (exploded) {
+        e.curseStacks = 0;
+        e.curseRemaining = 0.0;
+    }
+    const float dmg = mitigate(raw * (1.f + static_cast<float>(consumed) / kCurseMaxStacks), e.def);
     e.hp -= dmg;
     e.hitFlash = 0.15f;
-    if (showNumber) addText(intText(dmg), e.pos - Vec2{0.f, e.radius + 14.f}, kColorDamageToEnemy, 16.f, 0.8f);
+    if (showNumber) {
+        const std::string number = exploded ? "저주 폭발! " + intText(dmg) : intText(dmg);
+        addText(number, e.pos - Vec2{0.f, e.radius + 14.f},
+                exploded ? 0xFFE4AEFF : kColorDamageToEnemy, exploded ? 19.f : 16.f, 0.8f);
+    }
     if (e.hp <= 0.f) {
         e.alive = false;
         e.curseStacks = 0;
@@ -1383,6 +1439,8 @@ void World::updateCombat(float dt, CombatMode mode, const PlayerInput& in) {
         float step = p.speed * dt;
         if (to.length() <= step + t->radius * 0.6f) {
             if (p.appliesCurse) applyCurse(*t);
+            if (p.skill < 0 && t->curseStacks > 0 && speciesDef(d.species).key == "revenant")
+                t->curseRemaining = kCurseDuration;
             damageEnemy(*t, p.damage);
             // 2026-11-17: fx_impact 를 적은 스킬이면 그 시트를, 아니면 전처럼 도형을 띄운다.
             const SpeciesDef& psp = speciesDef(d.species);

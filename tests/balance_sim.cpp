@@ -531,7 +531,7 @@ int main(int argc, char** argv) {
     // v1.5부터 종·적은 전부 폴더에서 온다. 먼저 읽지 않으면 등록된 종이 0개다.
     std::filesystem::path assets =
 #ifdef DT_ASSETS_DIR
-        DT_ASSETS_DIR;
+        std::filesystem::u8path(DT_ASSETS_DIR);
 #else
         "assets";
 #endif

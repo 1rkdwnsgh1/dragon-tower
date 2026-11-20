@@ -294,9 +294,10 @@ void PreviewWindow::reset() {
     }
 
     duration_ = std::max(1.f, dragon.animHold);
-    const bool layered = dragon.breath && sprites_.breathBody(def, *sk).bmp;
-    if (layered) {
-        duration_ = BreathCast::duration;
+    const auto& breath = dragon.breath;
+    const bool layered = breath && sprites_.breathBody(def, *sk).bmp;
+    if (breath && layered) {
+        duration_ = breath->length();
         if (!sk->usesUmbralBreath()) duration_ += 4.f / std::max(1.f, anim.fps);
     }
     for (const Fx& effect : world_.fx()) duration_ = std::max(duration_, effect.duration - effect.t);

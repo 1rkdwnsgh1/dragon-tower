@@ -125,6 +125,7 @@ struct SkillDef {
     AnimDef fxAnim{12.f, false, 0, 1.f};
     std::string layeredBreath;  // Optional five-sheet breath package, relative to the dragon folder.
     float breathInputLock = 0.f;
+    bool sustainedBreath = false;
     bool breathDeferHit = true;  // Compatibility with Bonestorm's impact at LOOP entry.
     bool usesUmbralBreath() const { return layeredBreath == "umbral_vortex_v2"; }
     // ---- 2026-11-18: 타격 프레임 (그림자룡 가르기로 처음 검증) ----
@@ -140,6 +141,7 @@ struct SkillDef {
     float processionInterval = 0.4f;
     float processionSpeed = 620.f;
     float processionLifetime = 2.f;
+    bool detonatesCurse = false;  // 직접 명중 시 최대 중첩 소비
     bool appliesCurse = false;  // Projectile 명중 또는 Zone 피해 판정에서만 사용한다.
     bool usesTimedHit() const { return hitFrame > 0 && !motion.empty() && layeredBreath.empty() && kind == SkillKind::Line; }
 };
