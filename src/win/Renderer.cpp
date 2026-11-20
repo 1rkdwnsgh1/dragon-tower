@@ -2205,7 +2205,7 @@ void Renderer::drawTowerSelection(Graphics& g, const Game& game, const Sprites& 
     }
     text(g, dragonName(dragon), 160.f, dragonV2 ? panelAt(0.f, 60.f).Y : 510.f, 22.f, kText, 0, true);
     text(g, "Lv." + std::to_string(dragon.level), 160.f, dragonV2 ? panelAt(0.f, 110.f).Y : 549.f, 20.f, gold, 0, true);
-    const auto stat = [&](const char* name, std::string value, float y, float v2Y) {
+    const auto stat = [&](const char* name, const std::string& value, float y, float v2Y) {
         if (dragonV2) text(g, value, panelAt(612.f, 0.f).X, panelAt(0.f, v2Y).Y, 16.f, kText, 2);
         else text(g, std::string(name) + "   " + value, 333.f, y, 16.f, kText);
     };
