@@ -1,6 +1,8 @@
 // 레벨·경험치와 자동 사냥 경험치 상한
 #pragma once
 
+#include <set>
+
 #include "core/Species.h"
 
 namespace dt {
@@ -20,6 +22,7 @@ struct DragonRecord {
     std::array<int, kSkillSlots> slots{-1, -1, -1, -1};
     // 탑 100층 T2(2026-11-18). 탑 진행은 드래곤마다 따로다(설계안 1장). 새 드래곤은 1층부터.
     int floor = 1;    // 머무는 탑 층(1~kTowerTopFloor)
+    std::set<int> clearedFloors;
     int cleared = 0;  // 이 드래곤이 돌파한 가장 높은 층(재돌파 보상 판정). 0이면 아직 없음
 };
 

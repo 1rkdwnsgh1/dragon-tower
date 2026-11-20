@@ -48,6 +48,9 @@ enum class UiAction {
     StopHunt,
     SetMode,        // arg = CombatMode
     OpenTower,
+    ConfirmTowerFloor,
+    SelectTowerFloor,
+    DragTowerScroll,
     EnterTower,     // arg = CombatMode
     CloseModal,
     ConfirmAuto,
@@ -86,6 +89,7 @@ struct FrameRegions {
 class Renderer {
 public:
     bool init();
+    const Gdiplus::RectF& towerListRect() const { return towerListRect_; }
     void shutdown();
     ~Renderer();
 
@@ -100,6 +104,11 @@ public:
                           AnimState state, float time, float charScale);
 
 private:
+    Gdiplus::RectF towerListRect_{};
+    float towerArtProgress_ = 0.f;
+    float towerArtTime_ = -1.f;
+    void drawTowerSelection(Gdiplus::Graphics& g, const Game& game, const Sprites& sprites,
+                            const RenderContext& ctx, std::vector<UiButton>& out, FrameRegions* regions);
     Gdiplus::Font* font(float size, bool bold);
     void text(Gdiplus::Graphics& g, const std::string& s, float x, float y, float size, uint32_t color,
               int align = 0, bool bold = false, bool strongShadow = false);

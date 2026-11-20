@@ -1,84 +1,532 @@
-; 탑 층 구성 (v1.6, 큐 3번). 수치는 전부 임시안이다 — 이 파일만 고치면 층이 바뀐다.
-; 쓰는 법: assets/tower/README.md
-;
-; 1~3층은 내장 기본값과 **한 글자도 다르지 않다**(v1.5까지의 체감을 그대로 둔다).
-; 4층부터가 이번에 더한 것이다. 보스는 3·6·9층(3층마다)이고 10층은 탑의 주인이다.
-; 지금 있는 적 7종만 쓴다 — 없는 적을 만들지 않았다.
-;
-; 층마다 "무엇으로 어려워지는가"를 한 줄 적어 두었다. 수 → 사거리 → 2페이즈 → 속도를
-; 돌려 가며 올려서 레벨만 오르는 밋밋한 곡선이 되지 않게 한 것이다.
-; 괄호 안은 `balance_sim floors` 로 그 층만 따로(체력 100%에서) 잰 "잃은 체력"이다
-; — 망령룡 Lv8 skill, 시드 900, 40회. 4층부터 10층까지 단조 증가한다.
+; 100층 단독 도전 임시 구성. 5의 배수는 중간 보스, 10의 배수는 필드 보스 우선.
+; 권장 레벨은 해당 층의 최고 적 레벨을 표시한다.
 
 [floor.1]
 title=1층
-spacing=220
-enemy=slime x2 lv4
-; 어려워지는 것: (없음) 조작을 익히는 층 — 0.0%
+spacing=105
+enemy=slime x2 lv5
 
 [floor.2]
 title=2층
-spacing=160
-enemy=goblin x1 lv6
-enemy=ogre x1 lv6 inset=60
-enemy=goblin x1 lv6
-; 어려워지는 것: 수 — 셋이 한꺼번에 붙는다 — 0.0%
+spacing=105
+enemy=slime x2 lv10
 
 [floor.3]
-title=3층: 수호자
-boss=yes
-enemy=- x1 lv8 inset=40
-; 어려워지는 것: 2페이즈 — 절반에서 부하를 부른다 — 54.2%
-; (이 층만 곡선 위로 튀어나온다. 원래 3층 탑의 '최종 보스'였기 때문이다 — PR 본문 참고)
+title=3층
+spacing=105
+enemy=slime x2 lv15
 
 [floor.4]
 title=4층
-spacing=135
-enemy=elite-goblin x2 lv9 inset=150
-enemy=goblin x2 lv9
-; 어려워지는 것: 사거리 — 뒤에서 쏘는 둘을 처음 만난다 — 4.4%
+spacing=105
+enemy=slime x2 lv20
 
 [floor.5]
 title=5층
-spacing=130
-enemy=slime x2 lv10
-enemy=goblin x2 lv10
-; 어려워지는 것: 수 — 넷이 모두 붙어 온다 — 10.7%
+boss=yes
+spacing=145
+enemy=lich x1 lv25 inset=35
 
 [floor.6]
-title=6층: 정예 리치
-boss=yes
-spacing=150
-enemy=elite-lich x1 lv7 inset=40
-; 어려워지는 것: 2페이즈 — 빠른 부하(정예 슬라임) 셋을 부른다 — 17.7%
+title=6층
+spacing=105
+enemy=slime x2 lv30
 
 [floor.7]
 title=7층
-spacing=115
-enemy=ogre x2 lv12
-enemy=elite-goblin x2 lv12 inset=160
-; 어려워지는 것: 무게 + 사거리 — 무거운 둘을 붙잡는 동안 뒤에서 쏜다 — 20.2%
+spacing=105
+enemy=elite-goblin x3 lv35
 
 [floor.8]
 title=8층
-spacing=120
-enemy=elite-slime x3 lv12
-; 어려워지는 것: 속도 — 예고가 짧은 셋이 동시에 달려든다 — 40.0%
-; (레벨이 7층보다 한 칸 낮다. 정예 슬라임은 짧은 예고로 어려워지는 적이라
-;  레벨을 더 올리면 곡선이 10층을 넘어선다 — 수치는 임시안이다)
+spacing=105
+enemy=elite-slime x3 lv40
 
 [floor.9]
-title=9층: 정예 리치 재림
-boss=yes
-spacing=150
-enemy=elite-lich x1 lv8 inset=40
-enemy=goblin x2 lv12 inset=190
-; 어려워지는 것: 2페이즈 + 호위 — 6층과 같은 보스에 호위 둘이 붙는다 — 43.2%
+title=9층
+spacing=105
+enemy=slime x3 lv45
 
 [floor.10]
-title=10층: 탑의 주인
+title=10층
 boss=yes
-spacing=170
-enemy=lich x1 lv8 inset=40
-enemy=elite-goblin x2 lv14 inset=200
-; 어려워지는 것: 2페이즈 + 사거리 — 탑의 주인과 원거리 호위 둘. 탑에서 가장 어렵다 — 62.2%
+spacing=145
+enemy=elite-lich x1 lv50 inset=35
+enemy=elite-goblin x2 lv47 inset=130
+
+[floor.11]
+title=11층
+spacing=105
+enemy=slime x2 lv55
+
+[floor.12]
+title=12층
+spacing=105
+enemy=slime x2 lv60
+
+[floor.13]
+title=13층
+spacing=105
+enemy=slime x2 lv65
+
+[floor.14]
+title=14층
+spacing=105
+enemy=slime x2 lv70
+
+[floor.15]
+title=15층
+boss=yes
+spacing=145
+enemy=lich x1 lv75 inset=35
+
+[floor.16]
+title=16층
+spacing=105
+enemy=slime x2 lv80
+
+[floor.17]
+title=17층
+spacing=105
+enemy=slime x3 lv85
+
+[floor.18]
+title=18층
+spacing=105
+enemy=slime x3 lv90
+
+[floor.19]
+title=19층
+spacing=105
+enemy=slime x3 lv95
+
+[floor.20]
+title=20층
+boss=yes
+spacing=145
+enemy=elite-lich x1 lv100 inset=35
+enemy=elite-goblin x2 lv97 inset=130
+
+[floor.21]
+title=21층
+spacing=105
+enemy=goblin x2 lv105
+
+[floor.22]
+title=22층
+spacing=105
+enemy=goblin x2 lv110
+
+[floor.23]
+title=23층
+spacing=105
+enemy=goblin x2 lv115
+
+[floor.24]
+title=24층
+spacing=105
+enemy=goblin x2 lv120
+
+[floor.25]
+title=25층
+boss=yes
+spacing=145
+enemy=lich x1 lv125 inset=35
+
+[floor.26]
+title=26층
+spacing=105
+enemy=goblin x2 lv130
+
+[floor.27]
+title=27층
+spacing=105
+enemy=goblin x3 lv135
+
+[floor.28]
+title=28층
+spacing=105
+enemy=goblin x3 lv140
+
+[floor.29]
+title=29층
+spacing=105
+enemy=goblin x3 lv145
+
+[floor.30]
+title=30층
+boss=yes
+spacing=145
+enemy=elite-lich x1 lv150 inset=35
+enemy=elite-goblin x2 lv147 inset=130
+
+[floor.31]
+title=31층
+spacing=105
+enemy=goblin x2 lv155
+
+[floor.32]
+title=32층
+spacing=105
+enemy=goblin x2 lv160
+
+[floor.33]
+title=33층
+spacing=105
+enemy=goblin x2 lv165
+
+[floor.34]
+title=34층
+spacing=105
+enemy=goblin x2 lv170
+
+[floor.35]
+title=35층
+boss=yes
+spacing=145
+enemy=lich x1 lv175 inset=35
+
+[floor.36]
+title=36층
+spacing=105
+enemy=goblin x2 lv180
+
+[floor.37]
+title=37층
+spacing=105
+enemy=goblin x3 lv185
+
+[floor.38]
+title=38층
+spacing=105
+enemy=goblin x3 lv190
+
+[floor.39]
+title=39층
+spacing=105
+enemy=goblin x3 lv195
+
+[floor.40]
+title=40층
+boss=yes
+spacing=145
+enemy=elite-lich x1 lv200 inset=35
+enemy=elite-goblin x2 lv197 inset=130
+
+[floor.41]
+title=41층
+spacing=105
+enemy=ogre x2 lv205
+
+[floor.42]
+title=42층
+spacing=105
+enemy=ogre x2 lv210
+
+[floor.43]
+title=43층
+spacing=105
+enemy=ogre x2 lv215
+
+[floor.44]
+title=44층
+spacing=105
+enemy=ogre x2 lv220
+
+[floor.45]
+title=45층
+boss=yes
+spacing=145
+enemy=lich x1 lv225 inset=35
+
+[floor.46]
+title=46층
+spacing=105
+enemy=ogre x2 lv230
+
+[floor.47]
+title=47층
+spacing=105
+enemy=ogre x3 lv235
+
+[floor.48]
+title=48층
+spacing=105
+enemy=ogre x3 lv240
+
+[floor.49]
+title=49층
+spacing=105
+enemy=ogre x3 lv245
+
+[floor.50]
+title=50층
+boss=yes
+spacing=145
+enemy=elite-lich x1 lv250 inset=35
+enemy=elite-goblin x2 lv247 inset=130
+
+[floor.51]
+title=51층
+spacing=105
+enemy=ogre x2 lv255
+
+[floor.52]
+title=52층
+spacing=105
+enemy=ogre x2 lv260
+
+[floor.53]
+title=53층
+spacing=105
+enemy=ogre x2 lv265
+
+[floor.54]
+title=54층
+spacing=105
+enemy=ogre x2 lv270
+
+[floor.55]
+title=55층
+boss=yes
+spacing=145
+enemy=lich x1 lv275 inset=35
+
+[floor.56]
+title=56층
+spacing=105
+enemy=ogre x2 lv280
+
+[floor.57]
+title=57층
+spacing=105
+enemy=ogre x3 lv285
+
+[floor.58]
+title=58층
+spacing=105
+enemy=ogre x3 lv290
+
+[floor.59]
+title=59층
+spacing=105
+enemy=ogre x3 lv295
+
+[floor.60]
+title=60층
+boss=yes
+spacing=145
+enemy=elite-lich x1 lv300 inset=35
+enemy=elite-goblin x2 lv297 inset=130
+
+[floor.61]
+title=61층
+spacing=105
+enemy=elite-slime x2 lv305
+
+[floor.62]
+title=62층
+spacing=105
+enemy=elite-slime x2 lv310
+
+[floor.63]
+title=63층
+spacing=105
+enemy=elite-slime x2 lv315
+
+[floor.64]
+title=64층
+spacing=105
+enemy=elite-slime x2 lv320
+
+[floor.65]
+title=65층
+boss=yes
+spacing=145
+enemy=lich x1 lv325 inset=35
+
+[floor.66]
+title=66층
+spacing=105
+enemy=elite-slime x2 lv330
+
+[floor.67]
+title=67층
+spacing=105
+enemy=elite-slime x3 lv335
+
+[floor.68]
+title=68층
+spacing=105
+enemy=elite-slime x3 lv340
+
+[floor.69]
+title=69층
+spacing=105
+enemy=elite-slime x3 lv345
+
+[floor.70]
+title=70층
+boss=yes
+spacing=145
+enemy=elite-lich x1 lv350 inset=35
+enemy=elite-goblin x2 lv347 inset=130
+
+[floor.71]
+title=71층
+spacing=105
+enemy=elite-slime x2 lv355
+
+[floor.72]
+title=72층
+spacing=105
+enemy=elite-slime x2 lv360
+
+[floor.73]
+title=73층
+spacing=105
+enemy=elite-slime x2 lv365
+
+[floor.74]
+title=74층
+spacing=105
+enemy=elite-slime x2 lv370
+
+[floor.75]
+title=75층
+boss=yes
+spacing=145
+enemy=lich x1 lv375 inset=35
+
+[floor.76]
+title=76층
+spacing=105
+enemy=elite-slime x2 lv380
+
+[floor.77]
+title=77층
+spacing=105
+enemy=elite-slime x3 lv385
+
+[floor.78]
+title=78층
+spacing=105
+enemy=elite-slime x3 lv390
+
+[floor.79]
+title=79층
+spacing=105
+enemy=elite-slime x3 lv395
+
+[floor.80]
+title=80층
+boss=yes
+spacing=145
+enemy=elite-lich x1 lv400 inset=35
+enemy=elite-goblin x2 lv397 inset=130
+
+[floor.81]
+title=81층
+spacing=105
+enemy=elite-goblin x2 lv405
+
+[floor.82]
+title=82층
+spacing=105
+enemy=elite-goblin x2 lv410
+
+[floor.83]
+title=83층
+spacing=105
+enemy=elite-goblin x2 lv415
+
+[floor.84]
+title=84층
+spacing=105
+enemy=elite-goblin x2 lv420
+
+[floor.85]
+title=85층
+boss=yes
+spacing=145
+enemy=lich x1 lv425 inset=35
+
+[floor.86]
+title=86층
+spacing=105
+enemy=elite-goblin x2 lv430
+
+[floor.87]
+title=87층
+spacing=105
+enemy=elite-goblin x3 lv435
+
+[floor.88]
+title=88층
+spacing=105
+enemy=elite-goblin x3 lv440
+
+[floor.89]
+title=89층
+spacing=105
+enemy=elite-goblin x3 lv445
+
+[floor.90]
+title=90층
+boss=yes
+spacing=145
+enemy=elite-lich x1 lv450 inset=35
+enemy=elite-goblin x2 lv447 inset=130
+
+[floor.91]
+title=91층
+spacing=105
+enemy=elite-goblin x2 lv455
+
+[floor.92]
+title=92층
+spacing=105
+enemy=elite-goblin x2 lv460
+
+[floor.93]
+title=93층
+spacing=105
+enemy=elite-goblin x2 lv465
+
+[floor.94]
+title=94층
+spacing=105
+enemy=elite-goblin x2 lv470
+
+[floor.95]
+title=95층
+boss=yes
+spacing=145
+enemy=lich x1 lv475 inset=35
+
+[floor.96]
+title=96층
+spacing=105
+enemy=elite-goblin x2 lv480
+
+[floor.97]
+title=97층
+spacing=105
+enemy=elite-goblin x3 lv485
+
+[floor.98]
+title=98층
+spacing=105
+enemy=elite-goblin x3 lv490
+
+[floor.99]
+title=99층
+spacing=105
+enemy=elite-goblin x3 lv495
+
+[floor.100]
+title=100층
+boss=yes
+spacing=145
+enemy=elite-lich x1 lv500 inset=35
+enemy=elite-goblin x2 lv497 inset=130

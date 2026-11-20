@@ -15,6 +15,7 @@ enum class Screen {
     Select,        // 드래곤 선택
     Desktop,       // 바탕화면(사냥 또는 대기)
     AutoWarning,   // 자동 사냥 시작 전 경고
+    TowerSelect,
     TowerWarning,  // 탑 진입 전 경고와 모드 선택
     Tower,         // 탑 전투
     FloorClear,    // 층 돌파 후 선택
@@ -50,7 +51,16 @@ public:
     bool canChangeMode() const;
     bool setHuntMode(CombatMode m);
     void confirmAutoWarning();
+    void openTowerSelection();
+    void selectTowerFloor(int floor);
+    void scrollTowerFloors(int first);
     void openTowerWarning();
+    int selectedTowerFloor() const { return selectedTowerFloor_; }
+    int firstVisibleTowerFloor() const { return firstVisibleTowerFloor_; }
+    static constexpr int visibleTowerFloors = 5;
+    int topVisibleTowerFloor() const;
+    int towerRecommendedLevel(int floor) const;
+    bool towerFinalRewardGranted() const { return towerFinalRewardGranted_; }
     void enterTower(CombatMode m);
     void nextFloor();
     void leaveTower();
@@ -209,7 +219,7 @@ private:
     // (huntFloorFor) 구성에서 일반 적만, 마리 수만큼 넣는다. 비면 randomMelee 로 대신한다.
     std::vector<EnemyKind> huntPool() const;
     // 탑 층을 돌파했을 때 그 드래곤의 진행(floor·cleared)과 계정 첫 돌파 기록을 올린다.
-    void recordFloorCleared(int floor);
+    bool recordFloorCleared(int floor);
     void enterBattleArea();  // #47: 전투를 시작할 때 "아래쪽에만" 설정에 따라 싸울 영역을 정한다
     void spawnWave();
     int waveNumber_ = 0;  // 이번 전투에서 보낸 웨이브 수
@@ -239,6 +249,10 @@ private:
     bool pendingAutoStart_ = false;
     CombatMode towerMode_ = CombatMode::Direct;
     int towerFloor_ = 0;
+    int selectedTowerFloor_ = 1;
+    int firstVisibleTowerFloor_ = 1;
+    bool warningFromSelection_ = false;
+    bool towerFinalRewardGranted_ = false;
     // 탑 층 구성. 기본값은 내장 3층이고, App이 floors.txt를 읽었으면 갈아끼운다.
     std::vector<TowerFloorDef> floors_ = builtinTowerFloors();
     std::string deathPlace_;

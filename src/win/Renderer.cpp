@@ -464,6 +464,14 @@ void Renderer::drawOverlay(Graphics& g, const Game& game, const Sprites& sprites
     width_ = game.desktopBounds().w;
     height_ = game.desktopBounds().h;
     Screen sc = game.screen();
+    towerListRect_ = {};
+    if (sc == Screen::TowerSelect) {
+        if (outRegions) outRegions->fullScreen = false;
+        g_regions = nullptr;  // 변환된 선택창 외곽만 클릭 영역에 넣는다.
+        drawTowerSelection(g, game, sprites, ctx, out, outRegions);
+        return;
+    }
+    towerArtTime_ = -1.f;
 
     // #48: 키보드를 받는 동안 화면 전체를 살짝 어둡게 하던 표시를 없앴다. 바탕화면 전투를 시작하면
     // 키보드가 저절로 켜져서(syncKeyboard) 화면 전체에 필터를 씌운 것처럼 보였다.
@@ -1609,7 +1617,11 @@ void Renderer::drawStatusCard(Graphics& g, const Game& game, const Sprites& spri
 
     // 제목 줄은 끌기 손잡이다. 오른쪽 끝에 접기 버튼이 있다.
     // v1.4: 전에는 ▦·≡ 같은 글자를 썼는데 폰트에 없어 깨져 보였다. 한글로 적는다.
-    RectF handle(r.X, r.Y, r.Width - 126.f, 30.f);
+    const bool towerButton = game.screen() == Screen::Desktop;
+    RectF handle(r.X, r.Y, r.Width - (towerButton ? 169.f : 126.f), 30.f);
+    if (towerButton)
+        button(g, out, ctx, RectF(r.GetRight() - 166.f, r.Y + 4.f, 40.f, 22.f), "탑",
+               UiAction::OpenTower, 0, !game.waveActive());
     out.push_back({handle, UiAction::DragPanel, 0, true});
     markRegion(handle);
     button(g, out, ctx, RectF(r.GetRight() - 122.f, r.Y + 4.f, 56.f, 22.f), "관리", UiAction::OpenStable);
@@ -1624,7 +1636,11 @@ void Renderer::drawStatusCard(Graphics& g, const Game& game, const Sprites& spri
     button(g, out, ctx, RectF(r.GetRight() - 30.f, r.Y + 4.f, 26.f, 22.f),
            game.panelCollapsed() ? "▴" : "▾", UiAction::TogglePanel);
     if (game.panelCollapsed()) {
-        text(g, dragonName(rec) + "  Lv." + std::to_string(rec.level), r.X + 30.f, r.Y + 13.f, 14.f, kText, 0, true);
+        const auto clip = g.Save();
+        g.SetClip(RectF(r.X + 28.f, r.Y + 5.f, handle.Width - 27.f, 24.f), CombineModeIntersect);
+        text(g, dragonName(rec) + "  Lv." + std::to_string(rec.level), r.X + 30.f, r.Y + 8.f,
+             towerButton ? 11.f : 14.f, kText, 0, true);
+        g.Restore(clip);
         const float soulWidth = showSouls ? 75.f : 0.f;
         bar(g, RectF(r.X + 14.f, r.Y + 32.f, r.Width - 28.f - soulWidth, 8.f),
             d.hp / std::max(1.f, d.stats.maxHp), kHpC);
@@ -1966,6 +1982,239 @@ void Renderer::drawNotices(Graphics& g, const Game& game) {
     }
 }
 
+void Renderer::drawTowerSelection(Graphics& g, const Game& game, const Sprites& sprites,
+                                  const RenderContext& ctx, std::vector<UiButton>& out, FrameRegions* regions) {
+    constexpr float designW = 1120.f, designH = 620.f;
+    constexpr uint32_t gold = 0xFFFFCF82;
+    const float ratio = std::min({1.25f, width_ / (designW + 24.f), height_ / (designH + 24.f)});
+    if (ratio <= 0.f) return;
+    const float ox = (width_ - designW * ratio) * 0.5f;
+    const float oy = (height_ - designH * ratio) * 0.5f;
+    const auto placed = [&](RectF r) {
+        return RectF(ox + r.X * ratio, oy + r.Y * ratio, r.Width * ratio, r.Height * ratio);
+    };
+    const RectF window(0.f, 0.f, designW, designH);
+    const RectF list(226.f, 82.f, 555.f, 371.f);
+    const RectF track(765.f, 93.f, 14.f, 348.f);
+    towerListRect_ = placed(list);
+    if (regions) regions->add(placed(window));
+    const auto state = g.Save();
+    g.TranslateTransform(ox, oy);
+    g.ScaleTransform(ratio, ratio);
+    g.SetClip(window, CombineModeIntersect);
+    const RenderContext local{ctx.inputEnabled, ctx.time, (ctx.mouseX - ox) / ratio,
+                              (ctx.mouseY - oy) / ratio, ctx.scale * ratio};
+    std::vector<UiButton> controls;
+    const auto box = [&](const RectF& r, uint32_t fill, uint32_t outline) {
+        fillRound(g, r, 9.f, col(fill));
+        strokeRound(g, r, 9.f, col(outline), 1.4f);
+    };
+    const auto art = [&](const std::string& key, const RectF& r) {
+        const UiPiece image = sprites.ui(game.uiSkin(), key);
+        if (!image.valid()) return false;
+        const float w = static_cast<float>(image.bmp->GetWidth()), h = static_cast<float>(image.bmp->GetHeight());
+        if (w <= 0.f || h <= 0.f) return false;
+        const float scale = std::max(r.Width / w, r.Height / h);
+        const float sw = r.Width / scale, sh = r.Height / scale;
+        g.DrawImage(image.bmp, r, (w - sw) * 0.5f, (h - sh) * 0.5f, sw, sh, UnitPixel);
+        return true;
+    };
+    const auto kindLabel = [](FloorType kind) -> const char* {
+        if (kind == FloorType::FieldBoss) return "필드 보스";
+        if (kind == FloorType::MidBoss) return "중간 보스";
+        return "일반";
+    };
+    const auto label = [](int floor) {
+        const auto n = std::to_string(floor);
+        return std::string(n.size() < 3 ? 3 - n.size() : 0, '0') + n + "층";
+    };
+    const auto highlight = [](FloorType kind) -> uint32_t {
+        if (kind == FloorType::FieldBoss) return 0xFFFFAD7C;
+        if (kind == FloorType::MidBoss) return 0xFFFF9BA8;
+        return 0xFFB5C8FF;
+    };
+    const auto enemyKind = [](const TowerSpawn& spawn, bool boss) {
+        EnemyKind kind{};
+        return enemyFromKey(spawn.key, kind) ? kind : boss ? defaultBoss() : defaultMelee();
+    };
+    const auto portrait = [&](const TowerFloorDef& floor, RectF area, uint32_t color) {
+        const auto clip = g.Save();
+        g.SetClip(area, CombineModeIntersect);
+        if (!floor.spawns.empty()) {
+            const auto& enemy = enemyDef(enemyKind(floor.spawns.front(), floor.boss));
+            const auto sprite = sprites.sheet("enemy:" + enemy.key, AnimState::Idle);
+            if (sprite.bmp) {
+                drawSheetFrame(g, sprite, 0, area.X + area.Width * 0.56f, area.Y + area.Height * 0.50f,
+                               area.Height * (area.Height < 100.f ? 1.75f : 1.18f), enemy.artFacesRight, 0.f, 1.f);
+            } else {
+                fillCircle(g, area.X + area.Width * 0.56f, area.Y + area.Height * 0.55f,
+                           area.Height * 0.23f, col(color, 0.55f));
+            }
+        }
+        g.Restore(clip);
+    };
+
+    box(window, 0xFF100D20, 0xFF715B90);
+    box(RectF(12.f, 12.f, 1096.f, 58.f), 0xFF221731, 0xFF9271A9);
+    text(g, "탑 도전", 33.f, 19.f, 31.f, gold, 0, true);
+    const RectF close(1030.f, 24.f, 63.f, 34.f);
+    const bool closeHover = close.Contains(PointF(local.mouseX, local.mouseY));
+    box(close, closeHover ? 0xFF573860 : 0xFF32213D, 0xFF906AA9);
+    text(g, "닫기", 1061.5f, 31.f, 15.f, kText, 1, true);
+    controls.push_back({close, UiAction::CloseModal, 0, true});
+
+    const RectF tower(12.f, 82.f, 199.f, 371.f);
+    box(tower, 0xFF211936, 0xFF6D517B);
+    const int first = game.firstVisibleTowerFloor();
+    const int scrollRange = std::max(0, game.towerFloorCount() - Game::visibleTowerFloors);
+    const float target = scrollRange > 0 ? static_cast<float>(first - 1) / scrollRange : 0.f;
+    if (towerArtTime_ < 0.f || ctx.time < towerArtTime_) {
+        towerArtProgress_ = target;
+    } else {
+        const float elapsed = std::min(0.1f, ctx.time - towerArtTime_);
+        towerArtProgress_ += (target - towerArtProgress_) * (1.f - std::exp(-12.f * elapsed));
+    }
+    towerArtTime_ = ctx.time;
+
+    // 목록을 올라가면 같은 창을 통해 석탑의 더 높은 부분을 본다.
+    constexpr float travel = 140.f;
+    const float shift = travel * (towerArtProgress_ - 1.f);
+    const auto towerClip = g.Save();
+    g.SetClip(tower, CombineModeIntersect);
+    const RectF tallArt(tower.X, tower.Y + shift, tower.Width, tower.Height + travel);
+    if (!art("tower_illustration", tallArt)) {
+        fillCircle(g, 66.f, 149.f + shift * 0.35f, 36.f, Color(105, 168, 128, 233));
+        for (int tier = 0; tier < 10; ++tier) {
+            const float width = std::min(174.f, 45.f + tier * 12.f);
+            const float y = 119.f + tier * 48.f + shift;
+            box(RectF(103.f - width * 0.5f, y, width, 55.f), 0xFF322543, 0xFF674E7B);
+            box(RectF(98.f, y + 11.f, 10.f, 23.f), 0xFFB16F56, 0xFFE7A765);
+        }
+    }
+    g.Restore(towerClip);
+    strokeRound(g, tower, 9.f, col(0xFF6D517B), 1.4f);
+    Pen route(col(0xFFBF936C), 2.f);
+    g.DrawLine(&route, 162.f, 119.f, 162.f, 411.f);
+    const auto& dragon = game.dragonRecord();
+    const int selected = game.selectedTowerFloor();
+    const int topFloor = game.topVisibleTowerFloor();
+    for (int floor = topFloor; floor >= first; --floor) {
+        const int row = topFloor - floor;
+        const auto kind = floorType(floor);
+        const auto& def = game.towerFloorDef(floor);
+        const bool active = floor == selected;
+        const float y = 88.f + row * 72.f;
+        const RectF card(226.f, y, 525.f, 64.f);
+        const uint32_t accent = highlight(kind);
+        box(card, kind == FloorType::Normal ? 0xFF242943 : 0xFF3B2238, accent);
+        const char* key = kind == FloorType::FieldBoss ? "tower_card_field" :
+                          kind == FloorType::MidBoss ? "tower_card_mid" : "tower_card_normal";
+        if (!art(key, RectF(card.X + 2.f, y + 2.f, card.Width - 4.f, card.Height - 4.f)))
+            portrait(def, RectF(card.X + 104.f, y + 2.f, 281.f, 60.f), accent);
+        if (active || card.Contains(PointF(local.mouseX, local.mouseY))) {
+            strokeRound(g, card, 8.f, col(gold), active ? 3.f : 1.5f);
+            if (active) {
+                strokeRound(g, RectF(card.X - 2.f, y - 2.f, card.Width + 4.f, card.Height + 4.f), 9.f,
+                            Color(85, 255, 176, 75), 4.f);
+                art("tower_selection", card);
+            }
+        }
+        text(g, label(floor), 243.f, y + 6.f, 22.f, active ? gold : kText, 0, true, true);
+        text(g, "권장 Lv." + std::to_string(game.towerRecommendedLevel(floor)), 244.f, y + 35.f, 14.f, kText, 0, false, true);
+        text(g, kindLabel(kind), 730.f, y + 9.f, 16.f, accent, 2, true, true);
+        if (dragon.clearedFloors.count(floor)) text(g, "돌파 완료", 730.f, y + 35.f, 13.f, gold, 2, false, true);
+        controls.push_back({card, UiAction::SelectTowerFloor, floor, true});
+        fillCircle(g, 162.f, y + 32.f, active ? 9.f : 6.f, col(active ? gold : accent));
+        if (active) g.DrawLine(&route, 171.f, y + 32.f, 215.f, y + 32.f);
+    }
+    box(track, 0xFF211B33, 0xFF6D517B);
+    if (scrollRange > 0) {
+        constexpr float thumb = 42.f;
+        const float top = track.Y + (track.Height - thumb) * (scrollRange - (first - 1)) / scrollRange;
+        fillRound(g, RectF(track.X + 2.f, top, track.Width - 4.f, thumb), 4.f, col(gold));
+        controls.push_back({track, UiAction::DragTowerScroll, static_cast<int>(thumb * ratio * 100.f), true});
+    }
+
+    const auto& def = game.towerFloorDef(selected);
+    const auto kind = floorType(selected);
+    const uint32_t accent = highlight(kind);
+    box(RectF(792.f, 82.f, 316.f, 371.f), 0xFF241A32, accent);
+    text(g, label(selected) + " · " + kindLabel(kind), 950.f, 94.f, 22.f, gold, 1, true);
+    const RectF detailArt(804.f, 128.f, 292.f, 155.f);
+    box(detailArt, kind == FloorType::Normal ? 0xFF202840 : 0xFF51273E, accent);
+    if (!art("tower_floor_" + std::to_string(selected), detailArt)) portrait(def, detailArt, accent);
+    text(g, "권장 Lv." + std::to_string(game.towerRecommendedLevel(selected)), 807.f, 293.f, 17.f, accent, 0, true);
+    float ey = 320.f;
+    int spawnExp = 0;
+    for (const auto& spawn : def.spawns) {
+        const auto key = enemyKind(spawn, def.boss);
+        spawnExp += spawn.count * enemyStatsFor(key, spawn.level).expReward;
+        if (ey > 361.f) continue;
+        const auto& enemy = enemyDef(key);
+        text(g, enemy.name + " ×" + std::to_string(spawn.count) + "  Lv." + std::to_string(spawn.level),
+             807.f, ey, 13.f, kText);
+        ey += 18.f;
+    }
+    text(g, dragon.clearedFloors.count(selected) ? "이 드래곤 · 돌파 완료" : "이 드래곤 · 미격파", 807.f, 380.f, 14.f, gold);
+    const bool reward = selected == game.towerFloorCount() && !game.save().firstClearFloors.count(selected);
+    const std::string xp = "처치 EXP " + std::to_string(spawnExp);
+    text(g, reward ? xp + " + 첫 돌파 " + std::to_string(cfg::kTowerClearExp) : xp,
+         807.f, 404.f, 14.f, kText);
+    text(g, game.save().firstClearFloors.count(selected) ? "계정 첫 돌파 기록 있음" : "계정 첫 돌파 기록 없음",
+         807.f, 427.f, 12.f, kSub);
+
+    box(RectF(12.f, 468.f, 1096.f, 140.f), 0xFF231831, 0xFF9F7591);
+    const auto& actor = game.world().dragon();
+    const auto& species = speciesDef(dragon.species);
+    const RectF dragonArt(23.f, 479.f, 130.f, 118.f);
+    if (!art("tower_portrait_" + species.key, dragonArt)) {
+        const auto sheet = sprites.sheet(species.key, AnimState::Idle);
+        if (sheet.bmp) drawSheetFrame(g, sheet, 0, 87.f, 538.f, 113.f, false, 0.f, 1.f);
+        else fillCircle(g, 87.f, 538.f, 24.f, col(species.color));
+    }
+    text(g, "출전 드래곤", 160.f, 482.f, 14.f, gold, 0, true);
+    text(g, dragonName(dragon), 160.f, 510.f, 22.f, kText, 0, true);
+    text(g, "Lv." + std::to_string(dragon.level), 160.f, 549.f, 20.f, gold, 0, true);
+    text(g, "HP   " + fmtInt(actor.hp) + " / " + fmtInt(actor.stats.maxHp), 333.f, 492.f, 16.f, kText);
+    text(g, "공격력   " + fmtInt(actor.stats.atk), 333.f, 524.f, 16.f, kText);
+    text(g, "방어력   " + fmtInt(actor.stats.def), 333.f, 556.f, 16.f, kText);
+    text(g, "장착 스킬", 537.f, 481.f, 14.f, gold, 0, true);
+    for (int i = 0; i < kSkillSlots; ++i) {
+        const RectF slot(537.f + i * 63.f, 510.f, 54.f, 51.f);
+        box(slot, 0xFF352748, 0xFF906AA9);
+        const int index = dragon.slots[i];
+        if (index < 0 || index >= static_cast<int>(species.skills.size())) {
+            text(g, "—", slot.X + 27.f, slot.Y + 12.f, 15.f, kSub, 1);
+            continue;
+        }
+        const auto& skill = species.skills[index];
+        if (!art("tower_skill_" + species.key + "_" + std::to_string(index + 1), slot)) {
+            const auto sheet = sprites.fxSheet(species.key, skill.fx);
+            if (sheet.bmp) {
+                const auto clip = g.Save();
+                g.SetClip(slot, CombineModeIntersect);
+                drawSheetFrame(g, sheet, std::max(0, sheet.frames / 2), slot.X + 27.f, slot.Y + 25.f, 47.f,
+                               false, 0.f, 1.f);
+                g.Restore(clip);
+            } else {
+                text(g, "스킬", slot.X + 27.f, slot.Y + 20.f, 12.f, kSub, 1);
+            }
+        }
+        text(g, std::to_string(i + 1), slot.X + 5.f, slot.Y + 2.f, 12.f, gold, 0, true, true);
+        if (slot.Contains(PointF(local.mouseX, local.mouseY)))
+            text(g, skill.name, 537.f, 570.f, 13.f, kText);
+    }
+    const RectF enter(826.f, 507.f, 254.f, 62.f);
+    box(enter, 0xFF633187, gold);
+    art("tower_enter", enter);
+    if (enter.Contains(PointF(local.mouseX, local.mouseY))) strokeRound(g, enter, 10.f, col(gold), 3.f);
+    text(g, "탑 입장", 953.f, 522.f, 27.f, kText, 1, true);
+    controls.push_back({enter, UiAction::ConfirmTowerFloor, 0, true});
+    g.Restore(state);
+    for (const auto& control : controls)
+        out.push_back({placed(control.rect), control.action, control.arg, control.enabled});
+}
+
 void Renderer::drawTowerHud(Graphics& g, const Game& game) {
     RectF a(game.arena().x, game.arena().y, game.arena().w, game.arena().h);
     text(g, "탑 " + std::to_string(game.towerFloor()) + "층 / " + std::to_string(game.towerFloorCount()), a.X + 16.f,
@@ -1992,6 +2241,7 @@ void Renderer::drawModal(Graphics& g, const Game& game, const Sprites& sprites, 
     const DragonRecord& rec = game.dragonRecord();
 
     switch (sc) {
+        case Screen::TowerSelect: break;  // drawOverlay에서 전용 레이아웃으로 처리
         case Screen::Select:
             drawSelect(g, game, sprites, ctx, out);
             break;
@@ -2026,9 +2276,11 @@ void Renderer::drawModal(Graphics& g, const Game& game, const Sprites& sprites, 
             RectF r(cx - 310.f, cy - 200.f, 620.f, 400.f);
             panel(g, r);
             text(g, "탑에 도전할까요?", r.X + 24.f, r.Y + 20.f, 20.f, kText, 0, true);
-            text(g, "3층 구성 · 마지막 층에는 탑의 수호자가 기다립니다.", r.X + 24.f, r.Y + 56.f, 14.f, kSub);
-            bool low = rec.level < cfg::kTowerRecommendedLevel;
-            text(g, "현재 Lv." + std::to_string(rec.level) + "  ·  권장 Lv." + std::to_string(cfg::kTowerRecommendedLevel),
+            const int floor = game.selectedTowerFloor();
+            const int recommended = game.towerRecommendedLevel(floor);
+            text(g, std::to_string(floor) + "층 · 단독 도전", r.X + 24.f, r.Y + 56.f, 14.f, kSub);
+            bool low = rec.level < recommended;
+            text(g, "현재 Lv." + std::to_string(rec.level) + "  ·  권장 Lv." + std::to_string(recommended),
                  r.X + 24.f, r.Y + 84.f, 16.f, low ? kWarnC : kHpC, 0, true);
             RectF danger(r.X + 24.f, r.Y + 116.f, r.Width - 48.f, 92.f);
             fillRound(g, danger, 8.f, Color(120, 120, 20, 24));
@@ -2074,7 +2326,10 @@ void Renderer::drawModal(Graphics& g, const Game& game, const Sprites& sprites, 
             text(g, "탑 정복!", r.X + r.Width * 0.5f, r.Y + 26.f, 28.f, 0xFFFFD86B, 1, true);
             text(g, dragonName(rec) + "이(가) 탑의 수호자를 쓰러뜨렸습니다.", r.X + r.Width * 0.5f, r.Y + 76.f, 15.f, kText,
                  1);
-            text(g, "보상: +" + std::to_string(cfg::kTowerClearExp) + " EXP  ·  정복 횟수 " +
+            const std::string reward = game.towerFinalRewardGranted()
+                ? "첫 돌파 보상 +" + std::to_string(cfg::kTowerClearExp) + " EXP"
+                : "마지막 층 돌파";
+            text(g, reward + "  ·  정복 횟수 " +
                         std::to_string(game.save().towerClears),
                  r.X + r.Width * 0.5f, r.Y + 106.f, 15.f, kExpC, 1, true);
             button(g, out, ctx, RectF(r.X + r.Width * 0.5f - 120.f, r.GetBottom() - 70.f, 240.f, 46.f), "바탕화면으로",

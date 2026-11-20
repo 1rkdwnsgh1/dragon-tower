@@ -72,6 +72,25 @@ std::vector<std::string> split(const std::string& s, char sep) {
     out.push_back(cur);
     return out;
 }
+std::set<int> readFloors(const std::string& value) {
+    std::set<int> floors;
+    for (const auto& part : split(value, ',')) {
+        const int floor = toInt(part, 0);
+        if (floorType(floor) != FloorType::Invalid) floors.insert(floor);
+    }
+    return floors;
+}
+
+void writeFloors(std::ostream& out, const std::string& key, const std::set<int>& floors) {
+    out << key << '=';
+    const char* separator = "";
+    for (int floor : floors) {
+        out << separator << floor;
+        separator = ",";
+    }
+    out << "\n";
+}
+
 
 }  // namespace
 
@@ -124,6 +143,8 @@ std::string serializeSave(const SaveData& s) {
     o << "towerClears=" << s.towerClears << "\n";
     // 탑 100층 T2(2026-11-18). 모르는 키는 옛 빌드가 무시하므로 호환이 깨지지 않는다.
     o << "credits=" << s.credits << "\n";
+    o << "tower.exact=1\n";
+    writeFloors(o, "tower.firstClearFloors", s.firstClearFloors);
     o << "tower.firstClear=" << s.firstClear << "\n";
     o << "tower.fieldBossCleared=";
     {
@@ -147,6 +168,7 @@ std::string serializeSave(const SaveData& s) {
         o << "dragon.hp=" << d.hp << "\n";
         o << "dragon.slots=" << slotsText(d.slots) << "\n";
         o << "dragon.floor=" << d.floor << "\n";
+        writeFloors(o, "dragon.clearedFloors", d.clearedFloors);
         o << "dragon.cleared=" << d.cleared << "\n";
     }
     // v1.3 보유 목록. 위의 dragon.* 는 지금 플레이 중인 개체를 가리키며 그대로 둔다
@@ -165,6 +187,7 @@ std::string serializeSave(const SaveData& s) {
         o << pre << "hp=" << d.hp << "\n";
         o << pre << "slots=" << slotsText(d.slots) << "\n";
         o << pre << "floor=" << d.floor << "\n";
+        writeFloors(o, pre + "clearedFloors", d.clearedFloors);
         o << pre << "cleared=" << d.cleared << "\n";
     }
     o << "codex.species=";
@@ -196,6 +219,7 @@ std::string serializeSave(const SaveData& s) {
 bool deserializeSave(const std::string& text, SaveData& out) {
     SaveData s;
     bool sawVersion = false;
+    bool exactTower = false;
     bool dragonPresent = false;
     std::istringstream in(text);
     std::string line;
@@ -254,6 +278,7 @@ bool deserializeSave(const std::string& text, SaveData& out) {
                     else if (f == "hp") d.hp = toFloat(val, -1.f);
                     else if (f == "slots") parseSlots(val, d.slots);
                     else if (f == "floor") d.floor = std::clamp(toInt(val, 1), 1, cfg::kTowerTopFloor);
+                    else if (f == "clearedFloors") d.clearedFloors = readFloors(val);
                     else if (f == "cleared") d.cleared = std::clamp(toInt(val, 0), 0, cfg::kTowerTopFloor);
                 }
             }
@@ -271,6 +296,9 @@ bool deserializeSave(const std::string& text, SaveData& out) {
         else if (key == "dragon.hp") s.dragon.hp = toFloat(val, -1.f);
         else if (key == "dragon.slots") parseSlots(val, s.dragon.slots);
         else if (key == "dragon.floor") s.dragon.floor = std::clamp(toInt(val, 1), 1, cfg::kTowerTopFloor);
+        else if (key == "dragon.clearedFloors") s.dragon.clearedFloors = readFloors(val);
+        else if (key == "tower.exact") exactTower = val == "1";
+        else if (key == "tower.firstClearFloors") s.firstClearFloors = readFloors(val);
         else if (key == "dragon.cleared") s.dragon.cleared = std::clamp(toInt(val, 0), 0, cfg::kTowerTopFloor);
         else if (key == "credits") s.credits = std::clamp(toInt64(val, 0), 0LL, cfg::kMaxCredits);
         else if (key == "tower.firstClear") s.firstClear = std::clamp(toInt(val, 0), 0, cfg::kTowerTopFloor);
@@ -310,6 +338,16 @@ bool deserializeSave(const std::string& text, SaveData& out) {
         }
     }
     if (!sawVersion) return false;
+    if (!exactTower) {
+        // 기존 순차 탑은 실제 10층까지였으므로 그 구간만 이관한다.
+        const auto migrate = [](int highest, std::set<int>& records) {
+            for (int f = 1; f <= std::min(highest, 10); ++f) records.insert(f);
+        };
+        migrate(s.dragon.cleared, s.dragon.clearedFloors);
+        for (auto& d : s.stable) migrate(d.cleared, d.clearedFloors);
+        migrate(s.firstClear, s.firstClearFloors);
+        if (s.towerClears > 0) s.firstClearFloors.insert(10);
+    }
     // 죽은 개체는 현재 개체로 불러오지 않는다(재실행으로 부활 방지).
     s.hasDragon = dragonPresent && s.dragon.alive;
 

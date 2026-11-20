@@ -422,6 +422,90 @@ static void testTowerFlow() {
     CHECK(g.combatPaused());
 }
 
+static void testTowerSelection(const std::filesystem::path& assets) {
+    const auto tower = loadTowerFloors(assets / "tower");
+    CHECK(tower.found && tower.warnings.empty() && tower.floors.size() == 100);
+    if (tower.floors.size() != 100) return;
+    for (int floor = 1; floor <= 100; ++floor) {
+        const auto& def = tower.floors[floor - 1];
+        CHECK(def.boss == (floor % 5 == 0));
+        CHECK(!def.spawns.empty());
+    }
+
+    SaveData save;
+    save.hasDragon = true;
+    save.dragon.level = 128;
+    save.dragon.cleared = 24;
+    save.dragon.clearedFloors.insert(24);
+    save.dragon.id = 1;
+    DragonRecord alternate = save.dragon;
+    alternate.id = 2;
+    alternate.level = 35;
+    alternate.cleared = 2;
+    alternate.clearedFloors = {2};
+    save.stable = {save.dragon, alternate};
+    save.activeIndex = 0;
+    Game g;
+    g.setTowerFloors(tower.floors);
+    g.init(save, kDesk);
+    g.openTowerSelection();
+    CHECK(g.selectedTowerFloor() == 25 && g.towerRecommendedLevel(25) == 125);
+    CHECK(g.firstVisibleTowerFloor() <= 25 && g.firstVisibleTowerFloor() + Game::visibleTowerFloors > 25);
+    g.scrollTowerFloors(200);
+    CHECK(g.firstVisibleTowerFloor() == 96 && g.topVisibleTowerFloor() == 100);
+    g.scrollTowerFloors(-200);
+    CHECK(g.firstVisibleTowerFloor() == 1 && g.topVisibleTowerFloor() == 5);
+    g.selectTowerFloor(10);
+    g.openTowerWarning();
+    g.closeModal();
+    CHECK(g.screen() == Screen::TowerSelect && g.selectedTowerFloor() == 10);
+    g.openTowerWarning();
+    g.enterTower(CombatMode::Auto);
+    CHECK(g.screen() == Screen::TowerWarning);
+    g.enterTower(CombatMode::Direct);
+    CHECK(g.screen() == Screen::Tower && g.towerFloor() == 10);
+    CHECK(!g.world().enemies().empty());
+
+    const auto selectAndClear = [&](int floor) {
+        g.openTowerSelection();
+        g.selectTowerFloor(floor);
+        g.openTowerWarning();
+        g.enterTower(CombatMode::Direct);
+        CHECK(g.towerFloor() == floor);
+        g.world().clearEnemies(false);
+        g.update(0.f, {}, false, true);
+    };
+    g.world().clearEnemies(false);
+    g.update(0.f, {}, false, true);
+    g.leaveTower();
+    selectAndClear(50);
+    CHECK(g.dragonRecord().clearedFloors.count(50) && !g.dragonRecord().clearedFloors.count(49));
+    CHECK(g.save().firstClearFloors.count(50) && !g.save().firstClearFloors.count(49));
+    CHECK(g.save().fieldBossCleared.empty());
+    g.leaveTower();
+    selectAndClear(100);
+    CHECK(g.screen() == Screen::TowerVictory && g.towerFinalRewardGranted());
+    g.leaveTower();
+    g.openTowerSelection();
+    CHECK(g.selectedTowerFloor() == 100);
+    g.closeModal();
+    selectAndClear(100);
+    CHECK(g.screen() == Screen::TowerVictory && !g.towerFinalRewardGranted());
+
+    SaveData loaded;
+    const bool saved = deserializeSave(serializeSave(g.snapshotForSave()), loaded);
+    CHECK(saved && loaded.dragon.clearedFloors.count(50) && !loaded.dragon.clearedFloors.count(49));
+    CHECK(loaded.firstClearFloors.count(100) && !loaded.firstClearFloors.count(99));
+    SaveData legacy;
+    CHECK(deserializeSave("version=1\nhasDragon=1\ndragon.cleared=10\ntower.firstClear=10\n", legacy));
+    CHECK(legacy.firstClearFloors.count(10) && !legacy.firstClearFloors.count(11));
+    g.leaveTower();
+    CHECK(g.switchDragon(1));
+    g.openTowerSelection();
+    CHECK(g.selectedTowerFloor() == 3 && g.world().dragon().level == 35);
+    CHECK(g.dragonRecord().clearedFloors.count(2) && !g.dragonRecord().clearedFloors.count(50));
+}
+
 // v1.6: 탑 층을 데이터로 뺐다. 파일이 없으면 v1.5와 똑같이 동작해야 한다 — 그것을 여기서 고정한다.
 // assets/dragons 폴더가 없으면 어떻게 되는가.
 //
@@ -3585,6 +3669,7 @@ int main(int argc, char** argv) {
     if (argc > 1) {
         const std::filesystem::path assets(argv[1]);
         testEliteVariantsSpawn(assets);
+        testTowerSelection(assets);
         testRevenantCurse(assets);
     }
     else std::printf("[elite variants spawn] assets 경로 인자가 없어 건너뜀\n");
