@@ -1,0 +1,174 @@
+{
+  "sheet": "DEATH_PROCESSION_IMPACT_V1.png",
+  "frame_size": [
+    512,
+    512
+  ],
+  "columns": 4,
+  "rows": 3,
+  "count": 12,
+  "anchor": [
+    256,
+    256
+  ],
+  "recommended_ms": 70,
+  "loop": false,
+  "frames": [
+    {
+      "frame": 1,
+      "bounds": [
+        74,
+        70,
+        442,
+        442
+      ],
+      "alpha_range": [
+        0,
+        252
+      ]
+    },
+    {
+      "frame": 2,
+      "bounds": [
+        70,
+        82,
+        443,
+        443
+      ],
+      "alpha_range": [
+        0,
+        253
+      ]
+    },
+    {
+      "frame": 3,
+      "bounds": [
+        70,
+        70,
+        443,
+        443
+      ],
+      "alpha_range": [
+        0,
+        250
+      ]
+    },
+    {
+      "frame": 4,
+      "bounds": [
+        70,
+        70,
+        441,
+        443
+      ],
+      "alpha_range": [
+        0,
+        245
+      ]
+    },
+    {
+      "frame": 5,
+      "bounds": [
+        70,
+        70,
+        447,
+        443
+      ],
+      "alpha_range": [
+        0,
+        253
+      ]
+    },
+    {
+      "frame": 6,
+      "bounds": [
+        70,
+        70,
+        443,
+        443
+      ],
+      "alpha_range": [
+        0,
+        252
+      ]
+    },
+    {
+      "frame": 7,
+      "bounds": [
+        70,
+        70,
+        442,
+        442
+      ],
+      "alpha_range": [
+        0,
+        251
+      ]
+    },
+    {
+      "frame": 8,
+      "bounds": [
+        70,
+        58,
+        442,
+        438
+      ],
+      "alpha_range": [
+        0,
+        240
+      ]
+    },
+    {
+      "frame": 9,
+      "bounds": [
+        71,
+        70,
+        442,
+        442
+      ],
+      "alpha_range": [
+        0,
+        231
+      ]
+    },
+    {
+      "frame": 10,
+      "bounds": [
+        71,
+        71,
+        442,
+        443
+      ],
+      "alpha_range": [
+        0,
+        214
+      ]
+    },
+    {
+      "frame": 11,
+      "bounds": [
+        74,
+        71,
+        454,
+        442
+      ],
+      "alpha_range": [
+        0,
+        210
+      ]
+    },
+    {
+      "frame": 12,
+      "bounds": [
+        71,
+        81,
+        440,
+        429
+      ],
+      "alpha_range": [
+        0,
+        193
+      ]
+    }
+  ]
+}

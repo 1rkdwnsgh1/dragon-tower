@@ -1168,7 +1168,7 @@ void Renderer::drawProcession(Graphics& g, const DragonActor& dragon, const Spri
     for (const ProcessionWave& wave : cast.waves) {
         if (wave.impacted) {
             if (inFront)
-                drawLayer("procession_final_impact", wave.age, 0.44f, wave.pos, body * 1.65f, 0.78f, wave.facingLeft);
+                drawLayer("procession_final_impact", wave.age, 0.44f, wave.pos, body * 1.65f, 0.68f, wave.facingLeft);
             else
                 drawLayer("procession_aftermath", wave.age, ProcessionCast::aftermath,
                           wave.pos, body * 1.55f, 0.52f, wave.facingLeft);

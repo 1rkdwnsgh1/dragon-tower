@@ -301,6 +301,8 @@ void PreviewWindow::reset() {
     }
 
     duration_ = std::max(1.f, dragon.animHold);
+    if (const auto& procession = dragon.procession; procession)
+        duration_ = ProcessionCast::maxDuration(*sk, procession->flightLimit);
     const auto& breath = dragon.breath;
     const bool layered = breath && sprites_.breathBody(def, *sk).bmp;
     if (breath && layered) {
