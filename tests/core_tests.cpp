@@ -866,6 +866,42 @@ static void testDragonTextParse() {
     CHECK(r.def.skills[0].name == fire.skills[0].name);  // 건드리지 않은 스킬은 그대로
 }
 
+static void testImpactFpsAndCodex() {
+    const std::string skill = "[dragon]\nname=FPS\n[skill.1]\nkind=Projectile\nfx=bolt\nfx_fps=14\n";
+    for (const auto& [setting, expected] : std::vector<std::pair<std::string, float>>{
+             {"", 14.f}, {"0", 14.f}, {"14", 14.f}, {"24", 24.f}, {"1", 1.f}, {"60", 60.f},
+             {"-1", 14.f}, {"61", 14.f}, {"abc", 14.f}}) {
+        const auto result = parseDragonText(skill + "fx_impact=hit\n" +
+            (setting.empty() ? "" : "fx_impact_fps=" + setting + "\n"), "fps", nullptr);
+        CHECK(!result.def.skills.empty());
+        if (result.def.skills.empty()) continue;
+        const auto& parsed = result.def.skills.front();
+        CHECK(parsed.fxPlaybackFps("bolt") == 14.f);
+        CHECK(parsed.fxPlaybackFps("hit") == expected);
+        CHECK(result.warnings.empty() == (setting != "-1" && setting != "61" && setting != "abc"));
+    }
+    const auto shared = parseDragonText(skill + "fx_impact=bolt\nfx_impact_fps=24\n", "fps", nullptr);
+    CHECK(!shared.def.skills.empty() && shared.def.skills.front().fxPlaybackFps("bolt") == 14.f);
+
+    Game game;
+    game.init(SaveData{}, kDesk);
+    game.openCodex();
+    CHECK(game.screen() == Screen::Codex && game.wantsKeyboard());
+    game.dismissWindow();
+    CHECK(game.screen() == Screen::Select);
+    game.chooseSpecies(Species::Fire);
+    game.openStable();
+    game.beginAddDragon();
+    CHECK(game.screen() == Screen::Select && game.addingDragon());
+    game.openCodex();
+    game.dismissWindow();
+    CHECK(game.screen() == Screen::Select && game.addingDragon());
+    game.dismissWindow();
+    CHECK(game.screen() == Screen::Stable && !game.addingDragon());
+    game.dismissWindow();
+    CHECK(game.screen() == Screen::Desktop);
+}
+
 static void testDragonTextWarnings() {
     std::printf("[dragon.txt warnings]\n");
     std::string txt =
@@ -3678,6 +3714,7 @@ int main(int argc, char** argv) {
     testDirectDodge();
     testDragonTextParse();
     testDragonTextWarnings();
+    testImpactFpsAndCodex();
     testSpeciesRegistry();
     testUnknownSpeciesKeepsIdentity();
     testAnimStates();

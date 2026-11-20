@@ -275,6 +275,12 @@ PlayerInput App::pollKeys() {
         keyPrev_[vk & 0xFF] = d;
         return pressed;
     };
+    if (edge(VK_ESCAPE)) {
+        if (game_.screen() == Screen::Select && !game_.addingDragon()) setUserHidden(true);
+        else game_.dismissWindow();
+        return in;
+    }
+    if (game_.screen() != Screen::Desktop && game_.screen() != Screen::Tower) return in;
     float right = (keyDown('D') || keyDown(VK_RIGHT)) ? 1.f : 0.f;
     float left = (keyDown('A') || keyDown(VK_LEFT)) ? 1.f : 0.f;
     float down = (keyDown('S') || keyDown(VK_DOWN)) ? 1.f : 0.f;
@@ -297,13 +303,6 @@ PlayerInput App::pollKeys() {
         in.ultimate = num || pad;
     }
 
-    if (edge(VK_ESCAPE)) {
-        Screen sc = game_.screen();
-        if (sc == Screen::AutoWarning || sc == Screen::TowerWarning || sc == Screen::TowerSelect || sc == Screen::Codex) game_.closeModal();
-        else if (sc == Screen::Stable) game_.closeStable();  // 띄운 개체가 없으면 닫히지 않는다
-        else if (sc == Screen::Skills) game_.closeSkills();
-        else if (sc == Screen::Desktop) setInputEnabled(false);
-    }
     return in;
 }
 

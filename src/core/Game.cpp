@@ -162,9 +162,9 @@ bool Game::needsInput() const {
 }
 
 bool Game::wantsKeyboard() const {
-    if (screen_ == Screen::TowerSelect) return true;  // 휠과 Esc를 받는 선택창
     if (screen_ == Screen::Tower) return towerMode_ != CombatMode::Auto;
-    if (screen_ != Screen::Desktop) return false;
+    if (screen_ != Screen::Desktop) return true;  // 보조 화면에서 Esc를 받는다.
+    if (motionMenuOpen_ || (menuOpen() && hasDragon())) return true;
     return hunting_ && save_.huntMode != CombatMode::Auto;
 }
 
@@ -820,6 +820,24 @@ void Game::openCodex() {
     if (screen_ == Screen::Desktop || screen_ == Screen::Select) {
         codexReturn_ = screen_;
         screen_ = Screen::Codex;
+    }
+}
+
+void Game::dismissWindow() {
+    switch (screen_) {
+        case Screen::Select:
+            if (addingDragon_) openStable();
+            break;
+        case Screen::Stable: closeStable(); break;
+        case Screen::Skills: closeSkills(); break;
+        case Screen::Death: acknowledgeDeath(); break;
+        case Screen::FloorClear:
+        case Screen::TowerVictory: leaveTower(); break;
+        case Screen::Desktop:
+            if (motionMenuOpen_) closeMotionMenu();
+            else if (menuOpen()) setMenuOpen(false);
+            break;
+        default: closeModal(); break;
     }
 }
 
