@@ -2106,18 +2106,16 @@ void Renderer::drawTowerSelection(Graphics& g, const Game& game, const Sprites& 
         const float y = 88.f + row * 72.f;
         const RectF card(226.f, y, 525.f, 64.f);
         const uint32_t accent = highlight(kind);
-        box(card, kind == FloorType::Normal ? 0xFF242943 : 0xFF3B2238, accent);
         const char* key = kind == FloorType::FieldBoss ? "tower_card_field" :
                           kind == FloorType::MidBoss ? "tower_card_mid" : "tower_card_normal";
-        if (!art(key, RectF(card.X + 2.f, y + 2.f, card.Width - 4.f, card.Height - 4.f)))
+        if (!art(key, card)) {
+            box(card, kind == FloorType::Normal ? 0xFF242943 : 0xFF3B2238, accent);
             portrait(def, RectF(card.X + 104.f, y + 2.f, 281.f, 60.f), accent);
-        if (active || card.Contains(PointF(local.mouseX, local.mouseY))) {
-            strokeRound(g, card, 8.f, col(gold), active ? 3.f : 1.5f);
-            if (active) {
-                strokeRound(g, RectF(card.X - 2.f, y - 2.f, card.Width + 4.f, card.Height + 4.f), 9.f,
-                            Color(85, 255, 176, 75), 4.f);
-                art("tower_selection", card);
-            }
+        }
+        if (active) {
+            if (!art("tower_selection", card)) strokeRound(g, card, 8.f, col(gold), 3.f);
+        } else if (card.Contains(PointF(local.mouseX, local.mouseY))) {
+            strokeRound(g, card, 8.f, col(gold), 1.5f);
         }
         text(g, label(floor), 243.f, y + 6.f, 22.f, active ? gold : kText, 0, true, true);
         text(g, "권장 Lv." + std::to_string(game.towerRecommendedLevel(floor)), 244.f, y + 35.f, 14.f, kText, 0, false, true);
@@ -2205,8 +2203,7 @@ void Renderer::drawTowerSelection(Graphics& g, const Game& game, const Sprites& 
             text(g, skill.name, 537.f, 570.f, 13.f, kText);
     }
     const RectF enter(826.f, 507.f, 254.f, 62.f);
-    box(enter, 0xFF633187, gold);
-    art("tower_enter", enter);
+    if (!art("tower_enter", enter)) box(enter, 0xFF633187, gold);
     if (enter.Contains(PointF(local.mouseX, local.mouseY))) strokeRound(g, enter, 10.f, col(gold), 3.f);
     text(g, "탑 입장", 953.f, 522.f, 27.f, kText, 1, true);
     controls.push_back({enter, UiAction::ConfirmTowerFloor, 0, true});
