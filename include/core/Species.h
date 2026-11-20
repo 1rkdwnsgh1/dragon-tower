@@ -122,6 +122,10 @@ struct SkillDef {
     float fxDelay = 0.f;  // Seconds from the triggering event to the visual effect.
     bool fxZoneSpriteOnly = false;  // Render the zone's sheet on the zone's own clock.
     bool grantsSoul = false;  // Opt-in for Revenant's on-kill passive.
+    // 궁극기(2026-11-20): 장착 칸 4개와 따로 쓰는 전용 칸. 키 5·상태창 아이콘 클릭으로 쓰고, 자동 모드는 AI 가 쓴다.
+    // ultimate_resource=souls 면 영혼 10개를 소모한다(게이지에 영혼 표시). 없으면 재사용 대기만 있다(게이지에 쿨타임 표시).
+    bool ultimate = false;
+    bool ultimateUsesSouls = false;
     AnimDef fxAnim{12.f, false, 0, 1.f};
     std::string layeredBreath;  // Optional five-sheet breath package, relative to the dragon folder.
     float breathInputLock = 0.f;

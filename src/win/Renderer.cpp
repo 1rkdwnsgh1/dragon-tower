@@ -355,8 +355,8 @@ bool Renderer::piece(Graphics& g, const char* name, const RectF& r, float alpha,
     return drawPieceCached(g, p, r, alpha, scale_, content);
 }
 
-void Renderer::panel(Graphics& g, const RectF& r, uint8_t alpha) {
-    markRegion(r);
+void Renderer::panel(Graphics& g, const RectF& r, uint8_t alpha, bool hit) {
+    if (hit) markRegion(r);
     if (piece(g, "panel", r, alpha / 255.f)) return;
     fillRound(g, RectF(r.X + 3.f, r.Y + 5.f, r.Width, r.Height), 14.f, Color(static_cast<BYTE>(alpha / 3), 0, 0, 0));
     fillRound(g, r, 14.f, Color(alpha, 24, 26, 38));
@@ -542,8 +542,8 @@ void Renderer::drawFrameStats(Graphics& g, const FrameStats& st) {
     const float rowH = 20.f;
     const int rows = static_cast<int>(sizeof(kLines) / sizeof(kLines[0]));
     RectF r(16.f, 16.f, 268.f, 98.f + rowH * (rows + 1));  // +16: UI 캐시 줄, +16: 그림 캐시 줄
-    panel(g, r, 232);
-    markRegion(r);  // 클릭 통과 규칙: 우리가 그린 것 위에서는 마우스를 받는다
+    // 2026-11-20: 누를 것이 없는 표라 클릭을 아래로 통과시킨다(상호작용 없는 그림은 통과, 사용자 결정).
+    panel(g, r, 232, false);
 
     float x0 = r.X + 14.f;
     float xAvg = r.GetRight() - 86.f;
@@ -1090,8 +1090,7 @@ void Renderer::drawDotZones(Graphics& g, const World& w, const Sprites& sprites,
                 const float h = cfg::kDragonRadius * 3.f * scale * skill.fxScale * skill.fxAnim.renderScale;
                 const float x = z.pos.x + skill.fxOffsetX * scale;
                 const float y = z.pos.y + skill.fxOffsetY * scale;
-                const float width = h * sheet.frameW / sheet.frameH;
-                markRegion(RectF(x - width * 0.5f, y - h * 0.5f, width, h));
+                // 2026-11-20: 효과·장판·투사체·숨결은 누를 것이 없으므로 마우스를 받지 않는다(클릭 통과).
                 drawSheetFrame(g, sheet, animFrame(z.duration - z.remaining, skill.fxAnim.fps, sheet.frames, false),
                                x, y, h, false, 0.f, skill.fxAlpha);
                 continue;
@@ -1175,9 +1174,6 @@ void Renderer::drawProjectiles(Graphics& g, const World& w, const Sprites& sprit
                     bool flip = false;
                     for (const Enemy& e : w.enemies())
                         if (e.id == p.targetId) { flip = e.pos.x < p.pos.x; break; }
-                    float wpx = h * static_cast<float>(sh.frameW) / static_cast<float>(sh.frameH);
-                    float half = std::max(wpx, h) * 0.5f;
-                    markRegion(RectF(p.pos.x - half, p.pos.y - half, half * 2.f, half * 2.f), 4.f);
                     // 날아가는 그림은 **반복 재생**한다(효과 시트의 1회 재생 규칙과 다르다).
                     drawSheetFrame(g, sh, animFrame(p.t, ps->fxAnim.fps, sh.frames, true), p.pos.x, p.pos.y,
                                    h, flip, 0.f, 1.f);
@@ -1285,9 +1281,6 @@ bool Renderer::drawFxSheet(Graphics& g, const Fx& f, const Sprites& sprites, con
     float dirSign = (f.b.x < f.a.x) ? -1.f : 1.f;
     float cx = f.a.x + f.offsetX * charScale * dirSign;
     float cy = f.a.y + f.offsetY * charScale;
-    float wpx = h * static_cast<float>(sh.frameW) / static_cast<float>(sh.frameH);
-    float half = std::max(wpx, h) * 0.5f;
-    markRegion(RectF(cx - half, cy - half, half * 2.f, half * 2.f), 4.f);
     drawSheetFrame(g, sh, animFrame(f.t, ad.fps, sh.frames, ad.loop), cx, cy, h, /*flip=*/dirSign < 0.f, 0.f,
                    alpha);
     return true;
@@ -1295,8 +1288,6 @@ bool Renderer::drawFxSheet(Graphics& g, const Fx& f, const Sprites& sprites, con
 
 static void drawLineBlast(Graphics& g, const Fx& f, float fade) {
     const float halfWidth = f.radius * (1.f - 0.3f * fade);
-    markRegion(RectF(std::min(f.a.x, f.b.x) - halfWidth, std::min(f.a.y, f.b.y) - halfWidth,
-                     std::fabs(f.b.x - f.a.x) + 2.f * halfWidth, std::fabs(f.b.y - f.a.y) + 2.f * halfWidth));
     Pen pen(col(f.color, 0.7f * fade), halfWidth * 2.f);
     pen.SetStartCap(LineCapRound);
     pen.SetEndCap(LineCapRound);
@@ -1359,10 +1350,6 @@ void Renderer::drawBreath(Graphics& g, const DragonActor& dragon, const Sprites&
     if (scale <= 0.f) return;
     const float center = (512.f - bonestorm::anchorX) * scale;
     const float halfW = 512.f * scale, halfH = 256.f * scale;
-    const float extentX = std::fabs(cast.aim.x) * halfW + std::fabs(cast.aim.y) * halfH;
-    const float extentY = std::fabs(cast.aim.y) * halfW + std::fabs(cast.aim.x) * halfH;
-    const Vec2 middle = mouth + cast.aim * center;
-    markRegion(RectF(middle.x - extentX, middle.y - extentY, extentX * 2.f, extentY * 2.f));
 
     // 이번 프레임의 그림 key(0~3 시작, 4~11 반복, 12~15 끝).
     // 망령룡의 끝 첫 칸은 반복 그림에서 끝 그림으로 0.096초 동안 넘어간다(blendKey).
@@ -1602,8 +1589,17 @@ void Renderer::drawStatusCard(Graphics& g, const Game& game, const Sprites& spri
     const DragonActor& d = game.world().dragon();
     const SpeciesDef& sp = speciesDef(rec.species);
     const float cardW = 270.f;
-    const bool showSouls = sp.key == "revenant";
-    const float expandedHeight = showSouls ? 340.f : 292.f;
+    // 2026-11-20: 궁극기 줄. 궁극기가 있거나 영혼을 모으는 종이면 보인다. 영혼을 쓰는 궁극기는 영혼 게이지,
+    // 자원이 없는 궁극기는 재사용 대기 게이지를 보여 주고, 오른쪽에 궁극기 아이콘(클릭·키 5)을 둔다.
+    const World& world = game.world();
+    const int ultimateIndex = world.ultimateSkill();
+    const SkillDef* ultimate = ultimateIndex >= 0 ? &sp.skills[static_cast<size_t>(ultimateIndex)] : nullptr;
+    const bool soulSpecies = std::any_of(sp.skills.begin(), sp.skills.end(),
+                                         [](const SkillDef& skill) { return skill.grantsSoul; });
+    const bool showSouls = soulSpecies || (ultimate && ultimate->ultimateUsesSouls);
+    const bool showUltimateRow = showSouls || ultimate != nullptr;
+    // 탑 도전 버튼은 스킬 칸 아래 줄이다(접으면 숨긴다).
+    const float expandedHeight = 292.f + (showUltimateRow ? 48.f : 0.f) + 30.f;
     const float cardH = game.panelCollapsed() ? 44.f : expandedHeight;
     Vec2 saved = game.panelPos();
     float rx = saved.x >= 0.f ? saved.x : width_ - 96.f - cardW;
@@ -1615,42 +1611,46 @@ void Renderer::drawStatusCard(Graphics& g, const Game& game, const Sprites& spri
     lastCardRect_ = r;  // v1.9: App 이 끌기 범위를 자를 때 쓴다
     panel(g, r, 224);
 
-    // 제목 줄은 끌기 손잡이다. 오른쪽 끝에 접기 버튼이 있다.
+    // 제목 줄은 끌기 손잡이다. 2026-11-20: 접기 버튼을 맨 왼쪽으로 옮겼다(사용자 요청). 그 옆이 손잡이 줄무늬다.
+    // 탑 도전 버튼은 제목 줄에서 빼서 스킬 칸 아래로 옮겼다.
     // v1.4: 전에는 ▦·≡ 같은 글자를 썼는데 폰트에 없어 깨져 보였다. 한글로 적는다.
-    const bool towerButton = game.screen() == Screen::Desktop;
-    RectF handle(r.X, r.Y, r.Width - (towerButton ? 169.f : 126.f), 30.f);
-    if (towerButton)
-        button(g, out, ctx, RectF(r.GetRight() - 166.f, r.Y + 4.f, 40.f, 22.f), "탑",
-               UiAction::OpenTower, 0, !game.waveActive());
+    button(g, out, ctx, RectF(r.X + 4.f, r.Y + 4.f, 26.f, 22.f), game.panelCollapsed() ? "▴" : "▾",
+           UiAction::TogglePanel);
+    RectF handle(r.X + 32.f, r.Y, r.Width - 32.f - 124.f, 30.f);
     out.push_back({handle, UiAction::DragPanel, 0, true});
     markRegion(handle);
-    button(g, out, ctx, RectF(r.GetRight() - 122.f, r.Y + 4.f, 56.f, 22.f), "관리", UiAction::OpenStable);
-    button(g, out, ctx, RectF(r.GetRight() - 62.f, r.Y + 4.f, 56.f, 22.f), "메뉴", UiAction::ToggleMenu, 0, true,
+    button(g, out, ctx, RectF(r.GetRight() - 120.f, r.Y + 4.f, 56.f, 22.f), "관리", UiAction::OpenStable);
+    button(g, out, ctx, RectF(r.GetRight() - 60.f, r.Y + 4.f, 56.f, 22.f), "메뉴", UiAction::ToggleMenu, 0, true,
            game.menuOpen());
     {
         bool hov = handle.Contains(PointF(ctx.mouseX, ctx.mouseY));
         for (int i = 0; i < 3; ++i)
-            fillRound(g, RectF(r.X + 10.f, r.Y + 9.f + i * 4.f, 14.f, 2.f), 1.f,
+            fillRound(g, RectF(r.X + 36.f, r.Y + 9.f + i * 4.f, 14.f, 2.f), 1.f,
                       Color(hov ? 220 : 120, 180, 190, 220));
     }
-    button(g, out, ctx, RectF(r.GetRight() - 30.f, r.Y + 4.f, 26.f, 22.f),
-           game.panelCollapsed() ? "▴" : "▾", UiAction::TogglePanel);
     if (game.panelCollapsed()) {
         const auto clip = g.Save();
-        g.SetClip(RectF(r.X + 28.f, r.Y + 5.f, handle.Width - 27.f, 24.f), CombineModeIntersect);
-        text(g, dragonName(rec) + "  Lv." + std::to_string(rec.level), r.X + 30.f, r.Y + 8.f,
-             towerButton ? 11.f : 14.f, kText, 0, true);
+        g.SetClip(RectF(r.X + 54.f, r.Y + 5.f, handle.GetRight() - r.X - 56.f, 24.f), CombineModeIntersect);
+        text(g, dragonName(rec) + "  Lv." + std::to_string(rec.level), r.X + 56.f, r.Y + 8.f, 11.f, kText, 0,
+             true);
         g.Restore(clip);
-        const float soulWidth = showSouls ? 75.f : 0.f;
+        const float soulWidth = showUltimateRow ? 75.f : 0.f;
         bar(g, RectF(r.X + 14.f, r.Y + 32.f, r.Width - 28.f - soulWidth, 8.f),
             d.hp / std::max(1.f, d.stats.maxHp), kHpC);
+        const float right = r.GetRight() - 14.f;
         if (showSouls) {
-            const UltimateCharge charge = game.world().ultimateCharge();
-            const float right = r.GetRight() - 14.f;
+            const UltimateCharge charge = world.ultimateCharge();
             if (charge.full())
                 fillRound(g, RectF(right - 64.f, r.Y + 28.f, 67.f, 14.f), 4.f, Color(65, 75, 255, 222));
             text(g, "영혼 " + std::to_string(charge.souls) + "/" + std::to_string(kUltimateSoulCost),
                  right, r.Y + 28.f, 11.f, charge.full() ? 0xFFA6FFF0 : 0xFF72D8CD, 2, charge.full());
+        } else if (ultimate) {
+            const float cd = ultimateIndex < static_cast<int>(d.skillCd.size())
+                                 ? d.skillCd[static_cast<size_t>(ultimateIndex)] : 0.f;
+            const bool ready = rec.level >= ultimate->unlockLevel && cd <= 0.f;
+            text(g, ready ? "궁극 준비" : (rec.level < ultimate->unlockLevel ? "궁극 Lv." +
+                     std::to_string(ultimate->unlockLevel) : "궁극 " + fmtInt(cd) + "초"),
+                 right, r.Y + 28.f, 11.f, ready ? 0xFFA6FFF0 : 0xFF72D8CD, 2, ready);
         }
         return;
     }
@@ -1681,34 +1681,59 @@ void Renderer::drawStatusCard(Graphics& g, const Game& game, const Sprites& spri
         y += 3.f;
     }
 
-    if (showSouls) {
-        const UltimateCharge charge = game.world().ultimateCharge();
-        const bool full = charge.full();
-        text(g, "영혼 " + std::to_string(charge.souls) + " / " + std::to_string(kUltimateSoulCost),
-             x, y, 13.f, 0xFFA6FFF0);
-        text(g, std::to_string(charge.percent()) + "%", x + w, y, 12.f,
-             full ? 0xFFA6FFF0 : kSub, 2, full);
-        const RectF gauge(x, y + 18.f, w, 7.f);
-        if (full)
-            fillRound(g, RectF(gauge.X - 1.f, gauge.Y - 2.f, gauge.Width + 2.f, gauge.Height + 4.f),
-                      4.f, Color(65, 75, 255, 222));
-        bar(g, gauge, static_cast<float>(charge.percent()) / 100.f, full ? 0xFF78FCE5 : 0xFF36C9B4);
-        const auto ultimate = std::find_if(sp.skills.begin(), sp.skills.end(), [](const SkillDef& skill) {
-            return skill.kind == SkillKind::Procession;
-        });
+    if (showUltimateRow) {
         const bool inTower = game.screen() == Screen::Tower;
         const bool inCombat = inTower || (game.screen() == Screen::Desktop && game.hunting() &&
                                           game.waveActive() && !game.combatPaused());
-        const bool automatic = (inTower ? game.towerMode() : game.huntMode()) == CombatMode::Auto;
-        const char* status = "영혼 수확 미해제";
-        if (charge.soulHarvestUnlocked) {
-            if (ultimate != sp.skills.end())
-                status = game.world().processionBlockedReason(static_cast<int>(ultimate - sp.skills.begin()),
-                                                             inCombat, automatic);
-            else
-                status = full ? "충전 완료 · 스킬 미구현" : "영혼 10개 필요";
+        // 오른쪽 아이콘 칸(40px)만큼 게이지를 줄인다.
+        const float icon = 40.f;
+        const float gw = ultimate ? w - icon - 8.f : w;
+        const char* status = ultimate ? world.ultimateBlockedReason(inCombat) : nullptr;
+        bool ready = false;
+        if (showSouls) {
+            const UltimateCharge charge = world.ultimateCharge();
+            const bool full = charge.full();
+            ready = full;
+            text(g, "영혼 " + std::to_string(charge.souls) + " / " + std::to_string(kUltimateSoulCost),
+                 x, y, 13.f, 0xFFA6FFF0);
+            text(g, std::to_string(charge.percent()) + "%", x + gw, y, 12.f, full ? 0xFFA6FFF0 : kSub, 2, full);
+            const RectF gauge(x, y + 18.f, gw, 7.f);
+            if (full)
+                fillRound(g, RectF(gauge.X - 1.f, gauge.Y - 2.f, gauge.Width + 2.f, gauge.Height + 4.f),
+                          4.f, Color(65, 75, 255, 222));
+            bar(g, gauge, static_cast<float>(charge.percent()) / 100.f, full ? 0xFF78FCE5 : 0xFF36C9B4);
+            if (!charge.soulHarvestUnlocked) status = "영혼 수확 미해제";
+            else if (!ultimate) status = full ? "충전 완료 · 궁극기 없음" : "영혼 10개 필요";
+        } else {
+            // 자원이 없는 궁극기: 영혼 대신 재사용 대기 게이지.
+            const float cd = ultimateIndex < static_cast<int>(d.skillCd.size())
+                                 ? d.skillCd[static_cast<size_t>(ultimateIndex)] : 0.f;
+            const float total = std::max(0.01f, ultimate->cooldown);
+            const float charge = std::clamp(1.f - cd / total, 0.f, 1.f);
+            ready = charge >= 1.f && rec.level >= ultimate->unlockLevel;
+            text(g, ultimate->name, x, y, 13.f, 0xFFA6FFF0);
+            text(g, cd > 0.f ? fmtInt(cd) + "초" : "준비", x + gw, y, 12.f, ready ? 0xFFA6FFF0 : kSub, 2, ready);
+            const RectF gauge(x, y + 18.f, gw, 7.f);
+            if (ready)
+                fillRound(g, RectF(gauge.X - 1.f, gauge.Y - 2.f, gauge.Width + 2.f, gauge.Height + 4.f),
+                          4.f, Color(65, 75, 255, 222));
+            bar(g, gauge, charge, ready ? 0xFF78FCE5 : 0xFF36C9B4);
         }
-        text(g, status ? status : "궁극기 사용 가능", x, y + 27.f, 12.f, full ? 0xFFA6FFF0 : kSub, 0, full);
+        const bool usable = ultimate && !status;
+        text(g, status ? status : "궁극기 사용 가능", x, y + 27.f, 12.f, usable || ready ? 0xFFA6FFF0 : kSub, 0,
+             usable);
+        if (ultimate) {
+            // 궁극기 아이콘. 누르면 쓴다(자동 모드에서도). 키 5와 짝이다.
+            const RectF b(x + w - icon, y, icon, icon);
+            if (usable)
+                fillRound(g, RectF(b.X - 2.f, b.Y - 2.f, b.Width + 4.f, b.Height + 4.f), 8.f,
+                          Color(110, 120, 255, 230));
+            drawSkillBox(g, sprites, sp, d, ultimateIndex, b, rec.level, "5");
+            if (b.Contains(PointF(ctx.mouseX, ctx.mouseY)))
+                strokeRound(g, b, 6.f, Color(255, 166, 255, 240), 2.f);
+            out.push_back({b, UiAction::UseUltimate, 0, rec.level >= ultimate->unlockLevel});
+            markRegion(b);
+        }
         y += 48.f;
     }
 
@@ -1765,11 +1790,15 @@ void Renderer::drawStatusCard(Graphics& g, const Game& game, const Sprites& spri
         const char* hint = nullptr;
         if (!ctx.inputEnabled) hint = "싸우기 시작하면 키보드를 받습니다";
         else if ((game.screen() == Screen::Tower ? game.towerMode() : game.huntMode()) == CombatMode::Direct)
-            hint = "WASD 이동 · Space 회피 · 1~4 스킬";
+            hint = "WASD 이동\n1~5 스킬";  // 칸이 좁다(약 60px) — 두 줄에 맞춘다
         else if ((game.screen() == Screen::Tower ? game.towerMode() : game.huntMode()) == CombatMode::SkillManual)
-            hint = "1~4 스킬 · 이동·회피는 자동";
-        if (hint) paragraph(g, hint, RectF(hx, y + 22.f, hw, box - 20.f), 10.f, kSub);
+            hint = "1~4 스킬\n5 궁극기";
+        if (hint) paragraph(g, hint, RectF(hx, y + 21.f, hw, box - 15.f), 9.f, kSub);
     }
+    // 2026-11-20: 탑 도전 버튼은 스킬 칸 아래 줄이다(제목 줄에서 옮김). 바탕화면에서 무리 사이에만 누를 수 있다.
+    y += box + 6.f;
+    button(g, out, ctx, RectF(x, y, w, 24.f), "탑 도전", UiAction::OpenTower, 0,
+           game.screen() == Screen::Desktop && !game.waveActive());
 }
 
 // 값을 끌어서 고르는 가로 막대. 오른쪽에 지금 값을 글자로 보여 준다.
@@ -2643,6 +2672,7 @@ void Renderer::drawSkills(Graphics& g, const Game& game, const Sprites& sprites,
         text(g, "Lv." + std::to_string(s.unlockLevel), labelRight, row.Y + 6.f, 13.f,
              unlocked ? 0xFFFFE9A8 : 0xFF8A8FA0, 2, true);
         if (passive) text(g, "패시브 · 항상 적용", labelRight, row.Y + 25.f, 12.f, 0xFF9CE8C0, 2, true);
+        else if (s.ultimate) text(g, "궁극기 · 키 5", labelRight, row.Y + 25.f, 12.f, 0xFFA6FFF0, 2, true);
         else if (inSlot >= 0)
             text(g, std::to_string(inSlot + 1) + "번 칸", labelRight, row.Y + 25.f, 12.f, 0xFFBFD4FF, 2, true);
 
@@ -2662,6 +2692,10 @@ void Renderer::drawSkills(Graphics& g, const Game& game, const Sprites& sprites,
         RectF btn(rx - 126.f, row.Y + 6.f, 116.f, 30.f);
         if (passive) {
             button(g, out, ctx, btn, unlocked ? "적용 중" : "잠김", UiAction::None, 0, false, unlocked);
+        } else if (s.ultimate) {
+            // 2026-11-20: 궁극기는 장착 칸에 넣지 않는다 — 상태창 전용 칸(키 5·클릭)에서 쓴다.
+            button(g, out, ctx, btn, unlocked ? "전용 칸" : "Lv." + std::to_string(s.unlockLevel) + " 필요",
+                   UiAction::None, 0, false, unlocked);
         } else if (!unlocked) {
             button(g, out, ctx, btn, "Lv." + std::to_string(s.unlockLevel) + " 필요", UiAction::None, 0, false);
         } else {

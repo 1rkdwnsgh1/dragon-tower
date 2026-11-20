@@ -25,7 +25,8 @@ void sanitizeSkillSlots(DragonRecord& d) {
         if (v < 0 || v >= n) { v = -1; continue; }
         const SkillDef& s = sp.skills[static_cast<size_t>(v)];
         // 패시브는 칸을 쓰지 않는다. 아직 해제되지 않은 스킬도 비운다.
-        if (skillIsPassive(s.kind) || d.level < s.unlockLevel) { v = -1; continue; }
+        // 궁극기는 전용 칸(키 5)을 쓴다 — 예전 저장에 장착돼 있으면 여기서 빠진다(2026-11-20).
+        if (skillIsPassive(s.kind) || s.ultimate || d.level < s.unlockLevel) { v = -1; continue; }
         for (int j = 0; j < i; ++j) {  // 같은 스킬을 두 칸에 둘 수 없다
             if (d.slots[static_cast<size_t>(j)] == v) { v = -1; break; }
         }
@@ -36,7 +37,7 @@ void fillEmptySkillSlots(DragonRecord& d) {
     sanitizeSkillSlots(d);
     const SpeciesDef& sp = speciesDef(d.species);
     for (int idx : unlockedActiveSkills(sp, d.level)) {
-        if (sp.skills[static_cast<size_t>(idx)].kind == SkillKind::Procession) continue;
+        if (sp.skills[static_cast<size_t>(idx)].ultimate) continue;
         bool already = false;
         for (int v : d.slots) if (v == idx) { already = true; break; }
         if (already) continue;
