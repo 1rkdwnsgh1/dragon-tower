@@ -322,6 +322,7 @@ public:
     void updateCombat(float dt, CombatMode mode, const PlayerInput& in);
     // 적이 없을 때 바탕화면을 천천히 돌아다닌다.
     void updateWander(float dt);
+    void sampleRoamCursor(float normalizedX, float dt);
     // 효과와 글자만 진행(일시정지 중에는 부르지 않는다)
     void updateFx(float dt, bool combatEnded = false);
 
@@ -391,6 +392,8 @@ private:
     void pickBehavior();       // 다음 행동을 확률로 고르고 목적지를 정한다
     Vec2 randomRoamTarget(bool fly);
     float randomRoamX();
+    float roamCursorX_ = 0.5f;
+    int roamSide_ = 0;
     float randomGroundY();
     // 발이 영역 바닥에 닿는 세로 좌표. 영역이 얇으면 여기에 붙는다.
     float groundLine() const;

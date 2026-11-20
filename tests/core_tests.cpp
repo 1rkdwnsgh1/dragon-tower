@@ -1085,6 +1085,22 @@ static void testIdleBehavior() {
     CHECK(!w5.dragon().landing);
     CHECK(std::fabs(w5.dragon().pos.y - w5.dragon().groundY) < 3.f);
 
+    World roaming;
+    roaming.setBounds(area);
+    roaming.setupDragon(Species::Fire, 1, -1.f, area.center());
+    roaming.dragon().behavior = IdleBehavior::Walk;
+    roaming.dragon().behaviorLeft = 100.f;
+    roaming.dragon().wanderTarget = {area.x + 90.f, area.center().y};
+    roaming.sampleRoamCursor(0.f, 10.f);
+    roaming.updateWander(0.1f);
+    CHECK(roaming.dragon().wanderTarget.x >= area.center().x);
+    roaming.sampleRoamCursor(1.f, 0.1f);
+    roaming.updateWander(0.1f);
+    CHECK(roaming.dragon().wanderTarget.x >= area.center().x);
+    roaming.sampleRoamCursor(1.f, 10.f);
+    roaming.updateWander(0.1f);
+    CHECK(roaming.dragon().wanderTarget.x <= area.center().x);
+
     // 화면이 아주 낮아도 목적지가 뒤집히지 않는다
     World w3;
     w3.setBounds({0.f, 0.f, 400.f, 120.f});
@@ -3379,13 +3395,28 @@ static void testRevenantProcession() {
     World automatic = setup();
     automatic.updateCombat(0.f, CombatMode::Auto, {});
     CHECK(automatic.dragon().procession && automatic.dragon().souls == 10);
+    for (int tick = 0; tick < 250; ++tick) automatic.updateCombat(0.02f, CombatMode::Auto, {});
+    CHECK(automatic.dragon().souls == 0 && automatic.dragon().skillCd[skill] > 0.f);
+    CHECK(automatic.enemies()[0].hp < 100000.f);
+
+    World movingDuringCast = setup();
+    cast(movingDuringCast);
+    const Vec2 castOrigin = movingDuringCast.dragon().pos;
+    PlayerInput moveDuringCast{};
+    moveDuringCast.moveX = 1.f;
+    movingDuringCast.updateCombat(1.f, CombatMode::Direct, moveDuringCast);
+    CHECK(movingDuringCast.dragon().pos.x == castOrigin.x);
+    movingDuringCast.updateCombat(0.45f, CombatMode::Direct, moveDuringCast);
+    const auto& active = movingDuringCast.dragon().procession;
+    CHECK(active && active->launched == 1 && active->origin.x == castOrigin.x);
+    CHECK(movingDuringCast.dragon().pos.x > castOrigin.x);
     World autoShort = setup(9);
     autoShort.updateCombat(0.f, CombatMode::Auto, {});
     CHECK(!autoShort.dragon().procession && autoShort.dragon().souls == 9);
     // 상태창 아이콘 클릭(요청)은 자동 모드에서도 받는다.
     World clicked = setup();
     clicked.requestUltimate();
-    clicked.updateCombat(0.f, CombatMode::SkillManual, {});
+    clicked.updateCombat(0.f, CombatMode::Auto, {});
     CHECK(clicked.dragon().procession.has_value());
 
     CHECK(def.skills[skill].processionShots == 3);

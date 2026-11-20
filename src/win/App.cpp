@@ -490,6 +490,9 @@ void App::tick(float dt) {
     if (drag_ != Drag::Dragon && game_.dragonHeld()) game_.setDragonHeld(false);
 
     PlayerInput in = pollKeys();
+    POINT cursor{};
+    if (GetCursorPos(&cursor) && work_.right > work_.left)
+        game_.world().sampleRoamCursor(static_cast<float>(cursor.x - work_.left) / (work_.right - work_.left), dt);
     game_.update(dt, in, hidden_, inputEnabled_);
     if (game_.consumeSaveRequest()) saveNow();
 
