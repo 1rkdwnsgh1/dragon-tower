@@ -42,7 +42,8 @@ tests/                     코어 규칙 검증
 | 탑 층의 내장 기본값(파일이 없을 때) | `src/core/Tower.cpp` | `builtinTowerFloors` |
 | `floors.txt` 읽는 규칙 | `src/core/DragonData.cpp` | `parseTowerText`, `loadTowerFloors` |
 | 층의 적을 실제로 세우는 곳 | `src/core/Game.cpp` | `spawnTowerFloor`, `towerFloorDef` |
-| 탑 선택창·휠·스크롤바·선택층 입장 | `src/win/Renderer.cpp`, `src/win/App.cpp`, `src/core/Game.cpp` | `drawTowerSelection`, `dragTowerScroll`, `openTowerSelection`, `selectTowerFloor`, `enterTower` |
+| 탑 선택창·휠·스크롤바·선택층 입장 | `src/win/Renderer.cpp`, `src/win/App.cpp`, `src/core/Game.cpp` | `drawTowerSelection`, `drawSkillBox`, `dragTowerScroll`, `openTowerSelection`, `selectTowerFloor`, `enterTower` |
+| 탑 UI 에셋 검수 캡처 | `src/win/Preview.cpp` | `captureTowerSelection` — 층 번호 선택 가능 |
 | 층 수·층 이름을 화면에 쓰기 | `src/core/Game.cpp` | `towerFloorCount`, `towerFloorLabel` |
 | 적 변종이 그림 빌리기 | `assets/enemies/<키>/enemy.txt` 의 `art_from=` | 읽기: `parseEnemyText`, 확인: `loadEnemyFolders` 끝의 뒷검사, 쓰기: `src/win/Sprites.cpp` `load` 의 `artKey` |
 | 바탕화면·탑에 나오는 적 구성 | `src/core/Game.cpp` | `randomMelee`, `spawnTowerFloor` |

@@ -672,7 +672,7 @@ LRESULT PreviewWindow::handle(UINT message, WPARAM wp, LPARAM lp) {
     }
     return DefWindowProcW(hwnd_, message, wp, lp);
 }
-int captureTowerSelection(const fs::path& assets, const fs::path& output) {
+int captureTowerSelection(const fs::path& assets, const fs::path& output, int floor) {
     loadDragonFolders(assets / "dragons");
     loadEnemyFolders(assets / "enemies");
     auto tower = loadTowerFloors(assets / "tower");
@@ -690,6 +690,7 @@ int captureTowerSelection(const fs::path& assets, const fs::path& output) {
     game.setTowerFloors(std::move(tower.floors));
     game.init(save, {0.f, 0.f, static_cast<float>(w), static_cast<float>(h)});
     game.openTowerSelection();
+    game.selectTowerFloor(floor);
 
     Sprites sprites;
     sprites.load(assets);
@@ -719,12 +720,19 @@ int WINAPI WinMain(HINSTANCE instance, HINSTANCE, LPSTR, int show) {
         int count = 0;
         LPWSTR* args = CommandLineToArgvW(GetCommandLineW(), &count);
         const bool capture = args && count == 4 && std::wstring(args[1]) == L"--capture";
-        const bool towerCapture = args && count == 4 && std::wstring(args[1]) == L"--tower-capture";
+        const bool towerCapture = args && (count == 4 || count == 5) && std::wstring(args[1]) == L"--tower-capture";
         const std::filesystem::path initial = (capture || towerCapture) ? args[2] : (args && count > 1 ? args[1] : L"");
         const std::filesystem::path jobs = (capture || towerCapture) ? args[3] : L"";
+        int floor = 25;
+        if (towerCapture && count == 5) {
+            const std::wstring number = args[4];
+            if (number.empty() || number.size() > 3 || number.find_first_not_of(L"0123456789") != std::wstring::npos)
+                floor = 0;
+            else floor = std::stoi(number);
+        }
         if (args) LocalFree(args);
         if (towerCapture) {
-            status = dt::win::captureTowerSelection(initial, jobs);
+            status = floor >= 1 && floor <= 100 ? dt::win::captureTowerSelection(initial, jobs, floor) : 2;
         } else {
             dt::win::PreviewWindow window(instance);
             status = window.run(initial, show, jobs);
