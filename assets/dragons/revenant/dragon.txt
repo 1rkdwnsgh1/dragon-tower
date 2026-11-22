@@ -360,6 +360,7 @@ soulfire_mouth_y=0.572265625
 soulfire_impact_scale=1.55
 soulfire_flame_scale=0.22
 motion=nether_soulfire
+motion_render_scale=1.26
 motion_frames=40
 motion_fps=10
 motion_frame_w=256

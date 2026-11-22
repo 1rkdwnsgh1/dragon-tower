@@ -128,7 +128,9 @@ struct Projectile {
     bool appliesCurse = false;
 };
 
-inline constexpr float kSoulfireFoot = 865.f / 1024.f;
+// Standing source aligned to the standard 256px revenant cell at 126% scale.
+inline constexpr float kSoulfireFoot = 221.f / 256.f;
+inline constexpr float kSoulfireBodyOffsetX = 0.142f;
 inline constexpr float kSoulfireBreathDuration = 2.f;
 inline constexpr float kSoulfireTrailSpacing = 34.f;
 inline constexpr float kSoulfireRecovery = 1.f;

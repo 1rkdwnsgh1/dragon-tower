@@ -902,12 +902,14 @@ std::optional<SoulfireBeam> World::soulfireBeam() const {
 }
 
 std::optional<SoulfireBeam> World::soulfireBeamAt(Vec2 position, const SkillCast& cast, const SkillDef& s) const {
-    const float body = cfg::kDragonRadius * 3.f * sizeScale_ * s.motionAnim.renderScale;
+    const float baseBody = cfg::kDragonRadius * 3.f * sizeScale_;
+    const float body = baseBody * s.motionAnim.renderScale;
     const float sign = cast.facingLeft ? -1.f : 1.f;
     const float groundY = std::min(position.y + cfg::kDragonRadius, bounds_.bottom());
-    const Vec2 mouth{position.x + sign * (s.soulfireMouthX - 0.5f) * body,
+    const Vec2 mouth{position.x + sign * (kSoulfireBodyOffsetX * baseBody +
+                                         (s.soulfireMouthX - 0.5f) * body),
                      position.y + cfg::kDragonRadius + (s.soulfireMouthY - kSoulfireFoot) * body -
-                     soulfireLift(cast.fxTime, cast.fxTime, body)};
+                     soulfireLift(cast.fxTime, cast.fxTime, baseBody)};
     const float reach = (groundY - mouth.y) / std::tan(s.soulfireAngle * kPi / 180.f);
     const float groundX = mouth.x + sign * reach;
     if (groundX < bounds_.x || groundX > bounds_.right()) return std::nullopt;
@@ -940,8 +942,8 @@ void World::advanceSoulfire(SkillCast& cast, const SkillDef& s, float previous) 
         z.remaining = z.duration = s.duration;
         z.startDelay = start - previous + (speed > 0.f ? along / speed : 0.f);
         z.soulfireCastId = cast.soulfireCastId;
-        const float body = cfg::kDragonRadius * 3.f * sizeScale_ * s.motionAnim.renderScale;
-        z.flameHeight = body * s.soulfireFlameScale;
+        const float baseBody = cfg::kDragonRadius * 3.f * sizeScale_;
+        z.flameHeight = baseBody * s.soulfireFlameScale;
         z.flames.reserve(kSoulfireFlameCount);
         for (int n = 0; n < kSoulfireFlameCount; ++n) {
             const float across = static_cast<float>(n) / (kSoulfireFlameCount - 1);

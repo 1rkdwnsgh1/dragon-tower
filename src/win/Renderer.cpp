@@ -806,7 +806,8 @@ void Renderer::drawDragon(Graphics& g, const DragonActor& d, const Sprites& spri
         if (skillAnim && soulfire) {
             const SkillCast& cast = *d.skillCast;
             flip = sp.flipAllowed && cast.facingLeft;
-            cyAdj += (kAnchorFrac - kSoulfireFoot) * drawH - soulfireLift(cast.elapsed, cast.fxTime, drawH);
+            x += (flip ? -1.f : 1.f) * kSoulfireBodyOffsetX * height;
+            cyAdj += (kAnchorFrac - kSoulfireFoot) * drawH - soulfireLift(cast.elapsed, cast.fxTime, height);
             // Keep the takeoff frames and loop only the ten-frame airborne pose.
             const float flightEnd = cast.fxTime + kSoulfireBreathDuration;
             t = cast.elapsed < cast.fxTime ? 2.f * cast.elapsed / cast.fxTime

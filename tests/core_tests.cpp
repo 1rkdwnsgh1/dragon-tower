@@ -3749,8 +3749,12 @@ static void testNetherSoulfire(const std::filesystem::path& assets) {
         if (!scaled.soulfireBeam() || scaled.dots().empty()) continue;
         const auto beam = *scaled.soulfireBeam();
         const auto& firstPatch = scaled.dots().front();
-        const float baseBody = cfg::kDragonRadius * 3.f * def.motionAnim.renderScale;
-        const float baseDrop = (kSoulfireFoot - def.soulfireMouthY + 0.18f) * baseBody;
+        const float baseBody = cfg::kDragonRadius * 3.f;
+        const float poseBody = baseBody * def.motionAnim.renderScale;
+        const float baseDrop = (kSoulfireFoot - def.soulfireMouthY) * poseBody + 0.18f * baseBody;
+        CHECK(std::fabs(def.motionAnim.renderScale - 1.26f) < 0.001f);
+        CHECK(std::fabs(beam.mouth.x - scaled.dragon().pos.x -
+                        ((def.soulfireMouthX - 0.5f) * poseBody + kSoulfireBodyOffsetX * baseBody) * scale) < 0.01f);
         CHECK(std::fabs(beam.ground.y - beam.mouth.y - baseDrop * scale) < 0.01f);
         CHECK(std::fabs(beam.ground.x - beam.mouth.x -
                         baseDrop / std::tan(def.soulfireAngle * kPi / 180.f) * scale) < 0.01f);
@@ -3813,12 +3817,13 @@ static void testNetherSoulfire(const std::filesystem::path& assets) {
 
     World pinned = setup(9, false);
     pinned.setSizeScale(0.5f);
-    pinned.dragon().pos.x = 1165.f;
+    pinned.dragon().pos.x = 1120.f;
     pinned.updateCombat(0.f, CombatMode::Direct, hotkey);
-    step(pinned, firstContact + 0.3f);
-    CHECK(pinned.soulfireBeam() && pinned.dots().size() == 1);
+    step(pinned, takeoff + 0.8f);
+    const auto patchCount = pinned.dots().size();
+    CHECK(patchCount > 0 && !pinned.soulfireBeam());
     step(pinned, 0.5f);
-    CHECK(pinned.soulfireBeam() && pinned.dots().size() == 1 && !pinned.dragon().moving);
+    CHECK(pinned.dots().size() == patchCount && !pinned.dragon().moving);
 
     World died = setup();
     died.updateCombat(0.f, CombatMode::Direct, hotkey);
