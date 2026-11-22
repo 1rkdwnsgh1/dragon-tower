@@ -393,6 +393,8 @@ void Sprites::loadFxSheets(const std::filesystem::path& dir, const SpeciesDef& d
             };
             load("soulfire_beam", 256);
             load("soulfire_impact", 256);
+            load("soulfire_wrap_rear", 256);
+            load("soulfire_wrap_front", 256);
             for (int variant = 0; variant < kSoulfireFlameVariants; ++variant)
                 for (SoulfirePass pass : {SoulfirePass::Ground, SoulfirePass::Rear, SoulfirePass::Front})
                     load(soulfireLayerKey(variant, pass), 128);

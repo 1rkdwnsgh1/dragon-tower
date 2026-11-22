@@ -747,6 +747,25 @@ void Renderer::drawFrameCached(Graphics& g, const FrameCache::Source& src, float
     g.SetInterpolationMode(saved);
 }
 
+// Short ballistic debris rendered directly at the ground anchor.
+static void drawSoulfireDebris(Graphics& g, Vec2 anchor, float size, float progress, bool landing, int seed) {
+    if (progress < 0.f || progress >= 1.f || size <= 0.f) return;
+    const float fade = 1.f - progress;
+    const Color hue = landing ? Color(188, 172, 139) : Color(112, 244, 221);
+    for (int i = 0; i < 9; ++i) {
+        const int pattern = (i * 7 + seed * 3) % 11;
+        const float direction = i % 2 ? -1.f : 1.f;
+        const float spread = (0.11f + 0.036f * pattern) * size;
+        const float x = anchor.x + direction * spread * (0.14f + progress);
+        const float y = anchor.y - spread * 2.1f * progress * fade;
+        const float chip = size * (0.018f + 0.003f * (pattern % 4));
+        SolidBrush brush(Color(static_cast<BYTE>(185.f * fade), hue.GetR(), hue.GetG(), hue.GetB()));
+        PointF points[] = {{x - chip, y + chip * 0.3f}, {x + chip * direction, y - chip},
+                           {x + chip, y + chip * 0.45f}};
+        g.FillPolygon(&brush, points, 3);
+    }
+}
+
 void Renderer::drawDragon(Graphics& g, const DragonActor& d, const Sprites& sprites, float time, float x, float y,
                           float height, bool preview) {
     const bool soulfire = !preview && d.skillCast && d.skillCast->soulfireCastId;
@@ -788,7 +807,18 @@ void Renderer::drawDragon(Graphics& g, const DragonActor& d, const Sprites& spri
     // 그림자. 날고 있으면 작고 옅게 그려 공중에 떠 있는 것을 알린다.
     {
         float shrink = (!preview && d.flying) ? 0.6f : 1.f;
-        BYTE a = static_cast<BYTE>(70 * alpha * (shrink < 1.f ? 0.55f : 1.f));
+        if (soulfire) {
+            const SkillCast& cast = *d.skillCast;
+            const float flightEnd = cast.fxTime + kSoulfireBreathDuration;
+            const float landing = cast.lockTime - flightEnd;
+            shrink = 1.f - 2.2f * soulfireLift(cast.elapsed, cast.fxTime, landing, 1.f);
+            const float footY = y + (240.f / 256.f - 0.5f) * height;
+            const float push = (cast.elapsed / cast.fxTime - 0.44f) / 0.5f;
+            const float contact = ((cast.elapsed - flightEnd) / landing - 0.72f) / 0.28f;
+            drawSoulfireDebris(g, {x, footY}, height * 0.65f, push, true, 1);
+            drawSoulfireDebris(g, {x, footY}, height, contact, true, 2);
+        }
+        BYTE a = static_cast<BYTE>(70 * alpha * (soulfire ? shrink : (shrink < 1.f ? 0.55f : 1.f)));
         float w = height * 0.64f * shrink;
         SolidBrush sh2(Color(a, 0, 0, 0));
         g.FillEllipse(&sh2, x - w * 0.5f, y + height * 0.38f, w, height * 0.14f * shrink);
@@ -811,15 +841,28 @@ void Renderer::drawDragon(Graphics& g, const DragonActor& d, const Sprites& spri
             const float landing = cast.lockTime - flightEnd;
             cyAdj += (kAnchorFrac - kSoulfireFoot) * drawH -
                      soulfireLift(cast.elapsed, cast.fxTime, landing, height);
-            // Keep the takeoff and landing frames and loop only the ten-frame airborne pose.
-            t = cast.elapsed < cast.fxTime ? 2.f * cast.elapsed / cast.fxTime
-                : cast.elapsed < flightEnd ? 2.f + std::fmod(cast.elapsed - cast.fxTime, 1.f)
-                : 3.f + (cast.elapsed - flightEnd) / landing;
+            // Hold the loaded crouch, then drive through the launch in a quick stroke.
+            const float launch = std::clamp(cast.elapsed / cast.fxTime, 0.f, 1.f);
+            const float wing = std::fmod(std::max(0.f, cast.elapsed - cast.fxTime), 1.f);
+            const float stroke = wing < 0.36f ? wing * (0.6f / 0.36f)
+                                              : 0.6f + (wing - 0.36f) * (0.4f / 0.64f);
+            const float recovery = std::clamp((cast.elapsed - flightEnd) / landing, 0.f, 1.f);
+            t = cast.elapsed < cast.fxTime ? 2.f * launch * launch
+                : cast.elapsed < flightEnd ? 2.f + stroke
+                : 3.f + recovery;
         }
         if (soulfire)
             markRegion(RectF(x - drawH * 0.5f, cyAdj - drawH * 0.5f, drawH, drawH), 4.f);
         const int frame = breathing ? d.breath->bodyFrame(*breath) : animFrame(t, ad.fps, sh.frames, ad.loop);
+        // 불꽃은 본체와 같은 칸과 좌표계를 써서 날개 자세, 반전, 크기를 따라간다.
+        const auto drawWrap = [&](const char* key) {
+            const Sheet layer = sprites.fxSheet(sp.key, key);
+            if (layer.frames == sh.frames && layer.frameW == sh.frameW && layer.frameH == sh.frameH)
+                drawSheetFrame(g, layer, frame, x, cyAdj, drawH, flip, 0.f, alpha);
+        };
+        if (soulfire && skillAnim) drawWrap("soulfire_wrap_rear");
         drawSheetFrame(g, sh, frame, x, cyAdj, drawH, flip, flash, alpha);
+        if (soulfire && skillAnim) drawWrap("soulfire_wrap_front");
         return;
     }
 
@@ -1143,16 +1186,35 @@ void Renderer::drawWorld(Graphics& g, const Game& game, const Sprites& sprites, 
 void Renderer::drawSoulfire(Graphics& g, const World& w, const Sprites& sprites, SoulfirePass pass) {
     const DragonActor& dragon = w.dragon();
     const SpeciesDef& species = speciesDef(dragon.species);
-    if (pass == SoulfirePass::Ground) {
+    if (pass == SoulfirePass::Ground && dragon.skillCast && dragon.skillCast->soulfireCastId) {
+        const SkillCast& cast = *dragon.skillCast;
+        const SkillDef& skill = species.skills[cast.skill];
         if (const auto beam = w.soulfireBeam()) {
-            const SkillCast& cast = *dragon.skillCast;
-            const SkillDef& skill = species.skills[cast.skill];
             const Sheet impact = sprites.fxSheet(species.key, "soulfire_impact");
             const float h = w.skillRadius(skill) * skill.soulfireImpactScale;
             const float age = cast.elapsed - cast.fxTime;
+            const float sign = cast.facingLeft ? -1.f : 1.f;
             drawSheetFrame(g, impact, animFrame(age, 20.f, impact.frames, true),
-                           beam->ground.x + (0.5f - 440.f / 1024.f) * h,
-                           beam->ground.y + (0.5f - 700.f / 1024.f) * h, h, false, 0.f, 1.f);
+                           beam->ground.x + sign * (0.5f - 440.f / 1024.f) * h,
+                           beam->ground.y + (0.5f - 700.f / 1024.f) * h, h, cast.facingLeft, 0.f, 1.f);
+        }
+        for (const DotZone& zone : w.dots()) {
+            if (zone.soulfireCastId != cast.soulfireCastId) continue;
+            const float age = zone.duration - zone.remaining;
+            if (age < 0.f || age >= 0.31f) continue;
+            const float h = zone.radius * skill.soulfireImpactScale;
+            const float flash = std::max(0.f, 1.f - age / 0.095f);
+            if (flash > 0.f) {
+                for (int ring = 3; ring > 0; --ring) {
+                    const float halfWidth = h * (0.018f * ring + age * 0.25f);
+                    const float halfHeight = h * (0.003f * ring + age * 0.055f);
+                    SolidBrush glow(Color(static_cast<BYTE>(95.f * flash / ring), 167, 255, 227));
+                    g.FillEllipse(&glow, zone.pos.x - halfWidth, zone.pos.y - halfHeight,
+                                  2.f * halfWidth, 2.f * halfHeight);
+                }
+            }
+            drawSoulfireDebris(g, zone.pos, h * 0.42f, age / 0.31f, false,
+                               static_cast<int>(std::abs(zone.pos.x)));
         }
     }
     std::array<Sheet, kSoulfireFlameVariants> sheets{};
@@ -1165,6 +1227,22 @@ void Renderer::drawSoulfire(Graphics& g, const World& w, const Sprites& sprites,
             loaded = true;
         }
         const float age = zone.duration - zone.remaining;
+        if (pass == SoulfirePass::Ground && age > 0.f && zone.remaining > 0.f) {
+            // Stretch the low flame's ground texture across adjacent trail samples.
+            // Keep the narrow painted band around its (64, 108) ground anchor.
+            const Sheet& embers = sheets[3];
+            if (embers.bmp && embers.frames > 0) {
+                const int frame = animFrame(age, 12.f, embers.frames, true);
+                const int columns = embers.columns > 0 ? embers.columns : embers.frames;
+                const FrameCache::Source band{
+                    embers.bmp, embers.frameW * (frame % columns) + 38,
+                    embers.frameH * (frame / columns) + 102, 52, 12};
+                const float width = zone.radius * 0.50f;
+                const float height = zone.flameHeight * 0.22f;
+                const float fade = std::min({age / 0.15f, zone.remaining / 0.54f, 1.f});
+                drawFrameCached(g, band, zone.pos.x, zone.pos.y, width, height, false, 0.f, 0.52f * fade);
+            }
+        }
         for (const SoulfireFlame& flame : zone.flames) {
             const float local = age - flame.delay;
             if (local < 0.f) continue;
@@ -1172,8 +1250,9 @@ void Renderer::drawSoulfire(Graphics& g, const World& w, const Sprites& sprites,
             const bool eruption = flame.variant == 4;
             if (eruption && local >= eruptionDuration) continue;
             const float progress = eruption ? local / eruptionDuration : std::fmod(local, flame.cycle) / flame.cycle;
-            const float envelope = std::min({progress / 0.21f, (1.f - progress) / 0.24f,
-                                             zone.remaining / 0.35f, 1.f});
+            const float cycleEnvelope = std::min({progress / 0.18f, (1.f - progress) / 0.21f, 1.f});
+            const float flicker = flame.variant == 3 ? 0.48f + 0.52f * cycleEnvelope : cycleEnvelope;
+            const float envelope = flicker * std::min({local / 0.13f, zone.remaining / 0.44f, 1.f});
             if (envelope <= 0.f) continue;
             const Sheet& sheet = sheets[flame.variant];
             const int frame = static_cast<int>(progress * sheet.frames);
@@ -1196,19 +1275,37 @@ void Renderer::drawSoulfireBreath(Graphics& g, const World& w, const Sprites& sp
     const Sheet sheet = sprites.fxSheet(species.key, "soulfire_beam");
     if (!sheet.bmp || sheet.frames <= 0) return;
 
-    const Vec2 aim = beam->ground - beam->mouth;
+    const float body = cfg::kDragonRadius * 3.f * w.sizeScale() * skill.motionAnim.renderScale;
+    const float sign = cast.facingLeft ? -1.f : 1.f;
+    // The attack cells share one jaw pose. Seat the bright core inside its opening.
+    const Vec2 mouth = beam->mouth + Vec2{sign * body / 256.f, 3.f * body / 256.f};
+    const Vec2 aim = beam->ground - mouth;
     const float angle = std::atan2(aim.y, aim.x) * 180.f / kPi;
     const float height = aim.length() / 0.75f;
     const bool left = cast.facingLeft;
     constexpr float centerOffset = 0.5f - 160.f / 1024.f;
     const GraphicsState state = g.Save();
-    g.TranslateTransform(beam->mouth.x, beam->mouth.y);
+    g.TranslateTransform(mouth.x, mouth.y);
     g.RotateTransform(angle);
     g.ScaleTransform(1.f, skill.soulfireWidth);
     g.RotateTransform(left ? -125.f : -55.f);
-    drawSheetFrame(g, sheet, animFrame(cast.elapsed - cast.fxTime, 20.f, sheet.frames, true),
+    const float age = cast.elapsed - cast.fxTime;
+    drawSheetFrame(g, sheet, animFrame(age, 20.f, sheet.frames, true),
                    (left ? -1.f : 1.f) * centerOffset * height, centerOffset * height, height, left, 0.f, 0.83f);
     g.Restore(state);
+
+    const Vec2 normal{-aim.y, aim.x};
+    for (int i = 0; i < 12; ++i) {
+        const float phase = std::fmod(age * (1.7f + 0.23f * (i % 4)) + i * 0.381966f, 1.f);
+        const float length = 0.035f + 0.017f * (i % 3);
+        const float spread = 0.045f * phase * skill.soulfireWidth;
+        const float curl = std::sin(phase * 12.f + i * 2.4f);
+        const Vec2 tip = mouth + aim * phase + normal * (spread * curl);
+        const Vec2 tail = tip - aim * std::min(phase, length) - normal * (spread * 0.28f);
+        const float fade = std::min({phase * 12.f, (1.f - phase) * 8.f, 1.f});
+        Pen streak(Color(static_cast<BYTE>(165.f * fade), 159, 255, 230), std::max(0.65f, body * 0.012f));
+        g.DrawLine(&streak, tail.x, tail.y, tip.x, tip.y);
+    }
 }
 
 void Renderer::drawDotZones(Graphics& g, const World& w, const Sprites& sprites, float time) {
