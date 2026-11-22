@@ -807,12 +807,14 @@ void Renderer::drawDragon(Graphics& g, const DragonActor& d, const Sprites& spri
             const SkillCast& cast = *d.skillCast;
             flip = sp.flipAllowed && cast.facingLeft;
             x += (flip ? -1.f : 1.f) * kSoulfireBodyOffsetX * height;
-            cyAdj += (kAnchorFrac - kSoulfireFoot) * drawH - soulfireLift(cast.elapsed, cast.fxTime, height);
-            // Keep the takeoff frames and loop only the ten-frame airborne pose.
             const float flightEnd = cast.fxTime + kSoulfireBreathDuration;
+            const float landing = cast.lockTime - flightEnd;
+            cyAdj += (kAnchorFrac - kSoulfireFoot) * drawH -
+                     soulfireLift(cast.elapsed, cast.fxTime, landing, height);
+            // Keep the takeoff and landing frames and loop only the ten-frame airborne pose.
             t = cast.elapsed < cast.fxTime ? 2.f * cast.elapsed / cast.fxTime
                 : cast.elapsed < flightEnd ? 2.f + std::fmod(cast.elapsed - cast.fxTime, 1.f)
-                : 3.f + cast.elapsed - flightEnd;
+                : 3.f + (cast.elapsed - flightEnd) / landing;
         }
         if (soulfire)
             markRegion(RectF(x - drawH * 0.5f, cyAdj - drawH * 0.5f, drawH, drawH), 4.f);

@@ -131,6 +131,8 @@ void World::updateDragonAnim(float dt, bool allowForcedMotion) {
     DragonActor& d = dragon_;
     d.animTime += dt;
     d.animHold = std::max(0.f, d.animHold - dt);
+    if (d.skillCast && d.skillCast->soulfireCastId)
+        d.animHold = std::max(0.f, d.skillCast->lockTime - d.skillCast->elapsed);
     if (allowForcedMotion && d.animForced && d.alive && !d.held && !confining_ && !d.landing &&
         d.dashTime <= 0.f && d.animHold <= 0.f) {
         d.skillMotion = -1;
@@ -614,7 +616,7 @@ bool World::castSkill(int i, bool aiChoice) {
                 cast.soulfireCastId = nextSoulfireCastId_++;
                 cast.facingLeft = d.facing.x < 0.f;
                 cast.fxTime = s.soulfireTakeoff;
-                cast.lockTime = cast.fxTime + kSoulfireBreathDuration + kSoulfireRecovery;
+                cast.lockTime = cast.fxTime + kSoulfireBreathDuration + s.soulfireLanding;
                 d.skillCast = cast;
                 d.facing = {cast.facingLeft ? -1.f : 1.f, 0.f};
                 d.moving = false;
@@ -871,7 +873,10 @@ void World::advanceSkillCast(float dt, bool combatEnded) {
     constexpr float epsilon = 1e-6f;
     if (c.soulfireCastId) {
         advanceSoulfire(c, s, previous);
-        if (c.elapsed + epsilon >= c.lockTime) d.skillCast.reset();
+        if (c.elapsed + epsilon >= c.lockTime) {
+            d.animHold = 0.f;
+            d.skillCast.reset();
+        }
         return;
     }
     if (!c.fxDone && c.elapsed + epsilon >= c.fxTime) {
@@ -885,10 +890,9 @@ void World::advanceSkillCast(float dt, bool combatEnded) {
     if (c.fxDone && c.hitDone && c.elapsed + epsilon >= c.lockTime) d.skillCast.reset();
 }
 
-float soulfireLift(float elapsed, float takeoff, float bodyHeight) {
+float soulfireLift(float elapsed, float takeoff, float landing, float bodyHeight) {
     const float rise = std::clamp((elapsed - takeoff * 0.4f) / (takeoff * 0.6f), 0.f, 1.f);
-    const float land = std::clamp((takeoff + kSoulfireBreathDuration + kSoulfireRecovery - elapsed) /
-                                  kSoulfireRecovery, 0.f, 1.f);
+    const float land = 1.f - std::clamp((elapsed - takeoff - kSoulfireBreathDuration) / landing, 0.f, 1.f);
     return bodyHeight * 0.18f * rise * land;
 }
 
@@ -909,7 +913,7 @@ std::optional<SoulfireBeam> World::soulfireBeamAt(Vec2 position, const SkillCast
     const Vec2 mouth{position.x + sign * (kSoulfireBodyOffsetX * baseBody +
                                          (s.soulfireMouthX - 0.5f) * body),
                      position.y + cfg::kDragonRadius + (s.soulfireMouthY - kSoulfireFoot) * body -
-                     soulfireLift(cast.fxTime, cast.fxTime, baseBody)};
+                     soulfireLift(cast.fxTime, cast.fxTime, s.soulfireLanding, baseBody)};
     const float reach = (groundY - mouth.y) / std::tan(s.soulfireAngle * kPi / 180.f);
     const float groundX = mouth.x + sign * reach;
     if (groundX < bounds_.x || groundX > bounds_.right()) return std::nullopt;

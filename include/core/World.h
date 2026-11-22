@@ -133,14 +133,13 @@ inline constexpr float kSoulfireFoot = 221.f / 256.f;
 inline constexpr float kSoulfireBodyOffsetX = 0.142f;
 inline constexpr float kSoulfireBreathDuration = 2.f;
 inline constexpr float kSoulfireTrailSpacing = 34.f;
-inline constexpr float kSoulfireRecovery = 1.f;
 
 struct SoulfireBeam {
     Vec2 mouth;
     Vec2 ground;
 };
 
-float soulfireLift(float elapsed, float takeoff, float bodyHeight);
+float soulfireLift(float elapsed, float takeoff, float landing, float bodyHeight);
 inline constexpr int kSoulfireFlameVariants = 6;
 inline constexpr int kSoulfireFlameCount = 15;
 

@@ -3691,7 +3691,7 @@ static void testNetherSoulfire(const std::filesystem::path& assets) {
 
     const float takeoff = def.soulfireTakeoff;
     const float firstContact = takeoff + 0.01f;
-    const float landing = takeoff + kSoulfireBreathDuration + kSoulfireRecovery;
+    const float landing = takeoff + kSoulfireBreathDuration + def.soulfireLanding;
     World locked = setup(8);
     locked.updateCombat(0.f, CombatMode::Direct, hotkey);
     CHECK(!locked.dragon().skillCast);
@@ -3714,7 +3714,7 @@ static void testNetherSoulfire(const std::filesystem::path& assets) {
     CHECK(world.dots().front().flames.size() == 15);
     CHECK(world.dots().front().radius == def.radius);
     CHECK(std::fabs(def.soulfireWidth - 0.44f * 3.f) < 0.001f);
-    CHECK(takeoff < 0.3f);
+    CHECK(std::fabs(takeoff - 0.4f) < 0.001f && std::fabs(def.soulfireLanding - 0.4f) < 0.001f);
     Enemy& enemy = world.spawnEnemy(defaultMelee(), 1, {first.x + 30.f, 300.f});
     enemy.hp = enemy.maxHp = 2000.f;
     enemy.stun = 100.f;
@@ -3733,7 +3733,9 @@ static void testNetherSoulfire(const std::filesystem::path& assets) {
     const float v2Distance = world.dragon().stats.speed * cfg::kIdleFlySpeed * 0.8f;
     CHECK(std::fabs(world.dragon().pos.x - 600.f - 2.5f * v2Distance) < 0.01f);
     CHECK(!world.soulfireBeam() && !world.dots().empty());
-    step(world, kSoulfireRecovery);
+    step(world, def.soulfireLanding - 0.03f);
+    CHECK(world.dragon().skillCast && world.dragon().skillMotion == skill && world.dragon().anim == AnimState::Attack);
+    step(world, 0.03f);
     CHECK(!world.dragon().skillCast && !world.dragon().moving && world.dragon().skillMotion == -1);
     CHECK(!world.dots().empty());
     world.updateFx(0.f, true);

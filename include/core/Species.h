@@ -121,7 +121,8 @@ struct SkillDef {
     float fxTail = 0.f;
     float fxDelay = 0.f;  // Seconds from the triggering event to the visual effect.
     bool soulfire = false;
-    float soulfireTakeoff = 0.27f;
+    float soulfireTakeoff = 0.4f;
+    float soulfireLanding = 0.4f;
     float soulfireAngle = 55.f;
     float soulfireWidth = 1.32f;
     float soulfireMouthX = 764.f / 1024.f;
