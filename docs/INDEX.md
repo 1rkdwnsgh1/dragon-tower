@@ -29,6 +29,7 @@
 | **결정이 이미 있는지 확인** | [decisions.md](decisions.md) ← **작업 시작 전에 본다** |
 | **버그 고치기** | [known-issues.md](known-issues.md) → [codemap.md](codemap.md) 해당 줄 |
 | **망령룡 작업** | [characters/revenant-dragon.md](characters/revenant-dragon.md) → [characters/revenant-dragon-progress.md](characters/revenant-dragon-progress.md) |
+| **망계의 업화 기획·원본 에셋** | [characters/revenant-dragon-nether-soulfire.md](characters/revenant-dragon-nether-soulfire.md) |
 | **망령룡 스킬 그림 고르기** | [characters/revenant-dragon-skill-concepts.md](characters/revenant-dragon-skill-concepts.md) |
 | **토큰·왕복 줄이기** | [token-budget.md](token-budget.md) |
 | **팀원에게 AI 지침 전달** | [team-ai-prompt.md](team-ai-prompt.md) |
@@ -56,6 +57,7 @@
 - [team-ai-prompt.md](team-ai-prompt.md) — 팀원 AI 에 붙여넣는 요약
 - 드래곤별 기획: [characters/revenant-dragon.md](characters/revenant-dragon.md) (망령룡 외형·제작 방향) ·
   [characters/revenant-dragon-skills-v1.md](characters/revenant-dragon-skills-v1.md) (스킬 V1, 승인 대기) ·
+  [characters/revenant-dragon-nether-soulfire.md](characters/revenant-dragon-nether-soulfire.md) (망계의 업화 기획·원본 에셋) ·
   [characters/revenant-dragon-progress.md](characters/revenant-dragon-progress.md) (제작 진행) ·
   [characters/revenant-dragon-skill-concepts.md](characters/revenant-dragon-skill-concepts.md)
   (추가 스킬 콘셉트 60종 목록과 시각 선호 — **제작 승인·스킬 확정 아님**)
