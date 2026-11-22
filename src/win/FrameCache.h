@@ -59,6 +59,8 @@ public:
     void prefetch(const Source& src, int devW, int devH, bool flip, float flash, Gdiplus::InterpolationMode interp);
     // 잘라 둔 칸(키운 그림이 아직 없을 때 대신 그린다). 자를 수 없으면 nullptr.
     Gdiplus::Bitmap* cell(const Source& src);
+    // Bounds of visible pixels in a cached cell, with a one-pixel filter border.
+    Source visibleCell(const Source& src);
 
     // 뒤 스레드를 멈추고 전부 버린다. GDI+ 를 끄기 전에 부른다.
     void shutdown();
@@ -90,6 +92,8 @@ private:
         std::unique_ptr<Gdiplus::Bitmap> bmp;
         uint64_t lastUsed = 0;
         size_t bytes = 0;
+        Gdiplus::Rect visible{};
+        bool measured = false;
     };
     struct Job {
         FrameKey key;
