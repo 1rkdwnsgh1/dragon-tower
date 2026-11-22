@@ -5,7 +5,7 @@
 
 작업을 끝낼 때 이 문서를 같은 PR 에서 고친다. **낡은 상태 문서는 없는 것보다 해롭다.**
 
-최종 갱신: 2026-11-22 (망령룡 망계의 업화 V6 비행 불꽃)
+최종 갱신: 2026-11-22 (망령룡 망계의 업화 V5 지면 연결)
 
 ---
 
@@ -20,7 +20,7 @@
 | 이전 병합 | 그림 캐시 #105, 망령룡 영혼·궁극기 #106 |
 | 알려진 문제 | **1건** — [known-issues.md](known-issues.md) 4번 `make_sheet.py` 가 칸을 꽉 채우는 그림에 안 맞는다(우회 있음). 1~3번은 고쳤다 ([#77](https://github.com/1rkdwnsgh1/dragon-tower/issues/77) → #82, [#78](https://github.com/1rkdwnsgh1/dragon-tower/issues/78) → #80, [#79](https://github.com/1rkdwnsgh1/dragon-tower/issues/79) → #83). **Windows 확인 59~78번과 그림자 가르기 타격 프레임 4개가 남아 있다** |
 
-- 망계의 업화 V6은 V5 지면 연결을 복원하고 흉부에서 점화해 날개와 몸통을 감싸는 전후면 화염을 추가했다. [진행 기록](characters/revenant-dragon-progress.md#망계의-업화-v6-비행-불꽃)과 [Windows 실전 확인 항목](windows-checklist.md#망계의-업화)을 참고한다.
+- 망계의 업화는 V5 Ground Continuity를 적용한다. [지면 연결 기록](characters/revenant-dragon-progress.md#망계의-업화-v5-지속-화염-연결)과 [Windows 실전 확인 항목](windows-checklist.md#망계의-업화)을 참고한다.
 - 망령룡 `skill.9` 망계의 업화에 전용 본체를 대기 골격 크기에 맞춰 1.26배 보정하고, 바닥과 입 앵커를 본체와 동일한 변환에 맞췄다. V4의 크기 연동과 지속 화염 밀도를 유지한다. 도약·착지는 각각 0.4초다. [임시 수치와 에셋](characters/revenant-dragon-skills-v1.md#망계의-업화-구현-검수값)과 [Windows 체크리스트](windows-checklist.md#망계의-업화)를 참고한다.
 - 제작 중인 캐릭터 모션과 스킬은 [미리보기 도구](character-pipeline.md#모션과-스킬-미리보기)에서 확인할 수 있다.
 - 저주의 안개 V2(#101)는 PNG 50칸을 장판 수명 5초에 맞춰 재생한다. #99·#100에서 같은 장판의 저주 중첩과 적 머리 위 표시를 통합했다. [망령룡 제작 진행사항](characters/revenant-dragon-progress.md)

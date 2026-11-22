@@ -854,15 +854,7 @@ void Renderer::drawDragon(Graphics& g, const DragonActor& d, const Sprites& spri
         if (soulfire)
             markRegion(RectF(x - drawH * 0.5f, cyAdj - drawH * 0.5f, drawH, drawH), 4.f);
         const int frame = breathing ? d.breath->bodyFrame(*breath) : animFrame(t, ad.fps, sh.frames, ad.loop);
-        // 불꽃은 본체와 같은 칸과 좌표계를 써서 날개 자세, 반전, 크기를 따라간다.
-        const auto drawWrap = [&](const char* key) {
-            const Sheet layer = sprites.fxSheet(sp.key, key);
-            if (layer.frames == sh.frames && layer.frameW == sh.frameW && layer.frameH == sh.frameH)
-                drawSheetFrame(g, layer, frame, x, cyAdj, drawH, flip, 0.f, alpha);
-        };
-        if (soulfire && skillAnim) drawWrap("soulfire_wrap_rear");
         drawSheetFrame(g, sh, frame, x, cyAdj, drawH, flip, flash, alpha);
-        if (soulfire && skillAnim) drawWrap("soulfire_wrap_front");
         return;
     }
 

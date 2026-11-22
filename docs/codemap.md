@@ -58,7 +58,7 @@ tests/                     코어 규칙 검증
 | 띠로 날아 내려가기 | `src/core/World.cpp` | `beginConfine`, `confining_` |
 | 입력 받을 영역 수집 | `src/win/Renderer.cpp` | `markRegion`, `g_regions` |
 | 장판 그림과 기본 도형 | `src/win/Renderer.cpp`, `src/core/World.cpp` | `drawDotZones`, `DotZone::spriteSkill`, `fx_zone_sprite_only` |
-| 망계의 업화 연출 | `src/win/Renderer.cpp` | `drawDragon`에서 본체와 같은 칸의 전후면 불꽃 합성, `drawSoulfireBreath`에서 하향 브레스, `drawSoulfire`에서 충돌·지면 연결·독립 화염 |
+| 망계의 업화 연출 | `src/win/Renderer.cpp` | `drawDragon`에서 도약·비행·착지 본체 모션, `drawSoulfireBreath`에서 하향 브레스, `drawSoulfire`에서 충돌·지면 연결·독립 화염 |
 | 트레이 아이콘·메뉴 | `src/win/App.cpp` | `createTray`, `showTrayMenu` |
 | 트레이 풍선 알림 | `src/win/App.cpp` | `showBalloon`, `pumpAlerts` |
 | 중요한 일 알림 모으기 | `src/core/Game.cpp` | `alert`, `takeAlert` |
