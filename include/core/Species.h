@@ -148,6 +148,7 @@ struct SkillDef {
     // ---- 2026-11-18: 타격 프레임 (그림자룡 가르기로 처음 검증) ----
     // 피해를 시전 순간이 아니라 본체 모션의 정해진 프레임에 준다. 효과도 정해진 프레임에
     // 본체의 정해진 자리(앞발 등)에 붙여 띄운다. 지금은 Line(숨결 제외)에서만 쓴다.
+    bool spectralCleave = false;
     int hitFrame = 0;      // hit_frame= 몇 번째(1부터) 모션 프레임에 피해를 주는가. 0이면 예전처럼 즉시
     int fxFrame = 0;       // fx_frame= 효과를 띄우는 프레임. 0이면 hit_frame 과 같다
     int motionFrames = 0;  // motion_frames= 모션 프레임 수. 끝까지 자세를 유지하는 데 쓴다(0이면 기본 유지 시간)

@@ -78,6 +78,7 @@ private:
     std::wstring details_;
     std::unique_ptr<Bitmap> buffer_;
     Vec2 target_;
+    EnemyKind cleaveTargetKind_{};
     bool playing_ = false;
     float time_ = 0.f;
     float duration_ = 1.f;
@@ -217,7 +218,14 @@ bool PreviewWindow::load(const fs::path& path) {
     const bool resume = !sameFolder || playing_;
     const auto name = dir.filename().u8string();
     auto parsed = parseDragonText(contents, name.empty() ? "preview" : name, nullptr);
-    sprites_.loadPreviewDragon(dir, parsed.def);
+    const EnemyDef* targetArt = nullptr;
+    if (std::any_of(parsed.def.skills.begin(), parsed.def.skills.end(),
+                    [](const SkillDef& sk) { return sk.spectralCleave; })) {
+        loadEnemyFolders(dir.parent_path().parent_path() / "enemies");
+        if (!enemyFromKey("goblin", cleaveTargetKind_)) cleaveTargetKind_ = defaultMelee();
+        targetArt = &enemyDef(cleaveTargetKind_);
+    }
+    sprites_.loadPreviewDragon(dir, parsed.def, targetArt);
     species_ = registerOrUpdateSpecies(parsed.def);
     warnings_ = std::move(parsed.warnings);
     warnings_.insert(warnings_.end(), sprites_.warnings().begin(), sprites_.warnings().end());
@@ -279,8 +287,14 @@ void PreviewWindow::reset() {
     target_ = origin + Vec2{direction * std::cos(aim), -std::sin(aim)} * distance;
     // 고정 표적에 생존과 무행동만 설정하고 스킬 발동은 게임의 수동 입력 경로를 쓴다.
     if (!sk->soulfire) {
-        Enemy& target = world_.spawnEnemy(defaultMelee(), 1, target_);
-        target.radius = 8.f;
+        if (sk->spectralCleave) {
+            target_.x = origin.x + direction * std::clamp(sk->range * 0.55f * captureScale_, 58.f, 290.f);
+            target_.y = kFloorY - enemyDef(cleaveTargetKind_).radius;
+        }
+        const EnemyKind kind = sk->spectralCleave ? cleaveTargetKind_ : defaultMelee();
+        Enemy& target = world_.spawnEnemy(kind, 1, target_, !sk->spectralCleave);
+        if (sk->spectralCleave) target.facing = -direction;
+        else target.radius = 8.f;
         target.hp = target.maxHp = 1e20f;
         target.stun = 10000.f;
     }
@@ -305,6 +319,8 @@ void PreviewWindow::reset() {
     duration_ = std::max(1.f, dragon.animHold);
     if (dragon.skillCast && dragon.skillCast->soulfireCastId)
         duration_ = std::max(duration_, dragon.skillCast->fxTime + kSoulfireBreathDuration + sk->duration);
+    if (dragon.skillCast && sk->spectralCleave)
+        duration_ = std::max(duration_, dragon.skillCast->hitTime + kCleaveFlight + std::max(kCleaveTail, kCleaveImpactDuration));
     if (const auto& procession = dragon.procession; procession)
         duration_ = ProcessionCast::maxDuration(*sk, procession->flightLimit);
     const auto& breath = dragon.breath;
@@ -505,7 +521,7 @@ bool PreviewWindow::saveCapture(const fs::path& file, const Enemy* enemy, AnimSt
         canvas.ScaleTransform(camera, camera);
         canvas.TranslateTransform(-kWorldWidth * 0.5f, -kFloorY);
         if (enemy) renderer_.drawEnemyPreview(canvas, *enemy, sprites_, state, time, scale);
-        else renderer_.drawAnimationPreview(canvas, world_, sprites_, time, layer != 2, layer != 1, scale);
+        else renderer_.drawAnimationPreview(canvas, world_, sprites_, time, layer != 2, layer != 1, scale, sk && sk->spectralCleave);
     }
     CLSID png{};
     if (FAILED(CLSIDFromString(L"{557CF406-1A04-11D3-9A73-0000F81EF32E}", &png))) return false;
@@ -622,14 +638,14 @@ void PreviewWindow::paint() {
                     ground.SetDashStyle(DashStyleDash);
                     canvas.DrawLine(&ground, -kWorldWidth, kFloorY, 2.f * kWorldWidth, kFloorY);
                 }
-                if (skill()) {
+                if (skill() && !skill()->spectralCleave) {
                     Pen target(dark ? Color(216, 225, 239) : Color(70, 80, 99), 1.4f / scale);
                     canvas.DrawEllipse(&target, target_.x - 8.f, target_.y - 8.f, 16.f, 16.f);
                     canvas.DrawLine(&target, target_.x - 13.f, target_.y, target_.x + 13.f, target_.y);
                     canvas.DrawLine(&target, target_.x, target_.y - 13.f, target_.x, target_.y + 13.f);
                 }
                 renderer_.drawAnimationPreview(canvas, world_, sprites_, time_, selected(Layer) != 2,
-                                               selected(Layer) != 1);
+                                               selected(Layer) != 1, 1.f, skill() && skill()->spectralCleave);
             }
         }
         Graphics screen(dc);

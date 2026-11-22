@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <cmath>
 #include <cstdio>
+#include <string_view>
 
 #include "FrameProfiler.h"
 #include "Platform.h"
@@ -969,12 +970,33 @@ void Renderer::drawDragon(Graphics& g, const DragonActor& d, const Sprites& spri
                 : cast.elapsed < flightEnd ? 2.f + stroke
                 : 3.f + recovery;
         }
+        const SkillCast* cleave = !preview && d.skillCast && d.skillCast->skill >= 0 &&
+                d.skillCast->skill < static_cast<int>(sp.skills.size()) &&
+                skillAnim && sp.skills[d.skillCast->skill].spectralCleave ? &*d.skillCast : nullptr;
+        if (cleave) {
+            t = cleave->elapsed;
+            flip = sp.flipAllowed && cleave->facingLeft;
+        }
         if (soulfire)
             markRegion(RectF(x - drawH * 0.5f, cyAdj - drawH * 0.5f, drawH, drawH), 4.f);
         const int frame = breathing ? d.breath->bodyFrame(*breath) : animFrame(t, ad.fps, sh.frames, ad.loop);
         if (soulfire && skillAnim && effects)
             drawSoulfireBodyVfx(g, d, sprites, sp.key, frame, {x, cyAdj}, drawH, flip, false);
+        const auto drawCleaveCast = [&](const char* layer) {
+            const SkillDef& skill = sp.skills[cleave->skill];
+            const Sheet sheet = sprites.fxSheet(sp.key, skill.fx + layer);
+            // The FX canvas is 360 logical pixels centered on the 256px motion cell.
+            drawSheetFrame(g, sheet, frame, x, cyAdj, drawH * (360.f / 256.f), flip, 0.f, alpha);
+            return sheet.bmp != nullptr;
+        };
+        if (cleave && effects && !drawCleaveCast("_cast_rear") && t >= cleave->fxTime && t < cleave->hitTime) {
+            const SkillDef& skill = sp.skills[cleave->skill];
+            const Sheet swing = sprites.fxSheet(sp.key, skill.fx + "_swing");
+            drawSheetFrame(g, swing, animFrame(t - cleave->fxTime, skill.fxAnim.fps, swing.frames, false),
+                           x, cyAdj, drawH, flip, 0.f, alpha);
+        }
         if (showBody) drawSheetFrame(g, sh, frame, x, cyAdj, drawH, flip, flash, alpha);
+        if (cleave && effects) drawCleaveCast("_cast_front");
         if (soulfire && skillAnim && effects)
             drawSoulfireBodyVfx(g, d, sprites, sp.key, frame, {x, cyAdj}, drawH, flip, true);
         return;
@@ -1232,15 +1254,18 @@ void Renderer::drawWorld(Graphics& g, const Game& game, const Sprites& sprites, 
     const bool layeredFlames = std::any_of(w.dots().begin(), w.dots().end(),
                                          [](const DotZone& zone) { return !zone.flames.empty(); });
     std::vector<EnemyHealthLabel> health;
+    const bool cleaveImpact = std::any_of(w.fx().begin(), w.fx().end(),
+                                         [](const Fx& f) { return f.type == FxType::CleaveImpact; });
+    const bool deferHealth = layeredFlames || cleaveImpact;
+    if (deferHealth) health.reserve(w.enemies().size());
+    if (cleaveImpact) drawCleaveImpacts(g, w, sprites, false);
     if (layeredFlames) {
-        health.reserve(w.enemies().size());
         drawSoulfire(g, w, sprites, SoulfirePass::Rear);
     }
-    for (const Enemy& e : w.enemies()) drawEnemy(g, e, sprites, time, cs, nullptr, layeredFlames ? &health : nullptr);
-    if (layeredFlames) {
-        drawSoulfire(g, w, sprites, SoulfirePass::Front);
-        for (const EnemyHealthLabel& label : health) drawEnemyHealth(g, label);
-    }
+    for (const Enemy& e : w.enemies()) drawEnemy(g, e, sprites, time, cs, nullptr, deferHealth ? &health : nullptr);
+    if (layeredFlames) drawSoulfire(g, w, sprites, SoulfirePass::Front);
+    if (cleaveImpact) drawCleaveImpacts(g, w, sprites, true);
+    for (const EnemyHealthLabel& label : health) drawEnemyHealth(g, label);
 
     // v1.6: 본체 뒤 효과(fx_front=0)를 드래곤보다 먼저 그린다.
     // 지금은 fx= 를 적은 스킬이 하나도 없어서 이 층에 걸리는 효과가 없다 — 화면은 그대로다.
@@ -1537,6 +1562,18 @@ void Renderer::drawProjectiles(Graphics& g, const World& w, const Sprites& sprit
         // 시트가 없거나 스킬을 못 찾으면 전과 똑같이 동그라미로 그린다.
         const SkillDef* ps = (p.skill >= 0 && p.skill < static_cast<int>(dragonSp.skills.size()))
                                  ? &dragonSp.skills[static_cast<size_t>(p.skill)] : nullptr;
+        if (p.cleave && ps) {
+            const float height = cfg::kDragonRadius * 3.f * p.cleave->scale * ps->fxScale;
+            for (const char* layer : {"fragments", "membrane", "edge"}) {
+                const bool fragments = std::string_view(layer) == "fragments";
+                if (!fragments && p.t >= kCleaveFlight) continue;
+                const Sheet sheet = sprites.fxSheet(dragonSp.key, ps->fx + "_" + layer);
+                if (!sheet.bmp) continue;
+                drawSheetFrame(g, sheet, animFrame(p.t, ps->fxAnim.fps, sheet.frames, false),
+                               p.pos.x, p.pos.y, height, p.cleave->direction < 0.f, 0.f, 1.f);
+            }
+            continue;
+        }
         if (ps && !ps->fx.empty()) {
             Sheet sh = sprites.fxSheet(dragonSp.key, ps->fx);
             if (sh.bmp && sh.frames > 0 && sh.frameH > 0) {
@@ -1566,8 +1603,18 @@ void Renderer::drawEnemyPreview(Graphics& g, const Enemy& enemy, const Sprites& 
     drawEnemy(g, enemy, sprites, time, charScale, &state);
 }
 
+void Renderer::drawCleaveImpacts(Graphics& g, const World& w, const Sprites& sprites, bool front) {
+    const SpeciesDef& species = speciesDef(w.dragon().species);
+    for (const Fx& f : w.fx()) {
+        if (f.type != FxType::CleaveImpact || f.t < 0.f) continue;
+        const Sheet sheet = sprites.fxSheet(species.key, f.key + (front ? "_hit_front" : "_hit_rear"));
+        drawSheetFrame(g, sheet, animFrame(f.t, kCleaveImpactFps, sheet.frames, false),
+                       f.a.x, f.a.y, f.radius * 1.55f, f.b.x < f.a.x, 0.f, 1.f);
+    }
+}
+
 void Renderer::drawAnimationPreview(Graphics& g, const World& w, const Sprites& sprites,
-                                    float time, bool body, bool effects, float charScale) {
+                                    float time, bool body, bool effects, float charScale, bool cleaveTarget) {
     frameCache_.beginFrame(sprites.generation());
     const DragonActor& d = w.dragon();
     const SpeciesDef& species = speciesDef(d.species);
@@ -1580,7 +1627,22 @@ void Renderer::drawAnimationPreview(Graphics& g, const World& w, const Sprites& 
         drawFx(g, w, sprites, species, charScale, false);
         drawBreath(g, d, sprites, charScale);
     }
-    if (body || (effects && d.skillCast && d.skillCast->soulfireCastId)) {
+    if (cleaveTarget) {
+        if (effects) drawCleaveImpacts(g, w, sprites, false);
+        if (body) {
+            // Suppress the HUD in the capture while reusing the game's enemy renderer.
+            std::vector<EnemyHealthLabel> health;
+            for (const Enemy& e : w.enemies()) {
+                Enemy target = e;
+                target.stun = 0.f;
+                const AnimState state = e.hitFlash > 0.f ? AnimState::Hit : AnimState::Idle;
+                drawEnemy(g, target, sprites, time, charScale, &state, &health);
+            }
+        }
+        if (effects) drawCleaveImpacts(g, w, sprites, true);
+    }
+    if (body || (effects && d.skillCast && (d.skillCast->soulfireCastId ||
+            species.skills[d.skillCast->skill].spectralCleave))) {
         const float height = cfg::kDragonRadius * 3.f * charScale;
         const float cy = d.pos.y + cfg::kDragonRadius - (240.f / 256.f - 0.5f) * height;
         drawDragon(g, d, sprites, time, d.pos.x, cy, height, false, body, effects);
@@ -1795,7 +1857,7 @@ void Renderer::warmBreathCache(Graphics& g, const World& w, const Sprites& sprit
 void Renderer::drawFx(Graphics& g, const World& w, const Sprites& sprites, const SpeciesDef& sp, float charScale,
                       bool inFront) {
     for (const Fx& f : w.fx()) {
-        if (f.t < 0.f) continue;
+        if (f.t < 0.f || f.type == FxType::CleaveImpact) continue;
         if (f.inFront != inFront) continue;  // 이 층이 아니다
         // v1.6: 시트가 있으면 스프라이트로 그리고, 없으면 아래 도형 분기로 내려간다.
         if (!f.key.empty() && drawFxSheet(g, f, sprites, sp, charScale)) continue;
