@@ -120,6 +120,7 @@ struct SkillDef {
     float fxHold = 0.f;
     float fxTail = 0.f;
     float fxDelay = 0.f;  // Seconds from the triggering event to the visual effect.
+    bool soulfire = false;  // Zone with a dedicated airborne cast and layered ground flames.
     bool fxZoneSpriteOnly = false;  // Render the zone's sheet on the zone's own clock.
     bool grantsSoul = false;  // Opt-in for Revenant's on-kill passive.
     // 궁극기(2026-11-20): 장착 칸 4개와 따로 쓰는 전용 칸. 키 5·상태창 아이콘 클릭으로 쓰고, 자동 모드는 AI 가 쓴다.

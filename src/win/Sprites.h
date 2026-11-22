@@ -15,6 +15,9 @@
 
 namespace dt::win {
 
+enum class SoulfirePass { Ground, Rear, Front };
+const std::string& soulfireLayerKey(int variant, SoulfirePass pass);
+
 // 조각을 목적지에 맞추는 방법. 그림 종류마다 다르다.
 //  Nine   — 9조각. 네 모서리를 지키고 가장자리·가운데만 늘린다. 큰 창틀용.
 //  Height — 높이를 목적지에 맞춰 통째로 줄이고 가로만 늘린다. 세로로 눌리지 않는다.

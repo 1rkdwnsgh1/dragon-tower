@@ -183,3 +183,8 @@ cmake -S . -B build && cmake --build build -j && ctest --test-dir build --output
 
 Linux에서도 코어 규칙은 전부 빌드·테스트된다(`tests/core_tests.cpp`).
 Windows 실행 파일은 GitHub Actions의 `build`가 만든다. 실제 창 동작은 사람이 직접 확인한다.
+
+
+### 망계의 업화
+
+`DragonData.cpp`의 `soulfire`는 `World.cpp`에서 장판 스킬의 지연 시전을 선택한다. 시전은 `SkillCast`, 발동 후 지속 피해와 6개 불꽃은 `DotZone`이 관리한다. `Sprites.cpp`에서 전용 레이어를 읽고, `Renderer.cpp`에서 본체의 입과 충돌 기준점을 맞추고 적 앞뒤 패스를 합성한다. `Preview.cpp`는 장판 종료까지 탐색 범위를 연장한다.

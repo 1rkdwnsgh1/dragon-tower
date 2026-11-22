@@ -128,6 +128,20 @@ struct Projectile {
     bool appliesCurse = false;
 };
 
+inline constexpr float kSoulfireBreathStart = 2.f;
+inline constexpr float kSoulfireBreathDuration = 0.8f;
+inline constexpr float kSoulfireImpactTime = 2.25f;
+inline constexpr float kSoulfireCastDuration = 4.f;
+inline constexpr int kSoulfireFlameCount = 6;
+
+struct SoulfireFlame {
+    Vec2 offset;
+    float size = 1.f;
+    float delay = 0.f;
+    float cycle = 1.f;
+    int variant = 0;
+};
+
 struct DotZone {
     Vec2 pos;
     float radius = 80.f;
@@ -136,6 +150,8 @@ struct DotZone {
     float duration = 1.f;
     bool appliesCurse = false;
     int spriteSkill = -1;
+    std::vector<SoulfireFlame> flames;
+    float startDelay = 0.f;  // Time before impact within the first simulation step.
 };
 
 enum class FxType { Ring, Heal, Dodge, Hit, Poof, LineBlast, Dash, LevelUp, Death, Shield };
@@ -225,6 +241,7 @@ struct SkillCast {
     bool fxDone = false;
     bool hitDone = false;
     bool facingLeft = false;
+    std::optional<Vec2> soulfireTarget;
 };
 
 struct DragonActor {

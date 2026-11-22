@@ -3379,8 +3379,8 @@ static void testRevenantProcession() {
     if (!loaded) return;
     constexpr int skill = 7;
     const auto& def = speciesDef(revenant);
-    CHECK(def.skills.size() == 8);
-    if (def.skills.size() != 8) return;
+    CHECK(def.skills.size() > skill);
+    if (def.skills.size() <= skill) return;
     CHECK(def.skills[skill].kind == SkillKind::Procession && def.skills[skill].unlockLevel == 8);
     CHECK(def.skills[skill].cooldown == 30.f && def.skills[skill].motion == "procession");
     for (int i = 0; i < 7; ++i) CHECK(def.skills[i].kind != SkillKind::Procession);
@@ -3656,6 +3656,102 @@ static void testRevenantProcession() {
     CHECK(autoFill.slotSkill(0) == -1);
 }
 
+static void testNetherSoulfire(const std::filesystem::path& assets) {
+    std::printf("[nether soulfire]\n");
+    loadDragonFolders(assets / "dragons");
+    Species revenant{};
+    CHECK(speciesFromKey("revenant", revenant));
+    if (!speciesFromKey("revenant", revenant)) return;
+    constexpr int skill = 8;
+    const auto& skills = speciesDef(revenant).skills;
+    CHECK(skills.size() > skill);
+    if (skills.size() <= skill) return;
+    const auto& def = skills[skill];
+    CHECK(def.kind == SkillKind::Zone && def.soulfire && def.unlockLevel == 9 && def.motionFrames == 40);
+    CHECK(skills[1].kind == SkillKind::Zone && !skills[1].soulfire && skills[7].ultimate);
+
+    const auto setup = [&](int level = 9, bool withTarget = true, bool left = false) {
+        World w;
+        w.setBounds({0.f, 0.f, 1200.f, 640.f});
+        w.setupDragon(revenant, level, -1.f, {600.f, 300.f});
+        w.dragon().basicCd = 60.f;
+        w.setSlots({skill, -1, -1, -1});
+        if (withTarget) {
+            Enemy& enemy = w.spawnEnemy(defaultMelee(), 1, {left ? 400.f : 800.f, 300.f});
+            enemy.hp = enemy.maxHp = 2000.f;
+            enemy.stun = 100.f;
+            enemy.curseStacks = 3;
+            enemy.curseRemaining = kCurseDuration;
+        }
+        return w;
+    };
+    PlayerInput hotkey{};
+    hotkey.skill[0] = true;
+    const auto step = [](World& w, float seconds) { w.updateCombat(seconds, CombatMode::Direct, {}); };
+
+    World locked = setup(8);
+    locked.updateCombat(0.f, CombatMode::Direct, hotkey);
+    CHECK(!locked.dragon().skillCast && locked.dots().empty());
+    World empty = setup(9, false);
+    empty.updateCombat(0.f, CombatMode::Direct, hotkey);
+    CHECK(!empty.dragon().skillCast && empty.dragon().skillCd[skill] == 0.f);
+
+    World world = setup();
+    world.updateCombat(0.f, CombatMode::Direct, hotkey);
+    CHECK(world.dragon().skillCast && world.dragon().skillMotion == skill);
+    if (!world.dragon().skillCast) return;
+    const Vec2 ground = *world.dragon().skillCast->soulfireTarget;
+    CHECK(ground.x == 800.f && ground.y == 300.f + world.enemies().front().radius);
+    step(world, kSoulfireBreathStart);
+    CHECK(world.dots().empty() && world.enemies().front().hp == 2000.f);
+    step(world, kSoulfireImpactTime - kSoulfireBreathStart + 0.1f);
+    CHECK(world.dots().size() == 1);
+    if (world.dots().empty()) return;
+    const DotZone& zone = world.dots().front();
+    CHECK(zone.pos.x == ground.x && zone.pos.y == ground.y && !zone.appliesCurse);
+    CHECK(zone.flames.size() == kSoulfireFlameCount);
+    CHECK(world.enemies().front().hp < 2000.f && world.enemies().front().curseStacks == 3);
+    CHECK(std::fabs(zone.remaining - (def.duration - 0.1f)) < 0.001f);
+    step(world, kSoulfireCastDuration - kSoulfireImpactTime);
+    CHECK(!world.dragon().skillCast && world.dragon().skillMotion == -1 && world.dots().size() == 1);
+    world.dragon().skillCd[skill] = 0.f;  // Exercise concurrent zones independently of the balance cooldown.
+    world.updateCombat(0.f, CombatMode::Direct, hotkey);
+    step(world, kSoulfireImpactTime + 0.1f);
+    CHECK(world.dots().size() == 2);
+    if (world.dots().size() == 2) CHECK(world.dots()[0].remaining < world.dots()[1].remaining);
+    step(world, def.duration);
+    CHECK(world.dots().empty());
+
+    World automatic = setup(9, true, true);
+    automatic.updateCombat(0.f, CombatMode::Auto, {});
+    CHECK(automatic.dragon().skillCast && automatic.dragon().skillCast->facingLeft);
+    automatic.updateFx(0.f, true);
+    CHECK(!automatic.dragon().skillCast && automatic.dots().empty());
+    World manual = setup();
+    manual.updateCombat(0.f, CombatMode::SkillManual, hotkey);
+    CHECK(manual.dragon().skillCast.has_value());
+    step(manual, kSoulfireImpactTime + 0.1f);
+    manual.clearEnemies(false);
+    CHECK(!manual.dragon().skillCast && manual.dots().empty());
+
+    World cancelled = setup();
+    cancelled.updateCombat(0.f, CombatMode::Direct, hotkey);
+    step(cancelled, kSoulfireImpactTime - 0.1f);
+    PlayerInput dodge{};
+    dodge.dodge = true;
+    cancelled.updateCombat(0.2f, CombatMode::Direct, dodge);
+    CHECK(!cancelled.dragon().skillCast && cancelled.dots().empty());
+
+    World lostTarget = setup();
+    lostTarget.updateCombat(0.f, CombatMode::Direct, hotkey);
+    lostTarget.enemiesMutable().front().alive = false;
+    step(lostTarget, kSoulfireImpactTime + 0.1f);
+    CHECK(lostTarget.dots().size() == 1 && lostTarget.dots().front().pos.x == ground.x);
+    lostTarget.dragon().alive = false;
+    step(lostTarget, 0.1f);
+    CHECK(!lostTarget.dragon().skillCast && lostTarget.dots().empty());
+}
+
 int main(int argc, char** argv) {
     if (argc == 2 && std::string(argv[1]) == "--revenant-procession") {
         testRevenantProcession();
@@ -3758,6 +3854,7 @@ int main(int argc, char** argv) {
         testEliteVariantsSpawn(assets);
         testTowerSelection(assets);
         testRevenantCurse(assets);
+        testNetherSoulfire(assets);
     }
     else std::printf("[elite variants spawn] assets 경로 인자가 없어 건너뜀\n");
     std::printf("\n%d passed, %d failed\n", g_passed, g_failed);

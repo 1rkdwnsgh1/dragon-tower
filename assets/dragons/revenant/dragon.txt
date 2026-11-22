@@ -338,3 +338,21 @@ motion_frames=8
 motion_fps=5.333333
 motion_frame_w=256
 motion_render_scale=1.25
+
+; 임시 검증값. 기존 슬롯 번호 유지를 위해 끝에 추가한다.
+[skill.9]
+name=망계의 업화
+desc=공중에서 적이 있던 지면에 영혼 화염을 분사한다. 남은 불길이 범위 안의 적에게 지속 피해를 입힌다.
+kind=Zone
+soulfire=yes
+level=9
+cooldown=22
+power=1.65
+range=490
+radius=115
+duration=4.5
+scale_with_size=yes
+motion=nether_soulfire
+motion_frames=40
+motion_fps=10
+motion_frame_w=256

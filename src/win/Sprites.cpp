@@ -1,5 +1,7 @@
 #include "Sprites.h"
 
+#include "core/World.h"
+
 #include <algorithm>
 #include <array>
 #include <fstream>
@@ -362,6 +364,18 @@ void Sprites::loadSkillSheets(const std::filesystem::path& dir, const SpeciesDef
 // v1.6: 스킬마다 fx= 로 적어 둔 이름의 효과 시트를 읽는다. 규칙은 skill_*.png 와 같다 —
 // 같은 이름을 여러 스킬이 함께 써도 한 번만 읽고, 파일이 없으면 조용히 넘어간다.
 // 그러면 그리는 쪽이 예전처럼 도형으로 그려서 깨진 그림이 나오지 않는다.
+const std::string& soulfireLayerKey(int variant, SoulfirePass pass) {
+    static const auto keys = [] {
+        std::array<std::array<std::string, 3>, kSoulfireFlameCount> result;
+        constexpr const char* layers[] = {"_ground", "_rear", "_front"};
+        for (int i = 0; i < kSoulfireFlameCount; ++i)
+            for (int layer = 0; layer < 3; ++layer)
+                result[i][layer] = std::string("soulfire_") + "abcdef"[i] + layers[layer];
+        return result;
+    }();
+    return keys[variant][static_cast<int>(pass)];
+}
+
 void Sprites::loadFxSheets(const std::filesystem::path& dir, const SpeciesDef& def, const std::string& label) {
     for (const SkillDef& sk : def.skills) {
         if (sk.kind == SkillKind::Procession && def.key == "revenant") {
@@ -370,6 +384,18 @@ void Sprites::loadFxSheets(const std::filesystem::path& dir, const SpeciesDef& d
                 const std::string name = std::string("fx_") + layer;
                 loadSheetFile(dir / (name + ".png"), sheet, def.key + "/" + name, label + "/" + name + ".png");
             }
+        }
+        if (sk.kind == SkillKind::Zone && sk.soulfire) {
+            const auto load = [&](const std::string& key, int cell) {
+                const std::string name = "fx_" + key;
+                loadSheetFile(dir / (name + ".png"), AnimDef{20.f, false, cell, 1.f},
+                              def.key + "/" + name, label + "/" + name + ".png");
+            };
+            load("soulfire_beam", 256);
+            load("soulfire_impact", 256);
+            for (int variant = 0; variant < kSoulfireFlameCount; ++variant)
+                for (SoulfirePass pass : {SoulfirePass::Ground, SoulfirePass::Rear, SoulfirePass::Front})
+                    load(soulfireLayerKey(variant, pass), 128);
         }
         for (const std::string* effect : {&sk.fx, &sk.fxImpact}) {
             if (effect->empty()) continue;

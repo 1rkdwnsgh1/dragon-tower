@@ -301,6 +301,8 @@ void PreviewWindow::reset() {
     }
 
     duration_ = std::max(1.f, dragon.animHold);
+    if (dragon.skillCast && dragon.skillCast->soulfireTarget)
+        duration_ = std::max(duration_, dragon.skillCast->hitTime + sk->duration);
     if (const auto& procession = dragon.procession; procession)
         duration_ = ProcessionCast::maxDuration(*sk, procession->flightLimit);
     const auto& breath = dragon.breath;
@@ -459,9 +461,11 @@ void PreviewWindow::updateInfo() {
                     else out << L"  ·  시트를 읽을 수 없어 기본 효과 사용";
                 }
                 if (sk->kind == SkillKind::Procession)
-                out << L"\r\n전용 이펙트 7층 · 유도 군세 " << sk->processionShots << L"회";
-            else if (sk->fx.empty() && !skillIsPassive(sk->kind))
-                out << L"\r\n이펙트  기본 도형";
+                    out << L"\r\n전용 이펙트 7층 · 유도 군세 " << sk->processionShots << L"회";
+                else if (sk->kind == SkillKind::Zone && sk->soulfire)
+                    out << L"\r\n분사·충돌 20 FPS · 독립 불꽃 " << kSoulfireFlameCount << L"개 · 3개 렌더링 패스";
+                else if (sk->fx.empty() && !skillIsPassive(sk->kind))
+                    out << L"\r\n이펙트  기본 도형";
             }
             if (sk->kind == SkillKind::PassiveOnKill) out << L"\r\n처치가 일어난 위치에 회복 효과를 바로 표시합니다.";
             if (sk->kind == SkillKind::PassiveStat) out << L"\r\n상시 적용 스킬에는 발동 연출이 없습니다.";

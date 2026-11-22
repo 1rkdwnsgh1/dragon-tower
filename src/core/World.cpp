@@ -224,6 +224,7 @@ Vec2 World::randomEdgePoint(float margin) {
 
 void World::clearEnemies(bool withPoof) {
     cancelProcession();
+    if (dragon_.skillCast && dragon_.skillCast->soulfireTarget) advanceSkillCast(0.f, true);
     if (dragon_.breath) {
         if (dragon_.breath->inputLock > 0.f) dragon_.animHold = 0.f;
         dragon_.breath.reset();
@@ -610,6 +611,22 @@ bool World::castSkill(int i, bool aiChoice) {
                 if (!aiChoice) addText("대상 없음", d.pos - Vec2{0.f, 60.f}, 0xFFCCCCCC, 14.f, 0.6f);
                 return false;
             }
+            if (s.soulfire) {
+                if (d.dashTime > 0.f) return false;
+                SkillCast cast;
+                cast.skill = i;
+                cast.soulfireTarget = Vec2{std::clamp(t->pos.x, bounds_.x, bounds_.right()),
+                                           std::clamp(t->pos.y + t->radius, bounds_.y, bounds_.bottom())};
+                cast.facingLeft = t->pos.x < d.pos.x;
+                cast.fxTime = kSoulfireBreathStart;
+                cast.hitTime = kSoulfireImpactTime;
+                cast.lockTime = kSoulfireCastDuration;
+                d.skillCast = cast;
+                d.facing = {cast.facingLeft ? -1.f : 1.f, 0.f};
+                d.moving = false;
+                d.animTime = 0.f;
+                break;
+            }
             DotZone z;
             z.pos = t->pos;
             z.radius = skillRadius(s);
@@ -828,6 +845,13 @@ void World::advanceSkillCast(float dt, bool combatEnded) {
     DragonActor& d = dragon_;
     if (!d.skillCast) return;
     SkillCast& c = *d.skillCast;
+    if (c.soulfireTarget && (!d.alive || d.held || combatEnded)) {
+        cancelSkillCast(0.f);
+        d.animHold = 0.f;
+        d.skillMotion = -1;
+        if (d.alive && d.anim == AnimState::Attack) setDragonAnim(AnimState::Idle, 0.f);
+        return;
+    }
     if (!d.alive || d.held) {
         d.skillCast.reset();  // 죽거나 붙잡히면 효과도 피해도 없이 끝난다
         return;
@@ -844,6 +868,30 @@ void World::advanceSkillCast(float dt, bool combatEnded) {
     const SkillDef& s = sp.skills[static_cast<size_t>(c.skill)];
     c.elapsed += dt;
     constexpr float epsilon = 1e-6f;
+    if (c.soulfireTarget) {
+        if (!c.hitDone && c.elapsed + epsilon >= c.hitTime) {
+            c.hitDone = true;
+            DotZone z;
+            z.pos = *c.soulfireTarget;
+            z.radius = skillRadius(s);
+            z.dps = d.stats.atk * s.power;
+            z.remaining = z.duration = s.duration;
+            z.startDelay = std::clamp(dt - (c.elapsed - c.hitTime), 0.f, dt);
+            z.flames.reserve(kSoulfireFlameCount);
+            for (int n = 0; n < kSoulfireFlameCount; ++n) {
+                const float x = (static_cast<float>(n) - 2.5f) * 0.26f + rng_.uniform(-0.09f, 0.09f);
+                z.flames.push_back({{x, rng_.uniform(-0.30f, 0.26f)}, rng_.uniform(0.8f, 1.2f),
+                                    n == 0 ? 0.f : rng_.uniform(0.08f, 0.7f),
+                                    rng_.uniform(1.2f, 2.7f), n});
+            }
+            std::sort(z.flames.begin(), z.flames.end(), [](const SoulfireFlame& a, const SoulfireFlame& b) {
+                return a.offset.y < b.offset.y;
+            });
+            dots_.push_back(std::move(z));
+        }
+        if (c.elapsed + epsilon >= c.lockTime) d.skillCast.reset();
+        return;
+    }
     if (!c.fxDone && c.elapsed + epsilon >= c.fxTime) {
         c.fxDone = true;
         spawnAnchoredFx(s, c.facingLeft);
@@ -1352,7 +1400,8 @@ void World::damageDragon(float raw) {
     if (d.shieldTime > 0.f) dmg *= (1.f - d.shieldPct);
     d.hp -= dmg;
     d.hitFlash = 0.2f;
-    if (!d.procession && (!d.breath || d.breath->inputLock <= 0.f)) setDragonAnim(AnimState::Hit, cfg::kAnimHitHold);
+    if (!d.procession && (!d.breath || d.breath->inputLock <= 0.f) &&
+        (!d.skillCast || !d.skillCast->soulfireTarget)) setDragonAnim(AnimState::Hit, cfg::kAnimHitHold);
     statHitsTaken++;
     addText(intText(dmg), d.pos - Vec2{0.f, 52.f}, kColorDamageToDragon, 20.f, 0.9f);
     addFx(FxType::Hit, d.pos, d.pos, 46.f, 0.25f, kColorDamageToDragon);
@@ -1361,6 +1410,7 @@ void World::damageDragon(float raw) {
         d.alive = false;
         resetSouls();
         d.breath.reset();
+        if (d.skillCast && d.skillCast->soulfireTarget) advanceSkillCast(0.f, true);
         events_.push_back({WorldEventType::DragonDied, EnemyKind{}, 0});
         addFx(FxType::Death, d.pos, d.pos, 90.f, 0.9f, speciesDef(d.species).color);
     }
@@ -1418,6 +1468,9 @@ void World::updateCombat(float dt, CombatMode mode, const PlayerInput& in) {
     const float moveDt = std::max(0.f, dt - windupLeft);
     advanceProcession(dt);
     advanceBreath(dt);
+    if (mode == CombatMode::Direct && in.dodge && d.dodgeCd <= 0.f && d.skillCast &&
+        d.skillCast->soulfireTarget && !d.skillCast->hitDone)
+        cancelSkillCast(cfg::kSkillCastCancelCooldown);
     advanceSkillCast(dt);
     if (d.alive && d.stats.regen > 0.f) d.hp = std::min(d.stats.maxHp, d.hp + d.stats.regen * dt);
     // 2026-11-18: 타격 전 직접 조작 회피는 시전을 끊고 회피한다(쿨타임 일부 반환).
@@ -1511,14 +1564,26 @@ void World::updateCombat(float dt, CombatMode mode, const PlayerInput& in) {
 
     // 지속 피해 장판
     for (DotZone& z : dots_) {
-        z.remaining -= dt;
+        float damageDt = dt;
+        if (!z.flames.empty()) {
+            if (!d.alive) {
+                z.remaining = 0.f;
+                continue;
+            }
+            damageDt = std::clamp(dt - z.startDelay, 0.f, z.remaining);
+            z.startDelay = 0.f;
+            if (damageDt <= 0.f) continue;
+        }
+        z.remaining -= damageDt;
         for (Enemy& e : enemies_) {
-            if (e.alive && distance(e.pos, z.pos) <= z.radius + e.radius * 0.5f) {
+            const Vec2 sample = z.flames.empty() ? e.pos :
+                Vec2{e.pos.x, std::min(e.pos.y + e.radius, bounds_.bottom())};
+            if (e.alive && distance(sample, z.pos) <= z.radius + e.radius * 0.5f) {
                 if (z.appliesCurse && dt > 0.f && z.remaining >= 0.f && e.curseZoneCooldown == 0.0) {
                     applyCurse(e);
                     e.curseZoneCooldown = kCurseZoneInterval;
                 }
-                damageEnemy(e, z.dps * dt, false);
+                damageEnemy(e, z.dps * damageDt, false);
             }
         }
     }
@@ -1530,7 +1595,11 @@ void World::updateCombat(float dt, CombatMode mode, const PlayerInput& in) {
 }
 
 void World::updateFx(float dt, bool combatEnded) {
-    if (combatEnded) cancelProcession();
+    if (combatEnded) {
+        cancelProcession();
+        dots_.erase(std::remove_if(dots_.begin(), dots_.end(), [](const DotZone& z) { return !z.flames.empty(); }),
+                    dots_.end());
+    }
     if (combatEnded && dragon_.breath) {
         advanceBreath(dt, true);
         updateDragonAnim(dt);
