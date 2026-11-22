@@ -5,13 +5,13 @@
 
 작업을 끝낼 때 이 문서를 같은 PR 에서 고친다. **낡은 상태 문서는 없는 것보다 해롭다.**
 
-최종 갱신: 2026-11-22 (망령익참 시전·피격 연출 및 Windows 프리뷰)
+최종 갱신: 2026-11-22 (망령익참 기반 전투 스킬 제작 표준 및 Codex 스킬)
 
 ---
 
 ## 한눈에
 
-- 망령익참은 사용자 승인에 따라 Windows 확인 59~78번과 별도로 먼저 제작했다. 기존 로컬 구현에서 feat/spectral-wing-cleave-vfx 브랜치로 이어서 시전·피격 시트를 적용했다. [제작 및 검수](characters/revenant-dragon-progress.md#망령익참)를 참고한다.
+- 망령익참은 사용자 승인에 따라 Windows 확인 59~78번과 별도로 먼저 제작했고 [#117](https://github.com/1rkdwnsgh1/dragon-tower/pull/117)에서 병합됐다. [제작 표준과 사례](skill-production.md)에 명세·비교 검수 및 Codex 작업 경로를 정리했다. 망령익참 실전 확인은 [Windows 체크리스트](windows-checklist.md#망령익참)에 남아 있다.
 
 | 항목 | 상태 |
 |---|---|
