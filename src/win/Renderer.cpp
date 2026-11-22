@@ -788,14 +788,27 @@ const SoulfireAnchors kSoulfireAnchors[] = {
     {{60,88},{72,123},{196,116}}, {{52,94},{75,129},{194,117}},
     {{65,112},{83,140},{199,151}}, {{48,85},{68,131},{193,123}},
 };
+
+// Tail tips in the same source cells as kSoulfireAnchors.
+const Vec2 kSoulfireTailTips[] = {
+    {26,205}, {12,207}, {28,200}, {26,193}, {23,201}, {21,184},
+    {42,211}, {19,127}, {16,127}, {38,135}, {42,135}, {41,135},
+    {29,136}, {28,135}, {28,135}, {38,142}, {27,134}, {28,133},
+    {26,134}, {28,135}, {28,133}, {28,134}, {38,136}, {20,170},
+    {20,160}, {17,180}, {19,172}, {18,183},
+};
+static_assert(std::size(kSoulfireTailTips) == std::size(kSoulfireAnchors));
 }
 
 void Renderer::drawSoulfireBodyVfx(Graphics& g, const DragonActor& d, const Sprites& sprites,
                                    const std::string& key, int frame, Vec2 center, float size,
                                    bool flip, bool front) {
     const SkillCast& cast = *d.skillCast;
-    if (frame < 8 || frame >= 8 + static_cast<int>(std::size(kSoulfireAnchors))) return;
-    const SoulfireAnchors& anchors = kSoulfireAnchors[frame - 8];
+    const Vec2 earlyMouth[] = {{185,157}, {193,151}, {198,131}, {187,158},
+                                {213,157}, {198,136}, {194,157}, {188,154}};
+    if (frame < 0 || frame >= 8 + static_cast<int>(std::size(kSoulfireAnchors))) return;
+    const bool early = frame < 8;
+    const SoulfireAnchors& anchors = kSoulfireAnchors[std::max(0, frame - 8)];
     const float sign = flip ? -1.f : 1.f;
     const float unit = size / 256.f;
     const auto worldPoint = [&](Vec2 p) {
@@ -807,26 +820,36 @@ void Renderer::drawSoulfireBodyVfx(Graphics& g, const DragonActor& d, const Spri
     const float wingAlpha = std::clamp((launch - .59f) / .25f, 0.f, 1.f) *
                             std::clamp(1.f - (flight - kSoulfireBreathDuration) / .19f, 0.f, 1.f);
     const Sheet mote = sprites.fxSheet(key, "soulfire_mote");
-    if (!front && wingAlpha > 0.f) {
-        const Sheet wing = sprites.fxSheet(key, "soulfire_wing");
+    if (!early && wingAlpha > 0.f) {
+        const Sheet wing = sprites.fxSheet(key, front ? "soulfire_wing_front" : "soulfire_wing");
         const float speed = d.stats.speed * cfg::kIdleFlySpeed *
                             (d.hasteTime > 0.f ? 1.f + d.hasteSpeed : 1.f);
-        const float stretch = std::clamp(speed / 230.f, .65f, 1.8f);
+        const float stretch = std::clamp(speed / 230.f, .75f, 1.45f);
+        if (front && wing.bmp) {
+            const Vec2 flank = worldPoint({(anchors.tornMembrane.x + anchors.mouth.x) * .5f - 19.f,
+                                          (anchors.tornMembrane.y + anchors.mouth.y) * .5f + 15.f});
+            const float extent = size * .62f;
+            markRegion(RectF(flank.x - extent * .5f, flank.y - extent * .5f, extent, extent), 3.f);
+            drawSheetFrame(g, wing, animFrame(age, 20.f, wing.frames, true),
+                           flank.x, flank.y, extent, flip, 0.f, wingAlpha * .56f);
+        }
         for (int i = 0; i < 2; ++i) {
-            const Vec2 attachment = i == 0 ? anchors.wingTip : anchors.tornMembrane;
-            const Vec2 anchor = worldPoint(attachment + Vec2{7.f, 0.f});
-            const float extent = size * (i == 0 ? .63f : .45f);
-            if (wing.bmp) {
+            const Vec2 wingRoot = anchors.wingTip * .65f + anchors.tornMembrane * .35f;
+            const Vec2 attachment = i == 0 ? wingRoot : kSoulfireTailTips[frame - 8];
+            const Vec2 anchor = worldPoint(attachment + Vec2{i == 0 ? 24.f : 36.f, 0.f});
+            const float extent = size * (i == 0 ? .80f : .62f);
+            if (!front && wing.bmp) {
                 markRegion(RectF(anchor.x - extent * stretch, anchor.y - extent * .5f,
                                  extent * stretch * 2.f, extent), 3.f);
                 const auto state = g.Save();
                 g.TranslateTransform(anchor.x, anchor.y);
-                g.ScaleTransform(stretch, 1.f);
+                g.ScaleTransform(stretch, i == 0 ? 1.f : .74f);
                 drawSheetFrame(g, wing, animFrame(age + i * .17f, 20.f, wing.frames, true),
-                               -sign * .28125f * extent, 0.f, extent, flip, 0.f, wingAlpha * .87f);
+                               -sign * .34f * extent, 0.f, extent, flip, 0.f,
+                               wingAlpha * (i == 0 ? .95f : .76f));
                 g.Restore(state);
             }
-            for (int j = 0; mote.bmp && j < 5; ++j) {
+            for (int j = 0; front && mote.bmp && j < 5; ++j) {
                 const float phase = std::fmod(age * (2.3f + .18f * j) + j * .218f + i * .37f, 1.f);
                 const Vec2 ember = anchor + Vec2{-sign * extent * stretch * phase,
                                                 extent * phase * .22f * std::sin(j * 2.4f + age * 7.f)};
@@ -840,36 +863,23 @@ void Renderer::drawSoulfireBodyVfx(Graphics& g, const DragonActor& d, const Spri
         }
     }
 
-    if (flight >= 0.f || !mote.bmp) return;
-    const Vec2 mouth = worldPoint(anchors.mouth);
-    const float gather = std::clamp((launch - .56f) / .44f, 0.f, 1.f);
-    if (front && gather > .32f) {
-        const float compression = (gather - .32f) / .68f;
-        const float radius = size * (.028f - compression * .014f);
-        fillCircle(g, mouth.x, mouth.y, radius * 2.f,
-                   Color(static_cast<BYTE>(112.f * compression), 42, 244, 198));
-        fillCircle(g, mouth.x, mouth.y, radius,
-                   Color(static_cast<BYTE>(245.f * compression), 189, 255, 231));
-    }
-    for (int i = 0; i < 10; ++i) {
-        const float phase = std::clamp(gather * 1.38f - i * .041f, 0.f, 1.f);
-        const float angle = phase * 8.9f + i * 2.4f;
-        if ((std::sin(angle) >= 0.f) != front) continue;
-        const float fade = std::min({phase * 12.f, (1.f - phase) * 13.f, 1.f});
-        if (fade <= 0.f) continue;
-        const float radius = size * (.05f + (1.f - phase) * .22f);
-        const Vec2 spark = mouth + Vec2{sign * (std::cos(angle) * radius - radius * .61f),
-                                       std::sin(angle) * radius * .62f};
-        const auto state = g.Save();
-        g.TranslateTransform(spark.x, spark.y);
-        g.ScaleTransform(sign, 1.f);
-        g.RotateTransform(angle * 180.f / kPi + 90.f);
-        const float extent = size * (.18f + phase * .06f);
-        markRegion(RectF(spark.x - extent * .5f, spark.y - extent * .5f, extent, extent), 2.f);
-        drawSheetFrame(g, mote, animFrame(age + i * .04f, 20.f, mote.frames, true),
-                       0.f, 0.f, extent, false, 0.f, fade * (.68f + phase * .32f));
-        g.Restore(state);
-    }
+    const Vec2 mouth = worldPoint(early ? earlyMouth[frame] : anchors.mouth);
+    const float gather = std::clamp((launch - .10f) / .90f, 0.f, 1.f);
+    const float release = std::clamp(1.f - flight / .13f, 0.f, 1.f);
+    if (gather <= 0.f || release <= 0.f || (front && flight >= 0.f)) return;
+
+    const Sheet layer = sprites.fxSheet(key, front ? "soulfire_core" : "soulfire_orbit");
+    if (!layer.bmp) return;
+    const float extent = size * (front ? (.10f + .26f * gather) : (.66f - .22f * gather));
+    const float opacity = release * std::min(gather * (front ? 1.55f : 3.5f), 1.f);
+    markRegion(RectF(mouth.x - extent, mouth.y - extent, extent * 2.f, extent * 2.f), 3.f);
+    const auto state = g.Save();
+    g.TranslateTransform(mouth.x, mouth.y);
+    g.ScaleTransform(sign, 1.f);
+    if (!front) g.RotateTransform(270.f * gather);
+    drawSheetFrame(g, layer, animFrame(age, 20.f, layer.frames, true),
+                   0.f, 0.f, extent, false, 0.f, opacity);
+    g.Restore(state);
 }
 
 void Renderer::drawDragon(Graphics& g, const DragonActor& d, const Sprites& sprites, float time, float x, float y,
@@ -1412,20 +1422,29 @@ void Renderer::drawSoulfireBreath(Graphics& g, const World& w, const Sprites& sp
         g.DrawLine(&streak, tail.x, tail.y, tip.x, tip.y);
     }
 
+    const float ignition = std::clamp(age / .065f, 0.f, 1.f);
+    const float fade = std::clamp((kSoulfireBreathDuration - age) / .17f, 0.f, 1.f);
+    const float pulse = .5f + .5f * std::cos(age * 11.f);
+    const float extent = body * (.34f + ignition * .31f);
+    markRegion(RectF(mouth.x - extent, mouth.y - extent, extent * 2.f, extent * 2.f), 3.f);
+    const auto emission = g.Save();
+    g.TranslateTransform(mouth.x, mouth.y);
+    g.RotateTransform(angle);
+    g.ScaleTransform(1.f, sign);
     const Sheet crown = sprites.fxSheet(species.key, "soulfire_crown");
-    if (crown.bmp) {
-        const float ignition = std::clamp(age / .085f, 0.f, 1.f);
-        const float fade = std::clamp((kSoulfireBreathDuration - age) / .17f, 0.f, 1.f);
-        const float extent = body * (.29f + ignition * .23f);
-        markRegion(RectF(mouth.x - extent * .5f, mouth.y - extent * .5f, extent, extent), 3.f);
-        const auto crownTransform = g.Save();
-        g.TranslateTransform(mouth.x, mouth.y);
-        g.RotateTransform(angle);
-        g.ScaleTransform(1.f, sign);
-        drawSheetFrame(g, crown, animFrame(age, 30.f, crown.frames, true),
-                       0.f, 0.f, extent, false, 0.f, fade * (.68f + ignition * .32f));
-        g.Restore(crownTransform);
-    }
+    if (crown.bmp)
+        drawSheetFrame(g, crown, animFrame(age, 20.f, crown.frames, true),
+                       -.06f * extent, 0.f, extent, false, 0.f, fade * (.76f + .24f * pulse));
+    const Sheet fragments = sprites.fxSheet(species.key, "soulfire_fragments");
+    if (fragments.bmp)
+        drawSheetFrame(g, fragments, animFrame(age, 20.f, fragments.frames, true),
+                       extent * (.18f + .12f * pulse), 0.f, extent * .93f, false, 0.f,
+                       fade * ignition * (.48f + .34f * (1.f - pulse)));
+    const Sheet core = sprites.fxSheet(species.key, "soulfire_core");
+    if (core.bmp)
+        drawSheetFrame(g, core, animFrame(age, 20.f, core.frames, true), 0.f, 0.f,
+                       body * (.28f + .10f * pulse), false, 0.f, fade * (.60f + .40f * pulse));
+    g.Restore(emission);
 }
 
 void Renderer::drawDotZones(Graphics& g, const World& w, const Sprites& sprites, float time) {
