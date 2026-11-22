@@ -342,7 +342,7 @@ motion_render_scale=1.25
 ; 임시 검증값. 기존 슬롯 번호 유지를 위해 끝에 추가한다.
 [skill.9]
 name=망계의 업화
-desc=공중에서 적이 있던 지면에 영혼 화염을 분사한다. 남은 불길이 범위 안의 적에게 지속 피해를 입힌다.
+desc=전방으로 비행하며 지면에 영혼 화염을 분사한다. 비행 경로에 남은 불길이 적에게 지속 피해를 입힌다.
 kind=Zone
 soulfire=yes
 level=9
@@ -352,6 +352,13 @@ range=490
 radius=115
 duration=4.5
 scale_with_size=yes
+soulfire_takeoff=0.85
+soulfire_angle=55
+soulfire_width=0.44
+soulfire_mouth_x=0.74609375
+soulfire_mouth_y=0.572265625
+soulfire_impact_scale=1.55
+soulfire_flame_scale=0.095
 motion=nether_soulfire
 motion_frames=40
 motion_fps=10

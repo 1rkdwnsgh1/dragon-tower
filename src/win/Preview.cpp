@@ -278,10 +278,12 @@ void PreviewWindow::reset() {
     const float aim = captureAim_ * kPi / 180.f;
     target_ = origin + Vec2{direction * std::cos(aim), -std::sin(aim)} * distance;
     // 고정 표적에 생존과 무행동만 설정하고 스킬 발동은 게임의 수동 입력 경로를 쓴다.
-    Enemy& target = world_.spawnEnemy(defaultMelee(), 1, target_);
-    target.radius = 8.f;
-    target.hp = target.maxHp = 1e20f;
-    target.stun = 10000.f;
+    if (!sk->soulfire) {
+        Enemy& target = world_.spawnEnemy(defaultMelee(), 1, target_);
+        target.radius = 8.f;
+        target.hp = target.maxHp = 1e20f;
+        target.stun = 10000.f;
+    }
     if (sk->kind == SkillKind::PassiveOnKill) {
         world_.addSkillFx(*sk, FxType::Heal, target_, origin, 44.f, 0.5f, def.color);
     } else if (!skillIsPassive(sk->kind)) {
@@ -301,8 +303,9 @@ void PreviewWindow::reset() {
     }
 
     duration_ = std::max(1.f, dragon.animHold);
-    if (dragon.skillCast && dragon.skillCast->soulfireTarget)
-        duration_ = std::max(duration_, dragon.skillCast->hitTime + sk->duration);
+    if (dragon.skillCast && dragon.skillCast->soulfireCastId)
+        duration_ = std::max(duration_, dragon.skillCast->hitTime +
+                            (kSoulfireImpactCount - 1) * kSoulfireImpactInterval + sk->duration);
     if (const auto& procession = dragon.procession; procession)
         duration_ = ProcessionCast::maxDuration(*sk, procession->flightLimit);
     const auto& breath = dragon.breath;

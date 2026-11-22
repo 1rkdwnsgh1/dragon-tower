@@ -3689,67 +3689,77 @@ static void testNetherSoulfire(const std::filesystem::path& assets) {
     hotkey.skill[0] = true;
     const auto step = [](World& w, float seconds) { w.updateCombat(seconds, CombatMode::Direct, {}); };
 
+    const float takeoff = def.soulfireTakeoff;
+    const float firstImpact = takeoff + kSoulfireImpactDelay;
+    const float landing = takeoff + kSoulfireBreathDuration + kSoulfireRecovery;
     World locked = setup(8);
     locked.updateCombat(0.f, CombatMode::Direct, hotkey);
-    CHECK(!locked.dragon().skillCast && locked.dots().empty());
-    World empty = setup(9, false);
-    empty.updateCombat(0.f, CombatMode::Direct, hotkey);
-    CHECK(!empty.dragon().skillCast && empty.dragon().skillCd[skill] == 0.f);
+    CHECK(!locked.dragon().skillCast);
+    World autoEmpty = setup(9, false);
+    autoEmpty.updateCombat(0.f, CombatMode::Auto, {});
+    CHECK(!autoEmpty.dragon().skillCast);
 
-    World world = setup();
+    World world = setup(9, false);
     world.updateCombat(0.f, CombatMode::Direct, hotkey);
     CHECK(world.dragon().skillCast && world.dragon().skillMotion == skill);
     if (!world.dragon().skillCast) return;
-    const Vec2 ground = *world.dragon().skillCast->soulfireTarget;
-    CHECK(ground.x == 800.f && ground.y == 300.f + world.enemies().front().radius);
-    step(world, kSoulfireBreathStart);
-    CHECK(world.dots().empty() && world.enemies().front().hp == 2000.f);
-    step(world, kSoulfireImpactTime - kSoulfireBreathStart + 0.1f);
-    CHECK(world.dots().size() == 1);
-    if (world.dots().empty()) return;
-    const DotZone& zone = world.dots().front();
-    CHECK(zone.pos.x == ground.x && zone.pos.y == ground.y && !zone.appliesCurse);
-    CHECK(zone.flames.size() == kSoulfireFlameCount);
-    CHECK(world.enemies().front().hp < 2000.f && world.enemies().front().curseStacks == 3);
-    CHECK(std::fabs(zone.remaining - (def.duration - 0.1f)) < 0.001f);
-    step(world, kSoulfireCastDuration - kSoulfireImpactTime);
-    CHECK(!world.dragon().skillCast && world.dragon().skillMotion == -1 && world.dots().size() == 1);
-    world.dragon().skillCd[skill] = 0.f;  // Exercise concurrent zones independently of the balance cooldown.
-    world.updateCombat(0.f, CombatMode::Direct, hotkey);
-    step(world, kSoulfireImpactTime + 0.1f);
-    CHECK(world.dots().size() == 2);
-    if (world.dots().size() == 2) CHECK(world.dots()[0].remaining < world.dots()[1].remaining);
-    step(world, def.duration);
+    step(world, takeoff * 0.5f);
+    CHECK(!world.soulfireBeam() && world.dragon().pos.x == 600.f && world.dots().empty());
+    step(world, firstImpact - takeoff * 0.5f + 0.01f);
+    CHECK(world.dragon().pos.x > 600.f && world.soulfireBeam() && world.dots().size() == 1);
+    if (world.dots().empty() || !world.soulfireBeam()) return;
+    const Vec2 first = world.dots().front().pos;
+    CHECK(first.y == world.soulfireBeam()->ground.y);
+    CHECK(std::fabs(world.soulfireBeam()->ground.x - first.x) < 3.f);
+    CHECK(world.dots().front().flames.size() == kSoulfireFlameCount);
+    CHECK(world.dots().front().radius == def.radius && world.dots().front().flameHeight < def.radius * 0.15f);
+    Enemy& enemy = world.spawnEnemy(defaultMelee(), 1, {first.x + 30.f, 300.f});
+    enemy.hp = enemy.maxHp = 2000.f;
+    enemy.stun = 100.f;
+    enemy.curseStacks = 3;
+    enemy.curseRemaining = kCurseDuration;
+    step(world, 0.55f);
+    CHECK(world.dots().size() == kSoulfireImpactCount);
+    if (world.dots().size() == kSoulfireImpactCount)
+        CHECK(world.dots()[0].pos.x < world.dots()[1].pos.x && world.dots()[1].pos.x < world.dots()[2].pos.x);
+    CHECK(std::fabs(world.enemies().front().hp - (2000.f - mitigate(world.dragon().stats.atk * def.power * 0.55f,
+                                                                      world.enemies().front().def))) < 0.01f);
+    CHECK(world.enemies().front().curseStacks == 3);
+    step(world, landing);
+    CHECK(!world.dragon().skillCast && !world.dragon().moving && world.dragon().skillMotion == -1);
+    CHECK(!world.dots().empty());
+    world.updateFx(0.f, true);
     CHECK(world.dots().empty());
 
     World automatic = setup(9, true, true);
     automatic.updateCombat(0.f, CombatMode::Auto, {});
     CHECK(automatic.dragon().skillCast && automatic.dragon().skillCast->facingLeft);
-    automatic.updateFx(0.f, true);
-    CHECK(!automatic.dragon().skillCast && automatic.dots().empty());
-    World manual = setup();
-    manual.updateCombat(0.f, CombatMode::SkillManual, hotkey);
-    CHECK(manual.dragon().skillCast.has_value());
-    step(manual, kSoulfireImpactTime + 0.1f);
-    manual.clearEnemies(false);
-    CHECK(!manual.dragon().skillCast && manual.dots().empty());
+    step(automatic, firstImpact + 0.01f);
+    CHECK(automatic.dragon().pos.x < 600.f && automatic.soulfireBeam() &&
+          automatic.soulfireBeam()->ground.x < automatic.soulfireBeam()->mouth.x);
+    automatic.clearEnemies(false);
+    CHECK(!automatic.dragon().skillCast && automatic.dots().empty() && !automatic.dragon().moving);
 
     World cancelled = setup();
-    cancelled.updateCombat(0.f, CombatMode::Direct, hotkey);
-    step(cancelled, kSoulfireImpactTime - 0.1f);
+    cancelled.updateCombat(0.f, CombatMode::SkillManual, hotkey);
+    step(cancelled, firstImpact - 0.05f);
     PlayerInput dodge{};
     dodge.dodge = true;
     cancelled.updateCombat(0.2f, CombatMode::Direct, dodge);
     CHECK(!cancelled.dragon().skillCast && cancelled.dots().empty());
 
-    World lostTarget = setup();
-    lostTarget.updateCombat(0.f, CombatMode::Direct, hotkey);
-    lostTarget.enemiesMutable().front().alive = false;
-    step(lostTarget, kSoulfireImpactTime + 0.1f);
-    CHECK(lostTarget.dots().size() == 1 && lostTarget.dots().front().pos.x == ground.x);
-    lostTarget.dragon().alive = false;
-    step(lostTarget, 0.1f);
-    CHECK(!lostTarget.dragon().skillCast && lostTarget.dots().empty());
+    World edge = setup(9, false);
+    edge.dragon().pos.x = 1160.f;
+    edge.updateCombat(0.f, CombatMode::Direct, hotkey);
+    step(edge, landing + 0.01f);
+    CHECK(edge.dragon().pos.x <= 1200.f - cfg::kDragonRadius && !edge.dragon().skillCast && edge.dots().empty());
+
+    World died = setup();
+    died.updateCombat(0.f, CombatMode::Direct, hotkey);
+    step(died, firstImpact + 0.01f);
+    died.dragon().alive = false;
+    step(died, 0.1f);
+    CHECK(!died.dragon().skillCast && died.dots().empty() && !died.dragon().moving);
 }
 
 int main(int argc, char** argv) {

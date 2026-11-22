@@ -747,29 +747,9 @@ void Renderer::drawFrameCached(Graphics& g, const FrameCache::Source& src, float
     g.SetInterpolationMode(saved);
 }
 
-// Source canvas coordinates for the body registration and held attack pose.
-constexpr float kSoulfireFoot = 865.f / 1024.f;
-constexpr float kSoulfireMouthX = 764.f / 1024.f - 0.5f;
-constexpr float kSoulfireMouthY = 586.f / 1024.f;
-
-static Vec2 soulfirePoseOffset(const DragonActor& d, const SkillCast& cast, float bodyH, bool left) {
-    const Vec2 target = *cast.soulfireTarget;
-    const float sign = left ? -1.f : 1.f;
-    const float mouthX = d.pos.x + sign * kSoulfireMouthX * bodyH;
-    const float mouthY = d.pos.y + cfg::kDragonRadius + (kSoulfireMouthY - kSoulfireFoot) * bodyH;
-    // Close targets still need room in front of the mouth, including at large view scales.
-    const float mouthClearance = std::max(12.f, bodyH * 0.24f);
-    const float retreat = std::max(0.f, mouthClearance - sign * (target.x - mouthX));
-    const float drop = std::max(12.f, std::abs(target.x - (mouthX - sign * retreat)) * 0.24f);
-    const float lift = std::max(0.f, mouthY + drop - target.y);
-    const float air = std::clamp(cast.elapsed / cast.fxTime, 0.f, 1.f) *
-                      std::clamp(cast.lockTime - cast.elapsed, 0.f, 1.f);
-    return Vec2{-sign * retreat, -lift} * air;
-}
-
 void Renderer::drawDragon(Graphics& g, const DragonActor& d, const Sprites& sprites, float time, float x, float y,
                           float height, bool preview) {
-    const bool soulfire = !preview && d.skillCast && d.skillCast->soulfireTarget;
+    const bool soulfire = !preview && d.skillCast && d.skillCast->soulfireCastId;
     if (!preview && !soulfire) markRegion(RectF(x - height * 0.5f, y - height * 0.5f, height, height), 4.f);
     const SpeciesDef& sp = speciesDef(d.species);
     bool flip = sp.flipAllowed && d.facing.x < 0.f;
@@ -826,10 +806,12 @@ void Renderer::drawDragon(Graphics& g, const DragonActor& d, const Sprites& spri
         if (skillAnim && soulfire) {
             const SkillCast& cast = *d.skillCast;
             flip = sp.flipAllowed && cast.facingLeft;
-            const Vec2 offset = soulfirePoseOffset(d, cast, drawH, flip);
-            x += offset.x;
-            cyAdj += (kAnchorFrac - kSoulfireFoot) * drawH + offset.y;
-            t = cast.elapsed;
+            cyAdj += (kAnchorFrac - kSoulfireFoot) * drawH - soulfireLift(cast.elapsed, cast.fxTime, drawH);
+            // Keep all 40 source frames and preserve the original one-second landing.
+            const float flightEnd = cast.fxTime + kSoulfireBreathDuration;
+            t = cast.elapsed < cast.fxTime ? 2.f * cast.elapsed / cast.fxTime
+                : cast.elapsed < flightEnd ? 2.f + (cast.elapsed - cast.fxTime) / kSoulfireBreathDuration
+                : 3.f + cast.elapsed - flightEnd;
         }
         if (soulfire)
             markRegion(RectF(x - drawH * 0.5f, cyAdj - drawH * 0.5f, drawH, drawH), 4.f);
@@ -1104,7 +1086,7 @@ void Renderer::drawWorld(Graphics& g, const Game& game, const Sprites& sprites, 
     drawProcession(g, w.dragon(), sprites, cs, false);
     drawFx(g, w, sprites, dragonSp, cs, false);
     drawBreath(g, w.dragon(), sprites, cs);
-    drawSoulfireBreath(g, w.dragon(), sprites, cs);
+    drawSoulfireBreath(g, w, sprites);
     if (game.hasDragon()) warmBreathCache(g, w, sprites, cs);
 
     const DragonActor& d = w.dragon();
@@ -1157,17 +1139,17 @@ void Renderer::drawWorld(Graphics& g, const Game& game, const Sprites& sprites, 
 
 void Renderer::drawSoulfire(Graphics& g, const World& w, const Sprites& sprites, SoulfirePass pass) {
     constexpr float impactFps = 20.f;
-    constexpr float impactDuration = 12.f / impactFps;
+
     const std::string& species = speciesDef(w.dragon().species).key;
     for (const DotZone& zone : w.dots()) {
         if (zone.flames.empty()) continue;
         const float age = zone.duration - zone.remaining;
-        if (pass == SoulfirePass::Ground && age < impactDuration) {
+        if (pass == SoulfirePass::Ground && age < kSoulfireImpactDuration) {
             const Sheet impact = sprites.fxSheet(species, "soulfire_impact");
-            const float h = 2.f * zone.radius;
+            const float h = zone.impactHeight;
             drawSheetFrame(g, impact, animFrame(age, impactFps, impact.frames, false),
                            zone.pos.x + (0.5f - 440.f / 1024.f) * h,
-                           zone.pos.y + (0.5f - 700.f / 1024.f) * h, h, false, 0.f, 0.78f);
+                           zone.pos.y + (0.5f - 700.f / 1024.f) * h, h, false, 0.f, 1.f);
         }
         for (const SoulfireFlame& flame : zone.flames) {
             const float local = age - flame.delay;
@@ -1182,7 +1164,7 @@ void Renderer::drawSoulfire(Graphics& g, const World& w, const Sprites& sprites,
             const Sheet sheet = sprites.fxSheet(species, soulfireLayerKey(flame.variant, pass));
             const int frame = static_cast<int>(progress * sheet.frames);
             const Vec2 anchor = zone.pos + flame.offset * zone.radius;
-            const float height = zone.radius * flame.size * (0.68f + 0.36f * envelope);
+            const float height = zone.flameHeight * flame.size * (0.68f + 0.32f * envelope);
             const float opacity = pass == SoulfirePass::Front ? 0.65f : 0.85f;
             drawSheetFrame(g, sheet, frame, anchor.x, anchor.y + (0.5f - 108.f / 128.f) * height,
                            height, false, 0.f, opacity * envelope);
@@ -1190,29 +1172,28 @@ void Renderer::drawSoulfire(Graphics& g, const World& w, const Sprites& sprites,
     }
 }
 
-void Renderer::drawSoulfireBreath(Graphics& g, const DragonActor& d, const Sprites& sprites, float charScale) {
-    if (!d.alive || !d.skillCast || !d.skillCast->soulfireTarget) return;
+void Renderer::drawSoulfireBreath(Graphics& g, const World& w, const Sprites& sprites) {
+    const auto beam = w.soulfireBeam();
+    if (!beam) return;
+    const DragonActor& d = w.dragon();
     const SkillCast& cast = *d.skillCast;
-    const float age = cast.elapsed - cast.fxTime;
-    if (age < 0.f || age >= kSoulfireBreathDuration) return;
     const SpeciesDef& species = speciesDef(d.species);
+    const SkillDef& skill = species.skills[cast.skill];
     const Sheet sheet = sprites.fxSheet(species.key, "soulfire_beam");
     if (!sheet.bmp || sheet.frames <= 0) return;
-    const bool left = species.flipAllowed && cast.facingLeft;
-    const float sign = left ? -1.f : 1.f;
-    const float bodyH = cfg::kDragonRadius * 3.f * charScale * species.skills[cast.skill].motionAnim.renderScale;
-    const Vec2 mouth = Vec2{d.pos.x + sign * kSoulfireMouthX * bodyH,
-                            d.pos.y + cfg::kDragonRadius + (kSoulfireMouthY - kSoulfireFoot) * bodyH} +
-                       soulfirePoseOffset(d, cast, bodyH, left);
-    const Vec2 aim = *cast.soulfireTarget - mouth;
-    const float angle = std::atan2(aim.y, aim.x) * 180.f / 3.14159265f;
+
+    const Vec2 aim = beam->ground - beam->mouth;
+    const float angle = std::atan2(aim.y, aim.x) * 180.f / kPi;
     const float height = aim.length() / 0.75f;
+    const bool left = cast.facingLeft;
     constexpr float centerOffset = 0.5f - 160.f / 1024.f;
     const GraphicsState state = g.Save();
-    g.TranslateTransform(mouth.x, mouth.y);
-    g.RotateTransform(angle - (left ? 125.f : 55.f));
-    drawSheetFrame(g, sheet, animFrame(age, 20.f, sheet.frames, false),
-                   sign * centerOffset * height, centerOffset * height, height, left, 0.f, 0.83f);
+    g.TranslateTransform(beam->mouth.x, beam->mouth.y);
+    g.RotateTransform(angle);
+    g.ScaleTransform(1.f, skill.soulfireWidth);
+    g.RotateTransform(left ? -125.f : -55.f);
+    drawSheetFrame(g, sheet, animFrame(cast.elapsed - cast.fxTime, 20.f, sheet.frames, false),
+                   (left ? -1.f : 1.f) * centerOffset * height, centerOffset * height, height, left, 0.f, 0.83f);
     g.Restore(state);
 }
 
@@ -1345,7 +1326,7 @@ void Renderer::drawAnimationPreview(Graphics& g, const World& w, const Sprites& 
         drawDotZones(g, w, sprites, time);
         drawSoulfire(g, w, sprites, SoulfirePass::Ground);
         drawSoulfire(g, w, sprites, SoulfirePass::Rear);
-        drawSoulfireBreath(g, d, sprites, charScale);
+        drawSoulfireBreath(g, w, sprites);
         drawProcession(g, d, sprites, charScale, false);
         drawFx(g, w, sprites, species, charScale, false);
         drawBreath(g, d, sprites, charScale);

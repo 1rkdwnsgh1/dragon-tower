@@ -128,10 +128,20 @@ struct Projectile {
     bool appliesCurse = false;
 };
 
-inline constexpr float kSoulfireBreathStart = 2.f;
+inline constexpr float kSoulfireFoot = 865.f / 1024.f;
 inline constexpr float kSoulfireBreathDuration = 0.8f;
-inline constexpr float kSoulfireImpactTime = 2.25f;
-inline constexpr float kSoulfireCastDuration = 4.f;
+inline constexpr float kSoulfireImpactDelay = 0.1f;
+inline constexpr float kSoulfireImpactInterval = 0.25f;
+inline constexpr int kSoulfireImpactCount = 3;
+inline constexpr float kSoulfireRecovery = 1.f;
+inline constexpr float kSoulfireImpactDuration = 0.6f;
+
+struct SoulfireBeam {
+    Vec2 mouth;
+    Vec2 ground;
+};
+
+float soulfireLift(float elapsed, float takeoff, float bodyHeight);
 inline constexpr int kSoulfireFlameCount = 6;
 
 struct SoulfireFlame {
@@ -151,6 +161,9 @@ struct DotZone {
     bool appliesCurse = false;
     int spriteSkill = -1;
     std::vector<SoulfireFlame> flames;
+    unsigned soulfireCastId = 0;
+    float impactHeight = 0.f;
+    float flameHeight = 0.f;
     float startDelay = 0.f;  // Time before impact within the first simulation step.
 };
 
@@ -241,7 +254,8 @@ struct SkillCast {
     bool fxDone = false;
     bool hitDone = false;
     bool facingLeft = false;
-    std::optional<Vec2> soulfireTarget;
+    unsigned soulfireCastId = 0;
+    int soulfireImpacts = 0;
 };
 
 struct DragonActor {
@@ -364,6 +378,7 @@ public:
     void setSizeScale(float s) { sizeScale_ = s > 0.f ? s : 1.f; }
     // 스킬 판정 반경. scale_with_size 를 켠 스킬만 보기 크기를 따라 커진다.
     float skillRadius(const SkillDef& s) const { return s.scaleWithSize ? s.radius * sizeScale_ : s.radius; }
+    std::optional<SoulfireBeam> soulfireBeam() const;
     float sizeScale() const { return sizeScale_; }
     const std::array<int, kSkillSlots>& slots() const { return slots_; }
     // 칸 번호 -> 스킬 목록 번호. 빈 칸이면 -1.
@@ -432,6 +447,7 @@ private:
     const Enemy* chooseProcessionTarget(ProcessionCast& cast, Vec2 from) const;
     void cancelProcession();
     void advanceSkillCast(float dt, bool combatEnded = false);
+    void advanceSoulfire(SkillCast& cast, const SkillDef& skill, float previous);
     void cancelSkillCast(float refundRatio);
     void spawnAnchoredFx(const SkillDef& s, bool facingLeft);
     bool skillCastLocked() const { return dragon_.skillCast && dragon_.skillCast->elapsed < dragon_.skillCast->lockTime; }
@@ -446,6 +462,7 @@ private:
     float dragonDodgeChance() const;
 
     RectF bounds_{0.f, 0.f, 1280.f, 720.f};
+    unsigned nextSoulfireCastId_ = 1;
     float sizeScale_ = 1.f;  // 보기 크기. 판정에 쓰는 몸·스킬 반경을 여기에 곱한다
     bool confining_ = false;   // 띠로 내려가는 중
     RectF confineBand_{};
