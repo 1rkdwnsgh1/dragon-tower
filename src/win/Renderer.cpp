@@ -1248,6 +1248,7 @@ void Renderer::drawWorld(Graphics& g, const Game& game, const Sprites& sprites, 
     drawFx(g, w, sprites, dragonSp, cs, false);
     drawBreath(g, w.dragon(), sprites, cs);
     drawSoulfireBreath(g, w, sprites);
+    drawSoulfireImpact(g, w, sprites);
     if (game.hasDragon()) warmBreathCache(g, w, sprites, cs);
 
     const DragonActor& d = w.dragon();
@@ -1299,39 +1300,7 @@ void Renderer::drawWorld(Graphics& g, const Game& game, const Sprites& sprites, 
 }
 
 void Renderer::drawSoulfire(Graphics& g, const World& w, const Sprites& sprites, SoulfirePass pass) {
-    const DragonActor& dragon = w.dragon();
-    const SpeciesDef& species = speciesDef(dragon.species);
-    if (pass == SoulfirePass::Ground && dragon.skillCast && dragon.skillCast->soulfireCastId) {
-        const SkillCast& cast = *dragon.skillCast;
-        const SkillDef& skill = species.skills[cast.skill];
-        if (const auto beam = w.soulfireBeam()) {
-            const Sheet impact = sprites.fxSheet(species.key, "soulfire_impact");
-            const float h = w.skillRadius(skill) * skill.soulfireImpactScale;
-            const float age = cast.elapsed - cast.fxTime;
-            const float sign = cast.facingLeft ? -1.f : 1.f;
-            drawSheetFrame(g, impact, animFrame(age, 20.f, impact.frames, true),
-                           beam->ground.x + sign * (0.5f - 440.f / 1024.f) * h,
-                           beam->ground.y + (0.5f - 700.f / 1024.f) * h, h, cast.facingLeft, 0.f, 1.f);
-        }
-        for (const DotZone& zone : w.dots()) {
-            if (zone.soulfireCastId != cast.soulfireCastId) continue;
-            const float age = zone.duration - zone.remaining;
-            if (age < 0.f || age >= 0.31f) continue;
-            const float h = zone.radius * skill.soulfireImpactScale;
-            const float flash = std::max(0.f, 1.f - age / 0.095f);
-            if (flash > 0.f) {
-                for (int ring = 3; ring > 0; --ring) {
-                    const float halfWidth = h * (0.018f * ring + age * 0.25f);
-                    const float halfHeight = h * (0.003f * ring + age * 0.055f);
-                    SolidBrush glow(Color(static_cast<BYTE>(95.f * flash / ring), 167, 255, 227));
-                    g.FillEllipse(&glow, zone.pos.x - halfWidth, zone.pos.y - halfHeight,
-                                  2.f * halfWidth, 2.f * halfHeight);
-                }
-            }
-            drawSoulfireDebris(g, zone.pos, h * 0.42f, age / 0.31f, false,
-                               static_cast<int>(std::abs(zone.pos.x)));
-        }
-    }
+    const SpeciesDef& species = speciesDef(w.dragon().species);
     std::array<Sheet, kSoulfireFlameVariants> sheets{};
     bool loaded = false;
     for (const DotZone& zone : w.dots()) {
@@ -1352,7 +1321,7 @@ void Renderer::drawSoulfire(Graphics& g, const World& w, const Sprites& sprites,
                 const FrameCache::Source band{
                     embers.bmp, embers.frameW * (frame % columns) + 38,
                     embers.frameH * (frame / columns) + 102, 52, 12};
-                const float width = zone.radius * 0.50f;
+                const float width = zone.radius * 0.60f;
                 const float height = zone.flameHeight * 0.22f;
                 const float fade = std::min({age / 0.15f, zone.remaining / 0.54f, 1.f});
                 drawFrameCached(g, band, zone.pos.x, zone.pos.y, width, height, false, 0.f, 0.52f * fade);
@@ -1366,18 +1335,48 @@ void Renderer::drawSoulfire(Graphics& g, const World& w, const Sprites& sprites,
             if (eruption && local >= eruptionDuration) continue;
             const float progress = eruption ? local / eruptionDuration : std::fmod(local, flame.cycle) / flame.cycle;
             const float cycleEnvelope = std::min({progress / 0.18f, (1.f - progress) / 0.21f, 1.f});
-            const float flicker = flame.variant == 3 ? 0.48f + 0.52f * cycleEnvelope : cycleEnvelope;
+            const float flicker = eruption ? cycleEnvelope : 0.40f + 0.60f * cycleEnvelope;
             const float envelope = flicker * std::min({local / 0.13f, zone.remaining / 0.44f, 1.f});
             if (envelope <= 0.f) continue;
             const Sheet& sheet = sheets[flame.variant];
             const int frame = static_cast<int>(progress * sheet.frames);
             const Vec2 anchor = zone.pos + flame.offset * zone.radius;
             const float height = zone.flameHeight * flame.size * (0.68f + 0.32f * envelope);
-            const float opacity = pass == SoulfirePass::Front ? 0.65f : 0.85f;
+            const float opacity = pass == SoulfirePass::Front ? 0.62f : 0.79f;
             drawSheetFrame(g, sheet, frame, anchor.x, anchor.y + (0.5f - 108.f / 128.f) * height,
-                           height, false, 0.f, opacity * envelope);
+                           height, flame.flip, 0.f, opacity * envelope);
         }
     }
+}
+
+void Renderer::drawSoulfireImpact(Graphics& g, const World& w, const Sprites& sprites) {
+    const DragonActor& dragon = w.dragon();
+    if (!dragon.skillCast || !dragon.skillCast->soulfireCastId) return;
+    const SkillCast& cast = *dragon.skillCast;
+    const float age = cast.elapsed - cast.fxTime;
+    constexpr float impactTail = 0.18f;
+    const float release = std::max(0.f, age - kSoulfireBreathDuration);
+    if (release >= impactTail) return;
+    const auto contact = w.soulfireBeam(true);
+    if (!contact) return;
+
+    const SpeciesDef& species = speciesDef(dragon.species);
+    const Sheet impact = sprites.fxSheet(species.key, "soulfire_impact");
+    // V5 starts with sparks and expands to a full plume in cell 6.
+    // Oscillate only through the mature cells, keeping the same contact anchor.
+    constexpr int firstFullFrame = 6;
+    const int span = std::max(1, impact.frames - 1 - firstFullFrame);
+    const float activeAge = std::min(age, kSoulfireBreathDuration);
+    const int tick = static_cast<int>(activeAge * 20.f) % (2 * span);
+    const int frame = firstFullFrame + std::min(tick, 2 * span - tick);
+    const float life = 1.f - release / impactTail;
+    const float alpha = life * life * (3.f - 2.f * life);
+    const SkillDef& skill = species.skills[cast.skill];
+    const float h = w.skillRadius(skill) * skill.soulfireImpactScale * (0.86f + 0.14f * life);
+    const float sign = cast.facingLeft ? -1.f : 1.f;
+    drawSheetFrame(g, impact, frame,
+                   contact->ground.x + sign * (0.5f - 440.f / 1024.f) * h,
+                   contact->ground.y + (0.5f - 700.f / 1024.f) * h, h, cast.facingLeft, 0.f, alpha);
 }
 
 void Renderer::drawSoulfireBreath(Graphics& g, const World& w, const Sprites& sprites) {
@@ -1588,6 +1587,7 @@ void Renderer::drawAnimationPreview(Graphics& g, const World& w, const Sprites& 
     }
     if (effects) {
         drawSoulfire(g, w, sprites, SoulfirePass::Front);
+        drawSoulfireImpact(g, w, sprites);
         drawProjectiles(g, w, sprites, species, charScale);
         drawFx(g, w, sprites, species, charScale, true);
         drawProcession(g, d, sprites, charScale, true);

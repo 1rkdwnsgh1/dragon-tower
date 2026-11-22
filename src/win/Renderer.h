@@ -147,6 +147,7 @@ private:
                     float height, bool preview, bool body = true, bool effects = true);
     // charScale은 보기 배수다. 그림 크기만 바꾸고 판정에는 쓰지 않는다.
     void drawSoulfire(Gdiplus::Graphics& g, const World& w, const Sprites& sprites, SoulfirePass pass);
+    void drawSoulfireImpact(Gdiplus::Graphics& g, const World& w, const Sprites& sprites);
     void drawSoulfireBodyVfx(Gdiplus::Graphics& g, const DragonActor& d, const Sprites& sprites,
                             const std::string& key, int frame, Vec2 center, float size, bool flip, bool front);
     void drawSoulfireBreath(Gdiplus::Graphics& g, const World& w, const Sprites& sprites);

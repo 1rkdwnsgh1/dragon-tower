@@ -900,12 +900,12 @@ float soulfireLift(float elapsed, float takeoff, float landing, float bodyHeight
     return bodyHeight * 0.18f * launch * (1.f - descent * descent);
 }
 
-std::optional<SoulfireBeam> World::soulfireBeam() const {
+std::optional<SoulfireBeam> World::soulfireBeam(bool includeLanding) const {
     const DragonActor& d = dragon_;
     if (!d.skillCast || !d.skillCast->soulfireCastId || !d.alive) return std::nullopt;
     const SkillCast& cast = *d.skillCast;
     const float flight = cast.elapsed - cast.fxTime;
-    if (flight < 0.f || flight >= kSoulfireBreathDuration) return std::nullopt;
+    if (flight < 0.f || (!includeLanding && flight >= kSoulfireBreathDuration)) return std::nullopt;
     return soulfireBeamAt(d.pos, cast, speciesDef(d.species).skills[cast.skill]);
 }
 
@@ -957,13 +957,18 @@ void World::advanceSoulfire(SkillCast& cast, const SkillDef& s, float previous) 
             const float across = static_cast<float>(n) / (kSoulfireFlameCount - 1);
             const float x = sign * ((across - 0.5f) * 0.63f
                                     + soulfireVisualRng_.uniform(-0.052f, 0.052f));
-            const float depth = (0.5f - across) * 0.07f + soulfireVisualRng_.uniform(-0.09f, 0.09f);
-            const float delay = across * 0.19f + soulfireVisualRng_.uniform(0.f, 0.22f);
-            // Low flames carry the trail through gaps between the taller bursts.
-            const int variant = n % 3 == 0 ? 3 : static_cast<int>(
-                soulfireVisualRng_.uniform(0.f, static_cast<float>(kSoulfireFlameVariants) - 0.001f));
-            z.flames.push_back({{x, depth}, soulfireVisualRng_.uniform(0.57f, 1.2f), delay,
-                                soulfireVisualRng_.uniform(1.05f, 2.85f), variant});
+            const int row = n % 3;
+            const float depth = (row - 1) * 0.065f + soulfireVisualRng_.uniform(-0.027f, 0.027f);
+            const float delay = across * 0.12f + soulfireVisualRng_.uniform(0.f, 0.28f);
+            // Alternate tall silhouettes, middle tongues, and low foreground flames.
+            constexpr int variants[][4] = {{0, 1, 2, 4}, {5, 2, 1, 0}, {3, 5, 3, 3}};
+            const int variant = variants[row][(n / 3) % 4];
+            const float size = row == 0 ? soulfireVisualRng_.uniform(1.45f, 1.9f)
+                             : row == 1 ? soulfireVisualRng_.uniform(0.98f, 1.35f)
+                                        : soulfireVisualRng_.uniform(0.72f, 1.02f);
+            z.flames.push_back({{x, depth}, size, delay,
+                                soulfireVisualRng_.uniform(0.90f, 2.35f), variant,
+                                soulfireVisualRng_.uniform(0.f, 1.f) < 0.5f});
         }
         std::sort(z.flames.begin(), z.flames.end(), [](const SoulfireFlame& a, const SoulfireFlame& b) {
             return a.offset.y < b.offset.y;

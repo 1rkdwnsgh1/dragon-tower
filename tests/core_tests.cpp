@@ -3705,13 +3705,14 @@ static void testNetherSoulfire(const std::filesystem::path& assets) {
     if (!world.dragon().skillCast) return;
     step(world, takeoff * 0.5f);
     CHECK(!world.soulfireBeam() && world.dragon().pos.x == 600.f && world.dots().empty());
+    CHECK(!world.soulfireBeam(true));
     step(world, firstContact - takeoff * 0.5f);
     CHECK(world.dragon().pos.x > 600.f && world.soulfireBeam() && world.dots().size() == 1);
     if (world.dots().empty() || !world.soulfireBeam()) return;
     const Vec2 first = world.dots().front().pos;
     CHECK(first.y == world.soulfireBeam()->ground.y);
     CHECK(std::fabs(world.soulfireBeam()->ground.x - first.x) < 3.f);
-    CHECK(world.dots().front().flames.size() == 15);
+    CHECK(world.dots().front().flames.size() == kSoulfireFlameCount);
     CHECK(world.dots().front().radius == def.radius);
     CHECK(std::fabs(def.soulfireWidth - 0.44f * 3.f) < 0.001f);
     CHECK(std::fabs(takeoff - 0.4f) < 0.001f && std::fabs(def.soulfireLanding - 0.4f) < 0.001f);
@@ -3733,10 +3734,14 @@ static void testNetherSoulfire(const std::filesystem::path& assets) {
     const float v2Distance = world.dragon().stats.speed * cfg::kIdleFlySpeed * 0.8f;
     CHECK(std::fabs(world.dragon().pos.x - 600.f - 2.5f * v2Distance) < 0.01f);
     CHECK(!world.soulfireBeam() && !world.dots().empty());
+    const auto landingContact = world.soulfireBeam(true);
+    CHECK(landingContact && landingContact->ground.y == first.y &&
+          landingContact->ground.x >= world.dots().back().pos.x);
     step(world, def.soulfireLanding - 0.03f);
     CHECK(world.dragon().skillCast && world.dragon().skillMotion == skill && world.dragon().anim == AnimState::Attack);
     step(world, 0.03f);
     CHECK(!world.dragon().skillCast && !world.dragon().moving && world.dragon().skillMotion == -1);
+    CHECK(!world.soulfireBeam(true));
     CHECK(!world.dots().empty());
     world.updateFx(0.f, true);
     CHECK(world.dots().empty());
@@ -3762,7 +3767,7 @@ static void testNetherSoulfire(const std::filesystem::path& assets) {
                         baseDrop / std::tan(def.soulfireAngle * kPi / 180.f) * scale) < 0.01f);
         CHECK(std::fabs(firstPatch.radius - def.radius * scale) < 0.01f);
         CHECK(std::fabs(firstPatch.flameHeight - baseBody * def.soulfireFlameScale * scale) < 0.01f);
-        CHECK(firstPatch.flames.size() == 15);
+        CHECK(firstPatch.flames.size() == kSoulfireFlameCount);
         CHECK(std::fabs(scaled.skillRange(skills[1]) - skills[1].range) < 0.01f);
 
         for (float offset : {-2.f, 2.f}) {

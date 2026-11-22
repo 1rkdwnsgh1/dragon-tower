@@ -141,7 +141,7 @@ struct SoulfireBeam {
 
 float soulfireLift(float elapsed, float takeoff, float landing, float bodyHeight);
 inline constexpr int kSoulfireFlameVariants = 6;
-inline constexpr int kSoulfireFlameCount = 15;
+inline constexpr int kSoulfireFlameCount = 24;
 
 struct SoulfireFlame {
     Vec2 offset;
@@ -149,6 +149,7 @@ struct SoulfireFlame {
     float delay = 0.f;
     float cycle = 1.f;
     int variant = 0;
+    bool flip = false;
 };
 
 struct DotZone {
@@ -377,7 +378,7 @@ public:
     // 스킬 판정 반경. scale_with_size 를 켠 스킬만 보기 크기를 따라 커진다.
     float skillRange(const SkillDef& s) const { return s.soulfire ? s.range * sizeScale_ : s.range; }
     float skillRadius(const SkillDef& s) const { return s.scaleWithSize ? s.radius * sizeScale_ : s.radius; }
-    std::optional<SoulfireBeam> soulfireBeam() const;
+    std::optional<SoulfireBeam> soulfireBeam(bool includeLanding = false) const;
     float sizeScale() const { return sizeScale_; }
     const std::array<int, kSkillSlots>& slots() const { return slots_; }
     // 칸 번호 -> 스킬 목록 번호. 빈 칸이면 -1.
