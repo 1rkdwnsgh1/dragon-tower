@@ -73,6 +73,15 @@ struct ProcessionCast {
     std::vector<int> claimedTargets;
 };
 
+struct SoulfireHit {
+    float loopAge = 0.f;
+    float intensity = 0.f;
+    float releaseAge = 0.f;
+    float releaseStart = 0.f;
+
+    void advance(float dt, bool damaged);
+};
+
 struct Enemy {
     int id = 0;
     EnemyKind kind{};
@@ -90,6 +99,7 @@ struct Enemy {
     bool alive = true;
     // 화면 밖에서 들어오는 중이면 경계에 가두지 않는다(디펜스 전투의 등장 연출)
     bool entering = false;
+    SoulfireHit soulfireHit;
     // 보스 전용
     bool phase2 = false;
     bool spawnedAdds = false;

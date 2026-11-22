@@ -3778,6 +3778,8 @@ static void testNetherSoulfire(const std::filesystem::path& assets) {
         }
         step(scaled, 0.02f);
         CHECK(scaled.enemies()[0].hp < 2000.f && scaled.enemies()[1].hp == 2000.f);
+        CHECK(scaled.enemies()[0].soulfireHit.intensity == 0.5f);
+        CHECK(scaled.enemies()[1].soulfireHit.intensity == 0.f);
         step(scaled, kSoulfireBreathDuration);
         const float expectedDistance = scaled.dragon().stats.speed * cfg::kIdleFlySpeed *
                                        kSoulfireBreathDuration * scale;
@@ -3797,6 +3799,45 @@ static void testNetherSoulfire(const std::filesystem::path& assets) {
             search.updateCombat(0.f, CombatMode::Auto, {});
             CHECK(search.dragon().skillCast.has_value() == (offset < 0.f));
         }
+    }
+
+    World hitFx = setup(9, false);
+    hitFx.updateCombat(0.f, CombatMode::Direct, hotkey);
+    step(hitFx, firstContact);
+    CHECK(!hitFx.dots().empty());
+    if (!hitFx.dots().empty()) {
+        const Vec2 contact = hitFx.dots().front().pos;
+        const auto spawnTarget = [&](Vec2 feet) {
+            Enemy& e = hitFx.spawnEnemy(defaultMelee(), 1, feet);
+            e.pos.y -= e.radius;
+            e.hp = e.maxHp = 2000.f;
+            e.stun = 100.f;
+        };
+        spawnTarget(contact);
+        spawnTarget({contact.x + 10.f, contact.y});
+        spawnTarget({100.f, contact.y});
+        hitFx.dragon().basicCd = 60.f;
+        step(hitFx, 0.f);
+        CHECK(hitFx.enemies()[0].soulfireHit.intensity == 0.f);
+        step(hitFx, 0.02f);
+        CHECK(hitFx.enemies()[0].soulfireHit.intensity == 0.5f);
+        CHECK(hitFx.enemies()[1].soulfireHit.intensity == 0.5f);
+        CHECK(hitFx.enemies()[2].soulfireHit.intensity == 0.f);
+        step(hitFx, 0.08f);
+        CHECK(hitFx.enemies()[0].soulfireHit.intensity == 1.f);
+        hitFx.enemiesMutable()[0].pos.x = 100.f;
+        step(hitFx, 0.05f);
+        CHECK(std::fabs(hitFx.enemies()[0].soulfireHit.intensity - 0.5f) < 0.001f);
+        CHECK(hitFx.enemies()[1].soulfireHit.intensity == 1.f);
+        hitFx.enemiesMutable()[0].pos.x = contact.x;
+        step(hitFx, 0.02f);
+        CHECK(hitFx.enemies()[0].soulfireHit.intensity > 0.5f);
+        CHECK(hitFx.enemies()[0].soulfireHit.releaseAge == 0.f);
+        hitFx.enemiesMutable()[0].pos.x = 100.f;
+        step(hitFx, 0.1f);
+        CHECK(hitFx.enemies()[0].soulfireHit.intensity == 0.f);
+        hitFx.updateFx(0.f, true);
+        CHECK(hitFx.enemies()[1].soulfireHit.intensity == 0.f);
     }
 
     World automatic = setup(9, true, true);

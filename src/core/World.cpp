@@ -1530,6 +1530,20 @@ void World::resolveZone(const AttackZone& z, CombatMode mode) {
     damageDragon(z.damage);
 }
 
+void SoulfireHit::advance(float dt, bool damaged) {
+    const bool wasVisible = intensity > 0.f;
+    if (damaged) {
+        intensity = wasVisible ? std::min(1.f, intensity + dt * (0.5f / 0.08f)) : 0.5f;
+        releaseAge = 0.f;
+    } else if (intensity > 0.f && dt > 0.f) {
+        if (releaseAge == 0.f) releaseStart = intensity;
+        releaseAge += dt;
+        intensity = releaseStart * std::max(0.f, 1.f - releaseAge / 0.10f);
+    }
+    if (intensity == 0.f) *this = {};
+    else if (wasVisible) loopAge = std::fmod(loopAge + dt, 0.8f);
+}
+
 void World::updateCombat(float dt, CombatMode mode, const PlayerInput& in) {
     currentMode_ = mode;
     DragonActor& d = dragon_;
@@ -1707,26 +1721,31 @@ void World::updateCombat(float dt, CombatMode mode, const PlayerInput& in) {
             }
         }
     }
-    if (!trail.empty()) {
-        std::vector<std::pair<unsigned, float>> exposure;
-        for (Enemy& e : enemies_) {
-            if (!e.alive) continue;
-            exposure.clear();
-            const Vec2 feet{e.pos.x, std::min(e.pos.y + e.radius, bounds_.bottom())};
-            for (const auto& [zone, duration] : trail) {
-                if (distance(feet, zone->pos) > zone->radius + e.radius * 0.5f) continue;
-                auto entry = std::find_if(exposure.begin(), exposure.end(), [&](const auto& value) {
-                    return value.first == zone->soulfireCastId;
-                });
-                if (entry == exposure.end()) {
-                    exposure.emplace_back(zone->soulfireCastId, duration);
-                    damageEnemy(e, zone->dps * duration, false);
-                } else if (duration > entry->second) {
-                    damageEnemy(e, zone->dps * (duration - entry->second), false);
-                    entry->second = duration;
-                }
+    std::vector<std::pair<unsigned, float>> exposure;
+    for (Enemy& e : enemies_) {
+        if (!e.alive) continue;
+        if (trail.empty() && e.soulfireHit.intensity == 0.f) continue;
+        if (!d.alive) {
+            e.soulfireHit = {};
+            continue;
+        }
+        const float hpBeforeSoulfire = e.hp;
+        exposure.clear();
+        const Vec2 feet{e.pos.x, std::min(e.pos.y + e.radius, bounds_.bottom())};
+        for (const auto& [zone, duration] : trail) {
+            if (distance(feet, zone->pos) > zone->radius + e.radius * 0.5f) continue;
+            auto entry = std::find_if(exposure.begin(), exposure.end(), [&](const auto& value) {
+                return value.first == zone->soulfireCastId;
+            });
+            if (entry == exposure.end()) {
+                exposure.emplace_back(zone->soulfireCastId, duration);
+                damageEnemy(e, zone->dps * duration, false);
+            } else if (duration > entry->second) {
+                damageEnemy(e, zone->dps * (duration - entry->second), false);
+                entry->second = duration;
             }
         }
+        if (e.alive) e.soulfireHit.advance(dt, e.hp < hpBeforeSoulfire);
     }
     dots_.erase(std::remove_if(dots_.begin(), dots_.end(), [](const DotZone& z) { return z.remaining <= 0.f; }), dots_.end());
 
@@ -1737,6 +1756,7 @@ void World::updateCombat(float dt, CombatMode mode, const PlayerInput& in) {
 
 void World::updateFx(float dt, bool combatEnded) {
     if (combatEnded) {
+        for (Enemy& enemy : enemies_) enemy.soulfireHit = {};
         cancelProcession();
         dots_.erase(std::remove_if(dots_.begin(), dots_.end(), [](const DotZone& z) { return z.soulfireCastId != 0; }),
                     dots_.end());

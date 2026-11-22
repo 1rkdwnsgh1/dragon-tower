@@ -1089,25 +1089,47 @@ void Renderer::drawEnemy(Graphics& g, const Enemy& e, const Sprites& sprites, fl
         strokeCircle(g, x, y, e.radius * 1.25f, Color(200, 255, 90, 60), 2.f);
     }
 
-    bool drawnBySheet = false;
     // v0.4: 적도 시트 애니메이션을 쓴다. 상태는 움직임·예고·피격으로 정한다.
     AnimState st = AnimState::Idle;
     if (e.hitFlash > 0.f) st = AnimState::Hit;
     else if (e.castTimer > 0.f) st = AnimState::Attack;
     else if (e.stun <= 0.f) st = AnimState::Move;
     if (forcedState) st = *forcedState;
-    Sheet sh2 = sprites.sheet("enemy:" + ed.key, st);
-    if (sh2.bmp) {
-        const AnimDef& ad = ed.anims[static_cast<int>(st)];
-        const float kAnchorFrac = 240.f / 256.f;
-        float k = ad.renderScale;
-        float cyAdj = artY - (kAnchorFrac - 0.5f) * height * (k - 1.f);
-        drawSheetFrame(g, sh2, animFrame(time, ad.fps, sh2.frames, ad.loop), x, cyAdj, height * k, flip, flash, 1.f);
-        drawnBySheet = true;
-    }
+    const Sheet sh2 = sprites.sheet("enemy:" + ed.key, st);
+    const bool drawnBySheet = sh2.bmp != nullptr;
+    const AnimDef& ad = ed.anims[static_cast<int>(st)];
+    const int frame = drawnBySheet ? animFrame(time, ad.fps, sh2.frames, ad.loop) : 0;
     Bitmap* bmp = drawnBySheet ? nullptr : sprites.get(isBoss ? "boss_guardian" : "enemy_imp");
+    const float visibleHeight = drawnBySheet
+        ? height * ad.renderScale * (sh2.visibleHeight ? sh2.visibleHeight[frame] : 1.f)
+        : (bmp ? height : e.radius * 2.f);
+    const SoulfireHit& fire = e.soulfireHit;
+    float fireSize = 0.f, fireY = 0.f;
+    int pixelW = 0, pixelH = 0;
+    if (e.alive && fire.intensity > 0.f) {
+        frameDeviceSize(g, visibleHeight, visibleHeight, pixelW, pixelH);
+        const float release = std::clamp(fire.releaseAge / 0.10f, 0.f, 1.f);
+        const float attackIntensity = fire.releaseAge > 0.f ? fire.releaseStart : fire.intensity;
+        const float scale = std::clamp(0.60f + 0.40f * attackIntensity, 0.80f, 1.f) * (1.f - 0.14f * release);
+        fireSize = visibleHeight * 0.92f * scale;
+        const float foot = e.pos.y + e.radius + bob;
+        fireY = foot - visibleHeight * 0.43f + fireSize * (0.5f - 104.f / 128.f);
+    }
+    const auto drawAttachedFire = [&](bool front) {
+        if (fireSize <= 0.f || (front && pixelH < 40)) return;
+        const float cy = fireY - (front ? 0.f : visibleHeight * 0.13f);
+        if (!g.IsVisible(RectF(x - fireSize * 0.5f, cy - fireSize * 0.5f, fireSize, fireSize))) return;
+        const Sheet fx = sprites.fxSheet("revenant", front ? "soulfire_hit_front" : "soulfire_hit_rear");
+        if (!fx.bmp) return;
+        const int fxFrame = animFrame(fire.loopAge + (e.id % 8) * 0.1f, 10.f, fx.frames, true);
+        const FrameCache::Source cell{fx.bmp, fxFrame * fx.frameW, 0, fx.frameW, fx.frameH};
+        drawFrameCached(g, cell, x, cy, fireSize, fireSize, e.facing < 0.f, 0.f, fire.intensity);
+    };
+
+    drawAttachedFire(false);
     if (drawnBySheet) {
-        // 시트로 이미 그렸다
+        const float cyAdj = artY - (240.f / 256.f - 0.5f) * height * (ad.renderScale - 1.f);
+        drawSheetFrame(g, sh2, frame, x, cyAdj, height * ad.renderScale, flip, flash, 1.f);
     } else if (bmp) {
         drawSprite(g, bmp, x, artY, height, flip, flash, 1.f);
     } else if (!isBoss) {
@@ -1142,6 +1164,8 @@ void Renderer::drawEnemy(Graphics& g, const Enemy& e, const Sprites& sprites, fl
         SolidBrush armor(col(darken(c, 0.4f)));
         g.FillRectangle(&armor, x - r * 0.6f, y + r * 0.25f, r * 1.2f, r * 0.18f);
     }
+
+    drawAttachedFire(true);
 
     if (e.stun > 0.f) {
         for (int i = 0; i < 3; ++i) {
