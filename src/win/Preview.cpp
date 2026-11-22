@@ -304,8 +304,7 @@ void PreviewWindow::reset() {
 
     duration_ = std::max(1.f, dragon.animHold);
     if (dragon.skillCast && dragon.skillCast->soulfireCastId)
-        duration_ = std::max(duration_, dragon.skillCast->hitTime +
-                            (kSoulfireImpactCount - 1) * kSoulfireImpactInterval + sk->duration);
+        duration_ = std::max(duration_, dragon.skillCast->fxTime + kSoulfireBreathDuration + sk->duration);
     if (const auto& procession = dragon.procession; procession)
         duration_ = ProcessionCast::maxDuration(*sk, procession->flightLimit);
     const auto& breath = dragon.breath;

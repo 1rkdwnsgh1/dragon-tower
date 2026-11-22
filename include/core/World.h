@@ -129,12 +129,9 @@ struct Projectile {
 };
 
 inline constexpr float kSoulfireFoot = 865.f / 1024.f;
-inline constexpr float kSoulfireBreathDuration = 0.8f;
-inline constexpr float kSoulfireImpactDelay = 0.1f;
-inline constexpr float kSoulfireImpactInterval = 0.25f;
-inline constexpr int kSoulfireImpactCount = 3;
+inline constexpr float kSoulfireBreathDuration = 2.f;
+inline constexpr float kSoulfireTrailSpacing = 34.f;
 inline constexpr float kSoulfireRecovery = 1.f;
-inline constexpr float kSoulfireImpactDuration = 0.6f;
 
 struct SoulfireBeam {
     Vec2 mouth;
@@ -162,7 +159,6 @@ struct DotZone {
     int spriteSkill = -1;
     std::vector<SoulfireFlame> flames;
     unsigned soulfireCastId = 0;
-    float impactHeight = 0.f;
     float flameHeight = 0.f;
     float startDelay = 0.f;  // Time before impact within the first simulation step.
 };
@@ -255,7 +251,7 @@ struct SkillCast {
     bool hitDone = false;
     bool facingLeft = false;
     unsigned soulfireCastId = 0;
-    int soulfireImpacts = 0;
+    float soulfireTrailNext = 0.f;  // Distance remaining before the next stationary patch.
 };
 
 struct DragonActor {
@@ -448,6 +444,7 @@ private:
     void cancelProcession();
     void advanceSkillCast(float dt, bool combatEnded = false);
     void advanceSoulfire(SkillCast& cast, const SkillDef& skill, float previous);
+    std::optional<SoulfireBeam> soulfireBeamAt(Vec2 position, const SkillCast& cast, const SkillDef& skill) const;
     void cancelSkillCast(float refundRatio);
     void spawnAnchoredFx(const SkillDef& s, bool facingLeft);
     bool skillCastLocked() const { return dragon_.skillCast && dragon_.skillCast->elapsed < dragon_.skillCast->lockTime; }

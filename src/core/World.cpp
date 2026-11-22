@@ -614,7 +614,6 @@ bool World::castSkill(int i, bool aiChoice) {
                 cast.soulfireCastId = nextSoulfireCastId_++;
                 cast.facingLeft = d.facing.x < 0.f;
                 cast.fxTime = s.soulfireTakeoff;
-                cast.hitTime = cast.fxTime + kSoulfireImpactDelay;
                 cast.lockTime = cast.fxTime + kSoulfireBreathDuration + kSoulfireRecovery;
                 d.skillCast = cast;
                 d.facing = {cast.facingLeft ? -1.f : 1.f, 0.f};
@@ -899,13 +898,16 @@ std::optional<SoulfireBeam> World::soulfireBeam() const {
     const SkillCast& cast = *d.skillCast;
     const float flight = cast.elapsed - cast.fxTime;
     if (flight < 0.f || flight >= kSoulfireBreathDuration) return std::nullopt;
-    const SkillDef& s = speciesDef(d.species).skills[cast.skill];
+    return soulfireBeamAt(d.pos, cast, speciesDef(d.species).skills[cast.skill]);
+}
+
+std::optional<SoulfireBeam> World::soulfireBeamAt(Vec2 position, const SkillCast& cast, const SkillDef& s) const {
     const float body = cfg::kDragonRadius * 3.f * sizeScale_ * s.motionAnim.renderScale;
     const float sign = cast.facingLeft ? -1.f : 1.f;
-    const float groundY = std::min(d.pos.y + cfg::kDragonRadius, bounds_.bottom());
-    const Vec2 mouth{d.pos.x + sign * (s.soulfireMouthX - 0.5f) * body,
-                     d.pos.y + cfg::kDragonRadius + (s.soulfireMouthY - kSoulfireFoot) * body -
-                     soulfireLift(cast.elapsed, cast.fxTime, body)};
+    const float groundY = std::min(position.y + cfg::kDragonRadius, bounds_.bottom());
+    const Vec2 mouth{position.x + sign * (s.soulfireMouthX - 0.5f) * body,
+                     position.y + cfg::kDragonRadius + (s.soulfireMouthY - kSoulfireFoot) * body -
+                     soulfireLift(cast.fxTime, cast.fxTime, body)};
     const float reach = (groundY - mouth.y) / std::tan(s.soulfireAngle * kPi / 180.f);
     const float groundX = mouth.x + sign * reach;
     if (groundX < bounds_.x || groundX > bounds_.right()) return std::nullopt;
@@ -913,23 +915,21 @@ std::optional<SoulfireBeam> World::soulfireBeam() const {
 }
 
 void World::advanceSoulfire(SkillCast& cast, const SkillDef& s, float previous) {
-    const float end = cast.elapsed;
     const float flightEnd = cast.fxTime + kSoulfireBreathDuration;
-    float cursor = std::max(previous, cast.fxTime);
-    const auto flyUntil = [&](float time) {
-        if (time <= cursor) return;
-        const float oldX = dragon_.pos.x;
-        moveDragon(time - cursor, {cast.facingLeft ? -1.f : 1.f, 0.f}, cfg::kIdleFlySpeed);
-        dragon_.moving = dragon_.pos.x != oldX;
-        cursor = time;
-    };
-    while (cast.soulfireImpacts < kSoulfireImpactCount) {
-        const float time = cast.hitTime + cast.soulfireImpacts * kSoulfireImpactInterval;
-        if (time > end) break;
-        ++cast.soulfireImpacts;
-        flyUntil(time);
-        cast.elapsed = time;
-        const auto beam = soulfireBeam();
+    const float start = std::max(previous, cast.fxTime);
+    const float end = std::min(cast.elapsed, flightEnd);
+    if (end <= start) return;
+
+    const Vec2 origin = dragon_.pos;
+    const float sign = cast.facingLeft ? -1.f : 1.f;
+    const float speed = dragon_.stats.speed * cfg::kIdleFlySpeed *
+                        (dragon_.hasteTime > 0.f ? 1.f + dragon_.hasteSpeed : 1.f);
+    moveDragon(end - start, {sign, 0.f}, cfg::kIdleFlySpeed);
+    const float traveled = std::abs(dragon_.pos.x - origin.x);
+    // Sample the swept path, so frame rate and standing against a boundary do not change spacing.
+    for (; cast.soulfireTrailNext <= traveled; cast.soulfireTrailNext += kSoulfireTrailSpacing) {
+        const float along = cast.soulfireTrailNext;
+        const auto beam = soulfireBeamAt({origin.x + sign * along, origin.y}, cast, s);
         if (!beam) continue;
         cast.hitDone = true;
         DotZone z;
@@ -937,10 +937,9 @@ void World::advanceSoulfire(SkillCast& cast, const SkillDef& s, float previous) 
         z.radius = skillRadius(s);
         z.dps = dragon_.stats.atk * s.power;
         z.remaining = z.duration = s.duration;
-        z.startDelay = time - previous;
+        z.startDelay = start - previous + (speed > 0.f ? along / speed : 0.f);
         z.soulfireCastId = cast.soulfireCastId;
         const float body = cfg::kDragonRadius * 3.f * sizeScale_ * s.motionAnim.renderScale;
-        z.impactHeight = z.radius * s.soulfireImpactScale;
         z.flameHeight = body * s.soulfireFlameScale;
         z.flames.reserve(kSoulfireFlameCount);
         for (int n = 0; n < kSoulfireFlameCount; ++n) {
@@ -953,9 +952,8 @@ void World::advanceSoulfire(SkillCast& cast, const SkillDef& s, float previous) 
         });
         dots_.push_back(std::move(z));
     }
-    flyUntil(std::min(end, flightEnd));
-    if (end >= flightEnd) dragon_.moving = false;
-    cast.elapsed = end;
+    cast.soulfireTrailNext -= traveled;
+    dragon_.moving = traveled > 0.f && cast.elapsed < flightEnd;
 }
 
 // 타격 전에 끊는다. 남는 쿨타임 = 원래 쿨타임 × cooldownRatio (0이면 바로 다시 쓸 수 있다).

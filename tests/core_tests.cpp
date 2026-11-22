@@ -3690,7 +3690,7 @@ static void testNetherSoulfire(const std::filesystem::path& assets) {
     const auto step = [](World& w, float seconds) { w.updateCombat(seconds, CombatMode::Direct, {}); };
 
     const float takeoff = def.soulfireTakeoff;
-    const float firstImpact = takeoff + kSoulfireImpactDelay;
+    const float firstContact = takeoff + 0.01f;
     const float landing = takeoff + kSoulfireBreathDuration + kSoulfireRecovery;
     World locked = setup(8);
     locked.updateCombat(0.f, CombatMode::Direct, hotkey);
@@ -3705,27 +3705,35 @@ static void testNetherSoulfire(const std::filesystem::path& assets) {
     if (!world.dragon().skillCast) return;
     step(world, takeoff * 0.5f);
     CHECK(!world.soulfireBeam() && world.dragon().pos.x == 600.f && world.dots().empty());
-    step(world, firstImpact - takeoff * 0.5f + 0.01f);
+    step(world, firstContact - takeoff * 0.5f);
     CHECK(world.dragon().pos.x > 600.f && world.soulfireBeam() && world.dots().size() == 1);
     if (world.dots().empty() || !world.soulfireBeam()) return;
     const Vec2 first = world.dots().front().pos;
     CHECK(first.y == world.soulfireBeam()->ground.y);
     CHECK(std::fabs(world.soulfireBeam()->ground.x - first.x) < 3.f);
     CHECK(world.dots().front().flames.size() == kSoulfireFlameCount);
-    CHECK(world.dots().front().radius == def.radius && world.dots().front().flameHeight < def.radius * 0.15f);
+    CHECK(world.dots().front().radius == def.radius);
+    CHECK(std::fabs(def.soulfireWidth - 0.44f * 3.f) < 0.001f);
+    CHECK(takeoff < 0.3f);
     Enemy& enemy = world.spawnEnemy(defaultMelee(), 1, {first.x + 30.f, 300.f});
     enemy.hp = enemy.maxHp = 2000.f;
     enemy.stun = 100.f;
     enemy.curseStacks = 3;
     enemy.curseRemaining = kCurseDuration;
     step(world, 0.55f);
-    CHECK(world.dots().size() == kSoulfireImpactCount);
-    if (world.dots().size() == kSoulfireImpactCount)
-        CHECK(world.dots()[0].pos.x < world.dots()[1].pos.x && world.dots()[1].pos.x < world.dots()[2].pos.x);
+    CHECK(world.dots().size() >= 2);
+    CHECK(world.dots().front().pos.x == first.x);
+    for (size_t i = 1; i < world.dots().size(); ++i)
+        CHECK(std::fabs(world.dots()[i].pos.x - world.dots()[i - 1].pos.x - kSoulfireTrailSpacing) < 0.01f);
+    CHECK(world.soulfireBeam() && world.soulfireBeam()->ground.x > world.dots().back().pos.x);
     CHECK(std::fabs(world.enemies().front().hp - (2000.f - mitigate(world.dragon().stats.atk * def.power * 0.55f,
                                                                       world.enemies().front().def))) < 0.01f);
     CHECK(world.enemies().front().curseStacks == 3);
-    step(world, landing);
+    step(world, kSoulfireBreathDuration - 0.56f + 0.01f);
+    const float v2Distance = world.dragon().stats.speed * cfg::kIdleFlySpeed * 0.8f;
+    CHECK(std::fabs(world.dragon().pos.x - 600.f - 2.5f * v2Distance) < 0.01f);
+    CHECK(!world.soulfireBeam() && !world.dots().empty());
+    step(world, kSoulfireRecovery);
     CHECK(!world.dragon().skillCast && !world.dragon().moving && world.dragon().skillMotion == -1);
     CHECK(!world.dots().empty());
     world.updateFx(0.f, true);
@@ -3734,7 +3742,7 @@ static void testNetherSoulfire(const std::filesystem::path& assets) {
     World automatic = setup(9, true, true);
     automatic.updateCombat(0.f, CombatMode::Auto, {});
     CHECK(automatic.dragon().skillCast && automatic.dragon().skillCast->facingLeft);
-    step(automatic, firstImpact + 0.01f);
+    step(automatic, firstContact);
     CHECK(automatic.dragon().pos.x < 600.f && automatic.soulfireBeam() &&
           automatic.soulfireBeam()->ground.x < automatic.soulfireBeam()->mouth.x);
     automatic.clearEnemies(false);
@@ -3742,7 +3750,7 @@ static void testNetherSoulfire(const std::filesystem::path& assets) {
 
     World cancelled = setup();
     cancelled.updateCombat(0.f, CombatMode::SkillManual, hotkey);
-    step(cancelled, firstImpact - 0.05f);
+    step(cancelled, takeoff - 0.05f);
     PlayerInput dodge{};
     dodge.dodge = true;
     cancelled.updateCombat(0.2f, CombatMode::Direct, dodge);
@@ -3754,9 +3762,18 @@ static void testNetherSoulfire(const std::filesystem::path& assets) {
     step(edge, landing + 0.01f);
     CHECK(edge.dragon().pos.x <= 1200.f - cfg::kDragonRadius && !edge.dragon().skillCast && edge.dots().empty());
 
+    World pinned = setup(9, false);
+    pinned.setSizeScale(0.5f);
+    pinned.dragon().pos.x = 1165.f;
+    pinned.updateCombat(0.f, CombatMode::Direct, hotkey);
+    step(pinned, firstContact + 0.3f);
+    CHECK(pinned.soulfireBeam() && pinned.dots().size() == 1);
+    step(pinned, 0.5f);
+    CHECK(pinned.soulfireBeam() && pinned.dots().size() == 1 && !pinned.dragon().moving);
+
     World died = setup();
     died.updateCombat(0.f, CombatMode::Direct, hotkey);
-    step(died, firstImpact + 0.01f);
+    step(died, firstContact);
     died.dragon().alive = false;
     step(died, 0.1f);
     CHECK(!died.dragon().skillCast && died.dots().empty() && !died.dragon().moving);

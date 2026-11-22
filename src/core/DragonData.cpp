@@ -301,7 +301,7 @@ DragonParseResult parseDragonText(const std::string& text, const std::string& fo
             else if (key == "soulfire_angle") ok = parseFloat(val, s.soulfireAngle) &&
                 s.soulfireAngle >= 20.f && s.soulfireAngle <= 80.f;
             else if (key == "soulfire_width") ok = parseFloat(val, s.soulfireWidth) &&
-                s.soulfireWidth >= 0.1f && s.soulfireWidth <= 1.f;
+                s.soulfireWidth >= 0.1f && s.soulfireWidth <= 3.f;
             else if (key == "soulfire_mouth_x") ok = parseFloat(val, s.soulfireMouthX) &&
                 s.soulfireMouthX >= 0.f && s.soulfireMouthX <= 1.f;
             else if (key == "soulfire_mouth_y") ok = parseFloat(val, s.soulfireMouthY) &&

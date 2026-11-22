@@ -807,10 +807,10 @@ void Renderer::drawDragon(Graphics& g, const DragonActor& d, const Sprites& spri
             const SkillCast& cast = *d.skillCast;
             flip = sp.flipAllowed && cast.facingLeft;
             cyAdj += (kAnchorFrac - kSoulfireFoot) * drawH - soulfireLift(cast.elapsed, cast.fxTime, drawH);
-            // Keep all 40 source frames and preserve the original one-second landing.
+            // Keep the takeoff frames and loop only the ten-frame airborne pose.
             const float flightEnd = cast.fxTime + kSoulfireBreathDuration;
             t = cast.elapsed < cast.fxTime ? 2.f * cast.elapsed / cast.fxTime
-                : cast.elapsed < flightEnd ? 2.f + (cast.elapsed - cast.fxTime) / kSoulfireBreathDuration
+                : cast.elapsed < flightEnd ? 2.f + std::fmod(cast.elapsed - cast.fxTime, 1.f)
                 : 3.f + cast.elapsed - flightEnd;
         }
         if (soulfire)
@@ -1138,19 +1138,23 @@ void Renderer::drawWorld(Graphics& g, const Game& game, const Sprites& sprites, 
 }
 
 void Renderer::drawSoulfire(Graphics& g, const World& w, const Sprites& sprites, SoulfirePass pass) {
-    constexpr float impactFps = 20.f;
-
-    const std::string& species = speciesDef(w.dragon().species).key;
+    const DragonActor& dragon = w.dragon();
+    const SpeciesDef& species = speciesDef(dragon.species);
+    if (pass == SoulfirePass::Ground) {
+        if (const auto beam = w.soulfireBeam()) {
+            const SkillCast& cast = *dragon.skillCast;
+            const SkillDef& skill = species.skills[cast.skill];
+            const Sheet impact = sprites.fxSheet(species.key, "soulfire_impact");
+            const float h = w.skillRadius(skill) * skill.soulfireImpactScale;
+            const float age = cast.elapsed - cast.fxTime;
+            drawSheetFrame(g, impact, animFrame(age, 20.f, impact.frames, true),
+                           beam->ground.x + (0.5f - 440.f / 1024.f) * h,
+                           beam->ground.y + (0.5f - 700.f / 1024.f) * h, h, false, 0.f, 1.f);
+        }
+    }
     for (const DotZone& zone : w.dots()) {
         if (zone.flames.empty()) continue;
         const float age = zone.duration - zone.remaining;
-        if (pass == SoulfirePass::Ground && age < kSoulfireImpactDuration) {
-            const Sheet impact = sprites.fxSheet(species, "soulfire_impact");
-            const float h = zone.impactHeight;
-            drawSheetFrame(g, impact, animFrame(age, impactFps, impact.frames, false),
-                           zone.pos.x + (0.5f - 440.f / 1024.f) * h,
-                           zone.pos.y + (0.5f - 700.f / 1024.f) * h, h, false, 0.f, 1.f);
-        }
         for (const SoulfireFlame& flame : zone.flames) {
             const float local = age - flame.delay;
             if (local < 0.f) continue;
@@ -1161,7 +1165,7 @@ void Renderer::drawSoulfire(Graphics& g, const World& w, const Sprites& sprites,
             const float envelope = std::min({progress / 0.21f, (1.f - progress) / 0.24f,
                                              zone.remaining / 0.35f, 1.f});
             if (envelope <= 0.f) continue;
-            const Sheet sheet = sprites.fxSheet(species, soulfireLayerKey(flame.variant, pass));
+            const Sheet sheet = sprites.fxSheet(species.key, soulfireLayerKey(flame.variant, pass));
             const int frame = static_cast<int>(progress * sheet.frames);
             const Vec2 anchor = zone.pos + flame.offset * zone.radius;
             const float height = zone.flameHeight * flame.size * (0.68f + 0.32f * envelope);
@@ -1192,7 +1196,7 @@ void Renderer::drawSoulfireBreath(Graphics& g, const World& w, const Sprites& sp
     g.RotateTransform(angle);
     g.ScaleTransform(1.f, skill.soulfireWidth);
     g.RotateTransform(left ? -125.f : -55.f);
-    drawSheetFrame(g, sheet, animFrame(cast.elapsed - cast.fxTime, 20.f, sheet.frames, false),
+    drawSheetFrame(g, sheet, animFrame(cast.elapsed - cast.fxTime, 20.f, sheet.frames, true),
                    (left ? -1.f : 1.f) * centerOffset * height, centerOffset * height, height, left, 0.f, 0.83f);
     g.Restore(state);
 }
