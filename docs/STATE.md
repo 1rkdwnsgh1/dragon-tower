@@ -5,11 +5,13 @@
 
 작업을 끝낼 때 이 문서를 같은 PR 에서 고친다. **낡은 상태 문서는 없는 것보다 해롭다.**
 
-최종 갱신: 2026-11-22 (망령익참 시전·피격 연출 및 Windows 프리뷰)
+최종 갱신: 2026-11-22 (망령룡 아이콘 3종·망계의 업화 피격 불꽃 시안)
 
 ---
 
 ## 한눈에
+
+- 망령룡의 죽음의 행렬·망계의 업화·망령익참 아이콘을 기존 로더에 연결했다. [규격과 Windows 렌더 검수](../assets/references/skill-icons/README.md#망령룡-게임용-추가-아이콘). 망계의 업화 적 부착 불꽃은 [A/B 시안 및 판정 명세](characters/revenant-soulfire-hit-preview.md) 단계로 승인 대기 중이다.
 
 - 망령익참은 사용자 승인에 따라 Windows 확인 59~78번과 별도로 먼저 제작했다. 기존 로컬 구현에서 feat/spectral-wing-cleave-vfx 브랜치로 이어서 시전·피격 시트를 적용했다. [제작 및 검수](characters/revenant-dragon-progress.md#망령익참)를 참고한다.
 
