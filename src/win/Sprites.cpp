@@ -147,7 +147,8 @@ std::unique_ptr<Gdiplus::Bitmap> composeBreathFrame(const BreathLayers& pack, bo
 
 }  // namespace
 
-void Sprites::loadPreviewDragon(const std::filesystem::path& dir, const SpeciesDef& def) {
+void Sprites::loadPreviewDragon(const std::filesystem::path& dir, const SpeciesDef& def,
+                                const EnemyDef* target) {
     images_.clear();
     sheets_.clear();
     breathSheets_.clear();
@@ -159,6 +160,11 @@ void Sprites::loadPreviewDragon(const std::filesystem::path& dir, const SpeciesD
     loadSkillSheets(dir, def, def.key);
     loadFxSheets(dir, def, def.key);
     loadBreathSheets(dir, def, def.key);
+    if (target) {
+        const auto targetDir = dir.parent_path().parent_path() / "enemies" / target->key;
+        if (std::filesystem::exists(targetDir))
+            loadSheetsFor(targetDir, target->anims, "enemy:" + target->key, target->key);
+    }
     detachFiles_ = false;
 }
 
@@ -403,6 +409,15 @@ void Sprites::loadFxSheets(const std::filesystem::path& dir, const SpeciesDef& d
             for (int variant = 0; variant < kSoulfireFlameVariants; ++variant)
                 for (SoulfirePass pass : {SoulfirePass::Ground, SoulfirePass::Rear, SoulfirePass::Front})
                     load(soulfireLayerKey(variant, pass), 128);
+        }
+        if (sk.spectralCleave) {
+            for (const char* layer : {"cast_rear", "cast_front", "hit_rear", "hit_front",
+                                      "swing", "membrane", "edge", "fragments"}) {
+                const std::string name = "fx_" + sk.fx + "_" + layer;
+                loadSheetFile(dir / (name + ".png"), sk.fxAnim, def.key + "/" + name,
+                              label + "/" + name + ".png");
+            }
+            continue;
         }
         for (const std::string* effect : {&sk.fx, &sk.fxImpact}) {
             if (effect->empty()) continue;

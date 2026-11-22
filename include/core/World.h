@@ -114,6 +114,21 @@ struct AttackZone {
     int ownerId = 0;
 };
 
+inline constexpr float kCleaveFlight = 0.50f;
+inline constexpr float kCleaveTail = 0.30f;
+inline constexpr float kCleaveImpactFps = 20.f;
+inline constexpr float kCleaveImpactDuration = 8.f / kCleaveImpactFps;
+inline constexpr float kCleaveLaunchX = 87.f / 256.f;
+inline constexpr float kCleaveCenterY = 82.f / 256.f;
+
+struct CleaveFlight {
+    float direction;
+    float radius;
+    float firstStep;
+    float scale;
+    std::vector<int> hitIds;
+};
+
 struct Projectile {
     Vec2 pos;
     int targetId = 0;
@@ -126,6 +141,7 @@ struct Projectile {
     int skill = -1;   // 스킬 목록 번호. -1 이면 전처럼 동그라미로 그린다
     float t = 0.f;    // 애니메이션 시간
     bool appliesCurse = false;
+    std::optional<CleaveFlight> cleave;
 };
 
 // Standing source aligned to the standard 256px revenant cell at 126% scale.
@@ -166,7 +182,7 @@ struct DotZone {
     float startDelay = 0.f;  // Time before impact within the first simulation step.
 };
 
-enum class FxType { Ring, Heal, Dodge, Hit, Poof, LineBlast, Dash, LevelUp, Death, Shield };
+enum class FxType { Ring, Heal, Dodge, Hit, Poof, LineBlast, Dash, LevelUp, Death, Shield, CleaveImpact };
 
 // v1.6: 효과는 발동 → 지속 → 잔류 세 단계를 지난다.
 // 도형으로 그리던 기존 효과도 같은 세 단계를 가진다(전체 길이는 그대로, 비율로 나눈다).
@@ -343,7 +359,7 @@ public:
     DragonActor& dragon() { return dragon_; }
     const DragonActor& dragon() const { return dragon_; }
 
-    Enemy& spawnEnemy(EnemyKind kind, int level, Vec2 pos);
+    Enemy& spawnEnemy(EnemyKind kind, int level, Vec2 pos, bool spawnFx = true);
     Vec2 randomEdgePoint(float margin);
     void clearEnemies(bool withPoof);
     int aliveEnemyCount() const;
@@ -376,7 +392,7 @@ public:
     // 몸 반지름은 항상, 스킬 반경은 scale_with_size 를 켠 스킬만 따라 커진다.
     void setSizeScale(float s) { sizeScale_ = s > 0.f ? s : 1.f; }
     // 스킬 판정 반경. scale_with_size 를 켠 스킬만 보기 크기를 따라 커진다.
-    float skillRange(const SkillDef& s) const { return s.soulfire ? s.range * sizeScale_ : s.range; }
+    float skillRange(const SkillDef& s) const { return (s.soulfire || s.spectralCleave) ? s.range * sizeScale_ : s.range; }
     float skillRadius(const SkillDef& s) const { return s.scaleWithSize ? s.radius * sizeScale_ : s.radius; }
     std::optional<SoulfireBeam> soulfireBeam(bool includeLanding = false) const;
     float sizeScale() const { return sizeScale_; }

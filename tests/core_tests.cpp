@@ -3840,6 +3840,74 @@ static void testNetherSoulfire(const std::filesystem::path& assets) {
     CHECK(!died.dragon().skillCast && died.dots().empty() && !died.dragon().moving);
 }
 
+static void testSpectralCleave(const std::filesystem::path& assets) {
+    loadDragonFolders(assets / "dragons");
+    Species revenant{};
+    const bool found = speciesFromKey("revenant", revenant);
+    CHECK(found);
+    if (!found) return;
+    constexpr int skillId = 9;
+    const auto& skills = speciesDef(revenant).skills;
+    CHECK(skills.size() > skillId);
+    if (skills.size() <= skillId) return;
+    CHECK(skills[skillId].spectralCleave && skills[skillId].unlockLevel == 10);
+    CHECK(skills[8].soulfire && skills[7].ultimate);
+    for (const float direction : {-1.f, 1.f}) {
+        World world;
+        world.setBounds({0.f, 0.f, 1200.f, 640.f});
+        const float scale = direction < 0.f ? 1.5f : 0.5f;
+        world.setSizeScale(scale);
+        world.setupDragon(revenant, 10, -1.f, {600.f, 300.f});
+        world.dragon().basicCd = 60.f;
+        world.setSlots({skillId, -1, -1, -1});
+        for (const float offset : {95.f, 160.f, -220.f}) {
+            Enemy& enemy = world.spawnEnemy(defaultMelee(), 1, {600.f + direction * offset, 300.f});
+            enemy.hp = enemy.maxHp = 10000.f;
+            enemy.stun = 100.f;
+        }
+        PlayerInput cast{};
+        cast.skill[0] = direction > 0.f;
+        const auto mode = cast.skill[0] ? CombatMode::Direct : CombatMode::Auto;
+        world.updateCombat(0.f, mode, cast);
+        CHECK(world.dragon().skillCast.has_value());
+        PlayerInput move{};
+        move.moveX = -direction;
+        world.updateCombat(0.59f, CombatMode::Direct, move);
+        CHECK(world.projectiles().empty() && world.dragon().pos.x == 600.f);
+        CHECK(std::none_of(world.fx().begin(), world.fx().end(),
+                           [](const Fx& f) { return f.type == FxType::CleaveImpact; }));
+        world.updateCombat(0.02f, CombatMode::Direct, move);
+        CHECK(world.projectiles().size() == 1 && world.dragon().pos.x == 600.f);
+        for (int i = 0; i < 12; ++i) world.updateCombat(0.05f, CombatMode::Direct, {});
+        const float perHit = mitigate(world.dragon().stats.atk * skills[skillId].power, world.enemies()[0].def);
+        CHECK(std::fabs(world.enemies()[0].hp - (10000.f - perHit)) < 0.002f);
+        CHECK(std::fabs(world.enemies()[1].hp - (10000.f - perHit)) < 0.002f);
+        CHECK(world.enemies()[2].hp == 10000.f);
+        size_t impacts = 0;
+        for (const Fx& fx : world.fx()) {
+            if (fx.type != FxType::CleaveImpact) continue;
+            CHECK(impacts < 2);
+            if (impacts < 2) {
+                const Enemy& enemy = world.enemies()[impacts];
+                const float targetHeight = enemy.radius * 2.6f * scale;
+                CHECK(fx.a.x == enemy.pos.x);
+                CHECK(fx.a.y == enemy.pos.y + enemy.radius - (240.f / 256.f - 0.5f) * targetHeight);
+                CHECK(fx.radius == targetHeight);
+            }
+            CHECK(fx.b.x - fx.a.x == direction);
+            CHECK(fx.duration == kCleaveImpactDuration && fx.key == skills[skillId].fx);
+            ++impacts;
+        }
+        CHECK(impacts == 2);
+        world.updateFx(kCleaveImpactDuration + 0.01f);
+        CHECK(std::none_of(world.fx().begin(), world.fx().end(),
+                           [](const Fx& f) { return f.type == FxType::CleaveImpact; }));
+        CHECK(world.projectiles().size() == 1);
+        world.updateCombat(0.25f, CombatMode::Direct, {});
+        CHECK(world.projectiles().empty());
+    }
+}
+
 int main(int argc, char** argv) {
     if (argc == 2 && std::string(argv[1]) == "--revenant-procession") {
         testRevenantProcession();
@@ -3943,6 +4011,7 @@ int main(int argc, char** argv) {
         testTowerSelection(assets);
         testRevenantCurse(assets);
         testNetherSoulfire(assets);
+        testSpectralCleave(assets);
     }
     else std::printf("[elite variants spawn] assets 경로 인자가 없어 건너뜀\n");
     std::printf("\n%d passed, %d failed\n", g_passed, g_failed);

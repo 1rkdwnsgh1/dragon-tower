@@ -70,7 +70,7 @@ public:
     void load(const std::filesystem::path& assetDir);
 
     // 제작 도구에서는 PNG를 열어 둔 채로 덮어쓸 수 있게 메모리로 분리한다.
-    void loadPreviewDragon(const std::filesystem::path& dir, const SpeciesDef& def);
+    void loadPreviewDragon(const std::filesystem::path& dir, const SpeciesDef& def, const EnemyDef* target);
 
     void loadPreviewEnemy(const std::filesystem::path& dir, const EnemyDef& def);
 

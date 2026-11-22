@@ -365,3 +365,25 @@ motion_render_scale=1.26
 motion_frames=40
 motion_fps=10
 motion_frame_w=256
+
+; 검수용 임시 전투 수치. 앞 슬롯의 저장 인덱스는 유지한다.
+[skill.10]
+name=망령익참
+desc=제자리에서 날개를 휘둘러 전방으로 적을 관통하는 영혼 참격 하나를 발사한다.
+kind=Line
+spectral_cleave=yes
+cooldown=12
+power=3.2
+range=360
+radius=48
+scale_with_size=yes
+motion=spectral_cleave
+motion_frames=16
+motion_fps=20
+motion_frame_w=256
+hit_frame=13
+fx_frame=9
+fx=spectral_cleave
+fx_frame_w=256
+fx_fps=20
+fx_scale=1.55

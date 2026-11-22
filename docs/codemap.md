@@ -189,3 +189,15 @@ Windows 실행 파일은 GitHub Actions의 `build`가 만든다. 실제 창 동�
 ### 망계의 업화
 
 `DragonData.cpp`의 `soulfire`는 `World.cpp`에서 장판 스킬의 지연 시전을 선택한다. `advanceSoulfire`가 `SkillCast`의 비행과 충돌 시점을 진행하고, `soulfireBeam`의 입·지면 좌표를 판정과 렌더링이 함께 사용한다. 렌더러는 현재 교차점에 V5 충돌 하나를 반복 출력한다. 이동 경로의 `DotZone`은 불꽃 15개를 고정한다. `soulfireCastId`로 피해율을 합쳐 처리하므로 불꽃 수와 피해 횟수가 분리된다. 비행·배치에는 기존 `World::sizeScale`, 반경에는 기존 `skillRadius`를 사용한다. `Sprites.cpp`에서 전용 레이어를 읽고, `Renderer.cpp`에서 본체의 입과 충돌 기준점을 맞추고 적 앞뒤 패스를 합성한다. `Preview.cpp`는 장판 종료까지 탐색 범위를 연장한다.
+
+### 망령익참
+
+| 동작 | 위치 |
+|---|---|
+| 실제 명중과 피격 생성 | `World::updateCombat`의 `p.cleave` 분기. `CleaveFlight::hitIds`를 통과한 적마다 `FxType::CleaveImpact` 하나를 기록한다. |
+| 본체와 시전 전후면 합성 | `Renderer::drawDragon`. 시전 네 타이밍과 좌우 방향을 본체 프레임에서 공유한다. |
+| 적과 피격 전후면 합성 | `Renderer::drawWorld`와 `drawCleaveImpacts`. 후면 → 적 본체 → 전면 → 적 체력 표시 순이다. |
+| 피격 표적 포함 캡처 | `PreviewWindow::reset`과 `Renderer::drawAnimationPreview`. 망령익참 프리뷰에서 고정 고블린에 실제 수동 입력으로 발사한다. |
+| 시트 재생성 | `tools/make_spectral_cleave_vfx.py`. 기존 막·가장자리 시트에서 날개막을 가져오고 흐름·균열·파편을 그린다. |
+
+망령룡 데이터의 10번 스킬은 기존 Line의 프레임 시전을 사용한다. World의 advanceSkillCast에서 13번째 칸에 직진 투사체 하나를 만들고, 투사체 업데이트에서 프레임 간 이동 구간과 이미 맞힌 적 ID를 사용해 통과 피해를 처리한다. Sprites는 별도 4개 레이어를 읽고 Renderer는 본체에 L1을, 투사체에 L2~L4를 그린다. 기존 저장 슬롯 번호를 유지한다.

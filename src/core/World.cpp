@@ -188,7 +188,7 @@ bool World::skillReady(int i) const {
     return dragon_.skillCd[static_cast<size_t>(i)] <= 0.f;
 }
 
-Enemy& World::spawnEnemy(EnemyKind kind, int level, Vec2 pos) {
+Enemy& World::spawnEnemy(EnemyKind kind, int level, Vec2 pos, bool spawnFx) {
     Enemy e;
     e.id = nextEnemyId_++;
     e.kind = kind;
@@ -208,7 +208,7 @@ Enemy& World::spawnEnemy(EnemyKind kind, int level, Vec2 pos) {
     e.entering = !bounds_.contains(e.pos.x, e.pos.y);
     enemies_.push_back(e);
     events_.push_back({WorldEventType::EnemySpawned, kind, 0});
-    addFx(FxType::Poof, pos, pos, e.radius * 1.4f, 0.4f, 0xFFB08CFF);
+    if (spawnFx) addFx(FxType::Poof, pos, pos, e.radius * 1.4f, 0.4f, 0xFFB08CFF);
     return enemies_.back();
 }
 
@@ -518,7 +518,7 @@ bool World::castSkill(int i, bool aiChoice) {
             break;
         }
         case SkillKind::Line: {
-            Enemy* t = nearestEnemy(d.pos, s.range + 80.f);
+            Enemy* t = nearestEnemy(d.pos, s.spectralCleave ? skillRange(s) : s.range + 80.f);
             if (aiChoice && !t) return false;
             Vec2 dir = t ? (t->pos - d.pos).normalized() : facingDir;
             if (s.usesTimedHit()) {
@@ -533,6 +533,8 @@ bool World::castSkill(int i, bool aiChoice) {
                 c.fxTime = static_cast<float>((s.fxFrame > 0 ? s.fxFrame : s.hitFrame) - 1) / fps;
                 c.lockTime = std::max(c.hitTime, c.fxTime) + cfg::kSkillCastRecover;
                 c.facingLeft = std::fabs(dir.x) > 0.01f ? dir.x < 0.f : d.facing.x < 0.f;
+                if (s.spectralCleave)
+                    c.lockTime = static_cast<float>(s.motionFrames) / fps;
                 d.facing = {c.facingLeft ? -1.f : 1.f, 0.f};
                 d.dashTime = 0.f;
                 d.moving = false;
@@ -665,7 +667,7 @@ bool World::castSkill(int i, bool aiChoice) {
         d.skillMotion = -1;
     }
     if (d.breath && d.breath->skill == i && !s.usesUmbralBreath()) hold = std::max(hold, d.breath->length());
-    if (s.soulfire && d.skillCast) hold = d.skillCast->lockTime;
+    if ((s.soulfire || s.spectralCleave) && d.skillCast) hold = d.skillCast->lockTime;
     setDragonAnim(AnimState::Attack, hold);
     addText(s.name, d.pos - Vec2{0.f, 78.f}, sp.color | 0xFF000000, 15.f, 0.9f);
     return true;
@@ -881,11 +883,24 @@ void World::advanceSkillCast(float dt, bool combatEnded) {
     }
     if (!c.fxDone && c.elapsed + epsilon >= c.fxTime) {
         c.fxDone = true;
-        spawnAnchoredFx(s, c.facingLeft);
+        if (!s.spectralCleave) spawnAnchoredFx(s, c.facingLeft);
     }
     if (!c.hitDone && c.elapsed + epsilon >= c.hitTime) {
         c.hitDone = true;
-        hitLine(d.pos, d.pos + c.aim * s.range, skillRadius(s), d.stats.atk * s.power, s.detonatesCurse);
+        if (s.spectralCleave) {
+            const float direction = c.facingLeft ? -1.f : 1.f;
+            const float bodyHeight = cfg::kDragonRadius * 3.f * sizeScale_;
+            Projectile blade;
+            blade.pos = d.pos + Vec2{direction * kCleaveLaunchX * bodyHeight,
+                                     cfg::kDragonRadius - kCleaveCenterY * bodyHeight};
+            blade.speed = skillRange(s) / kCleaveFlight;
+            blade.damage = d.stats.atk * s.power;
+            blade.skill = c.skill;
+            blade.cleave = CleaveFlight{direction, skillRadius(s), std::max(0.f, c.elapsed - c.hitTime), sizeScale_, {}};
+            projectiles_.push_back(std::move(blade));
+        } else {
+            hitLine(d.pos, d.pos + c.aim * s.range, skillRadius(s), d.stats.atk * s.power, s.detonatesCurse);
+        }
     }
     if (c.fxDone && c.hitDone && c.elapsed + epsilon >= c.lockTime) d.skillCast.reset();
 }
@@ -1609,6 +1624,30 @@ void World::updateCombat(float dt, CombatMode mode, const PlayerInput& in) {
 
     // 투사체
     for (Projectile& p : projectiles_) {
+        if (p.cleave) {
+            CleaveFlight& blade = *p.cleave;
+            const float elapsed = blade.firstStep >= 0.f ? blade.firstStep : dt;
+            blade.firstStep = -1.f;
+            const float step = std::clamp(kCleaveFlight - p.t, 0.f, elapsed);
+            const Vec2 next = p.pos + Vec2{blade.direction * p.speed * step, 0.f};
+            for (Enemy& e : enemies_) {
+                if (step == 0.f || !e.alive || distancePointSegment(e.pos, p.pos, next) >
+                        blade.radius + scaledBody(e.radius, sizeScale_) ||
+                    std::find(blade.hitIds.begin(), blade.hitIds.end(), e.id) != blade.hitIds.end()) continue;
+                blade.hitIds.push_back(e.id);
+                const SkillDef& skill = speciesDef(d.species).skills[p.skill];
+                const float targetHeight = e.radius * 2.6f * sizeScale_;
+                const Vec2 contact{e.pos.x, e.pos.y + e.radius - (240.f / 256.f - 0.5f) * targetHeight};
+                addFx(FxType::CleaveImpact, contact, contact + Vec2{blade.direction, 0.f},
+                      targetHeight, kCleaveImpactDuration, 0);
+                fx_.back().key = skill.fx;
+                damageEnemy(e, p.damage);
+            }
+            p.pos = next;
+            p.t += elapsed;
+            p.alive = p.t < kCleaveFlight + kCleaveTail;
+            continue;
+        }
         Enemy* t = findEnemy(p.targetId);
         if (!t) {
             p.alive = false;
