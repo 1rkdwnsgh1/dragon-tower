@@ -295,6 +295,23 @@ DragonParseResult parseDragonText(const std::string& text, const std::string& fo
                 if (ok && key == "fx_origin") { s.fxOriginX = x; s.fxOriginY = y; }
             }
             else if (key == "fx_front") ok = parseBool(val, s.fxInFront);
+            else if (key == "soulfire") ok = parseBool(val, s.soulfire);
+            else if (key == "soulfire_takeoff") ok = parseFloat(val, s.soulfireTakeoff) &&
+                s.soulfireTakeoff >= 0.2f && s.soulfireTakeoff <= 2.f;
+            else if (key == "soulfire_landing") ok = parseFloat(val, s.soulfireLanding) &&
+                s.soulfireLanding >= 0.2f && s.soulfireLanding <= 2.f;
+            else if (key == "soulfire_angle") ok = parseFloat(val, s.soulfireAngle) &&
+                s.soulfireAngle >= 20.f && s.soulfireAngle <= 80.f;
+            else if (key == "soulfire_width") ok = parseFloat(val, s.soulfireWidth) &&
+                s.soulfireWidth >= 0.1f && s.soulfireWidth <= 3.f;
+            else if (key == "soulfire_mouth_x") ok = parseFloat(val, s.soulfireMouthX) &&
+                s.soulfireMouthX >= 0.f && s.soulfireMouthX <= 1.f;
+            else if (key == "soulfire_mouth_y") ok = parseFloat(val, s.soulfireMouthY) &&
+                s.soulfireMouthY >= 0.f && s.soulfireMouthY <= 0.8f;
+            else if (key == "soulfire_impact_scale") ok = parseFloat(val, s.soulfireImpactScale) &&
+                s.soulfireImpactScale > 0.f && s.soulfireImpactScale <= 3.f;
+            else if (key == "soulfire_flame_scale") ok = parseFloat(val, s.soulfireFlameScale) &&
+                s.soulfireFlameScale > 0.f && s.soulfireFlameScale <= 0.5f;
             else if (key == "fx_zone_sprite_only") ok = parseBool(val, s.fxZoneSpriteOnly);
             else if (key == "fx_scale") ok = parseFloat(val, s.fxScale);
             else if (key == "fx_offset_x") ok = parseFloat(val, s.fxOffsetX);

@@ -749,7 +749,8 @@ void Renderer::drawFrameCached(Graphics& g, const FrameCache::Source& src, float
 
 void Renderer::drawDragon(Graphics& g, const DragonActor& d, const Sprites& sprites, float time, float x, float y,
                           float height, bool preview) {
-    if (!preview) markRegion(RectF(x - height * 0.5f, y - height * 0.5f, height, height), 4.f);
+    const bool soulfire = !preview && d.skillCast && d.skillCast->soulfireCastId;
+    if (!preview && !soulfire) markRegion(RectF(x - height * 0.5f, y - height * 0.5f, height, height), 4.f);
     const SpeciesDef& sp = speciesDef(d.species);
     bool flip = sp.flipAllowed && d.facing.x < 0.f;
     float alpha = (!preview && d.invuln > 0.f) ? 0.55f : 1.f;
@@ -802,11 +803,27 @@ void Renderer::drawDragon(Graphics& g, const DragonActor& d, const Sprites& spri
         float k = ad.renderScale;
         float drawH = height * k;
         float cyAdj = cy - (kAnchorFrac - 0.5f) * height * (k - 1.f);
+        if (skillAnim && soulfire) {
+            const SkillCast& cast = *d.skillCast;
+            flip = sp.flipAllowed && cast.facingLeft;
+            x += (flip ? -1.f : 1.f) * kSoulfireBodyOffsetX * height;
+            const float flightEnd = cast.fxTime + kSoulfireBreathDuration;
+            const float landing = cast.lockTime - flightEnd;
+            cyAdj += (kAnchorFrac - kSoulfireFoot) * drawH -
+                     soulfireLift(cast.elapsed, cast.fxTime, landing, height);
+            // Keep the takeoff and landing frames and loop only the ten-frame airborne pose.
+            t = cast.elapsed < cast.fxTime ? 2.f * cast.elapsed / cast.fxTime
+                : cast.elapsed < flightEnd ? 2.f + std::fmod(cast.elapsed - cast.fxTime, 1.f)
+                : 3.f + (cast.elapsed - flightEnd) / landing;
+        }
+        if (soulfire)
+            markRegion(RectF(x - drawH * 0.5f, cyAdj - drawH * 0.5f, drawH, drawH), 4.f);
         const int frame = breathing ? d.breath->bodyFrame(*breath) : animFrame(t, ad.fps, sh.frames, ad.loop);
         drawSheetFrame(g, sh, frame, x, cyAdj, drawH, flip, flash, alpha);
         return;
     }
 
+    if (soulfire) markRegion(RectF(x - height * 0.5f, y - height * 0.5f, height, height), 4.f);
     Bitmap* bmp = sprites.get(std::string("dragon_") + sp.key);
     if (bmp) {
         drawSprite(g, bmp, x, cy, height, flip, flash, alpha);
@@ -858,8 +875,15 @@ void Renderer::drawDragon(Graphics& g, const DragonActor& d, const Sprites& spri
     g.DrawEllipse(&outline, x - h * 0.36f, cy - h * 0.14f, h * 0.72f, h * 0.46f);
 }
 
+void Renderer::drawEnemyHealth(Graphics& g, const EnemyHealthLabel& label) {
+    const Enemy& e = *label.enemy;
+    constexpr float width = 56.f;
+    bar(g, RectF(e.pos.x - width * 0.5f, label.y, width, 7.f), e.hp / e.maxHp, 0xFFFF6B6B);
+    text(g, "Lv." + std::to_string(e.level), e.pos.x, label.y - 18.f, 12.f, 0xFFE0D0FF, 1, false, true);
+}
+
 void Renderer::drawEnemy(Graphics& g, const Enemy& e, const Sprites& sprites, float time, float charScale,
-                         const AnimState* forcedState) {
+                         const AnimState* forcedState, std::vector<EnemyHealthLabel>* deferredHealth) {
     const EnemyDef& edef = enemyDef(e.kind);
     // v1.5: 적 그림은 왼쪽을 보고 그려져 있다. 드래곤(오른쪽 기준)과 반대라 전에는 거꾸로 걸었다.
     bool flip = edef.artFacesRight ? (e.facing < 0.f) : (e.facing > 0.f);
@@ -952,9 +976,9 @@ void Renderer::drawEnemy(Graphics& g, const Enemy& e, const Sprites& sprites, fl
                                             : e.pos.y - e.radius - 18.f;
     // 체력 바(보스는 탑 HUD에 크게 표시)
     if (!isBoss) {
-        float w = 56.f;
-        bar(g, RectF(x - w * 0.5f, barY, w, 7.f), e.hp / e.maxHp, 0xFFFF6B6B);
-        text(g, "Lv." + std::to_string(e.level), x, barY - 18.f, 12.f, 0xFFE0D0FF, 1, false, true);
+        const EnemyHealthLabel label{&e, barY};
+        if (deferredHealth) deferredHealth->push_back(label);
+        else drawEnemyHealth(g, label);
     }
     if (e.alive && e.curseStacks > 0 && e.curseRemaining > 0.0) {
         const float spriteTop = drawnBySheet ? artY + height * (240.f / 256.f - 0.5f) -
@@ -1016,6 +1040,7 @@ void Renderer::drawWorld(Graphics& g, const Game& game, const Sprites& sprites, 
     uint32_t spColor = dragonSp.color;
 
     drawDotZones(g, w, sprites, time);
+    drawSoulfire(g, w, sprites, SoulfirePass::Ground);
 
     // 적 공격 예고
     for (const AttackZone& z : w.zones()) {
@@ -1046,13 +1071,25 @@ void Renderer::drawWorld(Graphics& g, const Game& game, const Sprites& sprites, 
     const float cs = game.charScale();
     curseBadges_.clear();
     for (auto& entry : curseFlashes_) entry.second.seen = false;
-    for (const Enemy& e : w.enemies()) drawEnemy(g, e, sprites, time, cs);
+    const bool layeredFlames = std::any_of(w.dots().begin(), w.dots().end(),
+                                         [](const DotZone& zone) { return !zone.flames.empty(); });
+    std::vector<EnemyHealthLabel> health;
+    if (layeredFlames) {
+        health.reserve(w.enemies().size());
+        drawSoulfire(g, w, sprites, SoulfirePass::Rear);
+    }
+    for (const Enemy& e : w.enemies()) drawEnemy(g, e, sprites, time, cs, nullptr, layeredFlames ? &health : nullptr);
+    if (layeredFlames) {
+        drawSoulfire(g, w, sprites, SoulfirePass::Front);
+        for (const EnemyHealthLabel& label : health) drawEnemyHealth(g, label);
+    }
 
     // v1.6: 본체 뒤 효과(fx_front=0)를 드래곤보다 먼저 그린다.
     // 지금은 fx= 를 적은 스킬이 하나도 없어서 이 층에 걸리는 효과가 없다 — 화면은 그대로다.
     drawProcession(g, w.dragon(), sprites, cs, false);
     drawFx(g, w, sprites, dragonSp, cs, false);
     drawBreath(g, w.dragon(), sprites, cs);
+    drawSoulfireBreath(g, w, sprites);
     if (game.hasDragon()) warmBreathCache(g, w, sprites, cs);
 
     const DragonActor& d = w.dragon();
@@ -1103,11 +1140,83 @@ void Renderer::drawWorld(Graphics& g, const Game& game, const Sprites& sprites, 
     }
 }
 
+void Renderer::drawSoulfire(Graphics& g, const World& w, const Sprites& sprites, SoulfirePass pass) {
+    const DragonActor& dragon = w.dragon();
+    const SpeciesDef& species = speciesDef(dragon.species);
+    if (pass == SoulfirePass::Ground) {
+        if (const auto beam = w.soulfireBeam()) {
+            const SkillCast& cast = *dragon.skillCast;
+            const SkillDef& skill = species.skills[cast.skill];
+            const Sheet impact = sprites.fxSheet(species.key, "soulfire_impact");
+            const float h = w.skillRadius(skill) * skill.soulfireImpactScale;
+            const float age = cast.elapsed - cast.fxTime;
+            drawSheetFrame(g, impact, animFrame(age, 20.f, impact.frames, true),
+                           beam->ground.x + (0.5f - 440.f / 1024.f) * h,
+                           beam->ground.y + (0.5f - 700.f / 1024.f) * h, h, false, 0.f, 1.f);
+        }
+    }
+    std::array<Sheet, kSoulfireFlameVariants> sheets{};
+    bool loaded = false;
+    for (const DotZone& zone : w.dots()) {
+        if (zone.flames.empty()) continue;
+        if (!loaded) {
+            for (int variant = 0; variant < kSoulfireFlameVariants; ++variant)
+                sheets[variant] = sprites.fxSheet(species.key, soulfireLayerKey(variant, pass));
+            loaded = true;
+        }
+        const float age = zone.duration - zone.remaining;
+        for (const SoulfireFlame& flame : zone.flames) {
+            const float local = age - flame.delay;
+            if (local < 0.f) continue;
+            constexpr float eruptionDuration = 1.2f;
+            const bool eruption = flame.variant == 4;
+            if (eruption && local >= eruptionDuration) continue;
+            const float progress = eruption ? local / eruptionDuration : std::fmod(local, flame.cycle) / flame.cycle;
+            const float envelope = std::min({progress / 0.21f, (1.f - progress) / 0.24f,
+                                             zone.remaining / 0.35f, 1.f});
+            if (envelope <= 0.f) continue;
+            const Sheet& sheet = sheets[flame.variant];
+            const int frame = static_cast<int>(progress * sheet.frames);
+            const Vec2 anchor = zone.pos + flame.offset * zone.radius;
+            const float height = zone.flameHeight * flame.size * (0.68f + 0.32f * envelope);
+            const float opacity = pass == SoulfirePass::Front ? 0.65f : 0.85f;
+            drawSheetFrame(g, sheet, frame, anchor.x, anchor.y + (0.5f - 108.f / 128.f) * height,
+                           height, false, 0.f, opacity * envelope);
+        }
+    }
+}
+
+void Renderer::drawSoulfireBreath(Graphics& g, const World& w, const Sprites& sprites) {
+    const auto beam = w.soulfireBeam();
+    if (!beam) return;
+    const DragonActor& d = w.dragon();
+    const SkillCast& cast = *d.skillCast;
+    const SpeciesDef& species = speciesDef(d.species);
+    const SkillDef& skill = species.skills[cast.skill];
+    const Sheet sheet = sprites.fxSheet(species.key, "soulfire_beam");
+    if (!sheet.bmp || sheet.frames <= 0) return;
+
+    const Vec2 aim = beam->ground - beam->mouth;
+    const float angle = std::atan2(aim.y, aim.x) * 180.f / kPi;
+    const float height = aim.length() / 0.75f;
+    const bool left = cast.facingLeft;
+    constexpr float centerOffset = 0.5f - 160.f / 1024.f;
+    const GraphicsState state = g.Save();
+    g.TranslateTransform(beam->mouth.x, beam->mouth.y);
+    g.RotateTransform(angle);
+    g.ScaleTransform(1.f, skill.soulfireWidth);
+    g.RotateTransform(left ? -125.f : -55.f);
+    drawSheetFrame(g, sheet, animFrame(cast.elapsed - cast.fxTime, 20.f, sheet.frames, true),
+                   (left ? -1.f : 1.f) * centerOffset * height, centerOffset * height, height, left, 0.f, 0.83f);
+    g.Restore(state);
+}
+
 void Renderer::drawDotZones(Graphics& g, const World& w, const Sprites& sprites, float time) {
     const SpeciesDef& species = speciesDef(w.dragon().species);
     const uint32_t spColor = species.color;
     // 지속 피해 장판
     for (const DotZone& z : w.dots()) {
+        if (z.soulfireCastId) continue;
         if (z.spriteSkill >= 0 && z.spriteSkill < static_cast<int>(species.skills.size())) {
             const SkillDef& skill = species.skills[static_cast<size_t>(z.spriteSkill)];
             const Sheet sheet = sprites.fxSheet(species.key, skill.fx);
@@ -1229,6 +1338,9 @@ void Renderer::drawAnimationPreview(Graphics& g, const World& w, const Sprites& 
     const SpeciesDef& species = speciesDef(d.species);
     if (effects) {
         drawDotZones(g, w, sprites, time);
+        drawSoulfire(g, w, sprites, SoulfirePass::Ground);
+        drawSoulfire(g, w, sprites, SoulfirePass::Rear);
+        drawSoulfireBreath(g, w, sprites);
         drawProcession(g, d, sprites, charScale, false);
         drawFx(g, w, sprites, species, charScale, false);
         drawBreath(g, d, sprites, charScale);
@@ -1239,6 +1351,7 @@ void Renderer::drawAnimationPreview(Graphics& g, const World& w, const Sprites& 
         drawDragon(g, d, sprites, time, d.pos.x, cy, height, false);
     }
     if (effects) {
+        drawSoulfire(g, w, sprites, SoulfirePass::Front);
         drawProjectiles(g, w, sprites, species, charScale);
         drawFx(g, w, sprites, species, charScale, true);
         drawProcession(g, d, sprites, charScale, true);

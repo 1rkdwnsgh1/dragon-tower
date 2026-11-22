@@ -131,6 +131,8 @@ void World::updateDragonAnim(float dt, bool allowForcedMotion) {
     DragonActor& d = dragon_;
     d.animTime += dt;
     d.animHold = std::max(0.f, d.animHold - dt);
+    if (d.skillCast && d.skillCast->soulfireCastId)
+        d.animHold = std::max(0.f, d.skillCast->lockTime - d.skillCast->elapsed);
     if (allowForcedMotion && d.animForced && d.alive && !d.held && !confining_ && !d.landing &&
         d.dashTime <= 0.f && d.animHold <= 0.f) {
         d.skillMotion = -1;
@@ -224,6 +226,7 @@ Vec2 World::randomEdgePoint(float margin) {
 
 void World::clearEnemies(bool withPoof) {
     cancelProcession();
+    if (dragon_.skillCast && dragon_.skillCast->soulfireCastId) advanceSkillCast(0.f, true);
     if (dragon_.breath) {
         if (dragon_.breath->inputLock > 0.f) dragon_.animHold = 0.f;
         dragon_.breath.reset();
@@ -605,7 +608,21 @@ bool World::castSkill(int i, bool aiChoice) {
             break;
         }
         case SkillKind::Zone: {
-            Enemy* t = nearestEnemy(d.pos, s.range);
+            Enemy* t = nearestEnemy(d.pos, skillRange(s));
+            if (s.soulfire) {
+                if ((aiChoice && !t) || d.dashTime > 0.f) return false;
+                SkillCast cast;
+                cast.skill = i;
+                cast.soulfireCastId = nextSoulfireCastId_++;
+                cast.facingLeft = d.facing.x < 0.f;
+                cast.fxTime = s.soulfireTakeoff;
+                cast.lockTime = cast.fxTime + kSoulfireBreathDuration + s.soulfireLanding;
+                d.skillCast = cast;
+                d.facing = {cast.facingLeft ? -1.f : 1.f, 0.f};
+                d.moving = false;
+                d.animTime = 0.f;
+                break;
+            }
             if (!t) {
                 if (!aiChoice) addText("대상 없음", d.pos - Vec2{0.f, 60.f}, 0xFFCCCCCC, 14.f, 0.6f);
                 return false;
@@ -648,6 +665,7 @@ bool World::castSkill(int i, bool aiChoice) {
         d.skillMotion = -1;
     }
     if (d.breath && d.breath->skill == i && !s.usesUmbralBreath()) hold = std::max(hold, d.breath->length());
+    if (s.soulfire && d.skillCast) hold = d.skillCast->lockTime;
     setDragonAnim(AnimState::Attack, hold);
     addText(s.name, d.pos - Vec2{0.f, 78.f}, sp.color | 0xFF000000, 15.f, 0.9f);
     return true;
@@ -828,6 +846,14 @@ void World::advanceSkillCast(float dt, bool combatEnded) {
     DragonActor& d = dragon_;
     if (!d.skillCast) return;
     SkillCast& c = *d.skillCast;
+    if (c.soulfireCastId && (!d.alive || d.held || combatEnded)) {
+        cancelSkillCast(0.f);
+        d.moving = false;
+        d.animHold = 0.f;
+        d.skillMotion = -1;
+        if (d.alive && d.anim == AnimState::Attack) setDragonAnim(AnimState::Idle, 0.f);
+        return;
+    }
     if (!d.alive || d.held) {
         d.skillCast.reset();  // 죽거나 붙잡히면 효과도 피해도 없이 끝난다
         return;
@@ -842,8 +868,17 @@ void World::advanceSkillCast(float dt, bool combatEnded) {
         return;
     }
     const SkillDef& s = sp.skills[static_cast<size_t>(c.skill)];
+    const float previous = c.elapsed;
     c.elapsed += dt;
     constexpr float epsilon = 1e-6f;
+    if (c.soulfireCastId) {
+        advanceSoulfire(c, s, previous);
+        if (c.elapsed + epsilon >= c.lockTime) {
+            d.animHold = 0.f;
+            d.skillCast.reset();
+        }
+        return;
+    }
     if (!c.fxDone && c.elapsed + epsilon >= c.fxTime) {
         c.fxDone = true;
         spawnAnchoredFx(s, c.facingLeft);
@@ -853,6 +888,83 @@ void World::advanceSkillCast(float dt, bool combatEnded) {
         hitLine(d.pos, d.pos + c.aim * s.range, skillRadius(s), d.stats.atk * s.power, s.detonatesCurse);
     }
     if (c.fxDone && c.hitDone && c.elapsed + epsilon >= c.lockTime) d.skillCast.reset();
+}
+
+float soulfireLift(float elapsed, float takeoff, float landing, float bodyHeight) {
+    const float rise = std::clamp((elapsed - takeoff * 0.4f) / (takeoff * 0.6f), 0.f, 1.f);
+    const float land = 1.f - std::clamp((elapsed - takeoff - kSoulfireBreathDuration) / landing, 0.f, 1.f);
+    return bodyHeight * 0.18f * rise * land;
+}
+
+std::optional<SoulfireBeam> World::soulfireBeam() const {
+    const DragonActor& d = dragon_;
+    if (!d.skillCast || !d.skillCast->soulfireCastId || !d.alive) return std::nullopt;
+    const SkillCast& cast = *d.skillCast;
+    const float flight = cast.elapsed - cast.fxTime;
+    if (flight < 0.f || flight >= kSoulfireBreathDuration) return std::nullopt;
+    return soulfireBeamAt(d.pos, cast, speciesDef(d.species).skills[cast.skill]);
+}
+
+std::optional<SoulfireBeam> World::soulfireBeamAt(Vec2 position, const SkillCast& cast, const SkillDef& s) const {
+    const float baseBody = cfg::kDragonRadius * 3.f * sizeScale_;
+    const float body = baseBody * s.motionAnim.renderScale;
+    const float sign = cast.facingLeft ? -1.f : 1.f;
+    const float groundY = std::min(position.y + cfg::kDragonRadius, bounds_.bottom());
+    const Vec2 mouth{position.x + sign * (kSoulfireBodyOffsetX * baseBody +
+                                         (s.soulfireMouthX - 0.5f) * body),
+                     position.y + cfg::kDragonRadius + (s.soulfireMouthY - kSoulfireFoot) * body -
+                     soulfireLift(cast.fxTime, cast.fxTime, s.soulfireLanding, baseBody)};
+    const float reach = (groundY - mouth.y) / std::tan(s.soulfireAngle * kPi / 180.f);
+    const float groundX = mouth.x + sign * reach;
+    if (groundX < bounds_.x || groundX > bounds_.right()) return std::nullopt;
+    return SoulfireBeam{mouth, {groundX, groundY}};
+}
+
+void World::advanceSoulfire(SkillCast& cast, const SkillDef& s, float previous) {
+    const float flightEnd = cast.fxTime + kSoulfireBreathDuration;
+    const float start = std::max(previous, cast.fxTime);
+    const float end = std::min(cast.elapsed, flightEnd);
+    if (end <= start) return;
+
+    const Vec2 origin = dragon_.pos;
+    const float sign = cast.facingLeft ? -1.f : 1.f;
+    const float flightMultiplier = cfg::kIdleFlySpeed * sizeScale_;
+    const float speed = dragon_.stats.speed * flightMultiplier *
+                        (dragon_.hasteTime > 0.f ? 1.f + dragon_.hasteSpeed : 1.f);
+    moveDragon(end - start, {sign, 0.f}, flightMultiplier);
+    const float traveled = std::abs(dragon_.pos.x - origin.x) / sizeScale_;
+    // Sample the swept path, so frame rate and standing against a boundary do not change spacing.
+    for (; cast.soulfireTrailNext <= traveled; cast.soulfireTrailNext += kSoulfireTrailSpacing) {
+        const float along = cast.soulfireTrailNext * sizeScale_;
+        const auto beam = soulfireBeamAt({origin.x + sign * along, origin.y}, cast, s);
+        if (!beam) continue;
+        cast.hitDone = true;
+        DotZone z;
+        z.pos = beam->ground;
+        z.radius = skillRadius(s);
+        z.dps = dragon_.stats.atk * s.power;
+        z.remaining = z.duration = s.duration;
+        z.startDelay = start - previous + (speed > 0.f ? along / speed : 0.f);
+        z.soulfireCastId = cast.soulfireCastId;
+        const float baseBody = cfg::kDragonRadius * 3.f * sizeScale_;
+        z.flameHeight = baseBody * s.soulfireFlameScale;
+        z.flames.reserve(kSoulfireFlameCount);
+        for (int n = 0; n < kSoulfireFlameCount; ++n) {
+            const float across = static_cast<float>(n) / (kSoulfireFlameCount - 1);
+            const float x = (across - 0.5f) * 0.55f + soulfireVisualRng_.uniform(-0.045f, 0.045f);
+            const float delay = n % 5 == 2 ? soulfireVisualRng_.uniform(0.f, 0.06f)
+                                          : soulfireVisualRng_.uniform(0.07f, 0.55f);
+            z.flames.push_back({{x, soulfireVisualRng_.uniform(-0.07f, 0.07f)},
+                                soulfireVisualRng_.uniform(0.8f, 1.2f), delay,
+                                soulfireVisualRng_.uniform(1.2f, 2.7f), n % kSoulfireFlameVariants});
+        }
+        std::sort(z.flames.begin(), z.flames.end(), [](const SoulfireFlame& a, const SoulfireFlame& b) {
+            return a.offset.y < b.offset.y;
+        });
+        dots_.push_back(std::move(z));
+    }
+    cast.soulfireTrailNext -= traveled;
+    dragon_.moving = traveled > 0.f && cast.elapsed < flightEnd;
 }
 
 // 타격 전에 끊는다. 남는 쿨타임 = 원래 쿨타임 × cooldownRatio (0이면 바로 다시 쓸 수 있다).
@@ -939,7 +1051,7 @@ float World::desiredRange() const {
             for (int slot = 0; slot < kSkillSlots; ++slot) {
                 int i = slotSkill(slot);
                 if (!skillUnlocked(i) || sp.skills[static_cast<size_t>(i)].ultimate) continue;
-                best = std::max(best, sp.skills[static_cast<size_t>(i)].range);
+                best = std::max(best, skillRange(sp.skills[static_cast<size_t>(i)]));
             }
             // 쓸 수 있는 스킬이 없으면 붙어서 기본 공격으로 싸우는 수밖에 없다
             if (best <= 0.f) return cfg::kBasicAttackRange * cfg::kKeepNearRatio;
@@ -1352,7 +1464,8 @@ void World::damageDragon(float raw) {
     if (d.shieldTime > 0.f) dmg *= (1.f - d.shieldPct);
     d.hp -= dmg;
     d.hitFlash = 0.2f;
-    if (!d.procession && (!d.breath || d.breath->inputLock <= 0.f)) setDragonAnim(AnimState::Hit, cfg::kAnimHitHold);
+    if (!d.procession && (!d.breath || d.breath->inputLock <= 0.f) &&
+        (!d.skillCast || !d.skillCast->soulfireCastId)) setDragonAnim(AnimState::Hit, cfg::kAnimHitHold);
     statHitsTaken++;
     addText(intText(dmg), d.pos - Vec2{0.f, 52.f}, kColorDamageToDragon, 20.f, 0.9f);
     addFx(FxType::Hit, d.pos, d.pos, 46.f, 0.25f, kColorDamageToDragon);
@@ -1361,6 +1474,7 @@ void World::damageDragon(float raw) {
         d.alive = false;
         resetSouls();
         d.breath.reset();
+        if (d.skillCast && d.skillCast->soulfireCastId) advanceSkillCast(0.f, true);
         events_.push_back({WorldEventType::DragonDied, EnemyKind{}, 0});
         addFx(FxType::Death, d.pos, d.pos, 90.f, 0.9f, speciesDef(d.species).color);
     }
@@ -1415,9 +1529,15 @@ void World::updateCombat(float dt, CombatMode mode, const PlayerInput& in) {
     const auto& activeProcession = d.procession;
     const float windupLeft = activeProcession && activeProcession->launched == 0
         ? std::max(0.f, ProcessionCast::firstLaunch - activeProcession->elapsed) : 0.f;
-    const float moveDt = std::max(0.f, dt - windupLeft);
+    const float soulfireLock = d.skillCast && d.skillCast->soulfireCastId &&
+        !(mode == CombatMode::Direct && in.dodge && d.dodgeCd <= 0.f && !d.skillCast->hitDone)
+        ? d.skillCast->lockTime - d.skillCast->elapsed : 0.f;
+    const float moveDt = std::max(0.f, dt - std::max(windupLeft, soulfireLock));
     advanceProcession(dt);
     advanceBreath(dt);
+    if (mode == CombatMode::Direct && in.dodge && d.dodgeCd <= 0.f && d.skillCast &&
+        d.skillCast->soulfireCastId && !d.skillCast->hitDone)
+        cancelSkillCast(cfg::kSkillCastCancelCooldown);
     advanceSkillCast(dt);
     if (d.alive && d.stats.regen > 0.f) d.hp = std::min(d.stats.maxHp, d.hp + d.stats.regen * dt);
     // 2026-11-18: 타격 전 직접 조작 회피는 시전을 끊고 회피한다(쿨타임 일부 반환).
@@ -1510,15 +1630,50 @@ void World::updateCombat(float dt, CombatMode mode, const PlayerInput& in) {
                        projectiles_.end());
 
     // 지속 피해 장판
+    std::vector<std::pair<const DotZone*, float>> trail;
     for (DotZone& z : dots_) {
-        z.remaining -= dt;
+        float damageDt = dt;
+        if (z.soulfireCastId) {
+            if (!d.alive) {
+                z.remaining = 0.f;
+                continue;
+            }
+            damageDt = std::clamp(dt - z.startDelay, 0.f, z.remaining);
+            z.startDelay = 0.f;
+            if (damageDt <= 0.f) continue;
+            z.remaining -= damageDt;
+            trail.emplace_back(&z, damageDt);
+            continue;
+        }
+        z.remaining -= damageDt;
         for (Enemy& e : enemies_) {
             if (e.alive && distance(e.pos, z.pos) <= z.radius + e.radius * 0.5f) {
                 if (z.appliesCurse && dt > 0.f && z.remaining >= 0.f && e.curseZoneCooldown == 0.0) {
                     applyCurse(e);
                     e.curseZoneCooldown = kCurseZoneInterval;
                 }
-                damageEnemy(e, z.dps * dt, false);
+                damageEnemy(e, z.dps * damageDt, false);
+            }
+        }
+    }
+    if (!trail.empty()) {
+        std::vector<std::pair<unsigned, float>> exposure;
+        for (Enemy& e : enemies_) {
+            if (!e.alive) continue;
+            exposure.clear();
+            const Vec2 feet{e.pos.x, std::min(e.pos.y + e.radius, bounds_.bottom())};
+            for (const auto& [zone, duration] : trail) {
+                if (distance(feet, zone->pos) > zone->radius + e.radius * 0.5f) continue;
+                auto entry = std::find_if(exposure.begin(), exposure.end(), [&](const auto& value) {
+                    return value.first == zone->soulfireCastId;
+                });
+                if (entry == exposure.end()) {
+                    exposure.emplace_back(zone->soulfireCastId, duration);
+                    damageEnemy(e, zone->dps * duration, false);
+                } else if (duration > entry->second) {
+                    damageEnemy(e, zone->dps * (duration - entry->second), false);
+                    entry->second = duration;
+                }
             }
         }
     }
@@ -1530,7 +1685,11 @@ void World::updateCombat(float dt, CombatMode mode, const PlayerInput& in) {
 }
 
 void World::updateFx(float dt, bool combatEnded) {
-    if (combatEnded) cancelProcession();
+    if (combatEnded) {
+        cancelProcession();
+        dots_.erase(std::remove_if(dots_.begin(), dots_.end(), [](const DotZone& z) { return z.soulfireCastId != 0; }),
+                    dots_.end());
+    }
     if (combatEnded && dragon_.breath) {
         advanceBreath(dt, true);
         updateDragonAnim(dt);

@@ -128,6 +128,29 @@ struct Projectile {
     bool appliesCurse = false;
 };
 
+// Standing source aligned to the standard 256px revenant cell at 126% scale.
+inline constexpr float kSoulfireFoot = 221.f / 256.f;
+inline constexpr float kSoulfireBodyOffsetX = 0.142f;
+inline constexpr float kSoulfireBreathDuration = 2.f;
+inline constexpr float kSoulfireTrailSpacing = 34.f;
+
+struct SoulfireBeam {
+    Vec2 mouth;
+    Vec2 ground;
+};
+
+float soulfireLift(float elapsed, float takeoff, float landing, float bodyHeight);
+inline constexpr int kSoulfireFlameVariants = 6;
+inline constexpr int kSoulfireFlameCount = 15;
+
+struct SoulfireFlame {
+    Vec2 offset;
+    float size = 1.f;
+    float delay = 0.f;
+    float cycle = 1.f;
+    int variant = 0;
+};
+
 struct DotZone {
     Vec2 pos;
     float radius = 80.f;
@@ -136,6 +159,10 @@ struct DotZone {
     float duration = 1.f;
     bool appliesCurse = false;
     int spriteSkill = -1;
+    std::vector<SoulfireFlame> flames;
+    unsigned soulfireCastId = 0;
+    float flameHeight = 0.f;
+    float startDelay = 0.f;  // Time before impact within the first simulation step.
 };
 
 enum class FxType { Ring, Heal, Dodge, Hit, Poof, LineBlast, Dash, LevelUp, Death, Shield };
@@ -225,6 +252,8 @@ struct SkillCast {
     bool fxDone = false;
     bool hitDone = false;
     bool facingLeft = false;
+    unsigned soulfireCastId = 0;
+    float soulfireTrailNext = 0.f;  // Remaining distance measured at 100% size.
 };
 
 struct DragonActor {
@@ -291,7 +320,7 @@ public:
     void cancelConfine() { confining_ = false; }
     bool confining() const { return confining_; }
     const RectF& bounds() const { return bounds_; }
-    void seed(uint32_t s) { rng_.seed(s); }
+    void seed(uint32_t s) { rng_.seed(s); soulfireVisualRng_.seed(s ^ 0xA65E10u); }
 
     void setupDragon(Species s, int level, float hp, Vec2 pos);
     void resetSouls();
@@ -346,7 +375,9 @@ public:
     // 몸 반지름은 항상, 스킬 반경은 scale_with_size 를 켠 스킬만 따라 커진다.
     void setSizeScale(float s) { sizeScale_ = s > 0.f ? s : 1.f; }
     // 스킬 판정 반경. scale_with_size 를 켠 스킬만 보기 크기를 따라 커진다.
+    float skillRange(const SkillDef& s) const { return s.soulfire ? s.range * sizeScale_ : s.range; }
     float skillRadius(const SkillDef& s) const { return s.scaleWithSize ? s.radius * sizeScale_ : s.radius; }
+    std::optional<SoulfireBeam> soulfireBeam() const;
     float sizeScale() const { return sizeScale_; }
     const std::array<int, kSkillSlots>& slots() const { return slots_; }
     // 칸 번호 -> 스킬 목록 번호. 빈 칸이면 -1.
@@ -415,6 +446,8 @@ private:
     const Enemy* chooseProcessionTarget(ProcessionCast& cast, Vec2 from) const;
     void cancelProcession();
     void advanceSkillCast(float dt, bool combatEnded = false);
+    void advanceSoulfire(SkillCast& cast, const SkillDef& skill, float previous);
+    std::optional<SoulfireBeam> soulfireBeamAt(Vec2 position, const SkillCast& cast, const SkillDef& skill) const;
     void cancelSkillCast(float refundRatio);
     void spawnAnchoredFx(const SkillDef& s, bool facingLeft);
     bool skillCastLocked() const { return dragon_.skillCast && dragon_.skillCast->elapsed < dragon_.skillCast->lockTime; }
@@ -429,10 +462,12 @@ private:
     float dragonDodgeChance() const;
 
     RectF bounds_{0.f, 0.f, 1280.f, 720.f};
+    unsigned nextSoulfireCastId_ = 1;
     float sizeScale_ = 1.f;  // 보기 크기. 판정에 쓰는 몸·스킬 반경을 여기에 곱한다
     bool confining_ = false;   // 띠로 내려가는 중
     RectF confineBand_{};
     Rng rng_;
+    Rng soulfireVisualRng_{0xA65E10u};
     DragonActor dragon_;
     std::vector<Enemy> enemies_;
     std::vector<AttackZone> zones_;

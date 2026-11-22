@@ -3379,8 +3379,8 @@ static void testRevenantProcession() {
     if (!loaded) return;
     constexpr int skill = 7;
     const auto& def = speciesDef(revenant);
-    CHECK(def.skills.size() == 8);
-    if (def.skills.size() != 8) return;
+    CHECK(def.skills.size() > skill);
+    if (def.skills.size() <= skill) return;
     CHECK(def.skills[skill].kind == SkillKind::Procession && def.skills[skill].unlockLevel == 8);
     CHECK(def.skills[skill].cooldown == 30.f && def.skills[skill].motion == "procession");
     for (int i = 0; i < 7; ++i) CHECK(def.skills[i].kind != SkillKind::Procession);
@@ -3656,6 +3656,185 @@ static void testRevenantProcession() {
     CHECK(autoFill.slotSkill(0) == -1);
 }
 
+static void testNetherSoulfire(const std::filesystem::path& assets) {
+    std::printf("[nether soulfire]\n");
+    loadDragonFolders(assets / "dragons");
+    Species revenant{};
+    CHECK(speciesFromKey("revenant", revenant));
+    if (!speciesFromKey("revenant", revenant)) return;
+    constexpr int skill = 8;
+    const auto& skills = speciesDef(revenant).skills;
+    CHECK(skills.size() > skill);
+    if (skills.size() <= skill) return;
+    const auto& def = skills[skill];
+    CHECK(def.kind == SkillKind::Zone && def.soulfire && def.unlockLevel == 9 && def.motionFrames == 40);
+    CHECK(skills[1].kind == SkillKind::Zone && !skills[1].soulfire && skills[7].ultimate);
+
+    const auto setup = [&](int level = 9, bool withTarget = true, bool left = false) {
+        World w;
+        w.setBounds({0.f, 0.f, 1200.f, 640.f});
+        w.setupDragon(revenant, level, -1.f, {600.f, 300.f});
+        w.dragon().basicCd = 60.f;
+        w.setSlots({skill, -1, -1, -1});
+        if (withTarget) {
+            Enemy& enemy = w.spawnEnemy(defaultMelee(), 1, {left ? 400.f : 800.f, 300.f});
+            enemy.hp = enemy.maxHp = 2000.f;
+            enemy.stun = 100.f;
+            enemy.curseStacks = 3;
+            enemy.curseRemaining = kCurseDuration;
+        }
+        return w;
+    };
+    PlayerInput hotkey{};
+    hotkey.skill[0] = true;
+    const auto step = [](World& w, float seconds) { w.updateCombat(seconds, CombatMode::Direct, {}); };
+
+    const float takeoff = def.soulfireTakeoff;
+    const float firstContact = takeoff + 0.01f;
+    const float landing = takeoff + kSoulfireBreathDuration + def.soulfireLanding;
+    World locked = setup(8);
+    locked.updateCombat(0.f, CombatMode::Direct, hotkey);
+    CHECK(!locked.dragon().skillCast);
+    World autoEmpty = setup(9, false);
+    autoEmpty.updateCombat(0.f, CombatMode::Auto, {});
+    CHECK(!autoEmpty.dragon().skillCast);
+
+    World world = setup(9, false);
+    world.updateCombat(0.f, CombatMode::Direct, hotkey);
+    CHECK(world.dragon().skillCast && world.dragon().skillMotion == skill);
+    if (!world.dragon().skillCast) return;
+    step(world, takeoff * 0.5f);
+    CHECK(!world.soulfireBeam() && world.dragon().pos.x == 600.f && world.dots().empty());
+    step(world, firstContact - takeoff * 0.5f);
+    CHECK(world.dragon().pos.x > 600.f && world.soulfireBeam() && world.dots().size() == 1);
+    if (world.dots().empty() || !world.soulfireBeam()) return;
+    const Vec2 first = world.dots().front().pos;
+    CHECK(first.y == world.soulfireBeam()->ground.y);
+    CHECK(std::fabs(world.soulfireBeam()->ground.x - first.x) < 3.f);
+    CHECK(world.dots().front().flames.size() == 15);
+    CHECK(world.dots().front().radius == def.radius);
+    CHECK(std::fabs(def.soulfireWidth - 0.44f * 3.f) < 0.001f);
+    CHECK(std::fabs(takeoff - 0.4f) < 0.001f && std::fabs(def.soulfireLanding - 0.4f) < 0.001f);
+    Enemy& enemy = world.spawnEnemy(defaultMelee(), 1, {first.x + 30.f, 300.f});
+    enemy.hp = enemy.maxHp = 2000.f;
+    enemy.stun = 100.f;
+    enemy.curseStacks = 3;
+    enemy.curseRemaining = kCurseDuration;
+    step(world, 0.55f);
+    CHECK(world.dots().size() >= 2);
+    CHECK(world.dots().front().pos.x == first.x);
+    for (size_t i = 1; i < world.dots().size(); ++i)
+        CHECK(std::fabs(world.dots()[i].pos.x - world.dots()[i - 1].pos.x - kSoulfireTrailSpacing) < 0.01f);
+    CHECK(world.soulfireBeam() && world.soulfireBeam()->ground.x > world.dots().back().pos.x);
+    CHECK(std::fabs(world.enemies().front().hp - (2000.f - mitigate(world.dragon().stats.atk * def.power * 0.55f,
+                                                                      world.enemies().front().def))) < 0.01f);
+    CHECK(world.enemies().front().curseStacks == 3);
+    step(world, kSoulfireBreathDuration - 0.56f + 0.01f);
+    const float v2Distance = world.dragon().stats.speed * cfg::kIdleFlySpeed * 0.8f;
+    CHECK(std::fabs(world.dragon().pos.x - 600.f - 2.5f * v2Distance) < 0.01f);
+    CHECK(!world.soulfireBeam() && !world.dots().empty());
+    step(world, def.soulfireLanding - 0.03f);
+    CHECK(world.dragon().skillCast && world.dragon().skillMotion == skill && world.dragon().anim == AnimState::Attack);
+    step(world, 0.03f);
+    CHECK(!world.dragon().skillCast && !world.dragon().moving && world.dragon().skillMotion == -1);
+    CHECK(!world.dots().empty());
+    world.updateFx(0.f, true);
+    CHECK(world.dots().empty());
+
+    for (float scale : {0.5f, 1.f, 1.5f}) {
+        World scaled = setup(9, false);
+        scaled.setBounds({0.f, 0.f, 2400.f, 640.f});
+        scaled.setSizeScale(scale);
+        scaled.updateCombat(0.f, CombatMode::Direct, hotkey);
+        step(scaled, firstContact);
+        CHECK(scaled.soulfireBeam() && scaled.dots().size() == 1);
+        if (!scaled.soulfireBeam() || scaled.dots().empty()) continue;
+        const auto beam = *scaled.soulfireBeam();
+        const auto& firstPatch = scaled.dots().front();
+        const float baseBody = cfg::kDragonRadius * 3.f;
+        const float poseBody = baseBody * def.motionAnim.renderScale;
+        const float baseDrop = (kSoulfireFoot - def.soulfireMouthY) * poseBody + 0.18f * baseBody;
+        CHECK(std::fabs(def.motionAnim.renderScale - 1.26f) < 0.001f);
+        CHECK(std::fabs(beam.mouth.x - scaled.dragon().pos.x -
+                        ((def.soulfireMouthX - 0.5f) * poseBody + kSoulfireBodyOffsetX * baseBody) * scale) < 0.01f);
+        CHECK(std::fabs(beam.ground.y - beam.mouth.y - baseDrop * scale) < 0.01f);
+        CHECK(std::fabs(beam.ground.x - beam.mouth.x -
+                        baseDrop / std::tan(def.soulfireAngle * kPi / 180.f) * scale) < 0.01f);
+        CHECK(std::fabs(firstPatch.radius - def.radius * scale) < 0.01f);
+        CHECK(std::fabs(firstPatch.flameHeight - baseBody * def.soulfireFlameScale * scale) < 0.01f);
+        CHECK(firstPatch.flames.size() == 15);
+        CHECK(std::fabs(scaled.skillRange(skills[1]) - skills[1].range) < 0.01f);
+
+        for (float offset : {-2.f, 2.f}) {
+            Enemy& edgeTarget = scaled.spawnEnemy(defaultMelee(), 1, firstPatch.pos);
+            edgeTarget.hp = edgeTarget.maxHp = 2000.f;
+            edgeTarget.stun = 100.f;
+            edgeTarget.pos.y += def.radius * scale - edgeTarget.radius * 0.5f + offset;
+        }
+        step(scaled, 0.02f);
+        CHECK(scaled.enemies()[0].hp < 2000.f && scaled.enemies()[1].hp == 2000.f);
+        step(scaled, kSoulfireBreathDuration);
+        const float expectedDistance = scaled.dragon().stats.speed * cfg::kIdleFlySpeed *
+                                       kSoulfireBreathDuration * scale;
+        CHECK(std::fabs(scaled.dragon().pos.x - 600.f - expectedDistance) < 0.01f);
+        CHECK(!scaled.soulfireBeam());
+        CHECK(scaled.dots().size() >= 2);
+        for (size_t i = 1; i < scaled.dots().size(); ++i)
+            CHECK(std::fabs(scaled.dots()[i].pos.x - scaled.dots()[i - 1].pos.x -
+                            kSoulfireTrailSpacing * scale) < 0.01f);
+
+        for (float offset : {-5.f, 5.f}) {
+            World search = setup(9, false);
+            search.setBounds({0.f, 0.f, 2400.f, 640.f});
+            search.setSizeScale(scale);
+            Enemy& target = search.spawnEnemy(defaultMelee(), 1, {600.f + def.range * scale + offset, 300.f});
+            target.pos.x += target.radius;  // Auto targeting measures to the enemy's near edge.
+            search.updateCombat(0.f, CombatMode::Auto, {});
+            CHECK(search.dragon().skillCast.has_value() == (offset < 0.f));
+        }
+    }
+
+    World automatic = setup(9, true, true);
+    automatic.updateCombat(0.f, CombatMode::Auto, {});
+    CHECK(automatic.dragon().skillCast && automatic.dragon().skillCast->facingLeft);
+    step(automatic, firstContact);
+    CHECK(automatic.dragon().pos.x < 600.f && automatic.soulfireBeam() &&
+          automatic.soulfireBeam()->ground.x < automatic.soulfireBeam()->mouth.x);
+    automatic.clearEnemies(false);
+    CHECK(!automatic.dragon().skillCast && automatic.dots().empty() && !automatic.dragon().moving);
+
+    World cancelled = setup();
+    cancelled.updateCombat(0.f, CombatMode::SkillManual, hotkey);
+    step(cancelled, takeoff - 0.05f);
+    PlayerInput dodge{};
+    dodge.dodge = true;
+    cancelled.updateCombat(0.2f, CombatMode::Direct, dodge);
+    CHECK(!cancelled.dragon().skillCast && cancelled.dots().empty());
+
+    World edge = setup(9, false);
+    edge.dragon().pos.x = 1160.f;
+    edge.updateCombat(0.f, CombatMode::Direct, hotkey);
+    step(edge, landing + 0.01f);
+    CHECK(edge.dragon().pos.x <= 1200.f - cfg::kDragonRadius && !edge.dragon().skillCast && edge.dots().empty());
+
+    World pinned = setup(9, false);
+    pinned.setSizeScale(0.5f);
+    pinned.dragon().pos.x = 1120.f;
+    pinned.updateCombat(0.f, CombatMode::Direct, hotkey);
+    step(pinned, takeoff + 0.8f);
+    const auto patchCount = pinned.dots().size();
+    CHECK(patchCount > 0 && !pinned.soulfireBeam());
+    step(pinned, 0.5f);
+    CHECK(pinned.dots().size() == patchCount && !pinned.dragon().moving);
+
+    World died = setup();
+    died.updateCombat(0.f, CombatMode::Direct, hotkey);
+    step(died, firstContact);
+    died.dragon().alive = false;
+    step(died, 0.1f);
+    CHECK(!died.dragon().skillCast && died.dots().empty() && !died.dragon().moving);
+}
+
 int main(int argc, char** argv) {
     if (argc == 2 && std::string(argv[1]) == "--revenant-procession") {
         testRevenantProcession();
@@ -3758,6 +3937,7 @@ int main(int argc, char** argv) {
         testEliteVariantsSpawn(assets);
         testTowerSelection(assets);
         testRevenantCurse(assets);
+        testNetherSoulfire(assets);
     }
     else std::printf("[elite variants spawn] assets 경로 인자가 없어 건너뜀\n");
     std::printf("\n%d passed, %d failed\n", g_passed, g_failed);
