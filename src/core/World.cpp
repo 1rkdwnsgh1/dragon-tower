@@ -606,7 +606,7 @@ bool World::castSkill(int i, bool aiChoice) {
             break;
         }
         case SkillKind::Zone: {
-            Enemy* t = nearestEnemy(d.pos, s.range);
+            Enemy* t = nearestEnemy(d.pos, skillRange(s));
             if (s.soulfire) {
                 if ((aiChoice && !t) || d.dashTime > 0.f) return false;
                 SkillCast cast;
@@ -922,13 +922,14 @@ void World::advanceSoulfire(SkillCast& cast, const SkillDef& s, float previous) 
 
     const Vec2 origin = dragon_.pos;
     const float sign = cast.facingLeft ? -1.f : 1.f;
-    const float speed = dragon_.stats.speed * cfg::kIdleFlySpeed *
+    const float flightMultiplier = cfg::kIdleFlySpeed * sizeScale_;
+    const float speed = dragon_.stats.speed * flightMultiplier *
                         (dragon_.hasteTime > 0.f ? 1.f + dragon_.hasteSpeed : 1.f);
-    moveDragon(end - start, {sign, 0.f}, cfg::kIdleFlySpeed);
-    const float traveled = std::abs(dragon_.pos.x - origin.x);
+    moveDragon(end - start, {sign, 0.f}, flightMultiplier);
+    const float traveled = std::abs(dragon_.pos.x - origin.x) / sizeScale_;
     // Sample the swept path, so frame rate and standing against a boundary do not change spacing.
     for (; cast.soulfireTrailNext <= traveled; cast.soulfireTrailNext += kSoulfireTrailSpacing) {
-        const float along = cast.soulfireTrailNext;
+        const float along = cast.soulfireTrailNext * sizeScale_;
         const auto beam = soulfireBeamAt({origin.x + sign * along, origin.y}, cast, s);
         if (!beam) continue;
         cast.hitDone = true;
@@ -943,9 +944,13 @@ void World::advanceSoulfire(SkillCast& cast, const SkillDef& s, float previous) 
         z.flameHeight = body * s.soulfireFlameScale;
         z.flames.reserve(kSoulfireFlameCount);
         for (int n = 0; n < kSoulfireFlameCount; ++n) {
-            const float x = (static_cast<float>(n) - 2.5f) * 0.11f + rng_.uniform(-0.045f, 0.045f);
-            z.flames.push_back({{x, rng_.uniform(-0.07f, 0.07f)}, rng_.uniform(0.8f, 1.2f),
-                                rng_.uniform(0.20f, 0.72f), rng_.uniform(1.2f, 2.7f), n});
+            const float across = static_cast<float>(n) / (kSoulfireFlameCount - 1);
+            const float x = (across - 0.5f) * 0.55f + soulfireVisualRng_.uniform(-0.045f, 0.045f);
+            const float delay = n % 5 == 2 ? soulfireVisualRng_.uniform(0.f, 0.06f)
+                                          : soulfireVisualRng_.uniform(0.07f, 0.55f);
+            z.flames.push_back({{x, soulfireVisualRng_.uniform(-0.07f, 0.07f)},
+                                soulfireVisualRng_.uniform(0.8f, 1.2f), delay,
+                                soulfireVisualRng_.uniform(1.2f, 2.7f), n % kSoulfireFlameVariants});
         }
         std::sort(z.flames.begin(), z.flames.end(), [](const SoulfireFlame& a, const SoulfireFlame& b) {
             return a.offset.y < b.offset.y;
@@ -1040,7 +1045,7 @@ float World::desiredRange() const {
             for (int slot = 0; slot < kSkillSlots; ++slot) {
                 int i = slotSkill(slot);
                 if (!skillUnlocked(i) || sp.skills[static_cast<size_t>(i)].ultimate) continue;
-                best = std::max(best, sp.skills[static_cast<size_t>(i)].range);
+                best = std::max(best, skillRange(sp.skills[static_cast<size_t>(i)]));
             }
             // 쓸 수 있는 스킬이 없으면 붙어서 기본 공격으로 싸우는 수밖에 없다
             if (best <= 0.f) return cfg::kBasicAttackRange * cfg::kKeepNearRatio;
@@ -1622,7 +1627,7 @@ void World::updateCombat(float dt, CombatMode mode, const PlayerInput& in) {
     std::vector<std::pair<const DotZone*, float>> trail;
     for (DotZone& z : dots_) {
         float damageDt = dt;
-        if (!z.flames.empty()) {
+        if (z.soulfireCastId) {
             if (!d.alive) {
                 z.remaining = 0.f;
                 continue;
@@ -1676,7 +1681,7 @@ void World::updateCombat(float dt, CombatMode mode, const PlayerInput& in) {
 void World::updateFx(float dt, bool combatEnded) {
     if (combatEnded) {
         cancelProcession();
-        dots_.erase(std::remove_if(dots_.begin(), dots_.end(), [](const DotZone& z) { return !z.flames.empty(); }),
+        dots_.erase(std::remove_if(dots_.begin(), dots_.end(), [](const DotZone& z) { return z.soulfireCastId != 0; }),
                     dots_.end());
     }
     if (combatEnded && dragon_.breath) {

@@ -3711,7 +3711,7 @@ static void testNetherSoulfire(const std::filesystem::path& assets) {
     const Vec2 first = world.dots().front().pos;
     CHECK(first.y == world.soulfireBeam()->ground.y);
     CHECK(std::fabs(world.soulfireBeam()->ground.x - first.x) < 3.f);
-    CHECK(world.dots().front().flames.size() == kSoulfireFlameCount);
+    CHECK(world.dots().front().flames.size() == 15);
     CHECK(world.dots().front().radius == def.radius);
     CHECK(std::fabs(def.soulfireWidth - 0.44f * 3.f) < 0.001f);
     CHECK(takeoff < 0.3f);
@@ -3738,6 +3738,55 @@ static void testNetherSoulfire(const std::filesystem::path& assets) {
     CHECK(!world.dots().empty());
     world.updateFx(0.f, true);
     CHECK(world.dots().empty());
+
+    for (float scale : {0.5f, 1.f, 1.5f}) {
+        World scaled = setup(9, false);
+        scaled.setBounds({0.f, 0.f, 2400.f, 640.f});
+        scaled.setSizeScale(scale);
+        scaled.updateCombat(0.f, CombatMode::Direct, hotkey);
+        step(scaled, firstContact);
+        CHECK(scaled.soulfireBeam() && scaled.dots().size() == 1);
+        if (!scaled.soulfireBeam() || scaled.dots().empty()) continue;
+        const auto beam = *scaled.soulfireBeam();
+        const auto& firstPatch = scaled.dots().front();
+        const float baseBody = cfg::kDragonRadius * 3.f * def.motionAnim.renderScale;
+        const float baseDrop = (kSoulfireFoot - def.soulfireMouthY + 0.18f) * baseBody;
+        CHECK(std::fabs(beam.ground.y - beam.mouth.y - baseDrop * scale) < 0.01f);
+        CHECK(std::fabs(beam.ground.x - beam.mouth.x -
+                        baseDrop / std::tan(def.soulfireAngle * kPi / 180.f) * scale) < 0.01f);
+        CHECK(std::fabs(firstPatch.radius - def.radius * scale) < 0.01f);
+        CHECK(std::fabs(firstPatch.flameHeight - baseBody * def.soulfireFlameScale * scale) < 0.01f);
+        CHECK(firstPatch.flames.size() == 15);
+        CHECK(std::fabs(scaled.skillRange(skills[1]) - skills[1].range) < 0.01f);
+
+        for (float offset : {-2.f, 2.f}) {
+            Enemy& edgeTarget = scaled.spawnEnemy(defaultMelee(), 1, firstPatch.pos);
+            edgeTarget.hp = edgeTarget.maxHp = 2000.f;
+            edgeTarget.stun = 100.f;
+            edgeTarget.pos.y += def.radius * scale - edgeTarget.radius * 0.5f + offset;
+        }
+        step(scaled, 0.02f);
+        CHECK(scaled.enemies()[0].hp < 2000.f && scaled.enemies()[1].hp == 2000.f);
+        step(scaled, kSoulfireBreathDuration);
+        const float expectedDistance = scaled.dragon().stats.speed * cfg::kIdleFlySpeed *
+                                       kSoulfireBreathDuration * scale;
+        CHECK(std::fabs(scaled.dragon().pos.x - 600.f - expectedDistance) < 0.01f);
+        CHECK(!scaled.soulfireBeam());
+        CHECK(scaled.dots().size() >= 2);
+        for (size_t i = 1; i < scaled.dots().size(); ++i)
+            CHECK(std::fabs(scaled.dots()[i].pos.x - scaled.dots()[i - 1].pos.x -
+                            kSoulfireTrailSpacing * scale) < 0.01f);
+
+        for (float offset : {-5.f, 5.f}) {
+            World search = setup(9, false);
+            search.setBounds({0.f, 0.f, 2400.f, 640.f});
+            search.setSizeScale(scale);
+            Enemy& target = search.spawnEnemy(defaultMelee(), 1, {600.f + def.range * scale + offset, 300.f});
+            target.pos.x += target.radius;  // Auto targeting measures to the enemy's near edge.
+            search.updateCombat(0.f, CombatMode::Auto, {});
+            CHECK(search.dragon().skillCast.has_value() == (offset < 0.f));
+        }
+    }
 
     World automatic = setup(9, true, true);
     automatic.updateCombat(0.f, CombatMode::Auto, {});

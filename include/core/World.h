@@ -139,7 +139,8 @@ struct SoulfireBeam {
 };
 
 float soulfireLift(float elapsed, float takeoff, float bodyHeight);
-inline constexpr int kSoulfireFlameCount = 6;
+inline constexpr int kSoulfireFlameVariants = 6;
+inline constexpr int kSoulfireFlameCount = 15;
 
 struct SoulfireFlame {
     Vec2 offset;
@@ -251,7 +252,7 @@ struct SkillCast {
     bool hitDone = false;
     bool facingLeft = false;
     unsigned soulfireCastId = 0;
-    float soulfireTrailNext = 0.f;  // Distance remaining before the next stationary patch.
+    float soulfireTrailNext = 0.f;  // Remaining distance measured at 100% size.
 };
 
 struct DragonActor {
@@ -318,7 +319,7 @@ public:
     void cancelConfine() { confining_ = false; }
     bool confining() const { return confining_; }
     const RectF& bounds() const { return bounds_; }
-    void seed(uint32_t s) { rng_.seed(s); }
+    void seed(uint32_t s) { rng_.seed(s); soulfireVisualRng_.seed(s ^ 0xA65E10u); }
 
     void setupDragon(Species s, int level, float hp, Vec2 pos);
     void resetSouls();
@@ -373,6 +374,7 @@ public:
     // 몸 반지름은 항상, 스킬 반경은 scale_with_size 를 켠 스킬만 따라 커진다.
     void setSizeScale(float s) { sizeScale_ = s > 0.f ? s : 1.f; }
     // 스킬 판정 반경. scale_with_size 를 켠 스킬만 보기 크기를 따라 커진다.
+    float skillRange(const SkillDef& s) const { return s.soulfire ? s.range * sizeScale_ : s.range; }
     float skillRadius(const SkillDef& s) const { return s.scaleWithSize ? s.radius * sizeScale_ : s.radius; }
     std::optional<SoulfireBeam> soulfireBeam() const;
     float sizeScale() const { return sizeScale_; }
@@ -464,6 +466,7 @@ private:
     bool confining_ = false;   // 띠로 내려가는 중
     RectF confineBand_{};
     Rng rng_;
+    Rng soulfireVisualRng_{0xA65E10u};
     DragonActor dragon_;
     std::vector<Enemy> enemies_;
     std::vector<AttackZone> zones_;

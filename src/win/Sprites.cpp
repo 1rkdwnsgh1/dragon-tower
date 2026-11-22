@@ -366,9 +366,9 @@ void Sprites::loadSkillSheets(const std::filesystem::path& dir, const SpeciesDef
 // 그러면 그리는 쪽이 예전처럼 도형으로 그려서 깨진 그림이 나오지 않는다.
 const std::string& soulfireLayerKey(int variant, SoulfirePass pass) {
     static const auto keys = [] {
-        std::array<std::array<std::string, 3>, kSoulfireFlameCount> result;
+        std::array<std::array<std::string, 3>, kSoulfireFlameVariants> result;
         constexpr const char* layers[] = {"_ground", "_rear", "_front"};
-        for (int i = 0; i < kSoulfireFlameCount; ++i)
+        for (int i = 0; i < kSoulfireFlameVariants; ++i)
             for (int layer = 0; layer < 3; ++layer)
                 result[i][layer] = std::string("soulfire_") + "abcdef"[i] + layers[layer];
         return result;
@@ -393,7 +393,7 @@ void Sprites::loadFxSheets(const std::filesystem::path& dir, const SpeciesDef& d
             };
             load("soulfire_beam", 256);
             load("soulfire_impact", 256);
-            for (int variant = 0; variant < kSoulfireFlameCount; ++variant)
+            for (int variant = 0; variant < kSoulfireFlameVariants; ++variant)
                 for (SoulfirePass pass : {SoulfirePass::Ground, SoulfirePass::Rear, SoulfirePass::Front})
                     load(soulfireLayerKey(variant, pass), 128);
         }

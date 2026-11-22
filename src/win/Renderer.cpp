@@ -1152,8 +1152,15 @@ void Renderer::drawSoulfire(Graphics& g, const World& w, const Sprites& sprites,
                            beam->ground.y + (0.5f - 700.f / 1024.f) * h, h, false, 0.f, 1.f);
         }
     }
+    std::array<Sheet, kSoulfireFlameVariants> sheets{};
+    bool loaded = false;
     for (const DotZone& zone : w.dots()) {
         if (zone.flames.empty()) continue;
+        if (!loaded) {
+            for (int variant = 0; variant < kSoulfireFlameVariants; ++variant)
+                sheets[variant] = sprites.fxSheet(species.key, soulfireLayerKey(variant, pass));
+            loaded = true;
+        }
         const float age = zone.duration - zone.remaining;
         for (const SoulfireFlame& flame : zone.flames) {
             const float local = age - flame.delay;
@@ -1165,7 +1172,7 @@ void Renderer::drawSoulfire(Graphics& g, const World& w, const Sprites& sprites,
             const float envelope = std::min({progress / 0.21f, (1.f - progress) / 0.24f,
                                              zone.remaining / 0.35f, 1.f});
             if (envelope <= 0.f) continue;
-            const Sheet sheet = sprites.fxSheet(species.key, soulfireLayerKey(flame.variant, pass));
+            const Sheet& sheet = sheets[flame.variant];
             const int frame = static_cast<int>(progress * sheet.frames);
             const Vec2 anchor = zone.pos + flame.offset * zone.radius;
             const float height = zone.flameHeight * flame.size * (0.68f + 0.32f * envelope);
@@ -1206,7 +1213,7 @@ void Renderer::drawDotZones(Graphics& g, const World& w, const Sprites& sprites,
     const uint32_t spColor = species.color;
     // 지속 피해 장판
     for (const DotZone& z : w.dots()) {
-        if (!z.flames.empty()) continue;
+        if (z.soulfireCastId) continue;
         if (z.spriteSkill >= 0 && z.spriteSkill < static_cast<int>(species.skills.size())) {
             const SkillDef& skill = species.skills[static_cast<size_t>(z.spriteSkill)];
             const Sheet sheet = sprites.fxSheet(species.key, skill.fx);

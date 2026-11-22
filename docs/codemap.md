@@ -187,4 +187,4 @@ Windows 실행 파일은 GitHub Actions의 `build`가 만든다. 실제 창 동�
 
 ### 망계의 업화
 
-`DragonData.cpp`의 `soulfire`는 `World.cpp`에서 장판 스킬의 지연 시전을 선택한다. `advanceSoulfire`가 `SkillCast`의 비행과 충돌 시점을 진행하고, `soulfireBeam`의 입·지면 좌표를 판정과 렌더링이 함께 사용한다. 렌더러는 현재 교차점에 V5 충돌 하나를 반복 출력한다. 이동 경로의 `DotZone`은 불꽃 6개를 고정하고, 같은 시전의 겹치는 장판은 하나의 피해율을 공유한다. `Sprites.cpp`에서 전용 레이어를 읽고, `Renderer.cpp`에서 본체의 입과 충돌 기준점을 맞추고 적 앞뒤 패스를 합성한다. `Preview.cpp`는 장판 종료까지 탐색 범위를 연장한다.
+`DragonData.cpp`의 `soulfire`는 `World.cpp`에서 장판 스킬의 지연 시전을 선택한다. `advanceSoulfire`가 `SkillCast`의 비행과 충돌 시점을 진행하고, `soulfireBeam`의 입·지면 좌표를 판정과 렌더링이 함께 사용한다. 렌더러는 현재 교차점에 V5 충돌 하나를 반복 출력한다. 이동 경로의 `DotZone`은 불꽃 15개를 고정한다. `soulfireCastId`로 피해율을 합쳐 처리하므로 불꽃 수와 피해 횟수가 분리된다. 비행·배치에는 기존 `World::sizeScale`, 반경에는 기존 `skillRadius`를 사용한다. `Sprites.cpp`에서 전용 레이어를 읽고, `Renderer.cpp`에서 본체의 입과 충돌 기준점을 맞추고 적 앞뒤 패스를 합성한다. `Preview.cpp`는 장판 종료까지 탐색 범위를 연장한다.
