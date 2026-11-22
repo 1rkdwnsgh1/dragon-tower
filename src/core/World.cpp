@@ -893,7 +893,11 @@ void World::advanceSkillCast(float dt, bool combatEnded) {
 float soulfireLift(float elapsed, float takeoff, float landing, float bodyHeight) {
     const float rise = std::clamp((elapsed - takeoff * 0.4f) / (takeoff * 0.6f), 0.f, 1.f);
     const float land = 1.f - std::clamp((elapsed - takeoff - kSoulfireBreathDuration) / landing, 0.f, 1.f);
-    return bodyHeight * 0.18f * rise * land;
+    // Accelerate out of the crouch, then ease into the airborne pose.
+    const float launch = rise * rise * (3.f - 2.f * rise);
+    // Contact precedes the end of the landing recovery.
+    const float descent = std::clamp((1.f - land) / 0.72f, 0.f, 1.f);
+    return bodyHeight * 0.18f * launch * (1.f - descent * descent);
 }
 
 std::optional<SoulfireBeam> World::soulfireBeam() const {
@@ -951,12 +955,15 @@ void World::advanceSoulfire(SkillCast& cast, const SkillDef& s, float previous) 
         z.flames.reserve(kSoulfireFlameCount);
         for (int n = 0; n < kSoulfireFlameCount; ++n) {
             const float across = static_cast<float>(n) / (kSoulfireFlameCount - 1);
-            const float x = (across - 0.5f) * 0.55f + soulfireVisualRng_.uniform(-0.045f, 0.045f);
-            const float delay = n % 5 == 2 ? soulfireVisualRng_.uniform(0.f, 0.06f)
-                                          : soulfireVisualRng_.uniform(0.07f, 0.55f);
-            z.flames.push_back({{x, soulfireVisualRng_.uniform(-0.07f, 0.07f)},
-                                soulfireVisualRng_.uniform(0.8f, 1.2f), delay,
-                                soulfireVisualRng_.uniform(1.2f, 2.7f), n % kSoulfireFlameVariants});
+            const float x = sign * ((across - 0.5f) * 0.63f
+                                    + soulfireVisualRng_.uniform(-0.052f, 0.052f));
+            const float depth = (0.5f - across) * 0.07f + soulfireVisualRng_.uniform(-0.09f, 0.09f);
+            const float delay = across * 0.19f + soulfireVisualRng_.uniform(0.f, 0.22f);
+            // Low flames carry the trail through gaps between the taller bursts.
+            const int variant = n % 3 == 0 ? 3 : static_cast<int>(
+                soulfireVisualRng_.uniform(0.f, static_cast<float>(kSoulfireFlameVariants) - 0.001f));
+            z.flames.push_back({{x, depth}, soulfireVisualRng_.uniform(0.57f, 1.2f), delay,
+                                soulfireVisualRng_.uniform(1.05f, 2.85f), variant});
         }
         std::sort(z.flames.begin(), z.flames.end(), [](const SoulfireFlame& a, const SoulfireFlame& b) {
             return a.offset.y < b.offset.y;
