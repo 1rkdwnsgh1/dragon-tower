@@ -351,7 +351,30 @@ void Sprites::loadSheetsFor(const std::filesystem::path& dir, const AnimDef* ani
     for (int i = 0; i < kAnimStateCount; ++i) {
         AnimState st = static_cast<AnimState>(i);
         std::string name = animStateName(st);
-        loadSheetFile(dir / (name + ".png"), anims[i], prefix + "/" + name, label + "/" + name + ".png");
+        const std::string key = prefix + "/" + name;
+        if (!loadSheetFile(dir / (name + ".png"), anims[i], key, label + "/" + name + ".png") ||
+            prefix.compare(0, 6, "enemy:") != 0) continue;
+        auto& sheet = sheets_.at(key);
+        const int width = sheet.frames * sheet.frameW;
+        Gdiplus::Rect rect(0, 0, width, sheet.frameH);
+        Gdiplus::BitmapData pixels{};
+        std::vector<float> heights(sheet.frames, 1.f);
+        if (sheet.bmp->LockBits(&rect, Gdiplus::ImageLockModeRead, PixelFormat32bppARGB, &pixels) != Gdiplus::Ok)
+            continue;
+        for (int frame = 0; frame < sheet.frames; ++frame) {
+            const auto hasInk = [&](int y) {
+                const auto* row = static_cast<const BYTE*>(pixels.Scan0) + y * pixels.Stride;
+                for (int x = frame * sheet.frameW; x < (frame + 1) * sheet.frameW; ++x)
+                    if (row[4 * x + 3] >= 16) return true;
+                return false;
+            };
+            int top = 0, bottom = sheet.frameH - 1;
+            while (top <= bottom && !hasInk(top)) ++top;
+            while (bottom > top && !hasInk(bottom)) --bottom;
+            if (top <= bottom) heights[frame] = static_cast<float>(bottom - top + 1) / sheet.frameH;
+        }
+        sheet.bmp->UnlockBits(&pixels);
+        sheet.visibleHeight = std::move(heights);
     }
 }
 
@@ -406,6 +429,8 @@ void Sprites::loadFxSheets(const std::filesystem::path& dir, const SpeciesDef& d
             load("soulfire_fragments", 128);
             load("soulfire_mote", 128);
             load("soulfire_crown", 128);
+            load("soulfire_hit_rear", 128);
+            load("soulfire_hit_front", 128);
             for (int variant = 0; variant < kSoulfireFlameVariants; ++variant)
                 for (SoulfirePass pass : {SoulfirePass::Ground, SoulfirePass::Rear, SoulfirePass::Front})
                     load(soulfireLayerKey(variant, pass), 128);
@@ -596,6 +621,7 @@ Sheet Sprites::sheet(const std::string& speciesKey, AnimState state, AnimState* 
         out.frames = it->second.frames;
         out.frameW = it->second.frameW;
         out.frameH = it->second.frameH;
+        if (!it->second.visibleHeight.empty()) out.visibleHeight = it->second.visibleHeight.data();
         return out;
     }
     return Sheet{};

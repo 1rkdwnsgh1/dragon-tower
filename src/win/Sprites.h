@@ -41,6 +41,7 @@ struct Sheet {
     int frameW = 0;
     int frameH = 0;
     int columns = 0;  // Zero means a single row.
+    const float* visibleHeight = nullptr;  // Enemy frame height as a fraction of the cell.
 };
 
 namespace bonestorm {
@@ -107,6 +108,7 @@ private:
         int frames = 1;
         int frameW = 0;
         int frameH = 0;
+        std::vector<float> visibleHeight;
     };
     // prefix는 시트 이름 앞에 붙는 구분자다(적은 "enemy:<키>").
     void loadSheetsFor(const std::filesystem::path& dir, const AnimDef* anims, const std::string& prefix,

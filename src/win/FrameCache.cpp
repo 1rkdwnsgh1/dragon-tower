@@ -165,6 +165,40 @@ Bitmap* FrameCache::cell(const Source& src) {
     return raw;
 }
 
+FrameCache::Source FrameCache::visibleCell(const Source& src) {
+    Bitmap* bitmap = cell(src);
+    if (!bitmap) return src;
+    Entry& entry = cells_.find(cellKey(src))->second;
+    if (!entry.measured) {
+        Rect full(0, 0, src.w, src.h);
+        BitmapData pixels{};
+        if (bitmap->LockBits(&full, ImageLockModeRead, PixelFormat32bppPARGB, &pixels) != Ok)
+            return {bitmap, 0, 0, src.w, src.h};
+        int left = src.w, right = -1, top = src.h, bottom = -1;
+        for (int y = 0; y < src.h; ++y) {
+            const auto* row = static_cast<const BYTE*>(pixels.Scan0) + static_cast<ptrdiff_t>(y) * pixels.Stride;
+            for (int x = 0; x < src.w; ++x) {
+                if (row[x * 4 + 3] == 0) continue;
+                left = std::min(left, x);
+                right = std::max(right, x);
+                top = std::min(top, y);
+                bottom = y;
+            }
+        }
+        bitmap->UnlockBits(&pixels);
+        if (right >= 0) {
+            left = std::max(0, left - 1);
+            top = std::max(0, top - 1);
+            right = std::min(src.w, right + 2);
+            bottom = std::min(src.h, bottom + 2);
+            entry.visible = Rect(left, top, right - left, bottom - top);
+        }
+        entry.measured = true;
+    }
+    const Rect& rect = entry.visible;
+    return {bitmap, rect.X, rect.Y, rect.Width, rect.Height};
+}
+
 void FrameCache::submit(const FrameKey& key, const Source& src) {
     Bitmap* c = cell(src);
     if (!c) return;

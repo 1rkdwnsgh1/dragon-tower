@@ -20,6 +20,7 @@
 | **드래곤 추가·수치 변경** | [../assets/dragons/README.md](../assets/dragons/README.md) → [character-pipeline.md](character-pipeline.md) 3·4장 |
 | **적 추가·변종** | [../assets/enemies/README.md](../assets/enemies/README.md) |
 | **스프라이트 시트·스킬 이펙트** | [character-pipeline.md](character-pipeline.md) 4장 → [quality-tools.md](quality-tools.md) 5장(`check_sheets.py`) |
+| **전투 스킬 제작·비교 검수** | [skill-production.md](skill-production.md) → [Codex 스킬](../.agents/skills/dragon-tower-skill-production/SKILL.md) |
 | **탑 층 구성** | [../assets/tower/README.md](../assets/tower/README.md) → [tower-100-design.md](tower-100-design.md) |
 | **탑 보스 기획** | [tower-100-bosses.md](tower-100-bosses.md) |
 | **UI 스킨** | [../assets/ui/README.md](../assets/ui/README.md) |
@@ -29,6 +30,8 @@
 | **결정이 이미 있는지 확인** | [decisions.md](decisions.md) ← **작업 시작 전에 본다** |
 | **버그 고치기** | [known-issues.md](known-issues.md) → [codemap.md](codemap.md) 해당 줄 |
 | **망령룡 작업** | [characters/revenant-dragon.md](characters/revenant-dragon.md) → [characters/revenant-dragon-progress.md](characters/revenant-dragon-progress.md) |
+| **망계의 업화 피격 불꽃** | [A/B 비교·B안 적용과 판정](characters/revenant-soulfire-hit-preview.md) |
+| **망계의 업화 기획·원본 에셋** | [characters/revenant-dragon-nether-soulfire.md](characters/revenant-dragon-nether-soulfire.md) |
 | **망령룡 스킬 그림 고르기** | [characters/revenant-dragon-skill-concepts.md](characters/revenant-dragon-skill-concepts.md) |
 | **토큰·왕복 줄이기** | [token-budget.md](token-budget.md) |
 | **팀원에게 AI 지침 전달** | [team-ai-prompt.md](team-ai-prompt.md) |
@@ -45,6 +48,7 @@
 - [codemap.md](codemap.md) — 무엇이 어디에 있는지 적은 표
 - [roadmap.md](roadmap.md) — 개발 단계와 체크포인트
 - [character-pipeline.md](character-pipeline.md) — 캐릭터 이미지·애니메이션·스킬 적용 규격
+- [skill-production.md](skill-production.md) — 전투 스킬 제작 표준, 명세·검수 양식, 망령익참 사례와 [Codex 스킬](../.agents/skills/dragon-tower-skill-production/SKILL.md)
 - [tower-100-design.md](tower-100-design.md) · [tower-100-bosses.md](tower-100-bosses.md) — 탑 100층 설계·보스
 - [quality-tools.md](quality-tools.md) — 빌드 확인·새니타이저·퍼저·정적 분석·시트 검사
 - [implementation-notes.md](implementation-notes.md) — 임시값과 시뮬레이션 참고값
@@ -56,9 +60,11 @@
 - [team-ai-prompt.md](team-ai-prompt.md) — 팀원 AI 에 붙여넣는 요약
 - 드래곤별 기획: [characters/revenant-dragon.md](characters/revenant-dragon.md) (망령룡 외형·제작 방향) ·
   [characters/revenant-dragon-skills-v1.md](characters/revenant-dragon-skills-v1.md) (스킬 V1, 승인 대기) ·
+  [characters/revenant-dragon-nether-soulfire.md](characters/revenant-dragon-nether-soulfire.md) (망계의 업화 기획·원본 에셋) ·
   [characters/revenant-dragon-progress.md](characters/revenant-dragon-progress.md) (제작 진행) ·
   [characters/revenant-dragon-skill-concepts.md](characters/revenant-dragon-skill-concepts.md)
   (추가 스킬 콘셉트 60종 목록과 시각 선호 — **제작 승인·스킬 확정 아님**)
+- [망계의 업화 피격 불꽃 시안](characters/revenant-soulfire-hit-preview.md) (시안 비교·피해 동기화·B안 게임 적용)
 - 에셋 사용법: [dragons](../assets/dragons/README.md) · [enemies](../assets/enemies/README.md) · [tower](../assets/tower/README.md) · [ui](../assets/ui/README.md) · [전체 규격](../assets/README.md)
 
 ### archive/ — 읽지 않는다
