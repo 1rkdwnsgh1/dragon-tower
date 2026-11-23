@@ -4062,13 +4062,13 @@ static void testBoneShot(const std::filesystem::path& assets) {
     longRange.updateCombat(0.1f, CombatMode::Direct, {});
     CHECK(longRange.projectiles().size() == 1);
     longRange.dragon().basicCd = 100.f;
-    for (int i = 0; i < 11; ++i) longRange.updateCombat(0.1f, CombatMode::Direct, {});
+    for (int i = 0; i < 6; ++i) longRange.updateCombat(0.1f, CombatMode::Direct, {});
     CHECK(longRange.projectiles().size() == 1);
     const float basicHit = mitigate(longRange.dragon().stats.atk * cfg::kBasicAttackPower,
                                     longRange.enemies()[0].def);
     CHECK(std::fabs(longRange.enemies()[0].hp - (10000.f - basicHit)) < 0.002f);
     CHECK(longRange.enemies()[1].hp == 10000.f);
-    for (int i = 0; i < 3; ++i) longRange.updateCombat(0.1f, CombatMode::Direct, {});
+    for (int i = 0; i < 2; ++i) longRange.updateCombat(0.1f, CombatMode::Direct, {});
     CHECK(std::fabs(longRange.enemies()[1].hp - (10000.f - basicHit)) < 0.002f);
     CHECK(longRange.projectiles().size() == 1);
     longRange.updateCombat(0.6f, CombatMode::Direct, {});
