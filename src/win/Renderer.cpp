@@ -973,6 +973,10 @@ void Renderer::drawDragon(Graphics& g, const DragonActor& d, const Sprites& spri
         const SkillCast* cleave = !preview && d.skillCast && d.skillCast->skill >= 0 &&
                 d.skillCast->skill < static_cast<int>(sp.skills.size()) &&
                 skillAnim && sp.skills[d.skillCast->skill].spectralCleave ? &*d.skillCast : nullptr;
+        if (skillAnim && d.skillCast && d.skillCast->boneShotOrigin) {
+            t = d.skillCast->elapsed;
+            flip = sp.flipAllowed && d.skillCast->facingLeft;
+        }
         if (cleave) {
             t = cleave->elapsed;
             flip = sp.flipAllowed && cleave->facingLeft;
@@ -1609,6 +1613,25 @@ void Renderer::drawProjectiles(Graphics& g, const World& w, const Sprites& sprit
         // 시트가 없거나 스킬을 못 찾으면 전과 똑같이 동그라미로 그린다.
         const SkillDef* ps = (p.skill >= 0 && p.skill < static_cast<int>(dragonSp.skills.size()))
                                  ? &dragonSp.skills[static_cast<size_t>(p.skill)] : nullptr;
+        if (p.boneShot && ps) {
+            const Sheet sheet = sprites.fxSheet(dragonSp.key, ps->fx);
+            if (sheet.bmp) {
+                const Vec2 aim = p.boneShot->aim;
+                const bool left = aim.x < 0.f;
+                const float angle = std::atan2(aim.y, aim.x) * 180.f / kPi - (left ? 180.f : 0.f);
+                const float height = cfg::kDragonRadius * 3.f * p.boneShot->scale;
+                // 셀의 뼈 끝이 월드 접촉점과 일치하도록 회전 중심을 잡는다.
+                const float tipX = 54.667f / 256.f * height * (left ? -1.f : 1.f);
+                const float tipY = 5.167f / 256.f * height;
+                const auto previous = g.Save();
+                g.TranslateTransform(p.pos.x, p.pos.y);
+                g.RotateTransform(angle);
+                drawSheetFrame(g, sheet, animFrame(p.t, ps->fxAnim.fps, sheet.frames, true),
+                               -tipX, -tipY, height, left, 0.f, 1.f);
+                g.Restore(previous);
+                continue;
+            }
+        }
         if (p.cleave && ps) {
             const float height = cfg::kDragonRadius * 3.f * p.cleave->scale * ps->fxScale;
             for (const char* layer : {"fragments", "membrane", "edge"}) {
@@ -1754,6 +1777,11 @@ bool Renderer::drawFxSheet(Graphics& g, const Fx& f, const Sprites& sprites, con
         ad.fps = sk->fxPlaybackFps(f.key);
     }
 
+    if (sk && sk->boneShot && f.key == sk->fxImpact) {
+        drawSheetFrame(g, sh, animFrame(f.t, ad.fps, sh.frames, false),
+                       f.a.x, f.a.y, f.radius, false, 0.f, 1.f);
+        return true;
+    }
     float k = 1.f, alpha = 1.f;
     fxPhaseLook(f, k, alpha);
     // 스킬마다 정한 투명도를 곱한다(#79). 단계 흐름은 그대로 두고 전체만 옅게 한다.

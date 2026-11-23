@@ -3949,7 +3949,86 @@ static void testSpectralCleave(const std::filesystem::path& assets) {
     }
 }
 
+static void testBoneShot(const std::filesystem::path& assets) {
+    loadDragonFolders(assets / "dragons");
+    Species revenant{};
+    if (!speciesFromKey("revenant", revenant)) {
+        CHECK(false);
+        return;
+    }
+    const auto& skills = speciesDef(revenant).skills;
+    constexpr int slot = 10;
+    CHECK(skills.size() > slot && skills[slot].boneShot);
+    if (skills.size() <= slot) return;
+    const auto& skill = skills[slot];
+    for (const float facing : {-1.f, 1.f}) {
+        const Vec2 origin{650.f, 300.f};
+        const float scale = 1.5f;
+        const float height = cfg::kDragonRadius * 3.f * scale;
+        const Vec2 launch = origin + Vec2{facing * kBoneShotLaunchX * height,
+            cfg::kDragonRadius - kBoneShotLaunchY * height};
+        const Vec2 aim = Vec2{facing, 0.25f}.normalized();
+        World world;
+        world.setBounds({0.f, 0.f, 1300.f, 640.f});
+        world.setSizeScale(scale);
+        world.setupDragon(revenant, skill.unlockLevel, -1.f, origin);
+        world.dragon().basicCd = 60.f;
+        world.setSlots({slot, -1, -1, -1});
+        for (const Vec2 at : {launch + aim * 100.f, launch + aim * 220.f, launch + aim * 230.f + Vec2{0.f, 100.f}}) {
+            Enemy& enemy = world.spawnEnemy(defaultMelee(), 1, at);
+            enemy.hp = enemy.maxHp = 10000.f;
+            enemy.stun = 100.f;
+        }
+        PlayerInput input{};
+        input.skill[0] = facing > 0.f;
+        world.updateCombat(0.f, input.skill[0] ? CombatMode::SkillManual : CombatMode::Auto, input);
+        CHECK(world.dragon().skillCast && world.dragon().skillCast->facingLeft == (facing < 0.f));
+        world.updateCombat(0.375f, CombatMode::Direct, {});
+        CHECK(world.projectiles().empty());
+        world.updateCombat(0.0625f, CombatMode::Direct, {});
+        CHECK(world.projectiles().size() == 1);
+        if (world.projectiles().empty()) continue;
+        CHECK(distance(world.projectiles().front().pos, launch) < 0.01f);
+        for (int i = 0; i < 10; ++i) world.updateCombat(0.05f, CombatMode::Direct, {});
+        CHECK(world.projectiles().size() == 1);
+        if (!world.projectiles().empty()) {
+            CHECK(distance(world.projectiles().front().pos, launch + aim * (kBoneShotSpeed * 0.5f)) < 0.01f);
+            CHECK(world.projectiles().front().boneShot->hitIds.size() == 2);
+        }
+        int impacts = 0;
+        for (const Fx& fx : world.fx()) {
+            if (fx.key != skill.fxImpact) continue;
+            CHECK(fx.duration == 0.5f && fx.inFront);
+            CHECK(distancePointSegment(fx.a, launch, launch + aim * skill.range) < 0.01f);
+            ++impacts;
+        }
+        CHECK(impacts == 2);
+        const float hit = mitigate(world.dragon().stats.atk * skill.power, world.enemies()[0].def);
+        CHECK(std::fabs(world.enemies()[0].hp - (10000.f - hit)) < 0.002f);
+        CHECK(std::fabs(world.enemies()[1].hp - (10000.f - hit)) < 0.002f);
+        CHECK(world.enemies()[2].hp == 10000.f);
+        if (facing < 0.f) {
+            world.setProjectileViewport({launch.x - 320.f, 0.f, 1300.f, 640.f});
+            world.updateCombat(0.13f, CombatMode::Direct, {});
+            CHECK(world.projectiles().empty());
+        } else {
+            world.updateCombat(0.35f, CombatMode::Direct, {});
+            CHECK(world.projectiles().size() == 1);
+            world.updateCombat(0.10f, CombatMode::Direct, {});
+            CHECK(world.projectiles().empty());
+        }
+        world.updateFx(kBoneShotImpactDuration);
+        CHECK(std::none_of(world.fx().begin(), world.fx().end(),
+                           [&](const Fx& f) { return f.key == skill.fxImpact; }));
+    }
+}
+
 int main(int argc, char** argv) {
+    if (argc == 3 && std::string(argv[1]) == "--bone-shot") {
+        testBoneShot(std::filesystem::u8path(argv[2]));
+        std::printf("\n%d passed, %d failed\n", g_passed, g_failed);
+        return g_failed ? 1 : 0;
+    }
     if (argc == 2 && std::string(argv[1]) == "--revenant-procession") {
         testRevenantProcession();
         std::printf("\n%d passed, %d failed\n", g_passed, g_failed);
@@ -4053,6 +4132,7 @@ int main(int argc, char** argv) {
         testRevenantCurse(assets);
         testNetherSoulfire(assets);
         testSpectralCleave(assets);
+        testBoneShot(assets);
     }
     else std::printf("[elite variants spawn] assets 경로 인자가 없어 건너뜀\n");
     std::printf("\n%d passed, %d failed\n", g_passed, g_failed);

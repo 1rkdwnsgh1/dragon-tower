@@ -24,6 +24,7 @@ void Game::init(const SaveData& save, const RectF& desktop) {
     save_ = save;
     world_.resetSouls();
     desktop_ = desktop;
+    world_.setProjectileViewport(desktop_);
     world_.setBounds(desktop_);
     world_.setKeepRange(save_.keepRange);  // 저장해 둔 간격을 이어서 쓴다
     world_.setSizeScale(save_.charScale);  // 저장해 둔 보기 크기를 판정에도 쓴다
@@ -41,6 +42,7 @@ void Game::init(const SaveData& save, const RectF& desktop) {
 
 void Game::setDesktopBounds(const RectF& desktop) {
     desktop_ = desktop;
+    world_.setProjectileViewport(desktop_);
     if (!inTowerFlow()) {
         // #47: 화면 크기가 바뀌어도 "아래쪽에만" 설정을 지킨다(전에는 사냥 중에도 화면 전체로 풀렸다).
         RectF b = save_.confineToBand ? battleBand() : desktop_;

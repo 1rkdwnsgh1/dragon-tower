@@ -387,3 +387,22 @@ fx=spectral_cleave
 fx_frame_w=256
 fx_fps=20
 fx_scale=1.55
+
+; 각성 화석룡 승인 모션의 게임 적용. 전투 수치는 검수용 임시값.
+[skill.11]
+name=골각 사출
+desc=가까운 적을 조준해 직선으로 뼈를 사출한다. 경로상의 적은 각각 한 번 피해를 받는다.
+kind=Projectile
+bone_shot=yes
+cooldown=12
+power=3.2
+range=520
+motion=bone_shot
+motion_frames=16
+motion_fps=16
+motion_frame_w=256
+fx=bone_shot
+fx_frame_w=256
+fx_fps=16
+fx_impact=bone_shot_hit
+fx_impact_fps=16

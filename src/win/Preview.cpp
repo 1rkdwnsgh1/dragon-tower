@@ -291,9 +291,20 @@ void PreviewWindow::reset() {
             target_.x = origin.x + direction * std::clamp(sk->range * 0.55f * captureScale_, 58.f, 290.f);
             target_.y = kFloorY - enemyDef(cleaveTargetKind_).radius;
         }
+        if (sk->boneShot) {
+            const float height = cfg::kDragonRadius * 3.f * captureScale_;
+            const Vec2 launch = origin + Vec2{direction * kBoneShotLaunchX * height,
+                cfg::kDragonRadius - kBoneShotLaunchY * height};
+            const Vec2 ray{direction * std::cos(aim), -std::sin(aim)};
+            target_ = launch + ray * 100.f;
+            Enemy& second = world_.spawnEnemy(defaultMelee(), 1, launch + ray * 220.f, true);
+            second.hp = second.maxHp = 1e20f;
+            second.stun = 10000.f;
+            second.facing = -direction;
+        }
         const EnemyKind kind = sk->spectralCleave ? cleaveTargetKind_ : defaultMelee();
         Enemy& target = world_.spawnEnemy(kind, 1, target_, !sk->spectralCleave);
-        if (sk->spectralCleave) target.facing = -direction;
+        if (sk->spectralCleave || sk->boneShot) target.facing = -direction;
         else target.radius = 8.f;
         target.hp = target.maxHp = 1e20f;
         target.stun = 10000.f;
@@ -319,6 +330,8 @@ void PreviewWindow::reset() {
     duration_ = std::max(1.f, dragon.animHold);
     if (dragon.skillCast && dragon.skillCast->soulfireCastId)
         duration_ = std::max(duration_, dragon.skillCast->fxTime + kSoulfireBreathDuration + sk->duration);
+    if (dragon.skillCast && sk->boneShot)
+        duration_ = std::max(duration_, dragon.skillCast->hitTime + sk->range / kBoneShotSpeed + kBoneShotImpactDuration);
     if (dragon.skillCast && sk->spectralCleave)
         duration_ = std::max(duration_, dragon.skillCast->hitTime + kCleaveFlight + std::max(kCleaveTail, kCleaveImpactDuration));
     if (const auto& procession = dragon.procession; procession)
@@ -521,7 +534,7 @@ bool PreviewWindow::saveCapture(const fs::path& file, const Enemy* enemy, AnimSt
         canvas.ScaleTransform(camera, camera);
         canvas.TranslateTransform(-kWorldWidth * 0.5f, -kFloorY);
         if (enemy) renderer_.drawEnemyPreview(canvas, *enemy, sprites_, state, time, scale);
-        else renderer_.drawAnimationPreview(canvas, world_, sprites_, time, layer != 2, layer != 1, scale, sk && sk->spectralCleave);
+        else renderer_.drawAnimationPreview(canvas, world_, sprites_, time, layer != 2, layer != 1, scale, sk && (sk->spectralCleave || sk->boneShot));
     }
     CLSID png{};
     if (FAILED(CLSIDFromString(L"{557CF406-1A04-11D3-9A73-0000F81EF32E}", &png))) return false;
@@ -638,14 +651,14 @@ void PreviewWindow::paint() {
                     ground.SetDashStyle(DashStyleDash);
                     canvas.DrawLine(&ground, -kWorldWidth, kFloorY, 2.f * kWorldWidth, kFloorY);
                 }
-                if (skill() && !skill()->spectralCleave) {
+                if (sk && !sk->spectralCleave && !sk->boneShot) {
                     Pen target(dark ? Color(216, 225, 239) : Color(70, 80, 99), 1.4f / scale);
                     canvas.DrawEllipse(&target, target_.x - 8.f, target_.y - 8.f, 16.f, 16.f);
                     canvas.DrawLine(&target, target_.x - 13.f, target_.y, target_.x + 13.f, target_.y);
                     canvas.DrawLine(&target, target_.x, target_.y - 13.f, target_.x, target_.y + 13.f);
                 }
                 renderer_.drawAnimationPreview(canvas, world_, sprites_, time_, selected(Layer) != 2,
-                                               selected(Layer) != 1, 1.f, skill() && skill()->spectralCleave);
+                                               selected(Layer) != 1, 1.f, sk && (sk->spectralCleave || sk->boneShot));
             }
         }
         Graphics screen(dc);

@@ -139,6 +139,19 @@ struct CleaveFlight {
     std::vector<int> hitIds;
 };
 
+inline constexpr float kBoneShotImpactDuration = 8.f / 16.f;
+inline constexpr float kBoneShotSpeed = 572.f;
+inline constexpr float kBoneShotLaunchX = 114.f / 256.f;
+inline constexpr float kBoneShotLaunchY = 96.f / 256.f;
+
+struct BoneShotFlight {
+    Vec2 aim;
+    float remaining;
+    float firstStep;
+    float scale;
+    std::vector<int> hitIds;
+};
+
 struct Projectile {
     Vec2 pos;
     int targetId = 0;
@@ -152,6 +165,7 @@ struct Projectile {
     float t = 0.f;    // 애니메이션 시간
     bool appliesCurse = false;
     std::optional<CleaveFlight> cleave;
+    std::optional<BoneShotFlight> boneShot;
 };
 
 // Standing source aligned to the standard 256px revenant cell at 126% scale.
@@ -280,6 +294,7 @@ struct SkillCast {
     bool hitDone = false;
     bool facingLeft = false;
     unsigned soulfireCastId = 0;
+    std::optional<Vec2> boneShotOrigin;
     float soulfireTrailNext = 0.f;  // Remaining distance measured at 100% size.
 };
 
@@ -346,6 +361,7 @@ public:
     void beginConfine(const RectF& band);
     void cancelConfine() { confining_ = false; }
     bool confining() const { return confining_; }
+    void setProjectileViewport(const RectF& r) { projectileViewport_ = r; }
     const RectF& bounds() const { return bounds_; }
     void seed(uint32_t s) { rng_.seed(s); soulfireVisualRng_.seed(s ^ 0xA65E10u); }
 
@@ -472,6 +488,7 @@ private:
     bool advanceProcessionWaves(ProcessionCast& cast, const SkillDef& skill, float dt);
     const Enemy* chooseProcessionTarget(ProcessionCast& cast, Vec2 from) const;
     void cancelProcession();
+    void advanceBoneShot(Projectile& shot, float dt);
     void advanceSkillCast(float dt, bool combatEnded = false);
     void advanceSoulfire(SkillCast& cast, const SkillDef& skill, float previous);
     std::optional<SoulfireBeam> soulfireBeamAt(Vec2 position, const SkillCast& cast, const SkillDef& skill) const;
@@ -493,6 +510,7 @@ private:
     float sizeScale_ = 1.f;  // 보기 크기. 판정에 쓰는 몸·스킬 반경을 여기에 곱한다
     bool confining_ = false;   // 띠로 내려가는 중
     RectF confineBand_{};
+    std::optional<RectF> projectileViewport_;
     Rng rng_;
     Rng soulfireVisualRng_{0xA65E10u};
     DragonActor dragon_;
