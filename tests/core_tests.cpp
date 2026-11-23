@@ -4034,6 +4034,52 @@ static void testBoneShot(const std::filesystem::path& assets) {
         CHECK(std::none_of(world.fx().begin(), world.fx().end(),
                            [&](const Fx& f) { return f.key == skill.fxImpact; }));
     }
+    World longRange;
+    longRange.setBounds({0.f, 0.f, 3840.f, 1080.f});
+    longRange.setupDragon(revenant, skill.unlockLevel, -1.f, {400.f, 350.f});
+    longRange.dragon().awakened = true;
+    longRange.setSlots({slot, -1, -1, -1});
+    const float launchY = 350.f + cfg::kDragonRadius -
+        kBoneShotLaunchY * cfg::kDragonRadius * 3.f * kAwakenedBodyScale;
+    for (const float x : {2800.f, 3300.f}) {
+        Enemy& enemy = longRange.spawnEnemy(defaultMelee(), 1, {x, launchY});
+        enemy.hp = enemy.maxHp = 10000.f;
+        enemy.stun = 100.f;
+    }
+    longRange.updateCombat(0.f, CombatMode::Auto, {});
+    CHECK(longRange.dragon().skillCast.has_value());
+    CHECK(longRange.projectiles().empty());
+    longRange.updateCombat(0.4375f, CombatMode::Direct, {});
+    CHECK(longRange.projectiles().size() == 1);
+    if (!longRange.projectiles().empty()) {
+        const auto& flight = longRange.projectiles().front().boneShot;
+        CHECK(flight.has_value());
+        if (flight) CHECK(std::isinf(flight->remaining));
+    }
+    CHECK(longRange.dragon().skillCd[slot] == 0.f);
+    // 발사 직후에는 기본 공격 대기시간이 남아서 새 투사체가 나오지 않는다.
+    longRange.updateCombat(0.1f, CombatMode::Direct, {});
+    CHECK(longRange.projectiles().size() == 1);
+    longRange.dragon().basicCd = 100.f;
+    for (int i = 0; i < 45; ++i) longRange.updateCombat(0.1f, CombatMode::Direct, {});
+    CHECK(longRange.projectiles().size() == 1);
+    const float basicHit = mitigate(longRange.dragon().stats.atk * cfg::kBasicAttackPower,
+                                    longRange.enemies()[0].def);
+    CHECK(std::fabs(longRange.enemies()[0].hp - (10000.f - basicHit)) < 0.002f);
+    CHECK(longRange.enemies()[1].hp == 10000.f);
+    for (int i = 0; i < 10; ++i) longRange.updateCombat(0.1f, CombatMode::Direct, {});
+    CHECK(std::fabs(longRange.enemies()[1].hp - (10000.f - basicHit)) < 0.002f);
+    CHECK(longRange.projectiles().size() == 1);
+    longRange.updateCombat(0.6f, CombatMode::Direct, {});
+    CHECK(longRange.projectiles().empty());
+    longRange.dragon().basicCd = 0.f;
+    longRange.updateCombat(0.f, CombatMode::Direct, {});
+    CHECK(longRange.dragon().skillCast.has_value());
+    PlayerInput revertBasic{};
+    revertBasic.skill[0] = true;
+    longRange.updateCombat(0.01f, CombatMode::SkillManual, revertBasic);
+    CHECK(!longRange.dragon().awakened && !longRange.dragon().skillCast && longRange.projectiles().empty());
+
     SaveData save;
     save.hasDragon = true;
     save.dragon.species = revenant;

@@ -296,6 +296,7 @@ struct SkillCast {
     bool facingLeft = false;
     unsigned soulfireCastId = 0;
     std::optional<Vec2> boneShotOrigin;
+    bool boneShotBasic = false;
     float soulfireTrailNext = 0.f;  // Remaining distance measured at 100% size.
 };
 
@@ -500,6 +501,7 @@ private:
     // v1.4 패시브 PassiveOnKill. 적을 쓰러뜨렸을 때 damageEnemy가 부른다.
     void onEnemyKilled(Vec2 at);
     void basicAttack();
+    void beginBoneShot(int skillIndex, const Enemy& target, bool basic);
     void updateEnemies(float dt);
     void enemyAttack(Enemy& e);
     void resolveZone(const AttackZone& z, CombatMode mode);

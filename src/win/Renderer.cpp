@@ -886,7 +886,6 @@ void Renderer::drawSoulfireBodyVfx(Graphics& g, const DragonActor& d, const Spri
 void Renderer::drawDragon(Graphics& g, const DragonActor& d, const Sprites& sprites, float time, float x, float y,
                           float height, bool preview, bool showBody, bool effects) {
     const bool soulfire = !preview && d.skillCast && d.skillCast->soulfireCastId;
-    const bool boneShotCast = !preview && d.skillCast && d.skillCast->boneShotOrigin;
     const SpeciesDef& sp = speciesDef(d.species);
     bool flip = sp.flipAllowed && d.facing.x < 0.f;
     float alpha = (!preview && d.invuln > 0.f) ? 0.55f : 1.f;
@@ -915,11 +914,12 @@ void Renderer::drawDragon(Graphics& g, const DragonActor& d, const Sprites& spri
             skillAnim = &sk.motionAnim;
         }
     }
+    const bool boneShotMotion = skillAnim && d.skillMotion >= 0 && sp.skills[d.skillMotion].boneShot;
     AnimDef awakenedAnim{};
     const bool showAwakened = !preview && d.alive && d.awakened && !breathing && !soulfire &&
         (!skillAnim || (d.skillMotion >= 0 && !sp.skills[d.skillMotion].spectralCleave &&
                         !sp.skills[d.skillMotion].ultimate));
-    if (showAwakened && !boneShotCast) {
+    if (showAwakened && !boneShotMotion) {
         AnimState resolved = state;
         const Sheet alternate = sprites.sheet(sp.key + ":awakened", state, &resolved);
         if (alternate.bmp) {
@@ -964,7 +964,7 @@ void Renderer::drawDragon(Graphics& g, const DragonActor& d, const Sprites& spri
         // render_scale 로 이 상태만 크게/작게 그린다. 칸 안의 바닥 기준선(240/256)이
         // 제자리에 남도록 그만큼 위로 올려 그려, 발 위치가 흔들리지 않게 한다.
         const float kAnchorFrac = 240.f / 256.f;
-        float k = ad.renderScale * (boneShotCast && skillAnim ? kAwakenedBodyScale : 1.f);
+        float k = ad.renderScale * (boneShotMotion ? kAwakenedBodyScale : 1.f);
         float drawH = height * k;
         float cyAdj = cy - (kAnchorFrac - 0.5f) * height * (k - 1.f);
         if (skillAnim && soulfire) {
