@@ -4099,6 +4099,40 @@ static void testBoneShot(const std::filesystem::path& assets) {
     CHECK(std::fabs(runner.hp - (10000.f - basicHit)) < 0.002f);
     CHECK(runner.pos.y - launchY > runner.radius);
 
+    for (const float side : {-1.f, 1.f}) {
+        World close;
+        const Vec2 caster{500.f, 350.f};
+        close.setBounds({0.f, 0.f, 1600.f, 900.f});
+        close.setupDragon(revenant, skill.unlockLevel, -1.f, caster);
+        close.dragon().awakened = true;
+        const Vec2 targetStart = caster + Vec2{62.f * side, 0.f};
+        Enemy& target = close.spawnEnemy(defaultMelee(), 1, targetStart);
+        target.hp = target.maxHp = 10000.f;
+        target.stun = 100.f;
+        close.updateCombat(0.f, CombatMode::Direct, {});
+        target.pos.y += 120.f;  // 준비 중 원래 조준선에서 벗어난다.
+        close.updateCombat(0.4375f, CombatMode::Direct, {});
+        CHECK(close.projectiles().size() == 1);
+        if (close.projectiles().empty()) continue;
+        CHECK(distance(close.projectiles().front().pos, caster) < 0.01f);
+        CHECK(close.projectiles().front().targetId == target.id);
+        target.pos.y += 70.f;  // 발사 뒤에도 목표 방향이 바뀐다.
+        for (int i = 0; i < 9; ++i) close.updateCombat(0.01f, CombatMode::Direct, {});
+        CHECK(std::fabs(target.hp - (10000.f - basicHit)) < 0.002f);
+        CHECK(close.projectiles().size() == 1);
+        if (!close.projectiles().empty()) {
+            CHECK(close.projectiles().front().targetId == 0);
+            const Vec2 from = close.projectiles().front().pos;
+            const Vec2 direction = (target.pos - caster).normalized();
+            target.pos.x -= 100.f * side;
+            close.updateCombat(0.01f, CombatMode::Direct, {});
+            CHECK(!close.projectiles().empty());
+            if (!close.projectiles().empty())
+                CHECK(distance(close.projectiles().front().pos,
+                               from + direction * (kAwakenedBasicBoneShotSpeed * 0.01f)) < 0.01f);
+        }
+    }
+
     SaveData save;
     save.hasDragon = true;
     save.dragon.species = revenant;

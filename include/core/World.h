@@ -298,6 +298,7 @@ struct SkillCast {
     unsigned soulfireCastId = 0;
     std::optional<Vec2> boneShotOrigin;
     bool boneShotBasic = false;
+    int boneShotTargetId = 0;
     float soulfireTrailNext = 0.f;  // Remaining distance measured at 100% size.
 };
 

@@ -417,6 +417,7 @@ void World::beginBoneShot(int skillIndex, const Enemy& target, bool basic) {
     SkillCast cast;
     cast.skill = skillIndex;
     cast.boneShotBasic = basic;
+    if (basic) cast.boneShotTargetId = target.id;
     cast.facingLeft = target.pos.x == d.pos.x ? d.facing.x < 0.f : target.pos.x < d.pos.x;
     const float direction = cast.facingLeft ? -1.f : 1.f;
     const float height = cfg::kDragonRadius * 3.f * sizeScale_ * skill.motionAnim.renderScale * kAwakenedBodyScale;
@@ -965,6 +966,12 @@ void World::advanceSkillCast(float dt, bool combatEnded) {
             d.awakened = true;
             Projectile shot;
             shot.pos = *c.boneShotOrigin;
+            shot.targetId = c.boneShotTargetId;
+            if (const Enemy* target = findEnemy(shot.targetId)) {
+                const float facing = c.facingLeft ? -1.f : 1.f;
+                // 가까운 적의 중심을 이마가 지나친 경우 몸 중심에서 전방으로 보낸다.
+                if ((target->pos.x - shot.pos.x) * facing <= 0.f) shot.pos = d.pos;
+            }
             shot.speed = c.boneShotBasic ? kAwakenedBasicBoneShotSpeed : kBoneShotSpeed;
             shot.damage = d.stats.atk * (c.boneShotBasic ? cfg::kBasicAttackPower : s.power);
             shot.big = true;
@@ -1628,6 +1635,12 @@ void World::advanceBoneShot(Projectile& shot, BoneShotFlight& flight, float dt) 
 
     const float elapsed = flight.firstStep >= 0.f ? flight.firstStep : dt;
     flight.firstStep = -1.f;
+    if (const Enemy* target = findEnemy(shot.targetId)) {
+        const Vec2 towardTarget = (target->pos - shot.pos).normalized();
+        if (towardTarget.length() > 0.f) flight.aim = towardTarget;
+    } else {
+        shot.targetId = 0;
+    }
     const Vec2 dir = flight.aim;
     float edge = std::numeric_limits<float>::max();
     if (dir.x > 0.f) edge = (viewport.right() - shot.pos.x) / dir.x;
@@ -1653,6 +1666,7 @@ void World::advanceBoneShot(Projectile& shot, BoneShotFlight& flight, float dt) 
             if (contact > step || along + halfChord < 0.f) continue;
 
             flight.hitIds.push_back(enemy.id);
+            if (shot.targetId == enemy.id) shot.targetId = 0;
             const Vec2 at = shot.pos + dir * contact;
             addFx(FxType::Hit, at, at, enemy.radius * 2.6f * flight.scale, kBoneShotImpactDuration, species.color);
             Fx& impact = fx_.back();
