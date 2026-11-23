@@ -3982,7 +3982,9 @@ static void testBoneShot(const std::filesystem::path& assets) {
         PlayerInput input{};
         input.skill[0] = facing > 0.f;
         world.updateCombat(0.f, input.skill[0] ? CombatMode::SkillManual : CombatMode::Auto, input);
-        CHECK(world.dragon().skillCast && world.dragon().skillCast->facingLeft == (facing < 0.f));
+        const auto& cast = world.dragon().skillCast;
+        CHECK(cast.has_value());
+        if (cast) CHECK(cast->facingLeft == (facing < 0.f));
         world.updateCombat(0.375f, CombatMode::Direct, {});
         CHECK(world.projectiles().empty());
         world.updateCombat(0.0625f, CombatMode::Direct, {});
@@ -3993,7 +3995,9 @@ static void testBoneShot(const std::filesystem::path& assets) {
         CHECK(world.projectiles().size() == 1);
         if (!world.projectiles().empty()) {
             CHECK(distance(world.projectiles().front().pos, launch + aim * (kBoneShotSpeed * 0.5f)) < 0.01f);
-            CHECK(world.projectiles().front().boneShot->hitIds.size() == 2);
+            const auto& flight = world.projectiles().front().boneShot;
+            CHECK(flight.has_value());
+            if (flight) CHECK(flight->hitIds.size() == 2);
         }
         int impacts = 0;
         for (const Fx& fx : world.fx()) {

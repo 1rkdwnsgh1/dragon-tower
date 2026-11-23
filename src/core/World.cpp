@@ -1579,8 +1579,7 @@ void SoulfireHit::advance(float dt, bool damaged) {
     else if (wasVisible) loopAge = std::fmod(loopAge + dt, 0.8f);
 }
 
-void World::advanceBoneShot(Projectile& shot, float dt) {
-    BoneShotFlight& flight = *shot.boneShot;
+void World::advanceBoneShot(Projectile& shot, BoneShotFlight& flight, float dt) {
     const RectF viewport = projectileViewport_.value_or(bounds_);
     if (!viewport.contains(shot.pos.x, shot.pos.y)) {
         shot.alive = false;
@@ -1723,7 +1722,7 @@ void World::updateCombat(float dt, CombatMode mode, const PlayerInput& in) {
     // 투사체
     for (Projectile& p : projectiles_) {
         if (p.boneShot) {
-            advanceBoneShot(p, dt);
+            advanceBoneShot(p, *p.boneShot, dt);
             continue;
         }
         if (p.cleave) {

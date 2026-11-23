@@ -488,7 +488,7 @@ private:
     bool advanceProcessionWaves(ProcessionCast& cast, const SkillDef& skill, float dt);
     const Enemy* chooseProcessionTarget(ProcessionCast& cast, Vec2 from) const;
     void cancelProcession();
-    void advanceBoneShot(Projectile& shot, float dt);
+    void advanceBoneShot(Projectile& shot, BoneShotFlight& flight, float dt);
     void advanceSkillCast(float dt, bool combatEnded = false);
     void advanceSoulfire(SkillCast& cast, const SkillDef& skill, float previous);
     std::optional<SoulfireBeam> soulfireBeamAt(Vec2 position, const SkillCast& cast, const SkillDef& skill) const;
