@@ -1,5 +1,20 @@
 # 망령룡 제작 진행사항
 
+<a id="awakened-bone-shot-2026-11-23"></a>
+## 2026-11-23 — 각성 화석룡 골각 사출 승인 에셋 보관
+
+[확정 전투 규칙](../game-design.md#awakened-bone-shot-rules)을 따른다. 세 ZIP은 확보한 승인 버전 그대로 보관했다. ZIP 무결성, GIF 프레임 수, RGBA 시트 및 타이밍 메타데이터를 확인했다.
+
+| 승인본 | 검수 결과 |
+|---|---|
+| [BODY V2](../../assets/references/revenant-dragon/awakened-bone-shot-2026-11-23/AWAKENED_BONE_SHOT_BODY_V2.zip) | 16프레임·16 FPS. 발사 이벤트는 0-based F07(8번째, 437.5ms, GIF 440ms). 게임 시트 4096×256, 오른쪽 방향, 발 기준 (128, 240). |
+| [PROJECTILE V1](../../assets/references/revenant-dragon/awakened-bone-shot-2026-11-23/AWAKENED_BONE_SHOT_PROJECTILE_V1.zip) | 16프레임·16 FPS. 원본 시트 12288×768. 개별 패키지의 본체+투사체 미리보기 메타데이터도 F07을 가리킨다. |
+| [관통 HIT FX V1](../../assets/references/revenant-dragon/awakened-bone-shot-2026-11-23/AWAKENED_BONE_SHOT_HIT_FX_V1.zip) | 8프레임·16 FPS, 500ms 단발. 2048×256 합성 시트와 섬광·링·파편 분리 시트. 셀 (128, 128)을 확정 접촉점에 맞춘다. 이전 채팅의 첨부와 SHA-256이 일치한다. |
+
+이전 채팅에는 통합 미리보기 V1에서 F07 발사 뒤 임시 적 실루엣 두 개를 순서대로 관통하고 각각 피격 효과가 재생됐다고 기록되어 있다. `AWAKENED_BONE_SHOT_INTEGRATION_PREVIEW_V1.zip`(합성 GIF, 프레임 시트, 타이밍 표, QA 메모)과 `AWAKENED_BONE_SHOT_PROGRESS_2026-11-23.md`는 현재 작업 환경에서 확보하지 못했다. 두 원본의 보관과 통합 시각 검수는 보류한다.
+
+원본 확보 후 F07 발사, 접촉점별 독립 FX 재생, 두 번째 관통 후 직진 유지, 종료 시점을 프레임별로 확인한다. 실제 게임에서의 피해 횟수, 종료 판정과 밝은 배경에서 후반 잔광의 가시성은 미검증이다.
+
 ## 2026-11-19 — 저주의 안개 V2
 
 - 복구한 퍼짐·유지 원본을 444×444 공통 중심에 등록했다. 퍼짐 8개 자세 사이에 변형으로 4개 중간 프레임을 넣고, 유지 원본 8개를 주기적으로 변형했다. 흐르는 안개층을 추가하고 마지막 유지 상태에서 바닥 방향으로 흩어지는 잔광을 만들었다. 원본의 가장자리와 잔류 색을 정리했다.

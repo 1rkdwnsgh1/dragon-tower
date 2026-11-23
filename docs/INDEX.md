@@ -21,6 +21,7 @@
 | **적 추가·변종** | [../assets/enemies/README.md](../assets/enemies/README.md) |
 | **스프라이트 시트·스킬 이펙트** | [character-pipeline.md](character-pipeline.md) 4장 → [quality-tools.md](quality-tools.md) 5장(`check_sheets.py`) |
 | **전투 스킬 제작·비교 검수** | [skill-production.md](skill-production.md) → [Codex 스킬](../.agents/skills/dragon-tower-skill-production/SKILL.md) |
+| **각성 화석룡 골각 사출** | [확정 규칙](game-design.md#awakened-bone-shot-rules) → [승인 에셋·검수 기록](characters/revenant-dragon-progress.md#awakened-bone-shot-2026-11-23) |
 | **탑 층 구성** | [../assets/tower/README.md](../assets/tower/README.md) → [tower-100-design.md](tower-100-design.md) |
 | **탑 보스 기획** | [tower-100-bosses.md](tower-100-bosses.md) |
 | **UI 스킨** | [../assets/ui/README.md](../assets/ui/README.md) |
