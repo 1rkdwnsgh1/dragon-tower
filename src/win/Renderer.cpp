@@ -886,7 +886,7 @@ void Renderer::drawSoulfireBodyVfx(Graphics& g, const DragonActor& d, const Spri
 void Renderer::drawDragon(Graphics& g, const DragonActor& d, const Sprites& sprites, float time, float x, float y,
                           float height, bool preview, bool showBody, bool effects) {
     const bool soulfire = !preview && d.skillCast && d.skillCast->soulfireCastId;
-    if (!preview && !soulfire) markRegion(RectF(x - height * 0.5f, y - height * 0.5f, height, height), 4.f);
+    const bool boneShotCast = !preview && d.skillCast && d.skillCast->boneShotOrigin;
     const SpeciesDef& sp = speciesDef(d.species);
     bool flip = sp.flipAllowed && d.facing.x < 0.f;
     float alpha = (!preview && d.invuln > 0.f) ? 0.55f : 1.f;
@@ -913,6 +913,21 @@ void Renderer::drawDragon(Graphics& g, const DragonActor& d, const Sprites& spri
         if (ms.bmp) {
             sh = ms;
             skillAnim = &sk.motionAnim;
+        }
+    }
+    AnimDef awakenedAnim{};
+    const bool showAwakened = !preview && d.alive && d.awakened && !breathing && !soulfire &&
+        (!skillAnim || (d.skillMotion >= 0 && !sp.skills[d.skillMotion].spectralCleave &&
+                        !sp.skills[d.skillMotion].ultimate));
+    if (showAwakened && !boneShotCast) {
+        AnimState resolved = state;
+        const Sheet alternate = sprites.sheet(sp.key + ":awakened", state, &resolved);
+        if (alternate.bmp) {
+            sh = alternate;
+            awakenedAnim.fps = resolved == AnimState::Move ? 7.5f : resolved == AnimState::Attack ? 24.f : 3.f;
+            awakenedAnim.loop = resolved != AnimState::Attack;
+            awakenedAnim.renderScale = kAwakenedBodyScale;
+            skillAnim = &awakenedAnim;
         }
     }
     bool animated = sh.bmp != nullptr && sh.frames > 1;
@@ -949,7 +964,7 @@ void Renderer::drawDragon(Graphics& g, const DragonActor& d, const Sprites& spri
         // render_scale 로 이 상태만 크게/작게 그린다. 칸 안의 바닥 기준선(240/256)이
         // 제자리에 남도록 그만큼 위로 올려 그려, 발 위치가 흔들리지 않게 한다.
         const float kAnchorFrac = 240.f / 256.f;
-        float k = ad.renderScale;
+        float k = ad.renderScale * (boneShotCast && skillAnim ? kAwakenedBodyScale : 1.f);
         float drawH = height * k;
         float cyAdj = cy - (kAnchorFrac - 0.5f) * height * (k - 1.f);
         if (skillAnim && soulfire) {
@@ -981,7 +996,7 @@ void Renderer::drawDragon(Graphics& g, const DragonActor& d, const Sprites& spri
             t = cleave->elapsed;
             flip = sp.flipAllowed && cleave->facingLeft;
         }
-        if (soulfire)
+        if (!preview)
             markRegion(RectF(x - drawH * 0.5f, cyAdj - drawH * 0.5f, drawH, drawH), 4.f);
         const int frame = breathing ? d.breath->bodyFrame(*breath) : animFrame(t, ad.fps, sh.frames, ad.loop);
         if (soulfire && skillAnim && effects)
@@ -1007,7 +1022,7 @@ void Renderer::drawDragon(Graphics& g, const DragonActor& d, const Sprites& spri
     }
 
     if (!showBody) return;
-    if (soulfire) markRegion(RectF(x - height * 0.5f, y - height * 0.5f, height, height), 4.f);
+    if (!preview) markRegion(RectF(x - height * 0.5f, y - height * 0.5f, height, height), 4.f);
     Bitmap* bmp = sprites.get(std::string("dragon_") + sp.key);
     if (bmp) {
         drawSprite(g, bmp, x, cy, height, flip, flash, alpha);

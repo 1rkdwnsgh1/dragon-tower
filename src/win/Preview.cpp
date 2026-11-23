@@ -292,7 +292,7 @@ void PreviewWindow::reset() {
             target_.y = kFloorY - enemyDef(cleaveTargetKind_).radius;
         }
         if (sk->boneShot) {
-            const float height = cfg::kDragonRadius * 3.f * captureScale_;
+            const float height = cfg::kDragonRadius * 3.f * captureScale_ * kAwakenedBodyScale;
             const Vec2 launch = origin + Vec2{direction * kBoneShotLaunchX * height,
                 cfg::kDragonRadius - kBoneShotLaunchY * height};
             const Vec2 ray{direction * std::cos(aim), -std::sin(aim)};

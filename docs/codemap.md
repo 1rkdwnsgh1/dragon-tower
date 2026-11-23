@@ -139,6 +139,7 @@ tests/                     코어 규칙 검증
 | 레이어형 숨결 합성 | `src/win/Sprites.cpp` | 읽을 때 층을 16장으로 합친다: `composeBreathFrame`(`BreathLayers` → `BreathSheets::frames`). 그리기는 그림 캐시를 탄다. 장착하면 미리 만들기: `Renderer::warmBreathCache`(`cfg::kBreathCacheSettleFrames`) |
 | 레이어형 숨결 판정 | `src/core/DragonData.cpp`, `src/core/World.cpp` | `breath_defer_hit` 와 `breath_input_lock` 을 읽어 피해와 입력 잠금 시점을 처리한다 |
 | 타격 프레임 스킬(`hit_frame=`) | `src/core/World.cpp` | `castSkill` 의 `usesTimedHit` 분기, `advanceSkillCast`(효과·피해 시점), `cancelSkillCast`, `spawnAnchoredFx`(`fx_anchor`→화면 좌표). 상태는 `World.h` 의 `SkillCast`, 키 읽기는 `DragonData.cpp`, 상수는 `cfg::kSkillCastRecover`·`kSkillCastCancelCooldown` |
+| 골각 사출 각성 유지·저장 | `src/core/World.cpp`, `src/core/Game.cpp`, `src/core/SaveData.cpp`, `src/win/Sprites.cpp`, `src/win/Renderer.cpp` | `castSkill`과 F07에서 `DragonActor::awakened` 전환. 개체별 저장, `awakened/` 시트 로드, 발 기준 확대. |
 | 골각 사출 시전·다중 관통·프리뷰 | `src/core/World.cpp`, `src/core/Game.cpp`, `src/win/Renderer.cpp`, `src/win/Preview.cpp` | `bone_shot=yes`, `castSkill`의 Projectile 분기 → `advanceSkillCast` F07 → `advanceBoneShot`의 접촉·중복 방지·화면 종료. `drawProjectiles`는 뼈 끝을 비행선에, `drawFxSheet`는 피격 중심을 접촉점에 맞춘다. 프리뷰는 직선상의 고정 표적 두 마리를 배치한다. |
 | 발사체 효과 그리기(따라다님) | `src/win/Renderer.cpp` | 투사체 루프에서 `Projectile::skill` 로 스킬을 찾아 현재 위치에 시트를 그린다(반복 재생) |
 | 효과를 스프라이트로 그리기 | `src/win/Renderer.cpp` | `drawFxSheet`(좌우 뒤집기·`fx_offset_x`·보정값×`charScale`), `fxPhaseLook`, `findSkillByFx` |

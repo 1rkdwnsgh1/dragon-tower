@@ -23,6 +23,7 @@ struct DragonRecord {
     // 탑 100층 T2(2026-11-18). 탑 진행은 드래곤마다 따로다(설계안 1장). 새 드래곤은 1층부터.
     int floor = 1;    // 머무는 탑 층(1~kTowerTopFloor)
     std::set<int> clearedFloors;
+    bool awakened = false;
     int cleared = 0;  // 이 드래곤이 돌파한 가장 높은 층(재돌파 보상 판정). 0이면 아직 없음
 };
 

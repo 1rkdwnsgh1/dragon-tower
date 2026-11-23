@@ -165,6 +165,7 @@ std::string serializeSave(const SaveData& s) {
         o << "dragon.level=" << d.level << "\n";
         o << "dragon.exp=" << d.exp << "\n";
         o << "dragon.autoExp=" << d.autoExp << "\n";
+        if (d.awakened) o << "dragon.awakened=1\n";
         o << "dragon.hp=" << d.hp << "\n";
         o << "dragon.slots=" << slotsText(d.slots) << "\n";
         o << "dragon.floor=" << d.floor << "\n";
@@ -184,6 +185,7 @@ std::string serializeSave(const SaveData& s) {
         o << pre << "level=" << d.level << "\n";
         o << pre << "exp=" << d.exp << "\n";
         o << pre << "autoExp=" << d.autoExp << "\n";
+        if (d.awakened) o << pre << "awakened=1\n";
         o << pre << "hp=" << d.hp << "\n";
         o << pre << "slots=" << slotsText(d.slots) << "\n";
         o << pre << "floor=" << d.floor << "\n";
@@ -275,6 +277,7 @@ bool deserializeSave(const std::string& text, SaveData& out) {
                     else if (f == "level") d.level = std::clamp(toInt(val, 1), 1, cfg::kMaxLevel);
                     else if (f == "exp") d.exp = std::max(0, toInt(val, 0));
                     else if (f == "autoExp") d.autoExp = std::max(0, toInt(val, 0));
+                    else if (f == "awakened") d.awakened = val == "1";
                     else if (f == "hp") d.hp = toFloat(val, -1.f);
                     else if (f == "slots") parseSlots(val, d.slots);
                     else if (f == "floor") d.floor = std::clamp(toInt(val, 1), 1, cfg::kTowerTopFloor);
@@ -293,6 +296,7 @@ bool deserializeSave(const std::string& text, SaveData& out) {
         else if (key == "dragon.level") s.dragon.level = std::clamp(toInt(val, 1), 1, cfg::kMaxLevel);
         else if (key == "dragon.exp") s.dragon.exp = std::max(0, toInt(val, 0));
         else if (key == "dragon.autoExp") s.dragon.autoExp = std::max(0, toInt(val, 0));
+        else if (key == "dragon.awakened") s.dragon.awakened = val == "1";
         else if (key == "dragon.hp") s.dragon.hp = toFloat(val, -1.f);
         else if (key == "dragon.slots") parseSlots(val, s.dragon.slots);
         else if (key == "dragon.floor") s.dragon.floor = std::clamp(toInt(val, 1), 1, cfg::kTowerTopFloor);

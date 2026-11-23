@@ -484,6 +484,12 @@ bool World::castSkill(int i, bool aiChoice) {
         return false;
     }
     if (i >= static_cast<int>(d.skillCd.size())) return false;
+    if (s.boneShot && d.awakened) {
+        if (aiChoice) return false;  // 자동 선택은 변신을 해제하지 않는다.
+        d.awakened = false;
+        addText("각성 해제", d.pos - Vec2{0.f, 78.f}, sp.color, 15.f, 0.9f);
+        return true;
+    }
     if (d.skillCd[static_cast<size_t>(i)] > 0.f) return false;
 
     Vec2 facingDir = d.facing.length() > 0.01f ? d.facing : Vec2{1.f, 0.f};
@@ -491,6 +497,12 @@ bool World::castSkill(int i, bool aiChoice) {
         case SkillKind::Projectile: {
             Enemy* t = nearestEnemy(d.pos, s.range);
             if (!t) {
+                if (s.boneShot && !aiChoice) {
+                    d.awakened = true;
+                    d.skillCd[static_cast<size_t>(i)] = s.cooldown;
+                    addText("각성", d.pos - Vec2{0.f, 78.f}, sp.color, 15.f, 0.9f);
+                    return true;
+                }
                 if (!aiChoice) addText("대상 없음", d.pos - Vec2{0.f, 60.f}, 0xFFCCCCCC, 14.f, 0.6f);
                 return false;
             }
@@ -499,7 +511,7 @@ bool World::castSkill(int i, bool aiChoice) {
                 cast.skill = i;
                 cast.facingLeft = t->pos.x == d.pos.x ? d.facing.x < 0.f : t->pos.x < d.pos.x;
                 const float direction = cast.facingLeft ? -1.f : 1.f;
-                const float height = cfg::kDragonRadius * 3.f * sizeScale_ * s.motionAnim.renderScale;
+                const float height = cfg::kDragonRadius * 3.f * sizeScale_ * s.motionAnim.renderScale * kAwakenedBodyScale;
                 const Vec2 origin = d.pos + Vec2{direction * kBoneShotLaunchX * height,
                     cfg::kDragonRadius - kBoneShotLaunchY * height};
                 cast.boneShotOrigin = origin;
@@ -925,6 +937,7 @@ void World::advanceSkillCast(float dt, bool combatEnded) {
             blade.cleave = CleaveFlight{direction, skillRadius(s), std::max(0.f, c.elapsed - c.hitTime), sizeScale_, {}};
             projectiles_.push_back(std::move(blade));
         } else if (c.boneShotOrigin) {
+            d.awakened = true;
             Projectile shot;
             shot.pos = *c.boneShotOrigin;
             shot.speed = kBoneShotSpeed;

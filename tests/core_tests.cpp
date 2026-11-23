@@ -3964,7 +3964,7 @@ static void testBoneShot(const std::filesystem::path& assets) {
     for (const float facing : {-1.f, 1.f}) {
         const Vec2 origin{650.f, 300.f};
         const float scale = 1.5f;
-        const float height = cfg::kDragonRadius * 3.f * scale;
+        const float height = cfg::kDragonRadius * 3.f * scale * kAwakenedBodyScale;
         const Vec2 launch = origin + Vec2{facing * kBoneShotLaunchX * height,
             cfg::kDragonRadius - kBoneShotLaunchY * height};
         const Vec2 aim = Vec2{facing, 0.25f}.normalized();
@@ -3991,6 +3991,7 @@ static void testBoneShot(const std::filesystem::path& assets) {
         CHECK(world.projectiles().size() == 1);
         if (world.projectiles().empty()) continue;
         CHECK(distance(world.projectiles().front().pos, launch) < 0.01f);
+        CHECK(world.dragon().awakened);
         for (int i = 0; i < 10; ++i) world.updateCombat(0.05f, CombatMode::Direct, {});
         CHECK(world.projectiles().size() == 1);
         if (!world.projectiles().empty()) {
@@ -4022,9 +4023,30 @@ static void testBoneShot(const std::filesystem::path& assets) {
             CHECK(world.projectiles().empty());
         }
         world.updateFx(kBoneShotImpactDuration);
+        CHECK(world.dragon().awakened);
+        world.clearEnemies(false);
+        world.updateWander(3.f);
+        CHECK(world.dragon().awakened);
+        PlayerInput revert{};
+        revert.skill[0] = true;
+        world.updateCombat(0.f, CombatMode::Direct, revert);
+        CHECK(!world.dragon().awakened && world.projectiles().empty());
         CHECK(std::none_of(world.fx().begin(), world.fx().end(),
                            [&](const Fx& f) { return f.key == skill.fxImpact; }));
     }
+    SaveData save;
+    save.hasDragon = true;
+    save.dragon.species = revenant;
+    save.dragon.level = skill.unlockLevel;
+    Game game;
+    game.init(save, {0.f, 0.f, 1300.f, 640.f});
+    CHECK(!game.world().dragon().awakened);
+    game.world().dragon().awakened = true;
+    SaveData reloaded;
+    CHECK(deserializeSave(serializeSave(game.snapshotForSave()), reloaded));
+    Game reopened;
+    reopened.init(reloaded, {0.f, 0.f, 1300.f, 640.f});
+    CHECK(reopened.world().dragon().awakened);
 }
 
 int main(int argc, char** argv) {
