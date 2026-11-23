@@ -1352,9 +1352,26 @@ void Renderer::drawSoulfire(Graphics& g, const World& w, const Sprites& sprites,
     const SpeciesDef& species = speciesDef(w.dragon().species);
     std::array<Sheet, kSoulfireFlameVariants> sheets{};
     bool loaded = false;
+    const InterpolationMode normalInterpolation = g.GetInterpolationMode();
+    // Flame growth changes the destination size each tick. Reuse source cells
+    // rather than rebuilding and prefetching scaled bitmaps for each size.
+    const auto drawFlameCell = [&](const FrameCache::Source& source, float x, float y,
+                                   float width, float height, bool flip, float alpha) {
+        if (alpha <= 0.004f || !g.IsVisible(RectF(x - width * 0.5f, y - height * 0.5f, width, height))) return;
+        const FrameCache::Source frame = frameCache_.visibleCell(source);
+        if (frame.w <= 0 || frame.h <= 0) return;
+        // A cropped cell retains the full cell's scale and ground anchor.
+        const bool original = frame.bmp == source.bmp;
+        const float sx = width / source.w, sy = height / source.h;
+        const float offsetX = original ? 0.f : (frame.x + frame.w * 0.5f - source.w * 0.5f) * sx;
+        const float offsetY = original ? 0.f : (frame.y + frame.h * 0.5f - source.h * 0.5f) * sy;
+        drawFrameDirect(g, frame, x + (flip ? -offsetX : offsetX), y + offsetY,
+                        frame.w * sx, frame.h * sy, flip, 0.f, alpha);
+    };
     for (const DotZone& zone : w.dots()) {
         if (zone.flames.empty()) continue;
         if (!loaded) {
+            g.SetInterpolationMode(InterpolationModeBilinear);
             for (int variant = 0; variant < kSoulfireFlameVariants; ++variant)
                 sheets[variant] = sprites.fxSheet(species.key, soulfireLayerKey(variant, pass));
             loaded = true;
@@ -1373,7 +1390,7 @@ void Renderer::drawSoulfire(Graphics& g, const World& w, const Sprites& sprites,
                 const float width = zone.radius * 0.60f;
                 const float height = zone.flameHeight * 0.22f;
                 const float fade = std::min({age / 0.15f, zone.remaining / 0.54f, 1.f});
-                drawFrameCached(g, band, zone.pos.x, zone.pos.y, width, height, false, 0.f, 0.52f * fade);
+                drawFlameCell(band, zone.pos.x, zone.pos.y, width, height, false, 0.52f * fade);
             }
         }
         for (const SoulfireFlame& flame : zone.flames) {
@@ -1388,14 +1405,20 @@ void Renderer::drawSoulfire(Graphics& g, const World& w, const Sprites& sprites,
             const float envelope = flicker * std::min({local / 0.13f, zone.remaining / 0.44f, 1.f});
             if (envelope <= 0.f) continue;
             const Sheet& sheet = sheets[flame.variant];
-            const int frame = static_cast<int>(progress * sheet.frames);
+            if (!sheet.bmp || sheet.frames <= 0 || sheet.frameH <= 0) continue;
+            const int frame = std::min(sheet.frames - 1, static_cast<int>(progress * sheet.frames));
+            const int columns = sheet.columns > 0 ? sheet.columns : sheet.frames;
+            const FrameCache::Source source{sheet.bmp, sheet.frameW * (frame % columns),
+                                            sheet.frameH * (frame / columns), sheet.frameW, sheet.frameH};
             const Vec2 anchor = zone.pos + flame.offset * zone.radius;
             const float height = zone.flameHeight * flame.size * (0.68f + 0.32f * envelope);
             const float opacity = pass == SoulfirePass::Front ? 0.62f : 0.79f;
-            drawSheetFrame(g, sheet, frame, anchor.x, anchor.y + (0.5f - 108.f / 128.f) * height,
-                           height, flame.flip, 0.f, opacity * envelope);
+            const float width = height * sheet.frameW / sheet.frameH;
+            drawFlameCell(source, anchor.x, anchor.y + (0.5f - 108.f / 128.f) * height,
+                          width, height, flame.flip, opacity * envelope);
         }
     }
+    if (loaded) g.SetInterpolationMode(normalInterpolation);
 }
 
 void Renderer::drawSoulfireImpact(Graphics& g, const World& w, const Sprites& sprites) {
