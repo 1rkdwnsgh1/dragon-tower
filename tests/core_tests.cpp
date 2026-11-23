@@ -4055,19 +4055,20 @@ static void testBoneShot(const std::filesystem::path& assets) {
         const auto& flight = longRange.projectiles().front().boneShot;
         CHECK(flight.has_value());
         if (flight) CHECK(std::isinf(flight->remaining));
+        CHECK(longRange.projectiles().front().speed == kAwakenedBasicBoneShotSpeed);
     }
     CHECK(longRange.dragon().skillCd[slot] == 0.f);
     // 발사 직후에는 기본 공격 대기시간이 남아서 새 투사체가 나오지 않는다.
     longRange.updateCombat(0.1f, CombatMode::Direct, {});
     CHECK(longRange.projectiles().size() == 1);
     longRange.dragon().basicCd = 100.f;
-    for (int i = 0; i < 45; ++i) longRange.updateCombat(0.1f, CombatMode::Direct, {});
+    for (int i = 0; i < 23; ++i) longRange.updateCombat(0.1f, CombatMode::Direct, {});
     CHECK(longRange.projectiles().size() == 1);
     const float basicHit = mitigate(longRange.dragon().stats.atk * cfg::kBasicAttackPower,
                                     longRange.enemies()[0].def);
     CHECK(std::fabs(longRange.enemies()[0].hp - (10000.f - basicHit)) < 0.002f);
     CHECK(longRange.enemies()[1].hp == 10000.f);
-    for (int i = 0; i < 10; ++i) longRange.updateCombat(0.1f, CombatMode::Direct, {});
+    for (int i = 0; i < 5; ++i) longRange.updateCombat(0.1f, CombatMode::Direct, {});
     CHECK(std::fabs(longRange.enemies()[1].hp - (10000.f - basicHit)) < 0.002f);
     CHECK(longRange.projectiles().size() == 1);
     longRange.updateCombat(0.6f, CombatMode::Direct, {});
@@ -4079,6 +4080,24 @@ static void testBoneShot(const std::filesystem::path& assets) {
     revertBasic.skill[0] = true;
     longRange.updateCombat(0.01f, CombatMode::SkillManual, revertBasic);
     CHECK(!longRange.dragon().awakened && !longRange.dragon().skillCast && longRange.projectiles().empty());
+
+    World crossing;
+    crossing.setBounds({0.f, 0.f, 1600.f, 900.f});
+    crossing.setupDragon(revenant, skill.unlockLevel, -1.f, {400.f, 350.f});
+    crossing.dragon().awakened = true;
+    const float launchX = 400.f + kBoneShotLaunchX * cfg::kDragonRadius * 3.f * kAwakenedBodyScale;
+    Enemy& runner = crossing.spawnEnemy(defaultMelee(), 1, {launchX + 350.f, launchY});
+    runner.hp = runner.maxHp = 10000.f;
+    runner.stun = 100.f; // 위치를 일정하게 옮겨 비행선을 가로지르는 적을 재현한다.
+    crossing.updateCombat(0.f, CombatMode::Direct, {});
+    crossing.updateCombat(0.4375f, CombatMode::Direct, {});
+    const float runnerSpeed = runner.radius / 0.46f;
+    for (int i = 0; i < 70; ++i) {
+        runner.pos.y += runnerSpeed * 0.01f;
+        crossing.updateCombat(0.01f, CombatMode::Direct, {});
+    }
+    CHECK(std::fabs(runner.hp - (10000.f - basicHit)) < 0.002f);
+    CHECK(runner.pos.y - launchY > runner.radius);
 
     SaveData save;
     save.hasDragon = true;

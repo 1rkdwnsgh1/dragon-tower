@@ -141,6 +141,7 @@ struct CleaveFlight {
 
 inline constexpr float kBoneShotImpactDuration = 8.f / 16.f;
 inline constexpr float kBoneShotSpeed = 572.f;
+inline constexpr float kAwakenedBasicBoneShotSpeed = 1040.f;
 inline constexpr float kAwakenedBodyScale = 2.25f;
 inline constexpr float kBoneShotLaunchX = 114.f / 256.f;
 inline constexpr float kBoneShotLaunchY = 96.f / 256.f;

@@ -330,8 +330,13 @@ void PreviewWindow::reset() {
     duration_ = std::max(1.f, dragon.animHold);
     if (dragon.skillCast && dragon.skillCast->soulfireCastId)
         duration_ = std::max(duration_, dragon.skillCast->fxTime + kSoulfireBreathDuration + sk->duration);
-    if (dragon.skillCast && sk->boneShot)
-        duration_ = std::max(duration_, dragon.skillCast->hitTime + sk->range / kBoneShotSpeed + kBoneShotImpactDuration);
+    if (dragon.skillCast && sk->boneShot) {
+        // 각성 발사 뒤 기본 공격도 한 번 비교할 수 있게 한다.
+        constexpr float basicStart = 1.15f;
+        dragon.basicCd = basicStart;
+        duration_ = std::max(duration_, basicStart + dragon.skillCast->hitTime +
+                             kWorldWidth / kAwakenedBasicBoneShotSpeed + kBoneShotImpactDuration);
+    }
     if (dragon.skillCast && sk->spectralCleave)
         duration_ = std::max(duration_, dragon.skillCast->hitTime + kCleaveFlight + std::max(kCleaveTail, kCleaveImpactDuration));
     if (const auto& procession = dragon.procession; procession)

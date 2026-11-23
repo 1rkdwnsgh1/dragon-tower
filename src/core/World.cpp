@@ -965,7 +965,7 @@ void World::advanceSkillCast(float dt, bool combatEnded) {
             d.awakened = true;
             Projectile shot;
             shot.pos = *c.boneShotOrigin;
-            shot.speed = kBoneShotSpeed;
+            shot.speed = c.boneShotBasic ? kAwakenedBasicBoneShotSpeed : kBoneShotSpeed;
             shot.damage = d.stats.atk * (c.boneShotBasic ? cfg::kBasicAttackPower : s.power);
             shot.big = true;
             shot.skill = c.skill;
