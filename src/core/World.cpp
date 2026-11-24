@@ -374,7 +374,7 @@ void World::moveDragon(float dt, Vec2 dir, float speedMul) {
         d.pos += d.dashVel * dt;
         d.moving = true;
     } else if (dir.length() > 0.01f) {
-        float speed = d.stats.speed * speedMul * (d.hasteTime > 0.f ? 1.f + d.hasteSpeed : 1.f);
+        float speed = d.stats.speed * speedMul * d.moveScale * (d.hasteTime > 0.f ? 1.f + d.hasteSpeed : 1.f);
         d.pos += dir.normalized() * (speed * dt);
         d.moving = true;
     }
@@ -1559,7 +1559,7 @@ void World::damageEnemy(Enemy& e, float raw, bool showNumber, bool detonatesCurs
         e.curseStacks = 0;
         e.curseRemaining = 0.0;
         e.curseZoneCooldown = 0.0;
-        events_.push_back({WorldEventType::EnemyKilled, e.kind, e.expReward});
+        events_.push_back({WorldEventType::EnemyKilled, e.kind, e.expReward, e.level});
         addFx(FxType::Death, e.pos, e.pos, e.radius * 1.6f, 0.5f, 0xFFFFFFFF);
         addText("+" + std::to_string(e.expReward) + " EXP", e.pos - Vec2{0.f, e.radius + 34.f}, 0xFFB6E3FF, 14.f, 1.1f);
         onEnemyKilled(e.pos);  // v1.4 처치 패시브

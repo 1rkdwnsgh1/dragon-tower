@@ -67,6 +67,10 @@ struct SaveData {
     std::set<int> fieldBossCleared; // 계정이 깬 필드 보스층(10, 20, ...)
     std::set<int> firstClearFloors;
     int firstClear = 0;             // 계정이 처음 돌파한 가장 높은 층(첫 돌파 보상 판정)
+    // 탑 100층 T6(2026-11-24) 가방. 계정 공용 — 드래곤이 죽어도 남는다.
+    int potionSmall = 0;            // 탑 물약(소)
+    int potionLarge = 0;            // 탑 물약(대)
+    int eggs = 0;                   // 아직 부화하지 않은 알(보상으로 받았는데 칸이 없을 때)
     // 지금 가질 수 있는 드래곤 수 = kMaxStable + 깬 20의 배수 필드 보스층 수.
     int stableCapacity() const;
 

@@ -13,6 +13,7 @@
 #include "core/DragonData.h"
 #include "core/EnemyData.h"
 #include "core/FrameStats.h"
+#include "core/Economy.h"
 #include "core/Game.h"
 #include "core/Progression.h"
 #include "core/SaveData.h"
@@ -381,6 +382,135 @@ static void testAutoStopsAtCap() {
     CHECK(!g.setHuntMode(CombatMode::Auto));
     CHECK(g.huntMode() == CombatMode::SkillManual);
     setAutoExpCapOverride(-1);
+}
+
+
+// 탑 100층 T6(2026-11-24): 크레딧 계산, 상점, 알, 탑 물약 가지고 들어가기·마시기·돌려받기.
+static void testEconomy() {
+    std::printf("[economy]\n");
+    // 처치 크레딧: 2 + 레벨÷5, 정예 ×3, 자동 ×0.7(버림, 최소 1)
+    CHECK(creditsForKill(1, false, false) == 2);
+    CHECK(creditsForKill(10, false, false) == 4);
+    CHECK(creditsForKill(10, true, false) == 12);
+    CHECK(creditsForKill(1, false, true) == 1);
+    CHECK(creditsForKill(500, false, false) == 102);
+    CHECK(isEliteEnemyKey("elite-lich") && !isEliteEnemyKey("lich"));
+    // 층 돌파: 일반 ×10, 중간 보스 ×30, 필드 보스(파티) ×100, 단독 필드 보스는 일반으로
+    CHECK(creditsForFloorClear(3, true, false, false) == 30);
+    CHECK(creditsForFloorClear(5, true, false, false) == 150);
+    CHECK(creditsForFloorClear(10, true, false, true) == 1000);
+    CHECK(creditsForFloorClear(10, true, false, false) == 100);
+    CHECK(creditsForFloorClear(5, false, false, false) == 30);  // 계정이 이미 깬 층 20%
+    CHECK(creditsForFloorClear(5, true, true, false) == 0);     // 이 드래곤이 이미 깬 층
+    CHECK(eggPrice(1) == 3000 && eggPrice(2) == 4000 && eggPrice(3) == 5000);
+    CHECK(trainingBookPrice(7) == 140);
+    CHECK(trainingBookExp(1) == std::max(1, expToNext(1) / 4));
+
+    // 가방 저장 왕복과 잘못된 값
+    {
+        SaveData a;
+        a.potionSmall = 3; a.potionLarge = 1; a.eggs = 2;
+        SaveData b;
+        CHECK(deserializeSave(serializeSave(a), b));
+        CHECK(b.potionSmall == 3 && b.potionLarge == 1 && b.eggs == 2);
+        SaveData c;
+        CHECK(deserializeSave("version=1\ninv.potionSmall=-5\ninv.eggs=999999\n", c));
+        CHECK(c.potionSmall == 0 && c.eggs == cfg::kMaxInventory);
+    }
+
+    SaveData s;
+    s.hasDragon = true;
+    s.nextDragonId = 2;
+    s.dragon.id = 1;
+    s.dragon.species = Species::Fire;
+    s.dragon.level = 25;
+    s.dragon.alive = true;
+    s.stable.push_back(s.dragon);
+    s.activeIndex = 0;
+    s.credits = 10000;
+    Game g;
+    g.seed(11);
+    g.init(s, kDesk);
+
+    // 물약·훈련서·알
+    CHECK(g.buy(ShopItem::PotionSmall));
+    CHECK(g.buy(ShopItem::PotionLarge));
+    CHECK(g.save().potionSmall == 1 && g.save().potionLarge == 1);
+    CHECK(g.credits() == 10000 - 50 - 150);
+    const int expBefore = g.dragonRecord().exp;
+    const int lvBefore = g.dragonRecord().level;
+    CHECK(g.buy(ShopItem::TrainingBook));
+    CHECK(g.dragonRecord().exp > expBefore || g.dragonRecord().level > lvBefore);
+    CHECK(g.credits() == 10000 - 200 - 25 * 20);
+    CHECK(g.shopPrice(ShopItem::Egg) == 3000);
+    CHECK(g.buy(ShopItem::Egg));
+    CHECK(g.stable().size() == 2);
+    CHECK(g.stable()[1].level == 1 && g.stable()[1].alive);
+    CHECK(g.shopPrice(ShopItem::Egg) == 4000);
+    CHECK(g.credits() == 10000 - 200 - 500 - 3000);
+    CHECK(g.buy(ShopItem::Egg));                            // 6300 → 2300
+    CHECK(g.shopBlockedReason(ShopItem::Egg) != nullptr);   // 5000 이 모자란다
+    // 칸이 차면 알을 못 산다
+    SaveData full = g.snapshotForSave();
+    while (full.stable.size() < 4) { DragonRecord d = full.stable[0]; d.id = full.nextDragonId++; full.stable.push_back(d); }
+    full.credits = 100000;
+    Game gf;
+    gf.init(full, kDesk);
+    CHECK(gf.stableFull());
+    CHECK(!gf.buy(ShopItem::Egg));
+    CHECK(gf.stable().size() == 4);
+    // 필드 보스 20층을 깬 계정은 칸이 하나 늘어난다
+    full.fieldBossCleared.insert(20);
+    Game gb;
+    gb.init(full, kDesk);
+    CHECK(!gb.stableFull());
+    CHECK(gb.buy(ShopItem::Egg));
+    CHECK(gb.stable().size() == 5);
+
+    // 탑 물약: 2개까지, 가방 수량까지
+    SaveData t = s;
+    t.potionSmall = 5;
+    t.potionLarge = 0;
+    Game gt;
+    gt.seed(3);
+    gt.init(t, kDesk);
+    gt.openTowerWarning();
+    gt.setTowerPotionCarry(3, 2);
+    CHECK(gt.carrySmall() == 2 && gt.carryLarge() == 0);
+    gt.enterTower(CombatMode::SkillManual);
+    CHECK(gt.screen() == Screen::Tower);
+    CHECK(gt.save().potionSmall == 3);
+    CHECK(gt.snapshotForSave().potionSmall == 5);  // 탑 안에서 꺼져도 잃지 않는다
+    CHECK(!gt.buy(ShopItem::PotionSmall));         // 탑 안에서는 상점 불가
+    // 마시기: 1초 뒤 회복, 그동안 느려진다
+    gt.world().dragon().hp = gt.world().dragon().stats.maxHp * 0.2f;
+    CHECK(gt.drinkPotion(false));
+    CHECK(!gt.drinkPotion(false));  // 마시는 중에는 또 못 마신다
+    CHECK(gt.carrySmall() == 1);
+    PlayerInput none;
+    gt.update(0.5f, none, false, true);
+    CHECK(gt.world().dragon().moveScale < 1.f);
+    const float mid = gt.world().dragon().hp;
+    gt.update(0.6f, none, false, true);
+    if (gt.screen() == Screen::Tower) {
+        CHECK(gt.world().dragon().hp > mid);
+        CHECK(gt.world().dragon().moveScale == 1.f);
+    }
+    // 바탕화면에서는 마실 수 없다
+    CHECK(!g.drinkPotion(false));
+
+    // 바탕화면 처치는 크레딧을 준다
+    SaveData h = s;
+    h.credits = 0;
+    h.huntMode = CombatMode::SkillManual;
+    Game gh;
+    gh.seed(5);
+    gh.init(h, kDesk);
+    gh.startHunt();
+    PlayerInput in;
+    in.skill[0] = in.skill[1] = true;
+    for (int i = 0; i < 30 * 60 && gh.credits() == 0 && gh.screen() == Screen::Desktop; ++i) gh.update(1.f / 30.f, in, false, true);
+    CHECK(gh.credits() > 0);
 }
 
 static void testTowerFlow() {
@@ -4224,6 +4354,7 @@ int main(int argc, char** argv) {
     testDefenseBattle();
     testBattleWithoutConfine();
     testHuntFloorPool();
+    testEconomy();
     testDefenseWaveGrows();
     testAutoBattleNoLongerCapped();
     testUiSettingsSaved();

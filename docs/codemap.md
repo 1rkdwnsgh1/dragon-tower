@@ -92,6 +92,8 @@ tests/                     코어 규칙 검증
 | 보관 중 체력 회복 | `src/core/Game.cpp` | `Game::update` 앞부분, `cfg::kStableRegenRatio` |
 | 보유 목록 저장 | `src/core/SaveData.cpp` | `stable.*` 키와 옛 저장 파일 변환 |
 | 바탕화면 사냥 적 구성(T3) | `src/core/Game.cpp` | `huntFloor`, `huntPool`(직전 일반 층의 일반 적), `spawnWave`, 탑 돌파 기록 `recordFloorCleared` |
+| 탑 100층 경제(T6) — 크레딧 계산·상점 가격 | `src/core/Economy.cpp`, `include/core/Economy.h` | `creditsForKill`, `creditsForFloorClear`, `eggPrice`, `trainingBookPrice`·`trainingBookExp` (수치는 `cfg::kCredit*`·`kEgg*`·`kPotion*`) |
+| 탑 100층 경제(T6) — 상점·알·탑 물약 | `src/core/Game.cpp` | `Game::buy`·`shopBlockedReason`·`hatchEgg`, `setTowerPotionCarry`·`drinkPotion`·`returnTowerPotions`, 처치 크레딧은 `processEvents`, 층 돌파 크레딧은 `update`의 탑 분기. 가방 저장 키 `inv.potionSmall`·`inv.potionLarge`·`inv.eggs` |
 | 탑 100층 저장(T2) | `src/core/SaveData.cpp`, `include/core/Tower.h` | `stable.N.floor`·`cleared`, `credits`, `tower.firstClear`·`tower.firstClearFloors`·`fieldBossCleared`·`clearedFloors`, 슬롯 수 `stableCapacityFor`/`SaveData::stableCapacity` |
 | 관리창 그리기 | `src/win/Renderer.cpp` | `drawStable` |
 | 싸울 때 유지할 간격 | `src/core/World.cpp` | `desiredRange`, `Game::setKeepRange` |

@@ -15,6 +15,7 @@ add_library(dragon_core STATIC
     src/core/Species.cpp
     src/core/Enemy.cpp
     src/core/Tower.cpp
+    src/core/Economy.cpp
     src/core/DragonData.cpp
     src/core/Progression.cpp
     src/core/SaveData.cpp
