@@ -157,6 +157,7 @@ void Sprites::loadPreviewDragon(const std::filesystem::path& dir, const SpeciesD
     detachFiles_ = true;
     if (auto bmp = loadPng(dir / "dragon.png", true)) images_["dragon_" + def.key] = std::move(bmp);
     loadSheetsFor(dir, def.anims, def.key, def.key);
+    loadSheetsFor(dir / "awakened", def.anims, def.key + ":awakened", def.key + "/awakened");
     loadSkillSheets(dir, def, def.key);
     loadFxSheets(dir, def, def.key);
     loadBreathSheets(dir, def, def.key);
@@ -208,6 +209,7 @@ void Sprites::load(const std::filesystem::path& assetDir) {
                 images_["skillicon_" + def.key + "_" + std::to_string(n + 1)] = std::move(bmp);
         }
         loadSheetsFor(dir, def.anims, def.key, "dragons/" + def.key);
+        loadSheetsFor(dir / "awakened", def.anims, def.key + ":awakened", def.key + "/awakened");
         loadSkillSheets(dir, def, "dragons/" + def.key);  // v1.4 스킬 전용 모션
         loadFxSheets(dir, def, "dragons/" + def.key);     // v1.6 스킬 효과
         loadBreathSheets(dir, def, "dragons/" + def.key);

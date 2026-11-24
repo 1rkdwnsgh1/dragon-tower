@@ -226,7 +226,8 @@ Vec2 World::randomEdgePoint(float margin) {
 
 void World::clearEnemies(bool withPoof) {
     cancelProcession();
-    if (dragon_.skillCast && dragon_.skillCast->soulfireCastId) advanceSkillCast(0.f, true);
+    if (dragon_.skillCast && (dragon_.skillCast->soulfireCastId || dragon_.skillCast->boneShotOrigin))
+        advanceSkillCast(0.f, true);
     if (dragon_.breath) {
         if (dragon_.breath->inputLock > 0.f) dragon_.animHold = 0.f;
         dragon_.breath.reset();
@@ -384,6 +385,19 @@ void World::moveDragon(float dt, Vec2 dir, float speedMul) {
 void World::basicAttack() {
     DragonActor& d = dragon_;
     if (d.basicCd > 0.f || (d.breath && d.breath->elapsed < d.breath->inputLock)) return;
+    if (d.awakened) {
+        if (d.skillCast) return;
+        const auto& skills = speciesDef(d.species).skills;
+        const auto shot = std::find_if(skills.begin(), skills.end(),
+                                       [](const SkillDef& skill) { return skill.boneShot; });
+        if (shot != skills.end()) {
+            if (const Enemy* target = nearestEnemy(d.pos, std::numeric_limits<float>::infinity())) {
+                beginBoneShot(static_cast<int>(shot - skills.begin()), *target, true);
+                d.basicCd = cfg::kBasicAttackCooldown;
+            }
+            return;
+        }
+    }
     Enemy* t = nearestEnemy(d.pos, cfg::kBasicAttackRange);
     if (!t) return;
     Projectile p;
@@ -395,6 +409,34 @@ void World::basicAttack() {
     d.basicCd = cfg::kBasicAttackCooldown;
     if (std::fabs(t->pos.x - d.pos.x) > 4.f) d.facing = Vec2{t->pos.x > d.pos.x ? 1.f : -1.f, 0.f};
     setDragonAnim(AnimState::Attack, cfg::kAnimAttackHold);
+}
+
+void World::beginBoneShot(int skillIndex, const Enemy& target, bool basic) {
+    DragonActor& d = dragon_;
+    const SkillDef& skill = speciesDef(d.species).skills[static_cast<size_t>(skillIndex)];
+    SkillCast cast;
+    cast.skill = skillIndex;
+    cast.boneShotBasic = basic;
+    if (basic) cast.boneShotTargetId = target.id;
+    cast.facingLeft = target.pos.x == d.pos.x ? d.facing.x < 0.f : target.pos.x < d.pos.x;
+    const float direction = cast.facingLeft ? -1.f : 1.f;
+    const float height = cfg::kDragonRadius * 3.f * sizeScale_ * skill.motionAnim.renderScale * kAwakenedBodyScale;
+    const Vec2 origin = d.pos + Vec2{direction * kBoneShotLaunchX * height,
+        cfg::kDragonRadius - kBoneShotLaunchY * height};
+    cast.boneShotOrigin = origin;
+    cast.aim = (target.pos - origin).normalized();
+    if (cast.aim.length() == 0.f) cast.aim = {direction, 0.f};
+    cast.hitTime = cast.fxTime = 7.f / 16.f;
+    cast.lockTime = basic ? cast.hitTime : 1.f;
+    d.facing = {direction, 0.f};
+    d.dashTime = 0.f;
+    d.moving = false;
+    d.skillCast = cast;
+    if (basic) {
+        d.skillMotion = skillIndex;
+        d.animTime = 0.f;
+        setDragonAnim(AnimState::Attack, 1.f);
+    }
 }
 
 void World::setSlots(const std::array<int, kSkillSlots>& s) {
@@ -483,6 +525,12 @@ bool World::castSkill(int i, bool aiChoice) {
         return false;
     }
     if (i >= static_cast<int>(d.skillCd.size())) return false;
+    if (s.boneShot && d.awakened) {
+        if (aiChoice) return false;  // 자동 선택은 변신을 해제하지 않는다.
+        d.awakened = false;
+        addText("각성 해제", d.pos - Vec2{0.f, 78.f}, sp.color, 15.f, 0.9f);
+        return true;
+    }
     if (d.skillCd[static_cast<size_t>(i)] > 0.f) return false;
 
     Vec2 facingDir = d.facing.length() > 0.01f ? d.facing : Vec2{1.f, 0.f};
@@ -490,8 +538,18 @@ bool World::castSkill(int i, bool aiChoice) {
         case SkillKind::Projectile: {
             Enemy* t = nearestEnemy(d.pos, s.range);
             if (!t) {
+                if (s.boneShot && !aiChoice) {
+                    d.awakened = true;
+                    d.skillCd[static_cast<size_t>(i)] = s.cooldown;
+                    addText("각성", d.pos - Vec2{0.f, 78.f}, sp.color, 15.f, 0.9f);
+                    return true;
+                }
                 if (!aiChoice) addText("대상 없음", d.pos - Vec2{0.f, 60.f}, 0xFFCCCCCC, 14.f, 0.6f);
                 return false;
+            }
+            if (s.boneShot) {
+                beginBoneShot(i, *t, false);
+                break;
             }
             Projectile p;
             p.pos = d.pos;
@@ -667,7 +725,7 @@ bool World::castSkill(int i, bool aiChoice) {
         d.skillMotion = -1;
     }
     if (d.breath && d.breath->skill == i && !s.usesUmbralBreath()) hold = std::max(hold, d.breath->length());
-    if ((s.soulfire || s.spectralCleave) && d.skillCast) hold = d.skillCast->lockTime;
+    if ((s.soulfire || s.spectralCleave || s.boneShot) && d.skillCast) hold = d.skillCast->lockTime;
     setDragonAnim(AnimState::Attack, hold);
     addText(s.name, d.pos - Vec2{0.f, 78.f}, sp.color | 0xFF000000, 15.f, 0.9f);
     return true;
@@ -860,6 +918,12 @@ void World::advanceSkillCast(float dt, bool combatEnded) {
         d.skillCast.reset();  // 죽거나 붙잡히면 효과도 피해도 없이 끝난다
         return;
     }
+    if (combatEnded && c.boneShotOrigin && c.hitDone) {
+        d.skillCast.reset();
+        d.animHold = 0.f;
+        d.skillMotion = -1;
+        return;
+    }
     if (combatEnded && !c.hitDone) {
         cancelSkillCast(0.f);  // 전투가 끝나 끊긴 것은 쿨타임을 모두 돌려준다
         return;
@@ -883,7 +947,7 @@ void World::advanceSkillCast(float dt, bool combatEnded) {
     }
     if (!c.fxDone && c.elapsed + epsilon >= c.fxTime) {
         c.fxDone = true;
-        if (!s.spectralCleave) spawnAnchoredFx(s, c.facingLeft);
+        if (!s.spectralCleave && !s.boneShot) spawnAnchoredFx(s, c.facingLeft);
     }
     if (!c.hitDone && c.elapsed + epsilon >= c.hitTime) {
         c.hitDone = true;
@@ -898,6 +962,23 @@ void World::advanceSkillCast(float dt, bool combatEnded) {
             blade.skill = c.skill;
             blade.cleave = CleaveFlight{direction, skillRadius(s), std::max(0.f, c.elapsed - c.hitTime), sizeScale_, {}};
             projectiles_.push_back(std::move(blade));
+        } else if (c.boneShotOrigin) {
+            d.awakened = true;
+            Projectile shot;
+            shot.pos = *c.boneShotOrigin;
+            shot.targetId = c.boneShotTargetId;
+            if (const Enemy* target = findEnemy(shot.targetId)) {
+                const float facing = c.facingLeft ? -1.f : 1.f;
+                // 가까운 적의 중심을 이마가 지나친 경우 몸 중심에서 전방으로 보낸다.
+                if ((target->pos.x - shot.pos.x) * facing <= 0.f) shot.pos = d.pos;
+            }
+            shot.speed = c.boneShotBasic ? kAwakenedBasicBoneShotSpeed : kBoneShotSpeed;
+            shot.damage = d.stats.atk * (c.boneShotBasic ? cfg::kBasicAttackPower : s.power);
+            shot.big = true;
+            shot.skill = c.skill;
+            const float range = c.boneShotBasic ? std::numeric_limits<float>::infinity() : s.range;
+            shot.boneShot = BoneShotFlight{c.aim, range, std::max(0.f, c.elapsed - c.hitTime), sizeScale_, {}};
+            projectiles_.push_back(std::move(shot));
         } else {
             hitLine(d.pos, d.pos + c.aim * s.range, skillRadius(s), d.stats.atk * s.power, s.detonatesCurse);
         }
@@ -1000,10 +1081,11 @@ void World::cancelSkillCast(float cooldownRatio) {
     if (!d.skillCast) return;
     const int i = d.skillCast->skill;
     const bool hit = d.skillCast->hitDone;
+    const bool basic = d.skillCast->boneShotBasic;
     d.skillCast.reset();
     if (hit) return;  // 타격 뒤에는 쿨타임을 돌려주지 않는다
     const SpeciesDef& sp = speciesDef(d.species);
-    if (i >= 0 && i < static_cast<int>(sp.skills.size()) && i < static_cast<int>(d.skillCd.size()))
+    if (!basic && i >= 0 && i < static_cast<int>(sp.skills.size()) && i < static_cast<int>(d.skillCd.size()))
         d.skillCd[static_cast<size_t>(i)] = sp.skills[static_cast<size_t>(i)].cooldown * cooldownRatio;
     d.animHold = 0.f;
     d.skillMotion = -1;
@@ -1544,6 +1626,61 @@ void SoulfireHit::advance(float dt, bool damaged) {
     else if (wasVisible) loopAge = std::fmod(loopAge + dt, 0.8f);
 }
 
+void World::advanceBoneShot(Projectile& shot, BoneShotFlight& flight, float dt) {
+    const RectF viewport = projectileViewport_.value_or(bounds_);
+    if (!viewport.contains(shot.pos.x, shot.pos.y)) {
+        shot.alive = false;
+        return;
+    }
+
+    const float elapsed = flight.firstStep >= 0.f ? flight.firstStep : dt;
+    flight.firstStep = -1.f;
+    if (const Enemy* target = findEnemy(shot.targetId)) {
+        const Vec2 towardTarget = (target->pos - shot.pos).normalized();
+        if (towardTarget.length() > 0.f) flight.aim = towardTarget;
+    } else {
+        shot.targetId = 0;
+    }
+    const Vec2 dir = flight.aim;
+    float edge = std::numeric_limits<float>::max();
+    if (dir.x > 0.f) edge = (viewport.right() - shot.pos.x) / dir.x;
+    if (dir.x < 0.f) edge = (viewport.x - shot.pos.x) / dir.x;
+    if (dir.y > 0.f) edge = std::min(edge, (viewport.bottom() - shot.pos.y) / dir.y);
+    if (dir.y < 0.f) edge = std::min(edge, (viewport.y - shot.pos.y) / dir.y);
+    const float limit = std::min(flight.remaining, edge);
+    const float step = std::min(limit, shot.speed * elapsed);
+    if (step > 0.f) {
+        const SpeciesDef& species = speciesDef(dragon_.species);
+        const SkillDef& skill = species.skills[shot.skill];
+        for (Enemy& enemy : enemies_) {
+            if (!enemy.alive || std::find(flight.hitIds.begin(), flight.hitIds.end(), enemy.id) != flight.hitIds.end())
+                continue;
+            const Vec2 offset = enemy.pos - shot.pos;
+            const float along = offset.x * dir.x + offset.y * dir.y;
+            const float across = offset.x * dir.y - offset.y * dir.x;
+            const float radius = scaledBody(enemy.radius, flight.scale);
+            const float halfChordSquared = radius * radius - across * across;
+            if (halfChordSquared < 0.f) continue;
+            const float halfChord = std::sqrt(halfChordSquared);
+            const float contact = std::max(0.f, along - halfChord);
+            if (contact > step || along + halfChord < 0.f) continue;
+
+            flight.hitIds.push_back(enemy.id);
+            if (shot.targetId == enemy.id) shot.targetId = 0;
+            const Vec2 at = shot.pos + dir * contact;
+            addFx(FxType::Hit, at, at, enemy.radius * 2.6f * flight.scale, kBoneShotImpactDuration, species.color);
+            Fx& impact = fx_.back();
+            impact.key = skill.fxImpact;
+            impact.inFront = true;
+            damageEnemy(enemy, shot.damage);
+        }
+    }
+    shot.pos += dir * step;
+    shot.t += step / shot.speed;
+    flight.remaining -= step;
+    shot.alive = step < limit;
+}
+
 void World::updateCombat(float dt, CombatMode mode, const PlayerInput& in) {
     currentMode_ = mode;
     DragonActor& d = dragon_;
@@ -1579,6 +1716,14 @@ void World::updateCombat(float dt, CombatMode mode, const PlayerInput& in) {
     if (mode == CombatMode::Direct && in.dodge && d.dodgeCd <= 0.f && d.skillCast &&
         d.skillCast->soulfireCastId && !d.skillCast->hitDone)
         cancelSkillCast(cfg::kSkillCastCancelCooldown);
+    if (mode != CombatMode::Auto && d.skillCast && d.skillCast->boneShotBasic) {
+        for (int slot = 0; slot < kSkillSlots; ++slot) {
+            if (in.skill[slot] && slotSkill(slot) == d.skillCast->skill) {
+                cancelSkillCast(0.f);
+                break;
+            }
+        }
+    }
     advanceSkillCast(dt);
     if (d.alive && d.stats.regen > 0.f) d.hp = std::min(d.stats.maxHp, d.hp + d.stats.regen * dt);
     // 2026-11-18: 타격 전 직접 조작 회피는 시전을 끊고 회피한다(쿨타임 일부 반환).
@@ -1638,6 +1783,10 @@ void World::updateCombat(float dt, CombatMode mode, const PlayerInput& in) {
 
     // 투사체
     for (Projectile& p : projectiles_) {
+        if (p.boneShot) {
+            advanceBoneShot(p, *p.boneShot, dt);
+            continue;
+        }
         if (p.cleave) {
             CleaveFlight& blade = *p.cleave;
             const float elapsed = blade.firstStep >= 0.f ? blade.firstStep : dt;
@@ -1756,6 +1905,8 @@ void World::updateCombat(float dt, CombatMode mode, const PlayerInput& in) {
 
 void World::updateFx(float dt, bool combatEnded) {
     if (combatEnded) {
+        projectiles_.erase(std::remove_if(projectiles_.begin(), projectiles_.end(),
+            [](const Projectile& projectile) { return projectile.boneShot.has_value(); }), projectiles_.end());
         for (Enemy& enemy : enemies_) enemy.soulfireHit = {};
         cancelProcession();
         dots_.erase(std::remove_if(dots_.begin(), dots_.end(), [](const DotZone& z) { return z.soulfireCastId != 0; }),

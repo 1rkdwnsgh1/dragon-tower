@@ -24,6 +24,7 @@ void Game::init(const SaveData& save, const RectF& desktop) {
     save_ = save;
     world_.resetSouls();
     desktop_ = desktop;
+    world_.setProjectileViewport(desktop_);
     world_.setBounds(desktop_);
     world_.setKeepRange(save_.keepRange);  // 저장해 둔 간격을 이어서 쓴다
     world_.setSizeScale(save_.charScale);  // 저장해 둔 보기 크기를 판정에도 쓴다
@@ -31,6 +32,7 @@ void Game::init(const SaveData& save, const RectF& desktop) {
     if (save_.hasDragon) {
         const DragonRecord& d = save_.dragon;
         world_.setupDragon(d.species, d.level, d.hp, {desktop_.center().x, desktop_.bottom() - 120.f});
+        world_.dragon().awakened = d.awakened;
         syncSkillSlots();  // v1.4 옛 저장 파일이면 여기서 빈 칸이 채워진다
         screen_ = Screen::Desktop;
     } else {
@@ -41,6 +43,7 @@ void Game::init(const SaveData& save, const RectF& desktop) {
 
 void Game::setDesktopBounds(const RectF& desktop) {
     desktop_ = desktop;
+    world_.setProjectileViewport(desktop_);
     if (!inTowerFlow()) {
         // #47: 화면 크기가 바뀌어도 "아래쪽에만" 설정을 지킨다(전에는 사냥 중에도 화면 전체로 풀렸다).
         RectF b = save_.confineToBand ? battleBand() : desktop_;
@@ -200,7 +203,10 @@ bool Game::consumeSaveRequest() {
 }
 
 SaveData Game::snapshotForSave() {
-    if (save_.hasDragon && world_.dragon().alive) save_.dragon.hp = world_.dragon().hp;
+    if (save_.hasDragon && world_.dragon().alive) {
+        save_.dragon.hp = world_.dragon().hp;
+        save_.dragon.awakened = world_.dragon().awakened;
+    }
     // 불러올 때 dragon 은 stable[activeIndex] 에서 복원되므로(SaveData.cpp 참고),
     // 목록 쪽에도 지금 상태를 적어 두어야 한다. v1.3에서 빠져 있어 다친 드래곤이
     // 다시 켜면 체력이 가득 찬 채로 돌아왔다.
@@ -394,6 +400,7 @@ bool Game::switchDragon(int index) {
     if (save_.hasDragon && save_.activeIndex >= 0 &&
         save_.activeIndex < static_cast<int>(save_.stable.size())) {
         save_.dragon.hp = world_.dragon().hp;
+        save_.dragon.awakened = world_.dragon().awakened;
         save_.stable[static_cast<size_t>(save_.activeIndex)] = save_.dragon;
     }
 
@@ -408,6 +415,7 @@ bool Game::switchDragon(int index) {
     world_.setBounds(b);
     Vec2 at = b.clampPoint({desktop_.center().x, b.bottom() - cfg::kDragonRadius}, cfg::kDragonRadius);
     world_.setupDragon(save_.dragon.species, save_.dragon.level, save_.dragon.hp, at);
+    world_.dragon().awakened = save_.dragon.awakened;
     syncSkillSlots();
     world_.dragon().groundY = world_.dragon().pos.y;
     world_.setKeepRange(save_.keepRange);
@@ -938,6 +946,8 @@ void Game::update(float dt, const PlayerInput& in, bool hidden, bool inputEnable
     pauseReason_.clear();
     PlayerInput none;
 
+    const bool wasAwakened = world_.dragon().awakened;
+
     // v1.3: 보관 중인(띄우지 않은) 개체는 쉬면서 체력만 회복한다. 경험치는 오르지 않는다.
     // 한 번에 한 마리만 키우게 해서 영구 사망의 무게를 지킨다.
     for (size_t i = 0; i < save_.stable.size(); ++i) {
@@ -1032,6 +1042,8 @@ void Game::update(float dt, const PlayerInput& in, bool hidden, bool inputEnable
             break;
         }
     }
+
+    if (save_.hasDragon && world_.dragon().awakened != wasAwakened) saveRequested_ = true;
 
     autosaveTimer_ += dt;
     if (autosaveTimer_ >= cfg::kAutosaveInterval) {

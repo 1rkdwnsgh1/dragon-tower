@@ -16,6 +16,7 @@
 
 | 날짜 | 결정 | 원본 |
 |---|---|---|
+| 2026-11-23 | 각성 화석룡 골각 사출은 첫 조준 후 직선 다중 관통 | [통합 기획서](game-design.md#awakened-bone-shot-rules) |
 | 2026-11-22 | 망계의 업화 V5 지면 연결 위에 날개 잔류흔·입 소용돌이·분출구 왕관 적용 | [연출과 적용 기록](characters/revenant-dragon-progress.md#nether-soulfire-wing-mouth) |
 | 2026-11-22 | 망계의 업화 V2는 무대상 수동 발동과 전진 비행 중 경로 장판 적용 | [망계의 업화](characters/revenant-dragon-skills-v1.md#망계의-업화-구현-검수값) |
 | 2026-11-20 | 탑 1~100층 자유 선택, 중간·필드 보스 모두 단독 도전, 개체별 실제 층 기록 | [단독 100층 설계](tower-100-design.md#단독-100층과-탑-선택창) |

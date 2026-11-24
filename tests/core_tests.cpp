@@ -3949,7 +3949,211 @@ static void testSpectralCleave(const std::filesystem::path& assets) {
     }
 }
 
+static void testBoneShot(const std::filesystem::path& assets) {
+    loadDragonFolders(assets / "dragons");
+    Species revenant{};
+    if (!speciesFromKey("revenant", revenant)) {
+        CHECK(false);
+        return;
+    }
+    const auto& skills = speciesDef(revenant).skills;
+    constexpr int slot = 10;
+    CHECK(skills.size() > slot && skills[slot].boneShot);
+    if (skills.size() <= slot) return;
+    const auto& skill = skills[slot];
+    for (const float facing : {-1.f, 1.f}) {
+        const Vec2 origin{650.f, 300.f};
+        const float scale = 1.5f;
+        const float height = cfg::kDragonRadius * 3.f * scale * kAwakenedBodyScale;
+        const Vec2 launch = origin + Vec2{facing * kBoneShotLaunchX * height,
+            cfg::kDragonRadius - kBoneShotLaunchY * height};
+        const Vec2 aim = Vec2{facing, 0.25f}.normalized();
+        World world;
+        world.setBounds({0.f, 0.f, 1300.f, 640.f});
+        world.setSizeScale(scale);
+        world.setupDragon(revenant, skill.unlockLevel, -1.f, origin);
+        world.dragon().basicCd = 60.f;
+        world.setSlots({slot, -1, -1, -1});
+        for (const Vec2 at : {launch + aim * 100.f, launch + aim * 220.f, launch + aim * 230.f + Vec2{0.f, 100.f}}) {
+            Enemy& enemy = world.spawnEnemy(defaultMelee(), 1, at);
+            enemy.hp = enemy.maxHp = 10000.f;
+            enemy.stun = 100.f;
+        }
+        PlayerInput input{};
+        input.skill[0] = facing > 0.f;
+        world.updateCombat(0.f, input.skill[0] ? CombatMode::SkillManual : CombatMode::Auto, input);
+        const auto& cast = world.dragon().skillCast;
+        CHECK(cast.has_value());
+        if (cast) CHECK(cast->facingLeft == (facing < 0.f));
+        world.updateCombat(0.375f, CombatMode::Direct, {});
+        CHECK(world.projectiles().empty());
+        world.updateCombat(0.0625f, CombatMode::Direct, {});
+        CHECK(world.projectiles().size() == 1);
+        if (world.projectiles().empty()) continue;
+        CHECK(distance(world.projectiles().front().pos, launch) < 0.01f);
+        CHECK(world.dragon().awakened);
+        for (int i = 0; i < 10; ++i) world.updateCombat(0.05f, CombatMode::Direct, {});
+        CHECK(world.projectiles().size() == 1);
+        if (!world.projectiles().empty()) {
+            CHECK(distance(world.projectiles().front().pos, launch + aim * (kBoneShotSpeed * 0.5f)) < 0.01f);
+            const auto& flight = world.projectiles().front().boneShot;
+            CHECK(flight.has_value());
+            if (flight) CHECK(flight->hitIds.size() == 2);
+        }
+        int impacts = 0;
+        for (const Fx& fx : world.fx()) {
+            if (fx.key != skill.fxImpact) continue;
+            CHECK(fx.duration == 0.5f && fx.inFront);
+            CHECK(distancePointSegment(fx.a, launch, launch + aim * skill.range) < 0.01f);
+            ++impacts;
+        }
+        CHECK(impacts == 2);
+        const float hit = mitigate(world.dragon().stats.atk * skill.power, world.enemies()[0].def);
+        CHECK(std::fabs(world.enemies()[0].hp - (10000.f - hit)) < 0.002f);
+        CHECK(std::fabs(world.enemies()[1].hp - (10000.f - hit)) < 0.002f);
+        CHECK(world.enemies()[2].hp == 10000.f);
+        if (facing < 0.f) {
+            world.setProjectileViewport({launch.x - 320.f, 0.f, 1300.f, 640.f});
+            world.updateCombat(0.13f, CombatMode::Direct, {});
+            CHECK(world.projectiles().empty());
+        } else {
+            world.updateCombat(0.35f, CombatMode::Direct, {});
+            CHECK(world.projectiles().size() == 1);
+            world.updateCombat(0.10f, CombatMode::Direct, {});
+            CHECK(world.projectiles().empty());
+        }
+        world.updateFx(kBoneShotImpactDuration);
+        CHECK(world.dragon().awakened);
+        world.clearEnemies(false);
+        world.updateWander(3.f);
+        CHECK(world.dragon().awakened);
+        PlayerInput revert{};
+        revert.skill[0] = true;
+        world.updateCombat(0.f, CombatMode::Direct, revert);
+        CHECK(!world.dragon().awakened && world.projectiles().empty());
+        CHECK(std::none_of(world.fx().begin(), world.fx().end(),
+                           [&](const Fx& f) { return f.key == skill.fxImpact; }));
+    }
+    World longRange;
+    longRange.setBounds({0.f, 0.f, 3840.f, 1080.f});
+    longRange.setupDragon(revenant, skill.unlockLevel, -1.f, {400.f, 350.f});
+    longRange.dragon().awakened = true;
+    longRange.setSlots({slot, -1, -1, -1});
+    const float launchY = 350.f + cfg::kDragonRadius -
+        kBoneShotLaunchY * cfg::kDragonRadius * 3.f * kAwakenedBodyScale;
+    for (const float x : {2800.f, 3300.f}) {
+        Enemy& enemy = longRange.spawnEnemy(defaultMelee(), 1, {x, launchY});
+        enemy.hp = enemy.maxHp = 10000.f;
+        enemy.stun = 100.f;
+    }
+    longRange.updateCombat(0.f, CombatMode::Auto, {});
+    CHECK(longRange.dragon().skillCast.has_value());
+    CHECK(longRange.projectiles().empty());
+    longRange.updateCombat(0.4375f, CombatMode::Direct, {});
+    CHECK(longRange.projectiles().size() == 1);
+    if (!longRange.projectiles().empty()) {
+        const auto& flight = longRange.projectiles().front().boneShot;
+        CHECK(flight.has_value());
+        if (flight) CHECK(std::isinf(flight->remaining));
+        CHECK(longRange.projectiles().front().speed == kAwakenedBasicBoneShotSpeed);
+    }
+    CHECK(longRange.dragon().skillCd[slot] == 0.f);
+    // 발사 직후에는 기본 공격 대기시간이 남아서 새 투사체가 나오지 않는다.
+    longRange.updateCombat(0.1f, CombatMode::Direct, {});
+    CHECK(longRange.projectiles().size() == 1);
+    longRange.dragon().basicCd = 100.f;
+    for (int i = 0; i < 6; ++i) longRange.updateCombat(0.1f, CombatMode::Direct, {});
+    CHECK(longRange.projectiles().size() == 1);
+    const float basicHit = mitigate(longRange.dragon().stats.atk * cfg::kBasicAttackPower,
+                                    longRange.enemies()[0].def);
+    CHECK(std::fabs(longRange.enemies()[0].hp - (10000.f - basicHit)) < 0.002f);
+    CHECK(longRange.enemies()[1].hp == 10000.f);
+    for (int i = 0; i < 2; ++i) longRange.updateCombat(0.1f, CombatMode::Direct, {});
+    CHECK(std::fabs(longRange.enemies()[1].hp - (10000.f - basicHit)) < 0.002f);
+    CHECK(longRange.projectiles().size() == 1);
+    longRange.updateCombat(0.6f, CombatMode::Direct, {});
+    CHECK(longRange.projectiles().empty());
+    longRange.dragon().basicCd = 0.f;
+    longRange.updateCombat(0.f, CombatMode::Direct, {});
+    CHECK(longRange.dragon().skillCast.has_value());
+    PlayerInput revertBasic{};
+    revertBasic.skill[0] = true;
+    longRange.updateCombat(0.01f, CombatMode::SkillManual, revertBasic);
+    CHECK(!longRange.dragon().awakened && !longRange.dragon().skillCast && longRange.projectiles().empty());
+
+    World crossing;
+    crossing.setBounds({0.f, 0.f, 1600.f, 900.f});
+    crossing.setupDragon(revenant, skill.unlockLevel, -1.f, {400.f, 350.f});
+    crossing.dragon().awakened = true;
+    const float launchX = 400.f + kBoneShotLaunchX * cfg::kDragonRadius * 3.f * kAwakenedBodyScale;
+    Enemy& runner = crossing.spawnEnemy(defaultMelee(), 1, {launchX + 350.f, launchY});
+    runner.hp = runner.maxHp = 10000.f;
+    runner.stun = 100.f; // 위치를 일정하게 옮겨 비행선을 가로지르는 적을 재현한다.
+    crossing.updateCombat(0.f, CombatMode::Direct, {});
+    crossing.updateCombat(0.4375f, CombatMode::Direct, {});
+    const float runnerSpeed = runner.radius / 0.46f;
+    for (int i = 0; i < 70; ++i) {
+        runner.pos.y += runnerSpeed * 0.01f;
+        crossing.updateCombat(0.01f, CombatMode::Direct, {});
+    }
+    CHECK(std::fabs(runner.hp - (10000.f - basicHit)) < 0.002f);
+    CHECK(runner.pos.y - launchY > runner.radius);
+
+    for (const float side : {-1.f, 1.f}) {
+        World close;
+        const Vec2 caster{500.f, 350.f};
+        close.setBounds({0.f, 0.f, 1600.f, 900.f});
+        close.setupDragon(revenant, skill.unlockLevel, -1.f, caster);
+        close.dragon().awakened = true;
+        const Vec2 targetStart = caster + Vec2{62.f * side, 0.f};
+        Enemy& target = close.spawnEnemy(defaultMelee(), 1, targetStart);
+        target.hp = target.maxHp = 10000.f;
+        target.stun = 100.f;
+        close.updateCombat(0.f, CombatMode::Direct, {});
+        target.pos.y += 120.f;  // 준비 중 원래 조준선에서 벗어난다.
+        close.updateCombat(0.4375f, CombatMode::Direct, {});
+        CHECK(close.projectiles().size() == 1);
+        if (close.projectiles().empty()) continue;
+        CHECK(distance(close.projectiles().front().pos, caster) < 0.01f);
+        CHECK(close.projectiles().front().targetId == target.id);
+        target.pos.y += 70.f;  // 발사 뒤에도 목표 방향이 바뀐다.
+        for (int i = 0; i < 9; ++i) close.updateCombat(0.01f, CombatMode::Direct, {});
+        CHECK(std::fabs(target.hp - (10000.f - basicHit)) < 0.002f);
+        CHECK(close.projectiles().size() == 1);
+        if (!close.projectiles().empty()) {
+            CHECK(close.projectiles().front().targetId == 0);
+            const Vec2 from = close.projectiles().front().pos;
+            const Vec2 direction = (target.pos - caster).normalized();
+            target.pos.x -= 100.f * side;
+            close.updateCombat(0.01f, CombatMode::Direct, {});
+            CHECK(!close.projectiles().empty());
+            if (!close.projectiles().empty())
+                CHECK(distance(close.projectiles().front().pos,
+                               from + direction * (kAwakenedBasicBoneShotSpeed * 0.01f)) < 0.01f);
+        }
+    }
+
+    SaveData save;
+    save.hasDragon = true;
+    save.dragon.species = revenant;
+    save.dragon.level = skill.unlockLevel;
+    Game game;
+    game.init(save, {0.f, 0.f, 1300.f, 640.f});
+    CHECK(!game.world().dragon().awakened);
+    game.world().dragon().awakened = true;
+    SaveData reloaded;
+    CHECK(deserializeSave(serializeSave(game.snapshotForSave()), reloaded));
+    Game reopened;
+    reopened.init(reloaded, {0.f, 0.f, 1300.f, 640.f});
+    CHECK(reopened.world().dragon().awakened);
+}
+
 int main(int argc, char** argv) {
+    if (argc == 3 && std::string(argv[1]) == "--bone-shot") {
+        testBoneShot(std::filesystem::u8path(argv[2]));
+        std::printf("\n%d passed, %d failed\n", g_passed, g_failed);
+        return g_failed ? 1 : 0;
+    }
     if (argc == 2 && std::string(argv[1]) == "--revenant-procession") {
         testRevenantProcession();
         std::printf("\n%d passed, %d failed\n", g_passed, g_failed);
@@ -4053,6 +4257,7 @@ int main(int argc, char** argv) {
         testRevenantCurse(assets);
         testNetherSoulfire(assets);
         testSpectralCleave(assets);
+        testBoneShot(assets);
     }
     else std::printf("[elite variants spawn] assets 경로 인자가 없어 건너뜀\n");
     std::printf("\n%d passed, %d failed\n", g_passed, g_failed);
