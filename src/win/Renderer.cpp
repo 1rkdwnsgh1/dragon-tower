@@ -2912,9 +2912,16 @@ void Renderer::drawModal(Graphics& g, const Game& game, const Sprites& sprites, 
                 const SaveData& sv = game.save();
                 const float py = r.Y + 290.f;
                 text(g, "가지고 갈 물약", r.X + 24.f, py, 14.f, kText, 0, true);
-                text(g, "물약(소) " + std::to_string(sv.potionSmall) + "개  ·  물약(대) " + std::to_string(sv.potionLarge) +
-                            "개  —  가방에 있는 물약을 모두 가지고 갑니다",
-                     r.X + 24.f, py + 28.f, 14.f, sv.potionSmall + sv.potionLarge > 0 ? kText : 0xFF7C8090);
+                std::string line;
+                int total = 0;
+                for (int k = 0; k < kPotionKinds; ++k) {
+                    const int n = sv.potion(static_cast<PotionKind>(k));
+                    total += n;
+                    if (n > 0) line += std::string(line.empty() ? "" : "  ·  ") + potionName(static_cast<PotionKind>(k)) + " " + std::to_string(n);
+                }
+                text(g, total > 0 ? line : std::string("가방에 물약이 없습니다. 상점에서 살 수 있습니다."), r.X + 24.f, py + 26.f,
+                     14.f, total > 0 ? kText : 0xFF7C8090);
+                text(g, "가방에 있는 물약을 모두 가지고 갑니다. 남은 것은 나올 때 돌려받습니다.", r.X + 24.f, py + 48.f, 12.f, kSub);
             }
             float bw = (r.Width - 48.f - 16.f) / 3.f;
             float by = r.GetBottom() - 68.f;
@@ -3183,79 +3190,159 @@ void Renderer::drawStable(Graphics& g, const Game& game, const Sprites& sprites,
 // ---------------------------------------------------------------------------
 void Renderer::drawShop(Graphics& g, const Game& game, const RenderContext& ctx, std::vector<UiButton>& out) {
     const SaveData& s = game.save();
-    RectF r(width_ * 0.5f - 350.f, height_ * 0.5f - 280.f, 700.f, 560.f);
-    r = modalPanel(g, r, 244);
-    const auto clip = g.Save();
-    g.SetClip(r, CombineModeIntersect);
-    text(g, "상점", r.X + 24.f, r.Y + 18.f, 22.f, kText, 0, true);
-    text(g, "크레딧 " + std::to_string(game.credits()), r.GetRight() - 24.f, r.Y + 22.f, 18.f, 0xFFFFD45A, 2, true);
-    text(g, "가방: 물약(소) " + std::to_string(s.potionSmall) + "  ·  물약(대) " + std::to_string(s.potionLarge) +
-                "  ·  알 " + std::to_string(s.eggs),
-         r.X + 24.f, r.Y + 52.f, 13.f, kSub);
-
     struct Item {
         ShopItem id;
         std::string name;
         std::string desc;
+        int have;  // 가방 수량(-1 이면 표시 안 함)
     };
-    const std::string target = game.hasDragon() ? dragonName(game.dragonRecord()) : std::string("플레이 중인 드래곤");
+    const auto pct = [](float v) { return std::to_string(static_cast<int>(v * 100.f + 0.5f)) + "%"; };
+    const auto sec = [](float v) { return std::to_string(static_cast<int>(v)) + "초"; };
+    const auto oneDecimal = [](float v) {
+        char buf[16];
+        std::snprintf(buf, sizeof(buf), "%.1f", static_cast<double>(v));
+        return std::string(buf);
+    };
     const Item items[] = {
-        {ShopItem::Egg, "드래곤 알",
-         "바로 부화합니다. 종은 무작위, Lv.1. 빈 칸이 있어야 합니다. 살 때마다 비싸집니다."},
-        {ShopItem::PotionSmall, "탑 물약(소)",
-         "탑 안에서만 씁니다. 체력 " + std::to_string(static_cast<int>(cfg::kPotionSmallHeal * 100.f)) +
-             "% 회복. 가방에 있는 만큼 가지고 들어갑니다."},
-        {ShopItem::PotionLarge, "탑 물약(대)",
-         "탑 안에서만 씁니다. 체력 " + std::to_string(static_cast<int>(cfg::kPotionLargeHeal * 100.f)) +
-             "% 회복. 마시는 데 1초, 그동안 느려집니다."},
-        {ShopItem::TrainingBook, "훈련서", target + "이(가) 다음 레벨까지 필요한 경험치의 25%를 얻습니다."},
+        {ShopItem::Egg, "드래곤 알", "바로 부화합니다. 종은 무작위, Lv.1. 빈 칸이 있어야 하고 살 때마다 비싸집니다.", -1},
+        {ShopItem::PotionSmall, "물약(소)", "탑 전용. 체력 " + pct(cfg::kPotionSmallHeal) + " 회복.", s.potionSmall},
+        {ShopItem::PotionLarge, "물약(대)", "탑 전용. 체력 " + pct(cfg::kPotionLargeHeal) + " 회복.", s.potionLarge},
+        {ShopItem::PotionFury, "분노의 물약",
+         "탑 전용. " + sec(cfg::kFuryTime) + " 동안 공격력 +" + pct(cfg::kFuryAtkMul - 1.f) + ".", s.potionFury},
+        {ShopItem::PotionGuard, "수호의 물약",
+         "탑 전용. " + sec(cfg::kGuardTime) + " 동안 받는 피해 -" + pct(1.f - cfg::kGuardDamageMul) + ".", s.potionGuard},
+        {ShopItem::PotionSwift, "신속의 물약",
+         "탑 전용. " + sec(cfg::kSwiftTime) + " 동안 스킬 쿨타임이 " + oneDecimal(cfg::kSwiftCdMul) + "배 빨리 돕니다.",
+         s.potionSwift},
+        {ShopItem::HunterCharm, "사냥꾼의 부적",
+         "실제 시간 " + std::to_string(cfg::kHunterCharmSeconds / 60) + "분 동안 바탕화면 처치 경험치 +" +
+             pct(cfg::kHunterCharmExpMul - 1.f) + "(직접·스킬 수동만, 자동 제외). 사면 시간이 이어 붙습니다.",
+         -1},
     };
-    float y = r.Y + 82.f;
-    const float rowH = 88.f;
-    for (const Item& it : items) {
-        RectF row(r.X + 20.f, y, r.Width - 40.f, rowH - 10.f);
-        fillRound(g, row, 10.f, Color(215, 32, 34, 46));
-        strokeRound(g, row, 10.f, Color(120, 80, 88, 120), 1.f);
-        text(g, it.name, row.X + 18.f, row.Y + 10.f, 16.f, kText, 0, true);
-        text(g, std::to_string(game.shopPrice(it.id)) + " 크레딧", row.X + 18.f + 200.f, row.Y + 11.f, 15.f,
-             0xFFFFD45A, 0, true);
-        paragraph(g, it.desc, RectF(row.X + 18.f, row.Y + 36.f, row.Width - 220.f, 40.f), 12.f, kSub);
+    const int count = static_cast<int>(sizeof(items) / sizeof(items[0]));
+    const char* const icons[] = {"shop_icon_egg",          "shop_icon_potion_small", "shop_icon_potion_large",
+                                 "shop_icon_potion_fury",  "shop_icon_potion_guard", "shop_icon_potion_swift",
+                                 "shop_icon_charm"};
+    // 2026-11-24 Codex 상점 그림(assets/ui/default/shop_*). 그림이 없으면 예전처럼 도형으로 그린다.
+    // 배치는 Codex 조립 미리보기(assets/references/ui/shop-2026-11-24/shop_preview.png)를 따른다:
+    // 위쪽 저울 장식 아래에 제목 띠(64~106), 안내 한 줄, 품목 줄은 147부터 66 간격.
+    const bool art = sprites_ && sprites_->ui(skin_, "shop_panel").valid();
+    const float rowTop = art ? 147.f : 84.f;
+    const float rowStep = 66.f, rowH = 58.f;
+    const float eggH = s.eggs > 0 ? 50.f : 0.f;
+    const float winH = rowTop + rowStep * static_cast<float>(count) + eggH + 84.f;
+    RectF r(width_ * 0.5f - 360.f, height_ * 0.5f - winH * 0.5f, 720.f, winH);
+    if (art) {
+        markRegion(r);
+        piece(g, "shop_panel", r, 244.f / 255.f);
+    } else {
+        r = modalPanel(g, r, 244);
+    }
+    const auto clip = g.Save();
+    g.SetClip(RectF(r.X - 4.f, r.Y - 40.f, r.Width + 8.f, r.Height + 44.f), CombineModeIntersect);
+    const std::string creditText = std::to_string(game.credits());
+    if (art) {
+        RectF hb(r.X + 28.f, r.Y + 64.f, r.Width - 56.f, 42.f);
+        RectF hc = hb;
+        if (!piece(g, "shop_header", hb, 1.f, &hc)) hc = hb;
+        text(g, "상점", hc.X + 8.f, hb.Y + 9.f, 20.f, kText, 0, true);
+        text(g, creditText, hc.GetRight() - 8.f, hb.Y + 11.f, 17.f, 0xFFFFD45A, 2, true);
+        const float tw = 11.f * static_cast<float>(creditText.size()) + 14.f;
+        piece(g, "icon_credit", RectF(hc.GetRight() - 8.f - tw - 22.f, hb.Y + 10.f, 22.f, 22.f), 1.f);
+    } else {
+        text(g, "상점", r.X + 24.f, r.Y + 18.f, 22.f, kText, 0, true);
+        text(g, "크레딧 " + creditText, r.GetRight() - 24.f, r.Y + 22.f, 18.f, 0xFFFFD45A, 2, true);
+    }
+    const long long charm = game.hunterCharmLeft();
+    text(g, charm > 0 ? "사냥꾼의 부적 " + std::to_string((charm + 59) / 60) + "분 남음"
+                      : std::string("물약은 탑 안에서만 마십니다. 마시는 데 1초, 그동안 느려집니다."),
+         r.X + 32.f, r.Y + (art ? 116.f : 54.f), 13.f, charm > 0 ? kExpC : kSub);
+
+    float y = r.Y + rowTop;
+    for (int idx = 0; idx < count; ++idx) {
+        const Item& it = items[idx];
+        RectF row(r.X + 20.f, y, r.Width - 40.f, rowH);
+        const bool hover = row.Contains(PointF(ctx.mouseX, ctx.mouseY));
+        const bool rowArt = art && piece(g, hover ? "shop_row_hover" : "shop_row", row, 1.f);
+        if (!rowArt) {
+            fillRound(g, row, 10.f, Color(215, 32, 34, 46));
+            strokeRound(g, row, 10.f, Color(120, 80, 88, 120), 1.f);
+        }
+        // 왼쪽 아이콘 받침(줄 그림의 왼쪽 정사각형) 안에 아이콘
+        const bool iconArt = piece(g, icons[idx], RectF(row.X + 9.f, row.Y + 9.f, rowH - 18.f, rowH - 18.f), 1.f);
+        const float tx = row.X + (iconArt || rowArt ? 66.f : 16.f);
+        text(g, it.name, tx, row.Y + 6.f, 15.f, kText, 0, true);
+        if (it.have >= 0) text(g, "보유 " + std::to_string(it.have), tx + 140.f, row.Y + 8.f, 12.f, kSub);
+        const std::string price = std::to_string(game.shopPrice(it.id));
+        const bool coin = piece(g, "icon_credit", RectF(tx + 220.f, row.Y + 7.f, 16.f, 16.f), 1.f);
+        text(g, coin ? price : price + " 크레딧", tx + (coin ? 240.f : 220.f), row.Y + 6.f, 14.f, 0xFFFFD45A, 0, true);
+        paragraph(g, it.desc, RectF(tx, row.Y + 29.f, row.GetRight() - 170.f - tx, 26.f), 11.f, kSub);
         const char* why = game.shopBlockedReason(it.id);
-        RectF b(row.GetRight() - 170.f, row.Y + 12.f, 150.f, 40.f);
-        button(g, out, ctx, b, "사기", UiAction::BuyItem, static_cast<int>(it.id), why == nullptr);
-        if (why) paragraph(g, why, RectF(b.X - 10.f, b.GetBottom() + 2.f, 170.f, 24.f), 11.f, kWarnC);
-        y += rowH;
+        const bool enabled = why == nullptr;
+        RectF b(row.GetRight() - 158.f, row.Y + 11.f, 140.f, 34.f);
+        const bool bHover = enabled && b.Contains(PointF(ctx.mouseX, ctx.mouseY));
+        if (art && piece(g, !enabled ? "shop_buy_off" : bHover ? "shop_buy_hover" : "shop_buy", b, 1.f)) {
+            text(g, "사기", b.X + b.Width * 0.5f, b.Y + 7.f, 15.f, enabled ? 0xFF2A1640 : 0xFF6A6A72, 1, true);
+            UiButton ub;
+            ub.rect = b;
+            ub.action = UiAction::BuyItem;
+            ub.arg = static_cast<int>(it.id);
+            ub.enabled = enabled;
+            out.push_back(ub);
+            markRegion(b);
+        } else {
+            button(g, out, ctx, b, "사기", UiAction::BuyItem, static_cast<int>(it.id), enabled);
+        }
+        if (why) text(g, why, b.X + b.Width * 0.5f, b.GetBottom() + 1.f, 10.f, kWarnC, 1);
+        y += rowStep;
     }
 
     // 보상으로 받은 알(칸이 없어 남겨 둔 것)
     if (s.eggs > 0) {
         const bool can = !game.stableFull();
-        text(g, "부화하지 않은 알 " + std::to_string(s.eggs) + "개", r.X + 24.f, y + 14.f, 15.f, kText, 0, true);
-        button(g, out, ctx, RectF(r.X + 260.f, y + 4.f, 150.f, 40.f), "알 부화", UiAction::HatchEgg, 0, can);
-        if (!can) text(g, "빈 칸이 없습니다", r.X + 424.f, y + 16.f, 12.f, kWarnC);
+        piece(g, "shop_icon_egg", RectF(r.X + 28.f, y + 4.f, 36.f, 36.f), 1.f);
+        text(g, "부화하지 않은 알 " + std::to_string(s.eggs) + "개", r.X + 72.f, y + 12.f, 15.f, kText, 0, true);
+        button(g, out, ctx, RectF(r.X + 280.f, y + 2.f, 150.f, 40.f), "알 부화", UiAction::HatchEgg, 0, can);
+        if (!can) text(g, "빈 칸이 없습니다", r.X + 444.f, y + 14.f, 12.f, kWarnC);
     }
 
     paragraph(g, "크레딧은 바탕화면에서 적을 쓰러뜨리거나 탑의 층을 처음 돌파하면 얻습니다. 부활·사망 무효는 팔지 않습니다.",
-              RectF(r.X + 24.f, r.GetBottom() - 96.f, r.Width - 48.f, 36.f), 12.f, 0xFF9AA0B4);
-    button(g, out, ctx, RectF(r.GetRight() - 150.f, r.GetBottom() - 54.f, 130.f, 40.f), "닫기", UiAction::CloseShop);
+              RectF(r.X + 32.f, r.GetBottom() - 70.f, r.Width - 230.f, 36.f), 12.f, 0xFF9AA0B4);
+    button(g, out, ctx, RectF(r.GetRight() - 170.f, r.GetBottom() - 70.f, 130.f, 38.f), "닫기", UiAction::CloseShop);
     g.Restore(clip);
 }
 
 // 탑 전투 중 물약 버튼(마우스는 키보드 조작과 무관하게 항상 받는다).
 void Renderer::drawTowerPotions(Graphics& g, const Game& game, const RenderContext& ctx, std::vector<UiButton>& out) {
-    if (game.carrySmall() <= 0 && game.carryLarge() <= 0 && game.drinkLeft() <= 0.f) return;
     RectF a(game.arena().x, game.arena().y, game.arena().w, game.arena().h);
-    const float bw = 150.f, bh = 36.f;
-    const float x = a.X + 16.f, y = a.GetBottom() + 10.f;
+    const DragonActor& d = game.world().dragon();
     const bool drinking = game.drinkLeft() > 0.f;
-    button(g, out, ctx, RectF(x, y, bw, bh), "물약(소) x" + std::to_string(game.carrySmall()), UiAction::DrinkPotion, 0,
-           !drinking && game.carrySmall() > 0);
-    button(g, out, ctx, RectF(x + bw + 8.f, y, bw, bh), "물약(대) x" + std::to_string(game.carryLarge()),
-           UiAction::DrinkPotion, 1, !drinking && game.carryLarge() > 0);
-    if (drinking) {
-        RectF pb(x + (bw + 8.f) * 2.f, y + 10.f, 140.f, 14.f);
-        bar(g, pb, 1.f - game.drinkLeft() / cfg::kPotionDrinkTime, 0xFF7CFFB0, "마시는 중");
+    const float bw = 118.f, bh = 34.f;
+    float x = a.X + 16.f;
+    const float y = a.GetBottom() + 10.f;
+    static const char* const kIcons[kPotionKinds] = {"shop_icon_potion_small", "shop_icon_potion_large",
+                                                     "shop_icon_potion_fury", "shop_icon_potion_guard",
+                                                     "shop_icon_potion_swift"};
+    for (int k = 0; k < kPotionKinds; ++k) {
+        const PotionKind pk = static_cast<PotionKind>(k);
+        const int n = game.carried(pk);
+        if (n <= 0) continue;  // 가지고 들어오지 않은 종류는 버튼을 만들지 않는다
+        // 상점 아이콘이 있으면 버튼 왼쪽에 붙인다(그림이 없으면 글자 버튼만)
+        if (piece(g, kIcons[k], RectF(x, y, bh, bh), drinking ? 0.5f : 1.f)) x += bh + 2.f;
+        button(g, out, ctx, RectF(x, y, bw, bh), std::string(potionName(pk)) + " x" + std::to_string(n),
+               UiAction::DrinkPotion, k, !drinking);
+        x += bw + 8.f;
     }
+    if (drinking) {
+        bar(g, RectF(x + 4.f, y + 10.f, 120.f, 14.f), 1.f - game.drinkLeft() / cfg::kPotionDrinkTime, 0xFF7CFFB0, "마시는 중");
+        x += 132.f;
+    }
+    // 켜져 있는 물약 효과와 남은 초
+    std::string buffs;
+    if (d.furyTime > 0.f) buffs += "분노 " + fmtInt(d.furyTime) + "초  ";
+    if (d.guardTime > 0.f) buffs += "수호 " + fmtInt(d.guardTime) + "초  ";
+    if (d.swiftTime > 0.f) buffs += "신속 " + fmtInt(d.swiftTime) + "초";
+    if (!buffs.empty()) text(g, buffs, x + 4.f, y + 8.f, 14.f, 0xFFFFD45A, 0, true, true);
 }
 
 // ---------------------------------------------------------------------------

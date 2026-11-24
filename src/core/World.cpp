@@ -404,7 +404,7 @@ void World::basicAttack() {
     p.pos = d.pos;
     p.targetId = t->id;
     p.speed = cfg::kProjectileSpeed;
-    p.damage = d.stats.atk * cfg::kBasicAttackPower;
+    p.damage = d.attack() * cfg::kBasicAttackPower;
     projectiles_.push_back(p);
     d.basicCd = cfg::kBasicAttackCooldown;
     if (std::fabs(t->pos.x - d.pos.x) > 4.f) d.facing = Vec2{t->pos.x > d.pos.x ? 1.f : -1.f, 0.f};
@@ -555,7 +555,7 @@ bool World::castSkill(int i, bool aiChoice) {
             p.pos = d.pos;
             p.targetId = t->id;
             p.speed = cfg::kProjectileSpeed * 1.1f;
-            p.damage = d.stats.atk * s.power;
+            p.damage = d.attack() * s.power;
             p.big = true;
             p.appliesCurse = sp.key == "revenant" && s.appliesCurse;
             p.skill = i;  // 날아가는 동안 쓸 효과 그림을 그리는 쪽에서 찾는다(2026-11-17)
@@ -569,7 +569,7 @@ bool World::castSkill(int i, bool aiChoice) {
             if (aiChoice && !any) return false;
             for (Enemy& e : enemies_) {
                 if (!inSkillCircle(e, d.pos, skillRadius(s), sizeScale_)) continue;
-                damageEnemy(e, d.stats.atk * s.power, true, s.detonatesCurse);
+                damageEnemy(e, d.attack() * s.power, true, s.detonatesCurse);
                 if (s.extra > 0.f) e.stun = std::max(e.stun, s.extra);
             }
             addSkillFx(s, FxType::Ring, d.pos, d.pos, skillRadius(s), 0.45f, sp.color);
@@ -604,7 +604,7 @@ bool World::castSkill(int i, bool aiChoice) {
                 if (dir.length() < 0.01f) dir = facingDir;
                 dir = dir.normalized();
                 d.breath = BreathCast{i, d.pos, dir, 0.f, s.range, skillRadius(s),
-                                      d.stats.atk * s.power, s.breathInputLock, false, false,
+                                      d.attack() * s.power, s.breathInputLock, false, false,
                                       s.sustainedBreath, 0, {}};
                 if (s.sustainedBreath) d.breath->inputLock = std::max(d.breath->inputLock, d.breath->length());
                 d.breath->facingLeft = std::fabs(dir.x) > 0.01f ? dir.x < 0.f : d.facing.x < 0.f;
@@ -620,7 +620,7 @@ bool World::castSkill(int i, bool aiChoice) {
                 break;
             }
             Vec2 end = d.pos + dir * s.range;
-            hitLine(d.pos, end, skillRadius(s), d.stats.atk * s.power, s.detonatesCurse);
+            hitLine(d.pos, end, skillRadius(s), d.attack() * s.power, s.detonatesCurse);
             addSkillFx(s, FxType::LineBlast, d.pos, end, skillRadius(s), 0.45f, sp.color);
             break;
         }
@@ -632,7 +632,7 @@ bool World::castSkill(int i, bool aiChoice) {
             Vec2 end = bounds_.clampPoint(d.pos + dir * s.range, cfg::kDragonRadius);
             for (Enemy& e : enemies_) {
                 if (!e.alive) continue;
-                if (distancePointSegment(e.pos, d.pos, end) <= skillRadius(s) + scaledBody(e.radius, sizeScale_)) damageEnemy(e, d.stats.atk * s.power);
+                if (distancePointSegment(e.pos, d.pos, end) <= skillRadius(s) + scaledBody(e.radius, sizeScale_)) damageEnemy(e, d.attack() * s.power);
             }
             addSkillFx(s, FxType::Dash, d.pos, end, cfg::kDragonRadius, 0.35f, sp.color);
             const float dashDur = 0.2f;
@@ -690,7 +690,7 @@ bool World::castSkill(int i, bool aiChoice) {
             DotZone z;
             z.pos = t->pos;
             z.radius = skillRadius(s);
-            z.dps = d.stats.atk * s.power;
+            z.dps = d.attack() * s.power;
             z.remaining = s.duration;
             z.duration = s.duration;
             z.appliesCurse = sp.key == "revenant" && s.appliesCurse;
@@ -797,7 +797,7 @@ bool World::advanceProcessionWaves(ProcessionCast& cast, const SkillDef& skill, 
         const float radius = skillRadius(skill);
         for (Enemy& enemy : enemies_)
             if (inSkillCircle(enemy, wave.pos, radius, sizeScale_))
-                damageEnemy(enemy, dragon_.stats.atk * skill.power);
+                damageEnemy(enemy, dragon_.attack() * skill.power);
     }
     cast.waves.erase(std::remove_if(cast.waves.begin(), cast.waves.end(), [&](const ProcessionWave& wave) {
         if (wave.impacted) return wave.age >= ProcessionCast::aftermath;
@@ -958,7 +958,7 @@ void World::advanceSkillCast(float dt, bool combatEnded) {
             blade.pos = d.pos + Vec2{direction * kCleaveLaunchX * bodyHeight,
                                      cfg::kDragonRadius - kCleaveCenterY * bodyHeight};
             blade.speed = skillRange(s) / kCleaveFlight;
-            blade.damage = d.stats.atk * s.power;
+            blade.damage = d.attack() * s.power;
             blade.skill = c.skill;
             blade.cleave = CleaveFlight{direction, skillRadius(s), std::max(0.f, c.elapsed - c.hitTime), sizeScale_, {}};
             projectiles_.push_back(std::move(blade));
@@ -973,14 +973,14 @@ void World::advanceSkillCast(float dt, bool combatEnded) {
                 if ((target->pos.x - shot.pos.x) * facing <= 0.f) shot.pos = d.pos;
             }
             shot.speed = c.boneShotBasic ? kAwakenedBasicBoneShotSpeed : kBoneShotSpeed;
-            shot.damage = d.stats.atk * (c.boneShotBasic ? cfg::kBasicAttackPower : s.power);
+            shot.damage = d.attack() * (c.boneShotBasic ? cfg::kBasicAttackPower : s.power);
             shot.big = true;
             shot.skill = c.skill;
             const float range = c.boneShotBasic ? std::numeric_limits<float>::infinity() : s.range;
             shot.boneShot = BoneShotFlight{c.aim, range, std::max(0.f, c.elapsed - c.hitTime), sizeScale_, {}};
             projectiles_.push_back(std::move(shot));
         } else {
-            hitLine(d.pos, d.pos + c.aim * s.range, skillRadius(s), d.stats.atk * s.power, s.detonatesCurse);
+            hitLine(d.pos, d.pos + c.aim * s.range, skillRadius(s), d.attack() * s.power, s.detonatesCurse);
         }
     }
     if (c.fxDone && c.hitDone && c.elapsed + epsilon >= c.lockTime) d.skillCast.reset();
@@ -1042,7 +1042,7 @@ void World::advanceSoulfire(SkillCast& cast, const SkillDef& s, float previous) 
         DotZone z;
         z.pos = beam->ground;
         z.radius = skillRadius(s);
-        z.dps = dragon_.stats.atk * s.power;
+        z.dps = dragon_.attack() * s.power;
         z.remaining = z.duration = s.duration;
         z.startDelay = start - previous + (speed > 0.f ? along / speed : 0.f);
         z.soulfireCastId = cast.soulfireCastId;
@@ -1571,6 +1571,7 @@ void World::damageDragon(float raw) {
     if (!d.alive) return;
     float dmg = mitigate(raw, d.stats.def);
     if (d.shieldTime > 0.f) dmg *= (1.f - d.shieldPct);
+    if (d.guardTime > 0.f) dmg *= cfg::kGuardDamageMul;  // T6 수호의 물약
     d.hp -= dmg;
     d.hitFlash = 0.2f;
     if (!d.procession && (!d.breath || d.breath->inputLock <= 0.f) &&
@@ -1688,12 +1689,16 @@ void World::updateCombat(float dt, CombatMode mode, const PlayerInput& in) {
     d.flying = false;
     // 타이머
     d.basicCd = std::max(0.f, d.basicCd - dt);
-    for (float& c : d.skillCd) c = std::max(0.f, c - dt);
+    const float cdStep = dt * (d.swiftTime > 0.f ? cfg::kSwiftCdMul : 1.f);  // T6 신속의 물약
+    for (float& c : d.skillCd) c = std::max(0.f, c - cdStep);
     d.dodgeCd = std::max(0.f, d.dodgeCd - dt);
     d.invuln = std::max(0.f, d.invuln - dt);
     d.hitFlash = std::max(0.f, d.hitFlash - dt);
     if (d.shieldTime > 0.f) d.shieldTime -= dt;
     if (d.hasteTime > 0.f) d.hasteTime -= dt;
+    d.furyTime = std::max(0.f, d.furyTime - dt);
+    d.guardTime = std::max(0.f, d.guardTime - dt);
+    d.swiftTime = std::max(0.f, d.swiftTime - dt);
 
     for (Enemy& enemy : enemies_) {
         enemy.curseRemaining = std::max(0.0, enemy.curseRemaining - dt);

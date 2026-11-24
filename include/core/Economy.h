@@ -18,8 +18,5 @@ int creditsForKill(int enemyLevel, bool elite, bool autoMode);
 long long creditsForFloorClear(int floor, bool accountFirst, bool dragonAlreadyCleared, bool asParty);
 // 상점 가격
 long long eggPrice(int livingDragons);
-long long trainingBookPrice(int level);
-// 훈련서 한 권이 주는 경험치
-int trainingBookExp(int level);
 
 }  // namespace dt
