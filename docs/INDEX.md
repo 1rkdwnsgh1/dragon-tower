@@ -31,6 +31,7 @@
 | **결정이 이미 있는지 확인** | [decisions.md](decisions.md) ← **작업 시작 전에 본다** |
 | **버그 고치기** | [known-issues.md](known-issues.md) → [codemap.md](codemap.md) 해당 줄 |
 | **망령룡 작업** | [characters/revenant-dragon.md](characters/revenant-dragon.md) → [characters/revenant-dragon-progress.md](characters/revenant-dragon-progress.md) |
+| **강철룡 작업** | [characters/steel-dragon.md](characters/steel-dragon.md) (외형·대기 연출·종 등록) |
 | **망계의 업화 피격 불꽃** | [A/B 비교·B안 적용과 판정](characters/revenant-soulfire-hit-preview.md) |
 | **망계의 업화 기획·원본 에셋** | [characters/revenant-dragon-nether-soulfire.md](characters/revenant-dragon-nether-soulfire.md) |
 | **망령룡 스킬 그림 고르기** | [characters/revenant-dragon-skill-concepts.md](characters/revenant-dragon-skill-concepts.md) |
@@ -59,6 +60,7 @@
 - [token-budget.md](token-budget.md) — 왕복·토큰 줄이는 방법 중 효과가 확인된 것
 - [ai-workflow-notes.md](ai-workflow-notes.md) — 이 환경에서 안 되는 것, 비용 기록
 - [team-ai-prompt.md](team-ai-prompt.md) — 팀원 AI 에 붙여넣는 요약
+- [characters/steel-dragon.md](characters/steel-dragon.md) — 강철룡 외형·게임 에셋·종 등록
 - 드래곤별 기획: [characters/revenant-dragon.md](characters/revenant-dragon.md) (망령룡 외형·제작 방향) ·
   [characters/revenant-dragon-skills-v1.md](characters/revenant-dragon-skills-v1.md) (스킬 V1, 승인 대기) ·
   [characters/revenant-dragon-nether-soulfire.md](characters/revenant-dragon-nether-soulfire.md) (망계의 업화 기획·원본 에셋) ·
