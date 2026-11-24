@@ -65,7 +65,7 @@ enum class UiAction {
     CloseShop,
     BuyItem,          // arg = ShopItem
     HatchEgg,
-    DrinkPotion,      // arg = 0 소 / 1 대
+    DrinkPotion,      // arg = PotionKind
 };
 
 struct UiButton {

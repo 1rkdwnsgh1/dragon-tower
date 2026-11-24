@@ -28,7 +28,9 @@ enum class Screen {
 };
 
 // 탑 100층 T6(2026-11-24): 상점 품목
-enum class ShopItem { Egg, PotionSmall, PotionLarge, TrainingBook };
+// 2026-11-24: 훈련서는 뺐다. 분노·수호·신속의 물약과 사냥꾼의 부적을 더했다.
+enum class ShopItem { Egg, PotionSmall, PotionLarge, PotionFury, PotionGuard, PotionSwift, HunterCharm };
+constexpr int kShopItemCount = 7;
 
 struct Notice {
     std::string text;
@@ -206,7 +208,7 @@ public:
     long long shopPrice(ShopItem item) const;
     // 살 수 없는 이유. 살 수 있으면 nullptr
     const char* shopBlockedReason(ShopItem item) const;
-    // 사면 바로 효과가 난다: 알은 즉시 부화, 물약은 가방에, 훈련서는 지금 드래곤의 경험치로
+    // 사면 바로 효과가 난다: 알은 즉시 부화, 물약은 가방에
     bool buy(ShopItem item);
     // 가방의 알 하나를 부화시킨다(보상으로 받았는데 칸이 없어 남겨 둔 알)
     bool hatchEgg();
@@ -216,10 +218,15 @@ public:
     bool freeDragonAvailable() const;
     int freePicksLeft() const { return std::max(0, cfg::kFreeDragonPicks - save_.freeDragonsUsed); }
     // 탑에 들어가면 가방의 물약을 모두 가지고 간다(2026-11-24: 개수 제한 없음). 아래는 지금 가진 수.
-    int carrySmall() const { return carrySmall_; }
-    int carryLarge() const { return carryLarge_; }
+    int carried(PotionKind k) const { return carry_[static_cast<size_t>(k)]; }
+    int carrySmall() const { return carried(PotionKind::Small); }
+    int carryLarge() const { return carried(PotionKind::Large); }
     // 탑 안에서 물약을 마신다. kPotionDrinkTime 동안 이동이 느려지고 끝나면 회복한다.
-    bool drinkPotion(bool useLarge);
+    bool drinkPotion(PotionKind k);
+    // 사냥꾼의 부적 남은 초(실제 시간). 0 이면 꺼져 있다.
+    long long hunterCharmLeft() const;
+    // 테스트용: 현재 시각(유닉스 초)을 고정한다. 0 이면 시스템 시계.
+    void setClockForTest(long long epoch) { clockOverride_ = epoch; }
     float drinkLeft() const { return drinkTimer_; }
 
     const RectF& desktopBounds() const { return desktop_; }
@@ -261,10 +268,12 @@ private:
     DragonRecord makeDragonRecord(Species s);
     void addDragonToStable(const DragonRecord& d);
     void returnTowerPotions();   // 탑을 나갈 때 쓰지 않은 물약을 가방으로 돌려준다
-    int carrySmall_ = 0, carryLarge_ = 0;   // 진입 경고창에서 고른 수(진입하면 가지고 들어간 수)
+    std::array<int, kPotionKinds> carry_{};  // 탑에 가지고 들어간 물약(들어가면 가방의 것을 모두)
+    long long clockOverride_ = 0;
+    long long nowEpoch() const;
     bool carryTaken_ = false;               // 진입하면서 가방에서 뺐는가
     float drinkTimer_ = 0.f;
-    bool drinkLarge_ = false;
+    PotionKind drinking_ = PotionKind::Small;
     Screen shopReturn_ = Screen::Stable;
     void placeDragonForDesktop();
 

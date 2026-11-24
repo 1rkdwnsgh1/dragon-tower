@@ -4,7 +4,6 @@
 #include <cmath>
 
 #include "core/Config.h"
-#include "core/Progression.h"
 
 namespace dt {
 
@@ -34,10 +33,5 @@ long long eggPrice(int livingDragons) {
     return cfg::kEggBasePrice + cfg::kEggStepPrice * std::max(0, livingDragons - 1);
 }
 
-long long trainingBookPrice(int level) { return cfg::kTrainingBookPerLevel * std::max(1, level); }
-
-int trainingBookExp(int level) {
-    return std::max(1, static_cast<int>(std::floor(static_cast<float>(expToNext(level)) * cfg::kTrainingBookExpRatio)));
-}
 
 }  // namespace dt

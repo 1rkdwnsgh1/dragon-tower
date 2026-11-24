@@ -177,8 +177,15 @@ constexpr long long kPotionSmallPrice = 50;
 constexpr long long kPotionLargePrice = 150;
 constexpr float kPotionSmallHeal = 0.30f;   // 최대 체력 비율
 constexpr float kPotionLargeHeal = 0.60f;
-constexpr long long kTrainingBookPerLevel = 20;  // 훈련서 = 현재 레벨 × 이 값
-constexpr float kTrainingBookExpRatio = 0.25f;   // 다음 레벨까지 필요 경험치의 이 비율
+constexpr long long kPotionFuryPrice = 200;   // 분노의 물약: kFuryTime 초 동안 공격력 × kFuryAtkMul
+constexpr long long kPotionGuardPrice = 200;  // 수호의 물약: kGuardTime 초 동안 받는 피해 × kGuardDamageMul
+constexpr long long kPotionSwiftPrice = 200;  // 신속의 물약: kSwiftTime 초 동안 스킬 쿨타임이 kSwiftCdMul 배 빨리 돈다
+constexpr float kFuryTime = 20.f, kFuryAtkMul = 1.25f;
+constexpr float kGuardTime = 15.f, kGuardDamageMul = 0.70f;
+constexpr float kSwiftTime = 20.f, kSwiftCdMul = 1.5f;
+constexpr long long kHunterCharmPrice = 500;  // 사냥꾼의 부적: 실제 시간 kHunterCharmSeconds 동안 처치 경험치 × kHunterCharmExpMul
+constexpr long long kHunterCharmSeconds = 30LL * 60LL; // (직접 조작·스킬 수동만. 자동 사냥 제외 — 2026-11-24 사용자 결정)
+constexpr float kHunterCharmExpMul = 1.5f;
 constexpr float kPotionDrinkTime = 1.0f;    // 마시는 데 걸리는 시간(초)
 constexpr float kPotionDrinkMove = 0.5f;    // 마시는 동안 이동 속도 배율
 constexpr int kFreeDragonPicks = 4;       // 처음에 공짜로 고르는 드래곤 수(2026-11-24 사용자 결정)

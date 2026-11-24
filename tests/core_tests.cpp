@@ -403,8 +403,6 @@ static void testEconomy() {
     CHECK(creditsForFloorClear(5, false, false, false) == 30);  // 계정이 이미 깬 층 20%
     CHECK(creditsForFloorClear(5, true, true, false) == 0);     // 이 드래곤이 이미 깬 층
     CHECK(eggPrice(1) == 3000 && eggPrice(2) == 4000 && eggPrice(3) == 5000);
-    CHECK(trainingBookPrice(7) == 140);
-    CHECK(trainingBookExp(1) == std::max(1, expToNext(1) / 4));
 
     // 가방 저장 왕복과 잘못된 값
     {
@@ -432,23 +430,18 @@ static void testEconomy() {
     g.seed(11);
     g.init(s, kDesk);
 
-    // 물약·훈련서·알
+    // 물약·알
     CHECK(g.buy(ShopItem::PotionSmall));
     CHECK(g.buy(ShopItem::PotionLarge));
     CHECK(g.save().potionSmall == 1 && g.save().potionLarge == 1);
     CHECK(g.credits() == 10000 - 50 - 150);
-    const int expBefore = g.dragonRecord().exp;
-    const int lvBefore = g.dragonRecord().level;
-    CHECK(g.buy(ShopItem::TrainingBook));
-    CHECK(g.dragonRecord().exp > expBefore || g.dragonRecord().level > lvBefore);
-    CHECK(g.credits() == 10000 - 200 - 25 * 20);
     CHECK(g.shopPrice(ShopItem::Egg) == 3000);
     CHECK(g.buy(ShopItem::Egg));
     CHECK(g.stable().size() == 2);
     CHECK(g.stable()[1].level == 1 && g.stable()[1].alive);
     CHECK(g.shopPrice(ShopItem::Egg) == 4000);
-    CHECK(g.credits() == 10000 - 200 - 500 - 3000);
-    CHECK(g.buy(ShopItem::Egg));                            // 6300 → 2300
+    CHECK(g.credits() == 10000 - 200 - 3000);
+    CHECK(g.buy(ShopItem::Egg));                            // 6800 → 2800
     CHECK(g.shopBlockedReason(ShopItem::Egg) != nullptr);   // 5000 이 모자란다
     // 칸이 차면 알을 못 산다
     SaveData full = g.snapshotForSave();
@@ -483,8 +476,8 @@ static void testEconomy() {
     CHECK(!gt.buy(ShopItem::PotionSmall));         // 탑 안에서는 상점 불가
     // 마시기: 1초 뒤 회복, 그동안 느려진다
     gt.world().dragon().hp = gt.world().dragon().stats.maxHp * 0.2f;
-    CHECK(gt.drinkPotion(false));
-    CHECK(!gt.drinkPotion(false));  // 마시는 중에는 또 못 마신다
+    CHECK(gt.drinkPotion(PotionKind::Small));
+    CHECK(!gt.drinkPotion(PotionKind::Small));  // 마시는 중에는 또 못 마신다
     CHECK(gt.carrySmall() == 4);
     PlayerInput none;
     gt.update(0.5f, none, false, true);
@@ -496,7 +489,52 @@ static void testEconomy() {
         CHECK(gt.world().dragon().moveScale == 1.f);
     }
     // 바탕화면에서는 마실 수 없다
-    CHECK(!g.drinkPotion(false));
+    CHECK(!g.drinkPotion(PotionKind::Small));
+
+    // 분노·수호·신속의 물약: 마시고 1초 뒤 효과가 켜진다
+    {
+        SaveData b = s;
+        b.potionFury = 1; b.potionGuard = 1; b.potionSwift = 1;
+        Game gb2;
+        gb2.seed(4);
+        gb2.init(b, kDesk);
+        gb2.openTowerWarning();
+        gb2.enterTower(CombatMode::SkillManual);
+        CHECK(gb2.carried(PotionKind::Fury) == 1 && gb2.save().potionFury == 0);
+        const float atk0 = gb2.world().dragon().attack();
+        PlayerInput idle;
+        CHECK(gb2.drinkPotion(PotionKind::Fury));
+        gb2.update(1.05f, idle, false, true);
+        if (gb2.screen() == Screen::Tower) {
+            CHECK(gb2.world().dragon().furyTime > 0.f);
+            CHECK(gb2.world().dragon().attack() > atk0 * 1.2f);
+            CHECK(gb2.drinkPotion(PotionKind::Swift));
+            gb2.update(1.05f, idle, false, true);
+            CHECK(gb2.world().dragon().swiftTime > 0.f);
+            CHECK(gb2.drinkPotion(PotionKind::Guard));
+            gb2.update(1.05f, idle, false, true);
+            CHECK(gb2.world().dragon().guardTime > 0.f);
+        }
+        SaveData rt;
+        CHECK(deserializeSave(serializeSave(b), rt));
+        CHECK(rt.potionFury == 1 && rt.potionGuard == 1 && rt.potionSwift == 1);
+    }
+    // 사냥꾼의 부적: 실제 시간 30분, 사면 이어 붙는다
+    {
+        Game gc;
+        gc.init(s, kDesk);
+        gc.setClockForTest(1000000);
+        CHECK(gc.hunterCharmLeft() == 0);
+        CHECK(gc.buy(ShopItem::HunterCharm));
+        CHECK(gc.hunterCharmLeft() == cfg::kHunterCharmSeconds);
+        CHECK(gc.buy(ShopItem::HunterCharm));
+        CHECK(gc.hunterCharmLeft() == 2 * cfg::kHunterCharmSeconds);
+        gc.setClockForTest(1000000 + 2 * cfg::kHunterCharmSeconds + 5);
+        CHECK(gc.hunterCharmLeft() == 0);
+        SaveData rt;
+        CHECK(deserializeSave(serializeSave(gc.snapshotForSave()), rt));
+        CHECK(rt.hunterCharmUntil == 1000000 + 2 * cfg::kHunterCharmSeconds);
+    }
 
     // 바탕화면 처치는 크레딧을 준다
     SaveData h = s;

@@ -7,6 +7,7 @@
 #include <string>
 #include <vector>
 
+#include "core/Config.h"
 #include "core/MathUtil.h"
 #include "core/SaveData.h"
 #include "core/Species.h"
@@ -327,6 +328,9 @@ struct DragonActor {
     float shieldTime = 0.f, shieldPct = 0.f;
     float hasteTime = 0.f, hasteSpeed = 0.f, hasteDodge = 0.f;
     float moveScale = 1.f;  // T6: 탑 물약을 마시는 동안 이동이 느려진다(Game 이 정한다)
+    // T6 탑 물약 효과(남은 초). World 가 줄이고, 배율은 cfg::kFury*·kGuard*·kSwift*
+    float furyTime = 0.f, guardTime = 0.f, swiftTime = 0.f;
+    float attack() const { return stats.atk * (furyTime > 0.f ? cfg::kFuryAtkMul : 1.f); }
     float hitFlash = 0.f;
     bool alive = true;
     bool moving = false;

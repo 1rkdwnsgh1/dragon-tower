@@ -2,6 +2,8 @@
 
 #include "core/Economy.h"
 
+#include <chrono>
+
 #include <algorithm>
 #include <utility>  // std::move (전이 포함을 믿지 않는다 — v1.4의 교훈)
 
@@ -219,8 +221,9 @@ SaveData Game::snapshotForSave() {
     // T6: 탑 안에서 꺼지면 탑 진행은 남지 않는다. 가지고 들어간 물약은 가방에 있는 것으로 저장한다.
     SaveData out = save_;
     if (carryTaken_) {
-        out.potionSmall = std::min(cfg::kMaxInventory, out.potionSmall + carrySmall_);
-        out.potionLarge = std::min(cfg::kMaxInventory, out.potionLarge + carryLarge_);
+        for (int k = 0; k < kPotionKinds; ++k)
+            out.potion(static_cast<PotionKind>(k)) =
+                std::min(cfg::kMaxInventory, out.potion(static_cast<PotionKind>(k)) + carry_[static_cast<size_t>(k)]);
     }
     return out;
 }
@@ -801,10 +804,11 @@ void Game::enterTower(CombatMode m) {
     world_.clearEnemies(false);
     towerMode_ = m;
     // T6: 가방의 물약을 모두 가지고 들어간다(2026-11-24 사용자 결정: 개수 제한 없음)
-    carrySmall_ = save_.potionSmall;
-    carryLarge_ = save_.potionLarge;
-    save_.potionSmall = 0;
-    save_.potionLarge = 0;
+    for (int k = 0; k < kPotionKinds; ++k) {
+        int& have = save_.potion(static_cast<PotionKind>(k));
+        carry_[static_cast<size_t>(k)] = have;
+        have = 0;
+    }
     carryTaken_ = true;
     drinkTimer_ = 0.f;
     towerFloor_ = std::clamp(selectedTowerFloor_, 1, towerFloorCount());
@@ -937,7 +941,11 @@ void Game::processEvents(bool autoExp) {
             if (screen_ != Screen::Tower)
                 addCredits(creditsForKill(ev.level, isEliteEnemyKey(enemyDef(ev.enemyKind).key), autoExp), nullptr);
             int oldLevel = save_.dragon.level;
-            ExpResult r = grantExp(save_.dragon, ev.exp, autoExp);
+            int gain = ev.exp;
+            // 사냥꾼의 부적: 바탕화면 직접 조작·스킬 수동 처치만(자동 제외, 탑 제외)
+            if (!autoExp && screen_ != Screen::Tower && hunterCharmLeft() > 0)
+                gain = static_cast<int>(static_cast<float>(gain) * cfg::kHunterCharmExpMul);
+            ExpResult r = grantExp(save_.dragon, gain, autoExp);
             if (r.levelsGained > 0) {
                 world_.setDragonLevel(save_.dragon.level);
                 syncSkillSlots();  // 새로 해제된 스킬을 빈 칸에 넣는다
@@ -1051,7 +1059,14 @@ void Game::update(float dt, const PlayerInput& in, bool hidden, bool inputEnable
                 if (drinkTimer_ <= 0.f) {
                     drinkTimer_ = 0.f;
                     world_.dragon().moveScale = 1.f;
-                    world_.healPercent(drinkLarge_ ? cfg::kPotionLargeHeal : cfg::kPotionSmallHeal);
+                    DragonActor& dd = world_.dragon();
+                    switch (drinking_) {
+                        case PotionKind::Small: world_.healPercent(cfg::kPotionSmallHeal); break;
+                        case PotionKind::Large: world_.healPercent(cfg::kPotionLargeHeal); break;
+                        case PotionKind::Fury: dd.furyTime = cfg::kFuryTime; break;
+                        case PotionKind::Guard: dd.guardTime = cfg::kGuardTime; break;
+                        case PotionKind::Swift: dd.swiftTime = cfg::kSwiftTime; break;
+                    }
                     world_.addFx(FxType::LevelUp, world_.dragon().pos, world_.dragon().pos, 50.f, 0.6f, 0xFF7CFFB0);
                 }
             }
@@ -1137,7 +1152,10 @@ long long Game::shopPrice(ShopItem item) const {
         case ShopItem::Egg: return eggPrice(static_cast<int>(save_.stable.size()));
         case ShopItem::PotionSmall: return cfg::kPotionSmallPrice;
         case ShopItem::PotionLarge: return cfg::kPotionLargePrice;
-        case ShopItem::TrainingBook: return trainingBookPrice(save_.hasDragon ? save_.dragon.level : 1);
+        case ShopItem::PotionFury: return cfg::kPotionFuryPrice;
+        case ShopItem::PotionGuard: return cfg::kPotionGuardPrice;
+        case ShopItem::PotionSwift: return cfg::kPotionSwiftPrice;
+        case ShopItem::HunterCharm: return cfg::kHunterCharmPrice;
     }
     return 0;
 }
@@ -1151,14 +1169,16 @@ const char* Game::shopBlockedReason(ShopItem item) const {
             if (speciesCount() <= 0) return "부화할 드래곤 종이 없습니다.";
             break;
         case ShopItem::PotionSmall:
-            if (save_.potionSmall >= cfg::kMaxInventory) return "더 가질 수 없습니다.";
-            break;
         case ShopItem::PotionLarge:
-            if (save_.potionLarge >= cfg::kMaxInventory) return "더 가질 수 없습니다.";
+        case ShopItem::PotionFury:
+        case ShopItem::PotionGuard:
+        case ShopItem::PotionSwift: {
+            const PotionKind k = static_cast<PotionKind>(static_cast<int>(item) - static_cast<int>(ShopItem::PotionSmall));
+            if (save_.potion(k) >= cfg::kMaxInventory) return "더 가질 수 없습니다.";
             break;
-        case ShopItem::TrainingBook:
-            if (!save_.hasDragon) return "플레이 중인 드래곤이 없습니다.";
-            if (save_.dragon.level >= cfg::kMaxLevel) return "이미 최고 레벨입니다.";
+        }
+        case ShopItem::HunterCharm:
+            if (hunterCharmLeft() > 24LL * 3600) return "이미 하루 넘게 남아 있습니다.";
             break;
     }
     return nullptr;
@@ -1178,21 +1198,19 @@ bool Game::buy(ShopItem item) {
             notify(speciesDef(s).name + "이(가) 알에서 태어났습니다. 관리창에서 띄울 수 있습니다.", kGood, 3.5f);
             break;
         }
-        case ShopItem::PotionSmall: save_.credits -= price; ++save_.potionSmall; break;
-        case ShopItem::PotionLarge: save_.credits -= price; ++save_.potionLarge; break;
-        case ShopItem::TrainingBook: {
+        case ShopItem::PotionSmall:
+        case ShopItem::PotionLarge:
+        case ShopItem::PotionFury:
+        case ShopItem::PotionGuard:
+        case ShopItem::PotionSwift:
             save_.credits -= price;
-            const int oldLevel = save_.dragon.level;
-            const int gain = trainingBookExp(save_.dragon.level);
-            ExpResult r = grantExp(save_.dragon, gain, false);
-            if (r.levelsGained > 0) {
-                world_.setDragonLevel(save_.dragon.level);
-                syncSkillSlots();
-                notify("레벨 업! Lv." + std::to_string(save_.dragon.level), kGood);
-            } else {
-                notify("경험치 +" + std::to_string(gain), kGood, 2.5f);
-            }
-            (void)oldLevel;
+            ++save_.potion(static_cast<PotionKind>(static_cast<int>(item) - static_cast<int>(ShopItem::PotionSmall)));
+            break;
+        case ShopItem::HunterCharm: {
+            save_.credits -= price;
+            const long long now = nowEpoch();
+            save_.hunterCharmUntil = std::max(now, save_.hunterCharmUntil) + cfg::kHunterCharmSeconds;
+            notify("사냥꾼의 부적: " + std::to_string(hunterCharmLeft() / 60) + "분 남았습니다.", kGood, 3.f);
             break;
         }
     }
@@ -1209,22 +1227,32 @@ bool Game::hatchEgg() {
     return true;
 }
 
-bool Game::drinkPotion(bool useLarge) {
+bool Game::drinkPotion(PotionKind k) {
     if (screen_ != Screen::Tower || drinkTimer_ > 0.f || !world_.dragon().alive) return false;
-    int& have = useLarge ? carryLarge_ : carrySmall_;
+    int& have = carry_[static_cast<size_t>(k)];
     if (have <= 0) return false;
     --have;
-    drinkLarge_ = useLarge;
+    drinking_ = k;
     drinkTimer_ = cfg::kPotionDrinkTime;
     world_.dragon().moveScale = cfg::kPotionDrinkMove;
     return true;
 }
 
+long long Game::nowEpoch() const {
+    if (clockOverride_ > 0) return clockOverride_;
+    return static_cast<long long>(
+        std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now().time_since_epoch()).count());
+}
+
+long long Game::hunterCharmLeft() const { return std::max(0LL, save_.hunterCharmUntil - nowEpoch()); }
+
 void Game::returnTowerPotions() {
     if (!carryTaken_) return;
-    save_.potionSmall = std::min(cfg::kMaxInventory, save_.potionSmall + carrySmall_);
-    save_.potionLarge = std::min(cfg::kMaxInventory, save_.potionLarge + carryLarge_);
-    carrySmall_ = carryLarge_ = 0;
+    for (int k = 0; k < kPotionKinds; ++k) {
+        int& have = save_.potion(static_cast<PotionKind>(k));
+        have = std::min(cfg::kMaxInventory, have + carry_[static_cast<size_t>(k)]);
+        carry_[static_cast<size_t>(k)] = 0;
+    }
     carryTaken_ = false;
     drinkTimer_ = 0.f;
     world_.dragon().moveScale = 1.f;

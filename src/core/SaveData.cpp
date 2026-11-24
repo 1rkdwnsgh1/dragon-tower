@@ -145,6 +145,10 @@ std::string serializeSave(const SaveData& s) {
     o << "credits=" << s.credits << "\n";
     o << "inv.potionSmall=" << s.potionSmall << "\n";
     o << "inv.potionLarge=" << s.potionLarge << "\n";
+    o << "inv.potionFury=" << s.potionFury << "\n";
+    o << "inv.potionGuard=" << s.potionGuard << "\n";
+    o << "inv.potionSwift=" << s.potionSwift << "\n";
+    o << "hunterCharmUntil=" << s.hunterCharmUntil << "\n";
     o << "inv.eggs=" << s.eggs << "\n";
     o << "freeDragonsUsed=" << s.freeDragonsUsed << "\n";
     o << "tower.exact=1\n";
@@ -312,6 +316,10 @@ bool deserializeSave(const std::string& text, SaveData& out) {
         else if (key == "credits") s.credits = std::clamp(toInt64(val, 0), 0LL, cfg::kMaxCredits);
         else if (key == "inv.potionSmall") s.potionSmall = std::clamp(toInt(val, 0), 0, cfg::kMaxInventory);
         else if (key == "inv.potionLarge") s.potionLarge = std::clamp(toInt(val, 0), 0, cfg::kMaxInventory);
+        else if (key == "inv.potionFury") s.potionFury = std::clamp(toInt(val, 0), 0, cfg::kMaxInventory);
+        else if (key == "inv.potionGuard") s.potionGuard = std::clamp(toInt(val, 0), 0, cfg::kMaxInventory);
+        else if (key == "inv.potionSwift") s.potionSwift = std::clamp(toInt(val, 0), 0, cfg::kMaxInventory);
+        else if (key == "hunterCharmUntil") s.hunterCharmUntil = std::max(0LL, toInt64(val, 0));
         else if (key == "inv.eggs") s.eggs = std::clamp(toInt(val, 0), 0, cfg::kMaxInventory);
         else if (key == "freeDragonsUsed") { s.freeDragonsUsed = std::clamp(toInt(val, 0), 0, cfg::kFreeDragonPicks); sawFreeUsed = true; }
         else if (key == "tower.firstClear") s.firstClear = std::clamp(toInt(val, 0), 0, cfg::kTowerTopFloor);
@@ -440,5 +448,16 @@ bool loadFromFile(const std::filesystem::path& path, SaveData& out) {
 }
 
 int SaveData::stableCapacity() const { return stableCapacityFor(fieldBossCleared); }
+
+const char* potionName(PotionKind k) {
+    switch (k) {
+        case PotionKind::Small: return "물약(소)";
+        case PotionKind::Large: return "물약(대)";
+        case PotionKind::Fury: return "분노의 물약";
+        case PotionKind::Guard: return "수호의 물약";
+        case PotionKind::Swift: return "신속의 물약";
+    }
+    return "";
+}
 
 }  // namespace dt
