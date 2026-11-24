@@ -4148,6 +4148,36 @@ static void testBoneShot(const std::filesystem::path& assets) {
     CHECK(reopened.world().dragon().awakened);
 }
 
+static void testSteelDragon(const std::filesystem::path& assets) {
+    std::printf("[steel dragon registration]\n");
+    const DragonScanResult scan = loadDragonFolders(assets / "dragons");
+    for (const auto& warning : scan.warnings)
+        CHECK(warning.find("steel_dragon") == std::string::npos);
+
+    Species steel{};
+    const bool found = speciesFromKey("steel_dragon", steel);
+    CHECK(found);
+    if (!found) return;
+    const auto& def = speciesDef(steel);
+    CHECK(def.name == "강철룡" && def.role != "Preview" && def.flipAllowed);
+    CHECK(def.anims[static_cast<int>(AnimState::Idle)].fps == 16.f);
+    CHECK(def.anims[static_cast<int>(AnimState::Idle)].loop);
+    CHECK(def.skills.size() == 3);
+
+    Game game;
+    game.init(SaveData{}, kDesk);
+    CHECK(game.screen() == Screen::Select);
+    game.chooseSpecies(steel);
+    CHECK(game.screen() == Screen::Desktop && game.hasDragon());
+    CHECK(game.dragonRecord().species == steel && game.consumeSaveRequest());
+
+    SaveData saved;
+    CHECK(deserializeSave(serializeSave(game.snapshotForSave()), saved));
+    Game restarted;
+    restarted.init(saved, kDesk);
+    CHECK(restarted.hasDragon() && restarted.dragonRecord().species == steel);
+}
+
 int main(int argc, char** argv) {
     if (argc == 3 && std::string(argv[1]) == "--bone-shot") {
         testBoneShot(std::filesystem::u8path(argv[2]));
@@ -4258,6 +4288,7 @@ int main(int argc, char** argv) {
         testNetherSoulfire(assets);
         testSpectralCleave(assets);
         testBoneShot(assets);
+        testSteelDragon(assets);
     }
     else std::printf("[elite variants spawn] assets 경로 인자가 없어 건너뜀\n");
     std::printf("\n%d passed, %d failed\n", g_passed, g_failed);
