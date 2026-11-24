@@ -161,6 +161,28 @@ constexpr int kStableBonusEvery = 20;
 constexpr int kMaxStableTotal = kMaxStable + kTowerTopFloor / kStableBonusEvery;
 // 크레딧 저장 상한(64비트). 손으로 고친 저장 파일이 넘쳐도 읽을 때 이 값으로 자른다.
 constexpr long long kMaxCredits = 999999999999LL;
+
+// ---- 탑 100층 T6(2026-11-24): 크레딧·상점·탑 물약. 모두 임시값(tower-100-design.md 4.4) ----
+constexpr int kCreditKillBase = 2;          // 바탕화면 처치 = 2 + 적 레벨 ÷ kCreditKillLevelDiv
+constexpr int kCreditKillLevelDiv = 5;
+constexpr int kCreditEliteMul = 3;          // 정예 처치 배율
+constexpr float kCreditAutoMul = 0.7f;      // 자동 사냥 배율(버림, 최소 1)
+constexpr int kCreditFloorFirst = 10;       // 일반층 첫 돌파 = 층 × 이 값
+constexpr int kCreditMidBossFirst = 30;     // 중간 보스층 첫 돌파
+constexpr int kCreditFieldBossFirst = 100;  // 필드 보스층 첫 돌파(파티, T7)
+constexpr float kCreditRepeatRatio = 0.2f;  // 계정이 이미 깬 층을 다른 드래곤이 돌파
+constexpr long long kEggBasePrice = 3000;   // 알 = 기본 + 단계 × (살아 있는 드래곤 수 − 1)
+constexpr long long kEggStepPrice = 1000;
+constexpr long long kPotionSmallPrice = 50;
+constexpr long long kPotionLargePrice = 150;
+constexpr float kPotionSmallHeal = 0.30f;   // 최대 체력 비율
+constexpr float kPotionLargeHeal = 0.60f;
+constexpr long long kTrainingBookPerLevel = 20;  // 훈련서 = 현재 레벨 × 이 값
+constexpr float kTrainingBookExpRatio = 0.25f;   // 다음 레벨까지 필요 경험치의 이 비율
+constexpr int kTowerPotionCarry = 2;        // 탑에 한 번 오를 때 가지고 들어가는 물약 수
+constexpr float kPotionDrinkTime = 1.0f;    // 마시는 데 걸리는 시간(초)
+constexpr float kPotionDrinkMove = 0.5f;    // 마시는 동안 이동 속도 배율
+constexpr int kMaxInventory = 9999;         // 물약·알 보유 상한(저장 값 범위)
 // v1.4 드래곤 하나가 가질 수 있는 스킬 수의 상한. 제한이 필요해서가 아니라
 // dragon.txt에 [skill.9999] 같은 오타가 들어왔을 때 메모리를 그만큼 잡지 않으려는 안전장치다.
 // 레벨마다 하나씩 해제되므로 최고 레벨보다 많아 봐야 열리지 않는다.

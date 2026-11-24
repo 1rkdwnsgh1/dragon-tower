@@ -26,6 +26,9 @@ enum class Screen {
     Skills,        // v1.4 스킬 관리창(해제된 스킬 목록과 장착 4칸)
 };
 
+// 탑 100층 T6(2026-11-24): 상점 품목
+enum class ShopItem { Egg, PotionSmall, PotionLarge, TrainingBook };
+
 struct Notice {
     std::string text;
     float t = 0.f;
@@ -150,7 +153,8 @@ public:
     // 보유 목록. 죽은 개체는 들어 있지 않다(묘비로만 남는다).
     const std::vector<DragonRecord>& stable() const { return save_.stable; }
     int activeIndex() const { return save_.activeIndex; }
-    bool stableFull() const { return save_.stable.size() >= static_cast<size_t>(cfg::kMaxStable); }
+    // T6: 칸 수는 기본 4 + 깬 20의 배수 필드 보스층(SaveData::stableCapacity)
+    bool stableFull() const { return save_.stable.size() >= static_cast<size_t>(save_.stableCapacity()); }
     // 전투·탑 밖에서만 바꿀 수 있다(불리할 때 바꿔 끼워 위험을 피하는 것을 막는다).
     bool canSwitchDragon() const;
     const char* switchBlockedReason() const;  // 못 바꾸는 이유. 바꿀 수 있으면 nullptr
@@ -196,6 +200,23 @@ public:
     // 보관 중인(띄우지 않은) 개체의 최대 체력. 체력바를 그리는 데 쓴다.
     float maxHpOf(const DragonRecord& d) const;
 
+    // ---- 탑 100층 T6: 크레딧·상점·탑 물약 ----
+    long long credits() const { return save_.credits; }
+    long long shopPrice(ShopItem item) const;
+    // 살 수 없는 이유. 살 수 있으면 nullptr
+    const char* shopBlockedReason(ShopItem item) const;
+    // 사면 바로 효과가 난다: 알은 즉시 부화, 물약은 가방에, 훈련서는 지금 드래곤의 경험치로
+    bool buy(ShopItem item);
+    // 가방의 알 하나를 부화시킨다(보상으로 받았는데 칸이 없어 남겨 둔 알)
+    bool hatchEgg();
+    // 탑 진입 경고창에서 가지고 들어갈 물약(합계 kTowerPotionCarry 이하, 가방 수량 이하로 맞춘다)
+    void setTowerPotionCarry(int small, int large);
+    int carrySmall() const { return carrySmall_; }
+    int carryLarge() const { return carryLarge_; }
+    // 탑 안에서 물약을 마신다. kPotionDrinkTime 동안 이동이 느려지고 끝나면 회복한다.
+    bool drinkPotion(bool large);
+    float drinkLeft() const { return drinkTimer_; }
+
     const RectF& desktopBounds() const { return desktop_; }
     const GraveEntry* lastGrave() const { return save_.graves.empty() ? nullptr : &save_.graves.back(); }
 
@@ -230,6 +251,15 @@ private:
     std::string towerFloorLabel(int floor) const;  // "탑 1층" / "탑 3층: 수호자"
     void processEvents(bool autoExp);
     void onDragonDied();
+    // T6
+    void addCredits(long long amount, const char* why);
+    DragonRecord makeDragonRecord(Species s);
+    void addDragonToStable(const DragonRecord& d);
+    void returnTowerPotions();   // 탑을 나갈 때 쓰지 않은 물약을 가방으로 돌려준다
+    int carrySmall_ = 0, carryLarge_ = 0;   // 진입 경고창에서 고른 수(진입하면 가지고 들어간 수)
+    bool carryTaken_ = false;               // 진입하면서 가방에서 뺐는가
+    float drinkTimer_ = 0.f;
+    bool drinkLarge_ = false;
     void placeDragonForDesktop();
 
     SaveData save_;

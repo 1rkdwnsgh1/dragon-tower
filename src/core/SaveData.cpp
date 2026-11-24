@@ -143,6 +143,9 @@ std::string serializeSave(const SaveData& s) {
     o << "towerClears=" << s.towerClears << "\n";
     // 탑 100층 T2(2026-11-18). 모르는 키는 옛 빌드가 무시하므로 호환이 깨지지 않는다.
     o << "credits=" << s.credits << "\n";
+    o << "inv.potionSmall=" << s.potionSmall << "\n";
+    o << "inv.potionLarge=" << s.potionLarge << "\n";
+    o << "inv.eggs=" << s.eggs << "\n";
     o << "tower.exact=1\n";
     writeFloors(o, "tower.firstClearFloors", s.firstClearFloors);
     o << "tower.firstClear=" << s.firstClear << "\n";
@@ -305,6 +308,9 @@ bool deserializeSave(const std::string& text, SaveData& out) {
         else if (key == "tower.firstClearFloors") s.firstClearFloors = readFloors(val);
         else if (key == "dragon.cleared") s.dragon.cleared = std::clamp(toInt(val, 0), 0, cfg::kTowerTopFloor);
         else if (key == "credits") s.credits = std::clamp(toInt64(val, 0), 0LL, cfg::kMaxCredits);
+        else if (key == "inv.potionSmall") s.potionSmall = std::clamp(toInt(val, 0), 0, cfg::kMaxInventory);
+        else if (key == "inv.potionLarge") s.potionLarge = std::clamp(toInt(val, 0), 0, cfg::kMaxInventory);
+        else if (key == "inv.eggs") s.eggs = std::clamp(toInt(val, 0), 0, cfg::kMaxInventory);
         else if (key == "tower.firstClear") s.firstClear = std::clamp(toInt(val, 0), 0, cfg::kTowerTopFloor);
         else if (key == "tower.fieldBossCleared") {
             // 필드 보스층(10의 배수)만 받는다. 손으로 고친 값이 섞여도 슬롯 수가 부풀지 않게.

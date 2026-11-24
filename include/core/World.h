@@ -326,6 +326,7 @@ struct DragonActor {
     float invuln = 0.f;
     float shieldTime = 0.f, shieldPct = 0.f;
     float hasteTime = 0.f, hasteSpeed = 0.f, hasteDodge = 0.f;
+    float moveScale = 1.f;  // T6: 탑 물약을 마시는 동안 이동이 느려진다(Game 이 정한다)
     float hitFlash = 0.f;
     bool alive = true;
     bool moving = false;
@@ -355,6 +356,7 @@ struct WorldEvent {
     WorldEventType type;
     EnemyKind enemyKind{};
     int exp = 0;
+    int level = 0;  // T6: 쓰러뜨린 적의 레벨(크레딧 계산)
 };
 
 class World {

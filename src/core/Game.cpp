@@ -1,5 +1,7 @@
 #include "core/Game.h"
 
+#include "core/Economy.h"
+
 #include <algorithm>
 #include <utility>  // std::move (전이 포함을 믿지 않는다 — v1.4의 교훈)
 
@@ -214,7 +216,13 @@ SaveData Game::snapshotForSave() {
         save_.activeIndex < static_cast<int>(save_.stable.size())) {
         save_.stable[static_cast<size_t>(save_.activeIndex)] = save_.dragon;
     }
-    return save_;
+    // T6: 탑 안에서 꺼지면 탑 진행은 남지 않는다. 가지고 들어간 물약은 가방에 있는 것으로 저장한다.
+    SaveData out = save_;
+    if (carryTaken_) {
+        out.potionSmall = std::min(cfg::kMaxInventory, out.potionSmall + carrySmall_);
+        out.potionLarge = std::min(cfg::kMaxInventory, out.potionLarge + carryLarge_);
+    }
+    return out;
 }
 
 float Game::maxHpOf(const DragonRecord& d) const { return statsFor(d.species, d.level).maxHp; }
@@ -469,18 +477,11 @@ void Game::placeDragonForDesktop() {
 void Game::chooseSpecies(Species s) {
     if (screen_ != Screen::Select) return;
     if (stableFull()) {
-        notify("더 가질 수 없습니다. 최대 " + std::to_string(cfg::kMaxStable) + "마리입니다.", kWarn, 3.f);
+        notify("더 가질 수 없습니다. 최대 " + std::to_string(save_.stableCapacity()) + "마리입니다.", kWarn, 3.f);
         screen_ = save_.hasDragon ? Screen::Stable : Screen::Select;
         return;
     }
-    DragonRecord d;
-    d.id = save_.nextDragonId++;
-    d.species = s;
-    d.alive = true;
-    d.level = 1;
-    d.exp = 0;
-    d.autoExp = 0;
-    d.hp = -1.f;
+    DragonRecord d = makeDragonRecord(s);
     // v1.3: 목록에 더한다. 지금 플레이 중인 개체가 있으면 그대로 두고 목록에만 넣는다.
     bool wasAdding = addingDragon_ && save_.hasDragon;
     if (wasAdding) {
@@ -787,6 +788,12 @@ void Game::enterTower(CombatMode m) {
     }
     world_.clearEnemies(false);
     towerMode_ = m;
+    // T6: 고른 물약을 가방에서 꺼내 가지고 들어간다
+    setTowerPotionCarry(carrySmall_, carryLarge_);
+    save_.potionSmall -= carrySmall_;
+    save_.potionLarge -= carryLarge_;
+    carryTaken_ = true;
+    drinkTimer_ = 0.f;
     towerFloor_ = std::clamp(selectedTowerFloor_, 1, towerFloorCount());
     towerFinalRewardGranted_ = false;
     save_.bestFloor = std::max(save_.bestFloor, towerFloor_);
@@ -814,6 +821,7 @@ void Game::nextFloor() {
 
 void Game::leaveTower() {
     if (screen_ != Screen::FloorClear && screen_ != Screen::TowerVictory) return;
+    returnTowerPotions();
     world_.resetSouls();
     world_.clearEnemies(false);
     towerFloor_ = 0;
@@ -873,6 +881,8 @@ void Game::acknowledgeDeath() {
 
 void Game::onDragonDied() {
     std::string place;
+    if (screen_ == Screen::Tower) returnTowerPotions();  // T6: 쓰지 않은 물약은 가방으로(부활은 없다)
+    drinkTimer_ = 0.f;
     if (screen_ == Screen::Tower) place = "tower" + std::to_string(towerFloor_);
     else place = (save_.huntMode == CombatMode::Auto) ? "auto" : "hunt";
     deathPlace_ = place;
@@ -909,6 +919,9 @@ void Game::processEvents(bool autoExp) {
             if (!ek.empty() && save_.enemiesSeen.insert(ek).second) saveRequested_ = true;
         } else if (ev.type == WorldEventType::EnemyKilled) {
             if (!save_.hasDragon) continue;
+            // T6: 바탕화면 사냥 처치는 크레딧을 준다(탑은 층 돌파로 준다)
+            if (screen_ != Screen::Tower)
+                addCredits(creditsForKill(ev.level, isEliteEnemyKey(enemyDef(ev.enemyKind).key), autoExp), nullptr);
             int oldLevel = save_.dragon.level;
             ExpResult r = grantExp(save_.dragon, ev.exp, autoExp);
             if (r.levelsGained > 0) {
@@ -1017,12 +1030,28 @@ void Game::update(float dt, const PlayerInput& in, bool hidden, bool inputEnable
         case Screen::Tower: {
             if (hidden) { paused_ = true; pauseReason_ = "다른 앱이 전체화면이라 탑 전투를 잠시 멈췄습니다."; break; }
             if (!inputEnabled) { paused_ = true; pauseReason_ = "게임 입력이 꺼져 탑 전투를 멈췄습니다. 설정 버튼으로 켜세요."; break; }
+            if (drinkTimer_ > 0.f) {
+                drinkTimer_ -= dt;
+                world_.dragon().moveScale = cfg::kPotionDrinkMove;
+                if (drinkTimer_ <= 0.f) {
+                    drinkTimer_ = 0.f;
+                    world_.dragon().moveScale = 1.f;
+                    world_.healPercent(drinkLarge_ ? cfg::kPotionLargeHeal : cfg::kPotionSmallHeal);
+                    world_.addFx(FxType::LevelUp, world_.dragon().pos, world_.dragon().pos, 50.f, 0.6f, 0xFF7CFFB0);
+                }
+            }
             world_.updateCombat(dt, towerMode_, in);
             world_.updateFx(dt);
             processEvents(false);
             if (screen_ != Screen::Tower) break;
             if (world_.aliveEnemyCount() == 0) {
+                // T6: 기록을 올리기 전에 보상 판정(이 드래곤이 깬 적 있는 층인가, 계정 첫 돌파인가)
+                const bool dragonAlready = save_.dragon.clearedFloors.count(towerFloor_) > 0;
+                const bool accountFirst = save_.firstClearFloors.count(towerFloor_) == 0;
+                drinkTimer_ = 0.f;
+                world_.dragon().moveScale = 1.f;
                 const bool firstClear = recordFloorCleared(towerFloor_);
+                addCredits(creditsForFloorClear(towerFloor_, accountFirst, dragonAlready, false), "층 돌파");
                 if (towerFloor_ >= towerFloorCount()) {
                     world_.resetSouls();
                     save_.towerClears++;
@@ -1050,6 +1079,149 @@ void Game::update(float dt, const PlayerInput& in, bool hidden, bool inputEnable
         autosaveTimer_ = 0.f;
         if (save_.hasDragon) saveRequested_ = true;
     }
+}
+
+}  // namespace dt
+
+namespace dt {
+
+// ---------------- 탑 100층 T6: 크레딧·상점·탑 물약 ----------------
+
+void Game::addCredits(long long amount, const char* why) {
+    if (amount <= 0) return;
+    save_.credits = std::min(cfg::kMaxCredits, save_.credits + amount);
+    if (why) notify(std::string(why) + " +" + std::to_string(amount) + " 크레딧", 0xFFFFD45A, 2.5f);
+    saveRequested_ = true;
+}
+
+DragonRecord Game::makeDragonRecord(Species s) {
+    DragonRecord d;
+    d.id = save_.nextDragonId++;
+    d.species = s;
+    d.alive = true;
+    d.level = 1;
+    d.exp = 0;
+    d.autoExp = 0;
+    d.hp = -1.f;
+    return d;
+}
+
+void Game::addDragonToStable(const DragonRecord& d) {
+    // 띄워 둔 개체의 현재 상태를 목록에 먼저 반영한다(chooseSpecies 와 같은 순서)
+    if (save_.hasDragon && save_.activeIndex >= 0 && save_.activeIndex < static_cast<int>(save_.stable.size())) {
+        save_.dragon.hp = world_.dragon().hp;
+        save_.stable[static_cast<size_t>(save_.activeIndex)] = save_.dragon;
+    }
+    save_.stable.push_back(d);
+    save_.markSeen(d.species);
+    saveRequested_ = true;
+}
+
+long long Game::shopPrice(ShopItem item) const {
+    switch (item) {
+        case ShopItem::Egg: return eggPrice(static_cast<int>(save_.stable.size()));
+        case ShopItem::PotionSmall: return cfg::kPotionSmallPrice;
+        case ShopItem::PotionLarge: return cfg::kPotionLargePrice;
+        case ShopItem::TrainingBook: return trainingBookPrice(save_.hasDragon ? save_.dragon.level : 1);
+    }
+    return 0;
+}
+
+const char* Game::shopBlockedReason(ShopItem item) const {
+    if (inTowerFlow() || screen_ == Screen::Tower) return "탑에 있는 동안에는 상점을 쓸 수 없습니다.";
+    if (save_.credits < shopPrice(item)) return "크레딧이 모자랍니다.";
+    switch (item) {
+        case ShopItem::Egg:
+            if (stableFull()) return "빈 칸이 없습니다. 필드 보스를 깨면 칸이 늘어납니다.";
+            if (speciesCount() <= 0) return "부화할 드래곤 종이 없습니다.";
+            break;
+        case ShopItem::PotionSmall:
+            if (save_.potionSmall >= cfg::kMaxInventory) return "더 가질 수 없습니다.";
+            break;
+        case ShopItem::PotionLarge:
+            if (save_.potionLarge >= cfg::kMaxInventory) return "더 가질 수 없습니다.";
+            break;
+        case ShopItem::TrainingBook:
+            if (!save_.hasDragon) return "플레이 중인 드래곤이 없습니다.";
+            if (save_.dragon.level >= cfg::kMaxLevel) return "이미 최고 레벨입니다.";
+            break;
+    }
+    return nullptr;
+}
+
+bool Game::buy(ShopItem item) {
+    if (const char* why = shopBlockedReason(item)) {
+        notify(why, kWarn, 3.f);
+        return false;
+    }
+    const long long price = shopPrice(item);
+    switch (item) {
+        case ShopItem::Egg: {
+            save_.credits -= price;
+            const Species s = static_cast<Species>(rng_.range(0, speciesCount() - 1));
+            addDragonToStable(makeDragonRecord(s));
+            notify(speciesDef(s).name + "이(가) 알에서 태어났습니다. 관리창에서 띄울 수 있습니다.", kGood, 3.5f);
+            break;
+        }
+        case ShopItem::PotionSmall: save_.credits -= price; ++save_.potionSmall; break;
+        case ShopItem::PotionLarge: save_.credits -= price; ++save_.potionLarge; break;
+        case ShopItem::TrainingBook: {
+            save_.credits -= price;
+            const int oldLevel = save_.dragon.level;
+            const int gain = trainingBookExp(save_.dragon.level);
+            ExpResult r = grantExp(save_.dragon, gain, false);
+            if (r.levelsGained > 0) {
+                world_.setDragonLevel(save_.dragon.level);
+                syncSkillSlots();
+                notify("레벨 업! Lv." + std::to_string(save_.dragon.level), kGood);
+            } else {
+                notify("경험치 +" + std::to_string(gain), kGood, 2.5f);
+            }
+            (void)oldLevel;
+            break;
+        }
+    }
+    saveRequested_ = true;
+    return true;
+}
+
+bool Game::hatchEgg() {
+    if (save_.eggs <= 0 || stableFull() || speciesCount() <= 0) return false;
+    --save_.eggs;
+    const Species s = static_cast<Species>(rng_.range(0, speciesCount() - 1));
+    addDragonToStable(makeDragonRecord(s));
+    notify(speciesDef(s).name + "이(가) 알에서 태어났습니다.", kGood, 3.5f);
+    return true;
+}
+
+void Game::setTowerPotionCarry(int small, int large) {
+    if (carryTaken_) return;  // 들어간 뒤에는 바꿀 수 없다
+    small = std::clamp(small, 0, std::min(cfg::kTowerPotionCarry, save_.potionSmall));
+    large = std::clamp(large, 0, std::min(cfg::kTowerPotionCarry - small, save_.potionLarge));
+    carrySmall_ = small;
+    carryLarge_ = large;
+}
+
+bool Game::drinkPotion(bool large) {
+    if (screen_ != Screen::Tower || drinkTimer_ > 0.f || !world_.dragon().alive) return false;
+    int& have = large ? carryLarge_ : carrySmall_;
+    if (have <= 0) return false;
+    --have;
+    drinkLarge_ = large;
+    drinkTimer_ = cfg::kPotionDrinkTime;
+    world_.dragon().moveScale = cfg::kPotionDrinkMove;
+    return true;
+}
+
+void Game::returnTowerPotions() {
+    if (!carryTaken_) return;
+    save_.potionSmall = std::min(cfg::kMaxInventory, save_.potionSmall + carrySmall_);
+    save_.potionLarge = std::min(cfg::kMaxInventory, save_.potionLarge + carryLarge_);
+    carrySmall_ = carryLarge_ = 0;
+    carryTaken_ = false;
+    drinkTimer_ = 0.f;
+    world_.dragon().moveScale = 1.f;
+    saveRequested_ = true;
 }
 
 }  // namespace dt
