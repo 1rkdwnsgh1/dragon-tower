@@ -1194,20 +1194,20 @@ bool Game::hatchEgg() {
     return true;
 }
 
-void Game::setTowerPotionCarry(int small, int large) {
+void Game::setTowerPotionCarry(int smallCount, int largeCount) {
     if (carryTaken_) return;  // 들어간 뒤에는 바꿀 수 없다
-    small = std::clamp(small, 0, std::min(cfg::kTowerPotionCarry, save_.potionSmall));
-    large = std::clamp(large, 0, std::min(cfg::kTowerPotionCarry - small, save_.potionLarge));
-    carrySmall_ = small;
-    carryLarge_ = large;
+    smallCount = std::clamp(smallCount, 0, std::min(cfg::kTowerPotionCarry, save_.potionSmall));
+    largeCount = std::clamp(largeCount, 0, std::min(cfg::kTowerPotionCarry - smallCount, save_.potionLarge));
+    carrySmall_ = smallCount;
+    carryLarge_ = largeCount;
 }
 
-bool Game::drinkPotion(bool large) {
+bool Game::drinkPotion(bool useLarge) {
     if (screen_ != Screen::Tower || drinkTimer_ > 0.f || !world_.dragon().alive) return false;
-    int& have = large ? carryLarge_ : carrySmall_;
+    int& have = useLarge ? carryLarge_ : carrySmall_;
     if (have <= 0) return false;
     --have;
-    drinkLarge_ = large;
+    drinkLarge_ = useLarge;
     drinkTimer_ = cfg::kPotionDrinkTime;
     world_.dragon().moveScale = cfg::kPotionDrinkMove;
     return true;

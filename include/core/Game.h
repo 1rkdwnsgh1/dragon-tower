@@ -210,11 +210,11 @@ public:
     // 가방의 알 하나를 부화시킨다(보상으로 받았는데 칸이 없어 남겨 둔 알)
     bool hatchEgg();
     // 탑 진입 경고창에서 가지고 들어갈 물약(합계 kTowerPotionCarry 이하, 가방 수량 이하로 맞춘다)
-    void setTowerPotionCarry(int small, int large);
+    void setTowerPotionCarry(int smallCount, int largeCount);  // small 은 Windows 매크로라 쓰지 않는다
     int carrySmall() const { return carrySmall_; }
     int carryLarge() const { return carryLarge_; }
     // 탑 안에서 물약을 마신다. kPotionDrinkTime 동안 이동이 느려지고 끝나면 회복한다.
-    bool drinkPotion(bool large);
+    bool drinkPotion(bool useLarge);
     float drinkLeft() const { return drinkTimer_; }
 
     const RectF& desktopBounds() const { return desktop_; }
