@@ -1,7 +1,9 @@
 # 강철룡 자료 출처
 
-사용자가 승인한 `STEEL_DRAGON_IDLE_WING_TAIL_PREVIEW.zip`의 `steel_dragon/` 상태 시트를 그대로 사용했다. [ChatGPT 라이브러리의 승인 패키지](https://chatgpt.com/library?file_id=libfile_c1a7fece9cc4819180dd6810118995b4&account_id=personal)
+사용자가 승인한 `STEEL_DRAGON_IDLE_WING_TAIL_PREVIEW.zip`의 `steel_dragon/` 상태 시트를 사용했다. 대기 시트는 원본 본체와 연기의 재생 순서를 조정해 다시 합성했다. [ChatGPT 라이브러리의 승인 패키지](https://chatgpt.com/library?file_id=libfile_c1a7fece9cc4819180dd6810118995b4&account_id=personal)
 
 SHA-256 `b7b9032e9ec1dc7420c4959005882bad98136f74f6129b0b6bf3cc0efb066eb0`.
 
 대기는 96칸을 16 FPS로 반복한다. 날개 연기는 검수용 6초 주기에서 3초간 재생하며, 꼬리 연기는 대기 중 이어진다. 그 외 상태는 패키지의 연기 없는 대체 시트를 사용한다. 별도 라이선스와 제작자 정보는 패키지에 명시되어 있지 않다.
+
+대기 본체는 1초에 한 번 반복하던 호흡을 6초에 한 번으로 늦췄다. 0~1.5초에 들이쉬고, 1.5~1.75초에 가슴이 부푼 상태를 유지한다. 1.75초에 가슴이 내려가기 시작하면서 날개 연기를 3초간 재생한다. 꼬리 연기는 기존 타이밍을 유지한다.
