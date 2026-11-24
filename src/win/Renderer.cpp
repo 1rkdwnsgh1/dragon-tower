@@ -2908,21 +2908,13 @@ void Renderer::drawModal(Graphics& g, const Game& game, const Sprites& sprites, 
                       "층 사이에서 탑을 나가면 드래곤은 살아서 돌아옵니다.",
                       RectF(r.X + 24.f, r.Y + 220.f, r.Width - 48.f, 60.f), 13.f, kSub);
             {
-                // T6: 가지고 들어갈 탑 물약(합계 2개까지). 쓰지 않은 것은 나올 때 돌려받는다.
+                // T6: 가방의 물약을 모두 가지고 간다(개수 제한 없음). 쓰지 않은 것은 나올 때 돌려받는다.
                 const SaveData& sv = game.save();
                 const float py = r.Y + 290.f;
-                text(g, "가지고 갈 물약 (최대 " + std::to_string(cfg::kTowerPotionCarry) + "개)", r.X + 24.f, py, 14.f,
-                     kText, 0, true);
-                const auto row = [&](float x, const std::string& name, int carry, int have, int minus, int plus) {
-                    text(g, name + "  " + std::to_string(carry) + "  (가방 " + std::to_string(have) + ")", x, py + 30.f,
-                         14.f, have > 0 ? kText : 0xFF7C8090);
-                    button(g, out, ctx, RectF(x + 170.f, py + 24.f, 34.f, 30.f), "-", UiAction::AdjustPotion, minus,
-                           carry > 0);
-                    button(g, out, ctx, RectF(x + 210.f, py + 24.f, 34.f, 30.f), "+", UiAction::AdjustPotion, plus,
-                           carry < have && game.carrySmall() + game.carryLarge() < cfg::kTowerPotionCarry);
-                };
-                row(r.X + 24.f, "물약(소)", game.carrySmall(), sv.potionSmall, 0, 1);
-                row(r.X + 24.f + 290.f, "물약(대)", game.carryLarge(), sv.potionLarge, 2, 3);
+                text(g, "가지고 갈 물약", r.X + 24.f, py, 14.f, kText, 0, true);
+                text(g, "물약(소) " + std::to_string(sv.potionSmall) + "개  ·  물약(대) " + std::to_string(sv.potionLarge) +
+                            "개  —  가방에 있는 물약을 모두 가지고 갑니다",
+                     r.X + 24.f, py + 28.f, 14.f, sv.potionSmall + sv.potionLarge > 0 ? kText : 0xFF7C8090);
             }
             float bw = (r.Width - 48.f - 16.f) / 3.f;
             float by = r.GetBottom() - 68.f;
@@ -3212,7 +3204,7 @@ void Renderer::drawShop(Graphics& g, const Game& game, const RenderContext& ctx,
          "바로 부화합니다. 종은 무작위, Lv.1. 빈 칸이 있어야 합니다. 살 때마다 비싸집니다."},
         {ShopItem::PotionSmall, "탑 물약(소)",
          "탑 안에서만 씁니다. 체력 " + std::to_string(static_cast<int>(cfg::kPotionSmallHeal * 100.f)) +
-             "% 회복. 한 번 오를 때 2개까지 가지고 갑니다."},
+             "% 회복. 가방에 있는 만큼 가지고 들어갑니다."},
         {ShopItem::PotionLarge, "탑 물약(대)",
          "탑 안에서만 씁니다. 체력 " + std::to_string(static_cast<int>(cfg::kPotionLargeHeal * 100.f)) +
              "% 회복. 마시는 데 1초, 그동안 느려집니다."},

@@ -65,7 +65,6 @@ enum class UiAction {
     CloseShop,
     BuyItem,          // arg = ShopItem
     HatchEgg,
-    AdjustPotion,     // arg = 0 소− / 1 소+ / 2 대− / 3 대+
     DrinkPotion,      // arg = 0 소 / 1 대
 };
 

@@ -467,7 +467,7 @@ static void testEconomy() {
     CHECK(gb.buy(ShopItem::Egg));
     CHECK(gb.stable().size() == 5);
 
-    // 탑 물약: 2개까지, 가방 수량까지
+    // 탑 물약: 가방의 물약을 모두 가지고 들어간다(제한 없음)
     SaveData t = s;
     t.potionSmall = 5;
     t.potionLarge = 0;
@@ -475,18 +475,17 @@ static void testEconomy() {
     gt.seed(3);
     gt.init(t, kDesk);
     gt.openTowerWarning();
-    gt.setTowerPotionCarry(3, 2);
-    CHECK(gt.carrySmall() == 2 && gt.carryLarge() == 0);
     gt.enterTower(CombatMode::SkillManual);
     CHECK(gt.screen() == Screen::Tower);
-    CHECK(gt.save().potionSmall == 3);
+    CHECK(gt.carrySmall() == 5 && gt.carryLarge() == 0);
+    CHECK(gt.save().potionSmall == 0);
     CHECK(gt.snapshotForSave().potionSmall == 5);  // 탑 안에서 꺼져도 잃지 않는다
     CHECK(!gt.buy(ShopItem::PotionSmall));         // 탑 안에서는 상점 불가
     // 마시기: 1초 뒤 회복, 그동안 느려진다
     gt.world().dragon().hp = gt.world().dragon().stats.maxHp * 0.2f;
     CHECK(gt.drinkPotion(false));
     CHECK(!gt.drinkPotion(false));  // 마시는 중에는 또 못 마신다
-    CHECK(gt.carrySmall() == 1);
+    CHECK(gt.carrySmall() == 4);
     PlayerInput none;
     gt.update(0.5f, none, false, true);
     CHECK(gt.world().dragon().moveScale < 1.f);
@@ -551,22 +550,6 @@ static void testEconomy() {
         SaveData rt;
         CHECK(deserializeSave(serializeSave(more), rt));
         CHECK(rt.freeDragonsUsed == 4);
-    }
-    // 탑 경고창: 물약은 기본으로 가진 만큼(소 먼저), −/+ 로 바꾼다
-    {
-        SaveData w = s;
-        w.potionSmall = 1;
-        w.potionLarge = 3;
-        Game gw;
-        gw.init(w, kDesk);
-        gw.openTowerWarning();
-        CHECK(gw.carrySmall() == 1 && gw.carryLarge() == 1);
-        gw.adjustTowerPotion(0);
-        CHECK(gw.carrySmall() == 0 && gw.carryLarge() == 1);
-        gw.adjustTowerPotion(3);
-        CHECK(gw.carryLarge() == 2);
-        gw.adjustTowerPotion(1);  // 합계 2를 넘으면 대를 하나 줄인다
-        CHECK(gw.carrySmall() == 1 && gw.carryLarge() == 1);
     }
 }
 

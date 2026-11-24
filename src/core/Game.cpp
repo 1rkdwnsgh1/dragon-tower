@@ -737,8 +737,6 @@ int Game::towerRecommendedLevel(int floor) const {
 void Game::openTowerWarning() {
     if (!save_.hasDragon || (screen_ != Screen::Desktop && screen_ != Screen::TowerSelect)) return;
     warningFromSelection_ = screen_ == Screen::TowerSelect;
-    // T6: 물약은 가진 만큼 기본으로 챙긴다(소 먼저). 경고창에서 −/+ 로 바꾼다.
-    if (!carryTaken_) setTowerPotionCarry(cfg::kTowerPotionCarry, cfg::kTowerPotionCarry);
     if (!warningFromSelection_) selectedTowerFloor_ = 1;
     screen_ = Screen::TowerWarning;
 }
@@ -802,10 +800,11 @@ void Game::enterTower(CombatMode m) {
     }
     world_.clearEnemies(false);
     towerMode_ = m;
-    // T6: 고른 물약을 가방에서 꺼내 가지고 들어간다
-    setTowerPotionCarry(carrySmall_, carryLarge_);
-    save_.potionSmall -= carrySmall_;
-    save_.potionLarge -= carryLarge_;
+    // T6: 가방의 물약을 모두 가지고 들어간다(2026-11-24 사용자 결정: 개수 제한 없음)
+    carrySmall_ = save_.potionSmall;
+    carryLarge_ = save_.potionLarge;
+    save_.potionSmall = 0;
+    save_.potionLarge = 0;
     carryTaken_ = true;
     drinkTimer_ = 0.f;
     towerFloor_ = std::clamp(selectedTowerFloor_, 1, towerFloorCount());
@@ -1210,14 +1209,6 @@ bool Game::hatchEgg() {
     return true;
 }
 
-void Game::setTowerPotionCarry(int smallCount, int largeCount) {
-    if (carryTaken_) return;  // 들어간 뒤에는 바꿀 수 없다
-    smallCount = std::clamp(smallCount, 0, std::min(cfg::kTowerPotionCarry, save_.potionSmall));
-    largeCount = std::clamp(largeCount, 0, std::min(cfg::kTowerPotionCarry - smallCount, save_.potionLarge));
-    carrySmall_ = smallCount;
-    carryLarge_ = largeCount;
-}
-
 bool Game::drinkPotion(bool useLarge) {
     if (screen_ != Screen::Tower || drinkTimer_ > 0.f || !world_.dragon().alive) return false;
     int& have = useLarge ? carryLarge_ : carrySmall_;
@@ -1256,23 +1247,6 @@ bool Game::freeDragonAvailable() const {
     if (stableFull()) return false;
     if (save_.freeDragonsUsed < cfg::kFreeDragonPicks) return true;
     return save_.stable.empty();  // 모두 죽었으면 한 마리는 공짜(2026-11-24 사용자 결정)
-}
-
-void Game::adjustTowerPotion(int code) {
-    if (screen_ != Screen::TowerWarning) return;
-    int sm = carrySmall_, lg = carryLarge_;
-    if (code == 0) --sm;
-    else if (code == 1) ++sm;
-    else if (code == 2) --lg;
-    else if (code == 3) ++lg;
-    if (sm + lg > cfg::kTowerPotionCarry) {  // 합계를 넘으면 반대쪽을 하나 줄인다
-        if (code == 1 && lg > 0) --lg;
-        else if (code == 3 && sm > 0) --sm;
-        else return;
-    }
-    setTowerPotionCarry(sm, lg);
-    // setTowerPotionCarry 는 소를 먼저 채우므로 대를 늘렸을 때 소가 줄지 않았으면 다시 맞춘다
-    if (code == 3 && carryLarge_ < lg && carrySmall_ > 0) setTowerPotionCarry(carrySmall_ - 1, lg);
 }
 
 }  // namespace dt

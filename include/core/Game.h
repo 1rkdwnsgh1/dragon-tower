@@ -215,10 +215,7 @@ public:
     // 공짜로 고를 수 있는가: 처음 kFreeDragonPicks 마리, 또는 살아 있는 드래곤이 하나도 없을 때 한 마리
     bool freeDragonAvailable() const;
     int freePicksLeft() const { return std::max(0, cfg::kFreeDragonPicks - save_.freeDragonsUsed); }
-    // 탑 진입 경고창의 물약 −/+ (0 소−, 1 소+, 2 대−, 3 대+)
-    void adjustTowerPotion(int code);
-    // 탑 진입 경고창에서 가지고 들어갈 물약(합계 kTowerPotionCarry 이하, 가방 수량 이하로 맞춘다)
-    void setTowerPotionCarry(int smallCount, int largeCount);  // small 은 Windows 매크로라 쓰지 않는다
+    // 탑에 들어가면 가방의 물약을 모두 가지고 간다(2026-11-24: 개수 제한 없음). 아래는 지금 가진 수.
     int carrySmall() const { return carrySmall_; }
     int carryLarge() const { return carryLarge_; }
     // 탑 안에서 물약을 마신다. kPotionDrinkTime 동안 이동이 느려지고 끝나면 회복한다.
