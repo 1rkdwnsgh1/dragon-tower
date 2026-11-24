@@ -620,6 +620,12 @@ void App::doAction(const UiButton& b) {
         case UiAction::SkillPage: game_.setSkillPage(b.arg); break;
         case UiAction::ShowDragon: game_.switchDragon(b.arg); break;
         case UiAction::AddDragon: game_.beginAddDragon(); break;
+        case UiAction::OpenShop: game_.openShop(); break;
+        case UiAction::CloseShop: game_.closeShop(); break;
+        case UiAction::BuyItem: game_.buy(static_cast<ShopItem>(b.arg)); break;
+        case UiAction::HatchEgg: game_.hatchEgg(); break;
+        case UiAction::AdjustPotion: game_.adjustTowerPotion(b.arg); break;
+        case UiAction::DrinkPotion: game_.drinkPotion(b.arg == 1); break;
         case UiAction::SetKeepRange: game_.setKeepRange(b.arg); break;
         case UiAction::DragPanel:   // 끌기는 WM_LBUTTONDOWN에서 시작한다
         case UiAction::DragMenu:

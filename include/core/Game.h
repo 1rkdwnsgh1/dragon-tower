@@ -24,6 +24,7 @@ enum class Screen {
     Codex,         // 기록·도감
     Stable,        // v1.3 드래곤 관리창(보유 목록·묘비)
     Skills,        // v1.4 스킬 관리창(해제된 스킬 목록과 장착 4칸)
+    Shop,          // 탑 100층 T6 상점(관리창에서 연다)
 };
 
 // 탑 100층 T6(2026-11-24): 상점 품목
@@ -209,6 +210,13 @@ public:
     bool buy(ShopItem item);
     // 가방의 알 하나를 부화시킨다(보상으로 받았는데 칸이 없어 남겨 둔 알)
     bool hatchEgg();
+    void openShop();             // 관리창·바탕화면에서 연다
+    void closeShop();            // 연 곳으로 돌아간다
+    // 공짜로 고를 수 있는가: 처음 kFreeDragonPicks 마리, 또는 살아 있는 드래곤이 하나도 없을 때 한 마리
+    bool freeDragonAvailable() const;
+    int freePicksLeft() const { return std::max(0, cfg::kFreeDragonPicks - save_.freeDragonsUsed); }
+    // 탑 진입 경고창의 물약 −/+ (0 소−, 1 소+, 2 대−, 3 대+)
+    void adjustTowerPotion(int code);
     // 탑 진입 경고창에서 가지고 들어갈 물약(합계 kTowerPotionCarry 이하, 가방 수량 이하로 맞춘다)
     void setTowerPotionCarry(int smallCount, int largeCount);  // small 은 Windows 매크로라 쓰지 않는다
     int carrySmall() const { return carrySmall_; }
@@ -260,6 +268,7 @@ private:
     bool carryTaken_ = false;               // 진입하면서 가방에서 뺐는가
     float drinkTimer_ = 0.f;
     bool drinkLarge_ = false;
+    Screen shopReturn_ = Screen::Stable;
     void placeDragonForDesktop();
 
     SaveData save_;

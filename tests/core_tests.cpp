@@ -511,6 +511,63 @@ static void testEconomy() {
     in.skill[0] = in.skill[1] = true;
     for (int i = 0; i < 30 * 60 && gh.credits() == 0 && gh.screen() == Screen::Desktop; ++i) gh.update(1.f / 30.f, in, false, true);
     CHECK(gh.credits() > 0);
+
+    // 처음 4마리만 공짜. 그 뒤는 알로만. 모두 죽으면 한 마리 공짜(2026-11-24)
+    {
+        Game gp;
+        gp.init(SaveData{}, kDesk);
+        CHECK(gp.freeDragonAvailable() && gp.freePicksLeft() == 4);
+        gp.chooseSpecies(Species::Fire);
+        for (int i = 0; i < 3; ++i) {
+            gp.openStable();
+            gp.beginAddDragon();
+            gp.chooseSpecies(Species::Fire);
+        }
+        CHECK(gp.stable().size() == 4 && gp.freePicksLeft() == 0);
+        CHECK(!gp.freeDragonAvailable());
+        // 칸이 늘어도 공짜는 없다
+        SaveData more = gp.snapshotForSave();
+        more.fieldBossCleared.insert(20);
+        Game gm;
+        gm.init(more, kDesk);
+        CHECK(!gm.stableFull() && !gm.freeDragonAvailable());
+        gm.openStable();
+        gm.beginAddDragon();
+        CHECK(gm.screen() == Screen::Stable);  // 선택 화면으로 가지 않는다
+        // 모두 죽은 저장: 한 마리 공짜
+        SaveData dead;
+        dead.freeDragonsUsed = 4;
+        GraveEntry gr; gr.id = 1; dead.graves.push_back(gr);
+        Game gd;
+        gd.init(dead, kDesk);
+        CHECK(gd.freeDragonAvailable());
+        gd.chooseSpecies(Species::Fire);
+        CHECK(gd.hasDragon() && gd.stable().size() == 1);
+        CHECK(!gd.freeDragonAvailable());
+        // 옛 저장(키 없음)은 가진·잃은 수만큼 이미 쓴 것으로 친다
+        SaveData old;
+        CHECK(deserializeSave("version=1\nstable.count=0\n", old));
+        CHECK(old.freeDragonsUsed == 0);
+        SaveData rt;
+        CHECK(deserializeSave(serializeSave(more), rt));
+        CHECK(rt.freeDragonsUsed == 4);
+    }
+    // 탑 경고창: 물약은 기본으로 가진 만큼(소 먼저), −/+ 로 바꾼다
+    {
+        SaveData w = s;
+        w.potionSmall = 1;
+        w.potionLarge = 3;
+        Game gw;
+        gw.init(w, kDesk);
+        gw.openTowerWarning();
+        CHECK(gw.carrySmall() == 1 && gw.carryLarge() == 1);
+        gw.adjustTowerPotion(0);
+        CHECK(gw.carrySmall() == 0 && gw.carryLarge() == 1);
+        gw.adjustTowerPotion(3);
+        CHECK(gw.carryLarge() == 2);
+        gw.adjustTowerPotion(1);  // 합계 2를 넘으면 대를 하나 줄인다
+        CHECK(gw.carrySmall() == 1 && gw.carryLarge() == 1);
+    }
 }
 
 static void testTowerFlow() {

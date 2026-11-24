@@ -390,6 +390,10 @@ void Game::closeSkills() {
 
 void Game::beginAddDragon() {
     if (screen_ != Screen::Stable || stableFull()) return;
+    if (!freeDragonAvailable()) {
+        notify("공짜로 데려올 수 있는 드래곤을 다 골랐습니다. 상점에서 알을 사세요.", kWarn, 3.5f);
+        return;
+    }
     addingDragon_ = true;
     screen_ = Screen::Select;
 }
@@ -481,6 +485,14 @@ void Game::chooseSpecies(Species s) {
         screen_ = save_.hasDragon ? Screen::Stable : Screen::Select;
         return;
     }
+    if (!freeDragonAvailable()) {
+        notify("공짜로 고를 수 있는 드래곤이 없습니다. 상점에서 알을 사세요.", kWarn, 3.5f);
+        screen_ = save_.hasDragon ? Screen::Stable : Screen::Select;
+        addingDragon_ = false;
+        return;
+    }
+    // 처음 4마리 안이면 공짜 횟수를 쓴다. 다 쓴 뒤라면 '모두 죽었을 때의 구조' 한 마리다.
+    if (save_.freeDragonsUsed < cfg::kFreeDragonPicks) ++save_.freeDragonsUsed;
     DragonRecord d = makeDragonRecord(s);
     // v1.3: 목록에 더한다. 지금 플레이 중인 개체가 있으면 그대로 두고 목록에만 넣는다.
     bool wasAdding = addingDragon_ && save_.hasDragon;
@@ -725,6 +737,8 @@ int Game::towerRecommendedLevel(int floor) const {
 void Game::openTowerWarning() {
     if (!save_.hasDragon || (screen_ != Screen::Desktop && screen_ != Screen::TowerSelect)) return;
     warningFromSelection_ = screen_ == Screen::TowerSelect;
+    // T6: 물약은 가진 만큼 기본으로 챙긴다(소 먼저). 경고창에서 −/+ 로 바꾼다.
+    if (!carryTaken_) setTowerPotionCarry(cfg::kTowerPotionCarry, cfg::kTowerPotionCarry);
     if (!warningFromSelection_) selectedTowerFloor_ = 1;
     screen_ = Screen::TowerWarning;
 }
@@ -846,6 +860,7 @@ void Game::dismissWindow() {
             break;
         case Screen::Stable: closeStable(); break;
         case Screen::Skills: closeSkills(); break;
+        case Screen::Shop: closeShop(); break;
         case Screen::Death: acknowledgeDeath(); break;
         case Screen::FloorClear:
         case Screen::TowerVictory: leaveTower(); break;
@@ -985,6 +1000,7 @@ void Game::update(float dt, const PlayerInput& in, bool hidden, bool inputEnable
         case Screen::Select:
         case Screen::Stable:
         case Screen::Skills:
+        case Screen::Shop:
         case Screen::Desktop:
         case Screen::AutoWarning:
         case Screen::TowerWarning:
@@ -1222,6 +1238,41 @@ void Game::returnTowerPotions() {
     drinkTimer_ = 0.f;
     world_.dragon().moveScale = 1.f;
     saveRequested_ = true;
+}
+
+void Game::openShop() {
+    if (screen_ != Screen::Stable && screen_ != Screen::Desktop) return;
+    shopReturn_ = screen_;
+    screen_ = Screen::Shop;
+}
+
+void Game::closeShop() {
+    if (screen_ != Screen::Shop) return;
+    screen_ = shopReturn_ == Screen::Desktop && save_.hasDragon ? Screen::Desktop : Screen::Stable;
+    if (screen_ == Screen::Stable && save_.stable.empty() && !save_.hasDragon) screen_ = Screen::Select;
+}
+
+bool Game::freeDragonAvailable() const {
+    if (stableFull()) return false;
+    if (save_.freeDragonsUsed < cfg::kFreeDragonPicks) return true;
+    return save_.stable.empty();  // 모두 죽었으면 한 마리는 공짜(2026-11-24 사용자 결정)
+}
+
+void Game::adjustTowerPotion(int code) {
+    if (screen_ != Screen::TowerWarning) return;
+    int sm = carrySmall_, lg = carryLarge_;
+    if (code == 0) --sm;
+    else if (code == 1) ++sm;
+    else if (code == 2) --lg;
+    else if (code == 3) ++lg;
+    if (sm + lg > cfg::kTowerPotionCarry) {  // 합계를 넘으면 반대쪽을 하나 줄인다
+        if (code == 1 && lg > 0) --lg;
+        else if (code == 3 && sm > 0) --sm;
+        else return;
+    }
+    setTowerPotionCarry(sm, lg);
+    // setTowerPotionCarry 는 소를 먼저 채우므로 대를 늘렸을 때 소가 줄지 않았으면 다시 맞춘다
+    if (code == 3 && carryLarge_ < lg && carrySmall_ > 0) setTowerPotionCarry(carrySmall_ - 1, lg);
 }
 
 }  // namespace dt
