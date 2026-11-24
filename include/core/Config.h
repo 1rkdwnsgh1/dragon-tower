@@ -179,9 +179,9 @@ constexpr float kPotionSmallHeal = 0.30f;   // 최대 체력 비율
 constexpr float kPotionLargeHeal = 0.60f;
 constexpr long long kTrainingBookPerLevel = 20;  // 훈련서 = 현재 레벨 × 이 값
 constexpr float kTrainingBookExpRatio = 0.25f;   // 다음 레벨까지 필요 경험치의 이 비율
-constexpr int kTowerPotionCarry = 2;        // 탑에 한 번 오를 때 가지고 들어가는 물약 수
 constexpr float kPotionDrinkTime = 1.0f;    // 마시는 데 걸리는 시간(초)
 constexpr float kPotionDrinkMove = 0.5f;    // 마시는 동안 이동 속도 배율
+constexpr int kFreeDragonPicks = 4;       // 처음에 공짜로 고르는 드래곤 수(2026-11-24 사용자 결정)
 constexpr int kMaxInventory = 9999;         // 물약·알 보유 상한(저장 값 범위)
 // v1.4 드래곤 하나가 가질 수 있는 스킬 수의 상한. 제한이 필요해서가 아니라
 // dragon.txt에 [skill.9999] 같은 오타가 들어왔을 때 메모리를 그만큼 잡지 않으려는 안전장치다.

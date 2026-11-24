@@ -390,6 +390,10 @@ void Game::closeSkills() {
 
 void Game::beginAddDragon() {
     if (screen_ != Screen::Stable || stableFull()) return;
+    if (!freeDragonAvailable()) {
+        notify("공짜로 데려올 수 있는 드래곤을 다 골랐습니다. 상점에서 알을 사세요.", kWarn, 3.5f);
+        return;
+    }
     addingDragon_ = true;
     screen_ = Screen::Select;
 }
@@ -481,6 +485,14 @@ void Game::chooseSpecies(Species s) {
         screen_ = save_.hasDragon ? Screen::Stable : Screen::Select;
         return;
     }
+    if (!freeDragonAvailable()) {
+        notify("공짜로 고를 수 있는 드래곤이 없습니다. 상점에서 알을 사세요.", kWarn, 3.5f);
+        screen_ = save_.hasDragon ? Screen::Stable : Screen::Select;
+        addingDragon_ = false;
+        return;
+    }
+    // 처음 4마리 안이면 공짜 횟수를 쓴다. 다 쓴 뒤라면 '모두 죽었을 때의 구조' 한 마리다.
+    if (save_.freeDragonsUsed < cfg::kFreeDragonPicks) ++save_.freeDragonsUsed;
     DragonRecord d = makeDragonRecord(s);
     // v1.3: 목록에 더한다. 지금 플레이 중인 개체가 있으면 그대로 두고 목록에만 넣는다.
     bool wasAdding = addingDragon_ && save_.hasDragon;
@@ -788,10 +800,11 @@ void Game::enterTower(CombatMode m) {
     }
     world_.clearEnemies(false);
     towerMode_ = m;
-    // T6: 고른 물약을 가방에서 꺼내 가지고 들어간다
-    setTowerPotionCarry(carrySmall_, carryLarge_);
-    save_.potionSmall -= carrySmall_;
-    save_.potionLarge -= carryLarge_;
+    // T6: 가방의 물약을 모두 가지고 들어간다(2026-11-24 사용자 결정: 개수 제한 없음)
+    carrySmall_ = save_.potionSmall;
+    carryLarge_ = save_.potionLarge;
+    save_.potionSmall = 0;
+    save_.potionLarge = 0;
     carryTaken_ = true;
     drinkTimer_ = 0.f;
     towerFloor_ = std::clamp(selectedTowerFloor_, 1, towerFloorCount());
@@ -846,6 +859,7 @@ void Game::dismissWindow() {
             break;
         case Screen::Stable: closeStable(); break;
         case Screen::Skills: closeSkills(); break;
+        case Screen::Shop: closeShop(); break;
         case Screen::Death: acknowledgeDeath(); break;
         case Screen::FloorClear:
         case Screen::TowerVictory: leaveTower(); break;
@@ -985,6 +999,7 @@ void Game::update(float dt, const PlayerInput& in, bool hidden, bool inputEnable
         case Screen::Select:
         case Screen::Stable:
         case Screen::Skills:
+        case Screen::Shop:
         case Screen::Desktop:
         case Screen::AutoWarning:
         case Screen::TowerWarning:
@@ -1194,14 +1209,6 @@ bool Game::hatchEgg() {
     return true;
 }
 
-void Game::setTowerPotionCarry(int smallCount, int largeCount) {
-    if (carryTaken_) return;  // 들어간 뒤에는 바꿀 수 없다
-    smallCount = std::clamp(smallCount, 0, std::min(cfg::kTowerPotionCarry, save_.potionSmall));
-    largeCount = std::clamp(largeCount, 0, std::min(cfg::kTowerPotionCarry - smallCount, save_.potionLarge));
-    carrySmall_ = smallCount;
-    carryLarge_ = largeCount;
-}
-
 bool Game::drinkPotion(bool useLarge) {
     if (screen_ != Screen::Tower || drinkTimer_ > 0.f || !world_.dragon().alive) return false;
     int& have = useLarge ? carryLarge_ : carrySmall_;
@@ -1222,6 +1229,24 @@ void Game::returnTowerPotions() {
     drinkTimer_ = 0.f;
     world_.dragon().moveScale = 1.f;
     saveRequested_ = true;
+}
+
+void Game::openShop() {
+    if (screen_ != Screen::Stable && screen_ != Screen::Desktop) return;
+    shopReturn_ = screen_;
+    screen_ = Screen::Shop;
+}
+
+void Game::closeShop() {
+    if (screen_ != Screen::Shop) return;
+    screen_ = shopReturn_ == Screen::Desktop && save_.hasDragon ? Screen::Desktop : Screen::Stable;
+    if (screen_ == Screen::Stable && save_.stable.empty() && !save_.hasDragon) screen_ = Screen::Select;
+}
+
+bool Game::freeDragonAvailable() const {
+    if (stableFull()) return false;
+    if (save_.freeDragonsUsed < cfg::kFreeDragonPicks) return true;
+    return save_.stable.empty();  // 모두 죽었으면 한 마리는 공짜(2026-11-24 사용자 결정)
 }
 
 }  // namespace dt

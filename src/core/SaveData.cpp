@@ -146,6 +146,7 @@ std::string serializeSave(const SaveData& s) {
     o << "inv.potionSmall=" << s.potionSmall << "\n";
     o << "inv.potionLarge=" << s.potionLarge << "\n";
     o << "inv.eggs=" << s.eggs << "\n";
+    o << "freeDragonsUsed=" << s.freeDragonsUsed << "\n";
     o << "tower.exact=1\n";
     writeFloors(o, "tower.firstClearFloors", s.firstClearFloors);
     o << "tower.firstClear=" << s.firstClear << "\n";
@@ -225,6 +226,7 @@ bool deserializeSave(const std::string& text, SaveData& out) {
     SaveData s;
     bool sawVersion = false;
     bool exactTower = false;
+    bool sawFreeUsed = false;
     bool dragonPresent = false;
     std::istringstream in(text);
     std::string line;
@@ -311,6 +313,7 @@ bool deserializeSave(const std::string& text, SaveData& out) {
         else if (key == "inv.potionSmall") s.potionSmall = std::clamp(toInt(val, 0), 0, cfg::kMaxInventory);
         else if (key == "inv.potionLarge") s.potionLarge = std::clamp(toInt(val, 0), 0, cfg::kMaxInventory);
         else if (key == "inv.eggs") s.eggs = std::clamp(toInt(val, 0), 0, cfg::kMaxInventory);
+        else if (key == "freeDragonsUsed") { s.freeDragonsUsed = std::clamp(toInt(val, 0), 0, cfg::kFreeDragonPicks); sawFreeUsed = true; }
         else if (key == "tower.firstClear") s.firstClear = std::clamp(toInt(val, 0), 0, cfg::kTowerTopFloor);
         else if (key == "tower.fieldBossCleared") {
             // 필드 보스층(10의 배수)만 받는다. 손으로 고친 값이 섞여도 슬롯 수가 부풀지 않게.
@@ -398,6 +401,10 @@ bool deserializeSave(const std::string& text, SaveData& out) {
     for (const DragonRecord& d : s.stable)
         if (d.id >= s.nextDragonId) s.nextDragonId = d.id + 1;
     if (s.hasDragon && s.dragon.id >= s.nextDragonId) s.nextDragonId = s.dragon.id + 1;
+    // 2026-11-24 이전 저장: 이미 가진·잃은 드래곤을 모두 공짜로 고른 것으로 친다.
+    if (!sawFreeUsed)
+        s.freeDragonsUsed = std::min(cfg::kFreeDragonPicks,
+                                     static_cast<int>(s.stable.size() + s.graves.size()));
     out = s;
     return true;
 }

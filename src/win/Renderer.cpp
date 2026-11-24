@@ -519,7 +519,10 @@ void Renderer::drawOverlay(Graphics& g, const Game& game, const Sprites& sprites
     stage(FrameStage::World);  // 여기까지가 스프라이트(배경 띠·드래곤·적·효과)
 
     if (game.hasDragon()) drawStatusCard(g, game, sprites, ctx, out);
-    if (sc == Screen::Tower) drawTowerHud(g, game);
+    if (sc == Screen::Tower) {
+        drawTowerHud(g, game);
+        drawTowerPotions(g, game, ctx, out);
+    }
     // v1.0: 메뉴는 키보드 조작과 상관없이 열려 있으면 그린다. 마우스로 언제든 쓸 수 있다.
     if (sc == Screen::Desktop && game.menuOpen() && game.hasDragon()) drawMenu(g, game, ctx, out);
     drawMotionMenu(g, game, sprites, ctx, out);
@@ -2824,7 +2827,7 @@ void Renderer::drawModal(Graphics& g, const Game& game, const Sprites& sprites, 
     float cy = height_ * 0.5f;
     const DragonRecord& rec = game.dragonRecord();
 
-    if (sc == Screen::Select || sc == Screen::Stable || sc == Screen::Skills) {
+    if (sc == Screen::Select || sc == Screen::Stable || sc == Screen::Skills || sc == Screen::Shop) {
         // 좁은 작업 영역에서는 창과 클릭 좌표에 동일한 축소율을 적용한다.
         const float factor = std::min({1.f, width_ / 870.f, height_ / 1010.f});
         if (factor <= 0.f) return;
@@ -2841,6 +2844,7 @@ void Renderer::drawModal(Graphics& g, const Game& game, const Sprites& sprites, 
         local.mouseY /= factor;
         if (sc == Screen::Select) drawSelect(g, game, sprites, local, out);
         else if (sc == Screen::Stable) drawStable(g, game, sprites, local, out);
+        else if (sc == Screen::Shop) drawShop(g, game, local, out);
         else drawSkills(g, game, sprites, local, out);
         const auto scaleRect = [factor](RectF& r) {
             r.X *= factor; r.Y *= factor; r.Width *= factor; r.Height *= factor;
@@ -2859,6 +2863,7 @@ void Renderer::drawModal(Graphics& g, const Game& game, const Sprites& sprites, 
         case Screen::Select:
         case Screen::Stable:
         case Screen::Skills:
+        case Screen::Shop:
             break;
         case Screen::Codex:
             drawCodex(g, game, ctx, out);
@@ -2882,7 +2887,7 @@ void Renderer::drawModal(Graphics& g, const Game& game, const Sprites& sprites, 
             break;
         }
         case Screen::TowerWarning: {
-            RectF r(cx - 310.f, cy - 200.f, 620.f, 400.f);
+            RectF r(cx - 310.f, cy - 236.f, 620.f, 472.f);
             panel(g, r);
             text(g, "탑에 도전할까요?", r.X + 24.f, r.Y + 20.f, 20.f, kText, 0, true);
             const int floor = game.selectedTowerFloor();
@@ -2902,6 +2907,15 @@ void Renderer::drawModal(Graphics& g, const Game& game, const Sprites& sprites, 
                       "탑에서는 자동 사냥을 쓸 수 없습니다. 들어가면 체력이 모두 회복되고, 층을 돌파할 때마다 30% 회복합니다. "
                       "층 사이에서 탑을 나가면 드래곤은 살아서 돌아옵니다.",
                       RectF(r.X + 24.f, r.Y + 220.f, r.Width - 48.f, 60.f), 13.f, kSub);
+            {
+                // T6: 가방의 물약을 모두 가지고 간다(개수 제한 없음). 쓰지 않은 것은 나올 때 돌려받는다.
+                const SaveData& sv = game.save();
+                const float py = r.Y + 290.f;
+                text(g, "가지고 갈 물약", r.X + 24.f, py, 14.f, kText, 0, true);
+                text(g, "물약(소) " + std::to_string(sv.potionSmall) + "개  ·  물약(대) " + std::to_string(sv.potionLarge) +
+                            "개  —  가방에 있는 물약을 모두 가지고 갑니다",
+                     r.X + 24.f, py + 28.f, 14.f, sv.potionSmall + sv.potionLarge > 0 ? kText : 0xFF7C8090);
+            }
             float bw = (r.Width - 48.f - 16.f) / 3.f;
             float by = r.GetBottom() - 68.f;
             button(g, out, ctx, RectF(r.X + 24.f, by, bw, 46.f), "직접 조작으로 도전", UiAction::EnterTower,
@@ -3061,13 +3075,16 @@ void Renderer::drawStable(Graphics& g, const Game& game, const Sprites& sprites,
                           std::vector<UiButton>& out) {
     const std::vector<DragonRecord>& list = game.stable();
     const SaveData& s = game.save();
-    const int rows = cfg::kMaxStable;
-    RectF r(width_ * 0.5f - 350.f, height_ * 0.5f - 290.f, 700.f, 580.f);
+    const int rows = std::max(static_cast<int>(list.size()), s.stableCapacity());  // T6: 칸 수는 늘어난다
+    // 4칸이면 예전 크기(580). 칸이 늘면 창을 아래로 늘린다(최대 9칸 ≈ 980, drawModal 이 화면에 맞춰 줄인다).
+    const float winH = 580.f + 84.f * static_cast<float>(std::max(0, rows - 4));
+    RectF r(width_ * 0.5f - 350.f, height_ * 0.5f - winH * 0.5f, 700.f, winH);
     r = modalPanel(g, r, 244);
     const auto contentClip = g.Save();
     g.SetClip(r, CombineModeIntersect);
     text(g, "드래곤 관리", r.X + 24.f, r.Y + 18.f, 22.f, kText, 0, true);
-    text(g, std::to_string(list.size()) + " / " + std::to_string(cfg::kMaxStable) + " 마리",
+    text(g, std::to_string(list.size()) + " / " + std::to_string(s.stableCapacity()) + " 마리  ·  크레딧 " +
+             std::to_string(game.credits()),
          r.GetRight() - 24.f, r.Y + 24.f, 14.f, kSub, 2);
 
     const char* why = game.switchBlockedReason();
@@ -3083,9 +3100,14 @@ void Renderer::drawStable(Graphics& g, const Game& game, const Sprites& sprites,
             // 빈 자리: 새 드래곤을 데려온다
             fillRound(g, row, 10.f, Color(90, 40, 44, 58));
             strokeRound(g, row, 10.f, Color(120, 90, 100, 130), 1.f);
-            text(g, "비어 있음", row.X + 18.f, row.Y + 26.f, 14.f, 0xFF7C8090, 0, true);
-            button(g, out, ctx, RectF(row.GetRight() - 170.f, row.Y + 18.f, 150.f, 40.f), "새 드래곤",
-                   UiAction::AddDragon, 0, true);
+            text(g, "비어 있음", row.X + 18.f, row.Y + row.Height * 0.5f - 10.f, 14.f, 0xFF7C8090, 0, true);
+            // 2026-11-24: 처음 4마리만 공짜(모두 죽으면 한 마리). 그 뒤는 상점의 알.
+            const float bh = std::min(40.f, row.Height - 8.f);
+            RectF b(row.GetRight() - 170.f, row.Y + (row.Height - bh) * 0.5f, 150.f, bh);
+            if (game.freeDragonAvailable())
+                button(g, out, ctx, b, "새 드래곤 (공짜)", UiAction::AddDragon, 0, true);
+            else
+                button(g, out, ctx, b, "상점에서 알 사기", UiAction::OpenShop, 0, true);
             y += rowH;
             continue;
         }
@@ -3151,10 +3173,91 @@ void Renderer::drawStable(Graphics& g, const Game& game, const Sprites& sprites,
 
     // 닫기 — 띄운 개체가 없으면 닫을 수 없다(드래곤 없이 바탕화면만 남지 않게)
     bool canClose = game.hasDragon();
+    button(g, out, ctx, RectF(r.GetRight() - 300.f, r.GetBottom() - 54.f, 130.f, 40.f), "상점", UiAction::OpenShop);
     button(g, out, ctx, RectF(r.GetRight() - 150.f, r.GetBottom() - 54.f, 130.f, 40.f),
            canClose ? "닫기" : "띄울 드래곤을 고르세요", UiAction::CloseStable, 0, canClose);
     g.Restore(contentClip);
 }
+// ---------------------------------------------------------------------------
+// 탑 100층 T6 상점(2026-11-24). 수치·규칙은 core(Game::buy, shopBlockedReason)가 정한다.
+// ---------------------------------------------------------------------------
+void Renderer::drawShop(Graphics& g, const Game& game, const RenderContext& ctx, std::vector<UiButton>& out) {
+    const SaveData& s = game.save();
+    RectF r(width_ * 0.5f - 350.f, height_ * 0.5f - 280.f, 700.f, 560.f);
+    r = modalPanel(g, r, 244);
+    const auto clip = g.Save();
+    g.SetClip(r, CombineModeIntersect);
+    text(g, "상점", r.X + 24.f, r.Y + 18.f, 22.f, kText, 0, true);
+    text(g, "크레딧 " + std::to_string(game.credits()), r.GetRight() - 24.f, r.Y + 22.f, 18.f, 0xFFFFD45A, 2, true);
+    text(g, "가방: 물약(소) " + std::to_string(s.potionSmall) + "  ·  물약(대) " + std::to_string(s.potionLarge) +
+                "  ·  알 " + std::to_string(s.eggs),
+         r.X + 24.f, r.Y + 52.f, 13.f, kSub);
+
+    struct Item {
+        ShopItem id;
+        std::string name;
+        std::string desc;
+    };
+    const std::string target = game.hasDragon() ? dragonName(game.dragonRecord()) : std::string("플레이 중인 드래곤");
+    const Item items[] = {
+        {ShopItem::Egg, "드래곤 알",
+         "바로 부화합니다. 종은 무작위, Lv.1. 빈 칸이 있어야 합니다. 살 때마다 비싸집니다."},
+        {ShopItem::PotionSmall, "탑 물약(소)",
+         "탑 안에서만 씁니다. 체력 " + std::to_string(static_cast<int>(cfg::kPotionSmallHeal * 100.f)) +
+             "% 회복. 가방에 있는 만큼 가지고 들어갑니다."},
+        {ShopItem::PotionLarge, "탑 물약(대)",
+         "탑 안에서만 씁니다. 체력 " + std::to_string(static_cast<int>(cfg::kPotionLargeHeal * 100.f)) +
+             "% 회복. 마시는 데 1초, 그동안 느려집니다."},
+        {ShopItem::TrainingBook, "훈련서", target + "이(가) 다음 레벨까지 필요한 경험치의 25%를 얻습니다."},
+    };
+    float y = r.Y + 82.f;
+    const float rowH = 88.f;
+    for (const Item& it : items) {
+        RectF row(r.X + 20.f, y, r.Width - 40.f, rowH - 10.f);
+        fillRound(g, row, 10.f, Color(215, 32, 34, 46));
+        strokeRound(g, row, 10.f, Color(120, 80, 88, 120), 1.f);
+        text(g, it.name, row.X + 18.f, row.Y + 10.f, 16.f, kText, 0, true);
+        text(g, std::to_string(game.shopPrice(it.id)) + " 크레딧", row.X + 18.f + 200.f, row.Y + 11.f, 15.f,
+             0xFFFFD45A, 0, true);
+        paragraph(g, it.desc, RectF(row.X + 18.f, row.Y + 36.f, row.Width - 220.f, 40.f), 12.f, kSub);
+        const char* why = game.shopBlockedReason(it.id);
+        RectF b(row.GetRight() - 170.f, row.Y + 12.f, 150.f, 40.f);
+        button(g, out, ctx, b, "사기", UiAction::BuyItem, static_cast<int>(it.id), why == nullptr);
+        if (why) paragraph(g, why, RectF(b.X - 10.f, b.GetBottom() + 2.f, 170.f, 24.f), 11.f, kWarnC);
+        y += rowH;
+    }
+
+    // 보상으로 받은 알(칸이 없어 남겨 둔 것)
+    if (s.eggs > 0) {
+        const bool can = !game.stableFull();
+        text(g, "부화하지 않은 알 " + std::to_string(s.eggs) + "개", r.X + 24.f, y + 14.f, 15.f, kText, 0, true);
+        button(g, out, ctx, RectF(r.X + 260.f, y + 4.f, 150.f, 40.f), "알 부화", UiAction::HatchEgg, 0, can);
+        if (!can) text(g, "빈 칸이 없습니다", r.X + 424.f, y + 16.f, 12.f, kWarnC);
+    }
+
+    paragraph(g, "크레딧은 바탕화면에서 적을 쓰러뜨리거나 탑의 층을 처음 돌파하면 얻습니다. 부활·사망 무효는 팔지 않습니다.",
+              RectF(r.X + 24.f, r.GetBottom() - 96.f, r.Width - 48.f, 36.f), 12.f, 0xFF9AA0B4);
+    button(g, out, ctx, RectF(r.GetRight() - 150.f, r.GetBottom() - 54.f, 130.f, 40.f), "닫기", UiAction::CloseShop);
+    g.Restore(clip);
+}
+
+// 탑 전투 중 물약 버튼(마우스는 키보드 조작과 무관하게 항상 받는다).
+void Renderer::drawTowerPotions(Graphics& g, const Game& game, const RenderContext& ctx, std::vector<UiButton>& out) {
+    if (game.carrySmall() <= 0 && game.carryLarge() <= 0 && game.drinkLeft() <= 0.f) return;
+    RectF a(game.arena().x, game.arena().y, game.arena().w, game.arena().h);
+    const float bw = 150.f, bh = 36.f;
+    const float x = a.X + 16.f, y = a.GetBottom() + 10.f;
+    const bool drinking = game.drinkLeft() > 0.f;
+    button(g, out, ctx, RectF(x, y, bw, bh), "물약(소) x" + std::to_string(game.carrySmall()), UiAction::DrinkPotion, 0,
+           !drinking && game.carrySmall() > 0);
+    button(g, out, ctx, RectF(x + bw + 8.f, y, bw, bh), "물약(대) x" + std::to_string(game.carryLarge()),
+           UiAction::DrinkPotion, 1, !drinking && game.carryLarge() > 0);
+    if (drinking) {
+        RectF pb(x + (bw + 8.f) * 2.f, y + 10.f, 140.f, 14.f);
+        bar(g, pb, 1.f - game.drinkLeft() / cfg::kPotionDrinkTime, 0xFF7CFFB0, "마시는 중");
+    }
+}
+
 // ---------------------------------------------------------------------------
 // v1.4 스킬 관리창
 // ---------------------------------------------------------------------------

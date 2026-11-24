@@ -71,6 +71,9 @@ struct SaveData {
     int potionSmall = 0;            // 탑 물약(소)
     int potionLarge = 0;            // 탑 물약(대)
     int eggs = 0;                   // 아직 부화하지 않은 알(보상으로 받았는데 칸이 없을 때)
+    // 2026-11-24: 처음 kFreeDragonPicks 마리만 공짜로 고른다. 그 뒤는 알(상점·보상)로만 늘린다.
+    // 살아 있는 드래곤이 하나도 없으면 한 마리를 공짜로 더 고를 수 있다(구조).
+    int freeDragonsUsed = 0;
     // 지금 가질 수 있는 드래곤 수 = kMaxStable + 깬 20의 배수 필드 보스층 수.
     int stableCapacity() const;
 

@@ -467,7 +467,7 @@ static void testEconomy() {
     CHECK(gb.buy(ShopItem::Egg));
     CHECK(gb.stable().size() == 5);
 
-    // 탑 물약: 2개까지, 가방 수량까지
+    // 탑 물약: 가방의 물약을 모두 가지고 들어간다(제한 없음)
     SaveData t = s;
     t.potionSmall = 5;
     t.potionLarge = 0;
@@ -475,18 +475,17 @@ static void testEconomy() {
     gt.seed(3);
     gt.init(t, kDesk);
     gt.openTowerWarning();
-    gt.setTowerPotionCarry(3, 2);
-    CHECK(gt.carrySmall() == 2 && gt.carryLarge() == 0);
     gt.enterTower(CombatMode::SkillManual);
     CHECK(gt.screen() == Screen::Tower);
-    CHECK(gt.save().potionSmall == 3);
+    CHECK(gt.carrySmall() == 5 && gt.carryLarge() == 0);
+    CHECK(gt.save().potionSmall == 0);
     CHECK(gt.snapshotForSave().potionSmall == 5);  // 탑 안에서 꺼져도 잃지 않는다
     CHECK(!gt.buy(ShopItem::PotionSmall));         // 탑 안에서는 상점 불가
     // 마시기: 1초 뒤 회복, 그동안 느려진다
     gt.world().dragon().hp = gt.world().dragon().stats.maxHp * 0.2f;
     CHECK(gt.drinkPotion(false));
     CHECK(!gt.drinkPotion(false));  // 마시는 중에는 또 못 마신다
-    CHECK(gt.carrySmall() == 1);
+    CHECK(gt.carrySmall() == 4);
     PlayerInput none;
     gt.update(0.5f, none, false, true);
     CHECK(gt.world().dragon().moveScale < 1.f);
@@ -511,6 +510,47 @@ static void testEconomy() {
     in.skill[0] = in.skill[1] = true;
     for (int i = 0; i < 30 * 60 && gh.credits() == 0 && gh.screen() == Screen::Desktop; ++i) gh.update(1.f / 30.f, in, false, true);
     CHECK(gh.credits() > 0);
+
+    // 처음 4마리만 공짜. 그 뒤는 알로만. 모두 죽으면 한 마리 공짜(2026-11-24)
+    {
+        Game gp;
+        gp.init(SaveData{}, kDesk);
+        CHECK(gp.freeDragonAvailable() && gp.freePicksLeft() == 4);
+        gp.chooseSpecies(Species::Fire);
+        for (int i = 0; i < 3; ++i) {
+            gp.openStable();
+            gp.beginAddDragon();
+            gp.chooseSpecies(Species::Fire);
+        }
+        CHECK(gp.stable().size() == 4 && gp.freePicksLeft() == 0);
+        CHECK(!gp.freeDragonAvailable());
+        // 칸이 늘어도 공짜는 없다
+        SaveData more = gp.snapshotForSave();
+        more.fieldBossCleared.insert(20);
+        Game gm;
+        gm.init(more, kDesk);
+        CHECK(!gm.stableFull() && !gm.freeDragonAvailable());
+        gm.openStable();
+        gm.beginAddDragon();
+        CHECK(gm.screen() == Screen::Stable);  // 선택 화면으로 가지 않는다
+        // 모두 죽은 저장: 한 마리 공짜
+        SaveData dead;
+        dead.freeDragonsUsed = 4;
+        GraveEntry gr; gr.id = 1; dead.graves.push_back(gr);
+        Game gd;
+        gd.init(dead, kDesk);
+        CHECK(gd.freeDragonAvailable());
+        gd.chooseSpecies(Species::Fire);
+        CHECK(gd.hasDragon() && gd.stable().size() == 1);
+        CHECK(!gd.freeDragonAvailable());
+        // 옛 저장(키 없음)은 가진·잃은 수만큼 이미 쓴 것으로 친다
+        SaveData old;
+        CHECK(deserializeSave("version=1\nstable.count=0\n", old));
+        CHECK(old.freeDragonsUsed == 0);
+        SaveData rt;
+        CHECK(deserializeSave(serializeSave(more), rt));
+        CHECK(rt.freeDragonsUsed == 4);
+    }
 }
 
 static void testTowerFlow() {

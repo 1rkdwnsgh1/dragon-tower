@@ -60,6 +60,12 @@ enum class UiAction {
     OpenCodex,
     AckDeath,
     ExitGame,
+    // 탑 100층 T6 상점·물약(2026-11-24)
+    OpenShop,
+    CloseShop,
+    BuyItem,          // arg = ShopItem
+    HatchEgg,
+    DrinkPotion,      // arg = 0 소 / 1 대
 };
 
 struct UiButton {
@@ -219,6 +225,8 @@ private:
                     std::vector<UiButton>& out);
     void drawCodex(Gdiplus::Graphics& g, const Game& game, const RenderContext& ctx, std::vector<UiButton>& out);
     // v1.3 드래곤 관리창: 보유 목록, 바탕화면에 띄울 개체 고르기, 묘비
+    void drawShop(Gdiplus::Graphics& g, const Game& game, const RenderContext& ctx, std::vector<UiButton>& out);
+    void drawTowerPotions(Gdiplus::Graphics& g, const Game& game, const RenderContext& ctx, std::vector<UiButton>& out);
     void drawStable(Gdiplus::Graphics& g, const Game& game, const Sprites& sprites, const RenderContext& ctx,
                     std::vector<UiButton>& out);
     // v1.4 스킬 관리창: 장착 4칸과 그 종의 스킬 목록(해제 레벨·패시브 표시)
