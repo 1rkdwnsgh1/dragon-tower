@@ -74,6 +74,11 @@ constexpr int kMaxEnemyLevel = 500;          // enemy= 의 레벨(lv<N>)
 constexpr int kTowerTopFloor = 100;
 constexpr int kMidBossEvery = 5;            // 5의 배수는 중간 보스(10의 배수와 겹치면 필드 보스)
 constexpr int kFieldBossEvery = 10;         // 10의 배수는 필드 보스(파티)
+constexpr float kSplitHopTime = 0.45f;     // 분열체가 본체에서 튀어나와 착지하기까지(초)
+constexpr float kSplitHopHeight = 70.f;    // 포물선 꼭대기 높이(그림 기준 픽셀, 판정과 무관)
+constexpr float kSplitSquashTime = 0.40f;  // 분열 연출 길이: 본체 split 동작 0.35초 + 점액 효과 0.40초
+constexpr float kSplitBodyTime = 0.35f;    // 본체 split.png 를 재생하는 시간
+constexpr float kSplitLandTime = 0.35f;    // 착지 점액 fx_split_land.png 길이
 constexpr int kFieldBossHpMul = 8;          // 필드 보스층 적의 체력 배율(2026-11-24 사용자 결정: 한 방 피해는 그대로, 체력만 크게. 임시값)
 constexpr int kFieldBossFirstPotions = 10;  // 필드 보스 계정 첫 클리어: 탑 물약(소) 묶음(임시값)
 constexpr int kFieldBossLevelPerFloor = 5;  // 필드 보스 입장: 출전 드래곤 각각 층 × 5 레벨 이하

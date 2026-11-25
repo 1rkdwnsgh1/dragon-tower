@@ -113,6 +113,14 @@ struct Enemy {
     // 분열(EnemyDef::split*). splitNext 는 다음 분열이 일어나는 체력. parentId 는 분열체의 본체.
     float splitNext = -1.f;
     int parentId = 0;
+    // 분열 연출(2026-11-25): 분열체는 본체 몸에서 튀어나와 포물선으로 날아가 착지한다.
+    // 나는 동안(hopLeft > 0)은 움직이지도 공격하지도 않고, 맞지도 않는다. squashLeft 는 본체가 움찔 부푸는 시간.
+    float hopLeft = 0.f, hopTime = 0.f;
+    Vec2 hopFrom, hopTo;
+    float squashLeft = 0.f;
+    float landLeft = 0.f;        // 착지 점액이 남은 시간(그리기용)
+    EnemyKind parentKind{};      // 분열체의 본체 종류(착지 점액 그림을 본체 폴더에서 찾는다)
+    bool hopping() const { return hopLeft > 0.f; }
 };
 
 enum class ZoneShape { Circle, Line };
@@ -519,7 +527,7 @@ private:
     std::vector<PartyMember> party_;
     int swappedAlly_ = -1;
     // 분열은 damageEnemy 안에서 정하고 실제로 낳는 것은 프레임 끝에서 한다(적 목록을 도는 중에 늘리면 안 된다).
-    struct PendingSplit { EnemyKind kind; int level; Vec2 at; int count; int parentId; };
+    struct PendingSplit { EnemyKind kind; int level; Vec2 at; int count; int parentId; EnemyKind parentKind; };
     std::vector<PendingSplit> pendingSplits_;
     int aliveChildren(int parentId) const;
     void swapAlly(int k);

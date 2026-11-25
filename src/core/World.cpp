@@ -253,7 +253,7 @@ Enemy* World::nearestEnemy(Vec2 from, float maxDist) {
     Enemy* best = nullptr;
     float bestD = maxDist;
     for (Enemy& e : enemies_) {
-        if (!e.alive) continue;
+        if (!e.alive || e.hopping()) continue;  // 분열해 날아가는 중에는 노리지 않는다
         float d = distance(from, e.pos) - e.radius;
         if (d <= bestD) {
             bestD = d;
@@ -1462,6 +1462,16 @@ void World::enemyAttack(Enemy& e) {
 
 bool World::updateEnemy(Enemy& e, float dt) {
     if (!e.alive) return false;
+    e.squashLeft = std::max(0.f, e.squashLeft - dt);
+    e.landLeft = std::max(0.f, e.landLeft - dt);
+    if (e.hopping()) {
+        e.hopLeft = std::max(0.f, e.hopLeft - dt);
+        const float p = 1.f - e.hopLeft / std::max(0.01f, e.hopTime);
+        e.pos = e.hopFrom + (e.hopTo - e.hopFrom) * p;
+        if (!e.hopping()) e.landLeft = cfg::kSplitLandTime;  // 착지 — 그리는 쪽이 점액(없으면 고리)을 그린다
+        return false;
+    }
+    if (!e.alive) return false;
     e.hitFlash = std::max(0.f, e.hitFlash - dt);
     const float slowed = std::min(dt, e.breathSlowLeft);
     const float moveTime = dt - slowed * (1.f - e.breathMoveFactor);
@@ -1549,7 +1559,7 @@ void World::updateEnemies(float dt) {
 }
 
 void World::damageEnemy(Enemy& e, float raw, bool showNumber, bool detonatesCurse) {
-    if (!e.alive) return;
+    if (!e.alive || e.hopping()) return;  // 분열해 날아가는 중에는 맞지 않는다
     const int consumed = detonatesCurse && e.curseRemaining > 0.0 ? e.curseStacks : 0;
     const bool exploded = consumed > 0;
     if (exploded) {
@@ -1568,7 +1578,8 @@ void World::damageEnemy(Enemy& e, float raw, bool showNumber, bool detonatesCurs
             if (e.splitNext < 0.f) e.splitNext = e.maxHp * (1.f - edef.splitEvery);
             int guard = 0;
             while (e.hp <= e.splitNext && e.splitNext > 0.f && guard++ < 8) {
-                pendingSplits_.push_back({child, std::max(1, e.level - edef.splitLevelDrop), e.pos, edef.splitCount, e.id});
+                pendingSplits_.push_back({child, std::max(1, e.level - edef.splitLevelDrop), e.pos, edef.splitCount, e.id, e.kind});
+                e.squashLeft = cfg::kSplitSquashTime;
                 e.splitNext -= e.maxHp * edef.splitEvery;
                 addText("분열!", e.pos - Vec2{0.f, e.radius + 40.f}, 0xFF8CFF8C, 20.f, 1.0f);
             }
@@ -1956,10 +1967,15 @@ void World::updateCombat(float dt, CombatMode mode, const PlayerInput& in) {
         for (const PendingSplit& sp : splits) {
             for (int c = 0; c < sp.count; ++c) {
                 const float ang = 6.2831853f * (static_cast<float>(c) + 0.5f) / static_cast<float>(sp.count) + rng_.uniform(-0.4f, 0.4f);
-                const Vec2 at = bounds_.clampPoint(sp.at + Vec2{std::cos(ang), std::sin(ang)} * (70.f * sizeScale_), 30.f);
-                spawnEnemy(sp.kind, sp.level, at);
-                enemies_.back().parentId = sp.parentId;
-                addFx(FxType::Ring, at, at, 36.f, 0.35f, 0xFF8CFF8C);
+                const Vec2 at = bounds_.clampPoint(sp.at + Vec2{std::cos(ang), std::sin(ang)} * (110.f * sizeScale_), 30.f);
+                Enemy& child = spawnEnemy(sp.kind, sp.level, sp.at, false);
+                child.parentId = sp.parentId;
+                child.parentKind = sp.parentKind;
+                child.hopFrom = sp.at;
+                child.hopTo = at;
+                child.hopTime = child.hopLeft = cfg::kSplitHopTime;
+                child.attackCd = std::max(child.attackCd, 0.6f);  // 착지하자마자 때리지 않는다
+                child.facing = at.x >= sp.at.x ? 1.f : -1.f;
             }
         }
     }
