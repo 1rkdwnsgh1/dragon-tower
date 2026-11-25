@@ -1041,6 +1041,13 @@ void Renderer::drawDragon(Graphics& g, const DragonActor& d, const Sprites& spri
                     if (fx.frames == sh.frames)
                         drawSheetFrame(g, fx, frame, x, cyAdj, drawH * (384.f / 256.f), flip, 0.f, alpha);
                 }
+            } else if (state == AnimState::Move && sh.frames == 16) {
+                // WALK 본체와 같은 셀 좌표에 연기와 불씨를 순서대로 얹는다.
+                for (const char* layer : {"walk_vent", "walk_ember"}) {
+                    const Sheet fx = sprites.fxSheet(sp.key, layer);
+                    if (fx.frames == sh.frames && fx.frameW == sh.frameW && fx.frameH == sh.frameH)
+                        drawSheetFrame(g, fx, frame, x, cyAdj, drawH, flip, 0.f, alpha);
+                }
             } else if (idleVentFrame >= 0) {
                 const Sheet fx = sprites.fxSheet(sp.key, "idle_vent");
                 // 288px 셀을 256px 본체의 좌상단 (-16, -24)에 놓는다.
@@ -1760,7 +1767,7 @@ void Renderer::drawAnimationPreview(Graphics& g, const World& w, const Sprites& 
         if (effects) drawCleaveImpacts(g, w, sprites, true);
     }
     const bool steelMotionFx = species.key == "steel_dragon" &&
-        (d.anim == AnimState::Idle || d.anim == AnimState::Fly);
+        (d.anim == AnimState::Idle || d.anim == AnimState::Move || d.anim == AnimState::Fly);
     if (body || (effects && (steelMotionFx || (d.skillCast && (d.skillCast->soulfireCastId ||
             species.skills[d.skillCast->skill].spectralCleave))))) {
         const float height = cfg::kDragonRadius * 3.f * charScale;
