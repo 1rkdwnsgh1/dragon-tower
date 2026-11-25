@@ -5,11 +5,13 @@
 
 작업을 끝낼 때 이 문서를 같은 PR 에서 고친다. **낡은 상태 문서는 없는 것보다 해롭다.**
 
-최종 갱신: 2026-11-25 (강철룡 A안 기본공격 검수 및 슬라임 왕 분열 연출)
+최종 갱신: 2026-11-26 (강철룡 용광 폭렬탄 적용)
 
 ---
 
 ## 한눈에
+
+- [강철룡 스킬 1 용광 폭렬탄](characters/steel-dragon.md#스킬-1--용광-폭렬탄)을 후속 브랜치에서 적용했다. 지정 대상 포탄, 직접·주변 일회 피해, V3를 보존한 12프레임 이중 충격파를 연결했다. 사용자 시각·실전 검수와 밸런스 조정이 남았다.
 
 - [강철룡 A안](characters/steel-dragon.md)의 IDLE V3·HEAVY VENT V5 및 FLY 본체·추진 화염 V2·VENT V2를 [PR #123](https://github.com/1rkdwnsgh1/dragon-tower/pull/123) 브랜치에 적용했다. 사용자가 Windows에서 IDLE·FLY·WALK 본체를 확인했다. MOVE에 WALK VENT V2.1 검은 배기와 날개 하부 보조 배기·불씨를 연결했다. Windows Release·CTest·시트·문서 검사와 렌더러 검수를 통과했다. 플레이 중 FX 가독성·전환 검수와 보행 미끄러짐 조정은 남아 있다. BASIC ATTACK 10F V1과 HEAT LEAK, 화염탄 V2, 명중 FX V2를 연결했다. 사용자가 Windows에서 기본공격을 검수하고 병합을 승인했다. HIT·DEATH·REST 본체는 구형 임시 시트다.
 

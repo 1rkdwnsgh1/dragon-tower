@@ -477,7 +477,9 @@ void Sprites::loadFxSheets(const std::filesystem::path& dir, const SpeciesDef& d
             std::string key = def.key + "/fx_" + *effect;
             if (sheets_.count(key) != 0) continue;
             std::string file = "fx_" + *effect + ".png";
-            loadSheetFile(dir / file, sk.fxAnim, key, label + "/" + file);
+            AnimDef anim = sk.fxAnim;
+            if (sk.furnaceBurst && effect == &sk.fxImpact) anim.frameW = 0;
+            loadSheetFile(dir / file, anim, key, label + "/" + file);
         }
     }
 }

@@ -1922,7 +1922,7 @@ bool Renderer::drawFxSheet(Graphics& g, const Fx& f, const Sprites& sprites, con
         ad.fps = sk->fxPlaybackFps(f.key);
     }
 
-    if (sk && sk->boneShot && f.key == sk->fxImpact) {
+    if (sk && (sk->boneShot || sk->furnaceBurst) && f.key == sk->fxImpact) {
         drawSheetFrame(g, sh, animFrame(f.t, ad.fps, sh.frames, false),
                        f.a.x, f.a.y, f.radius, false, 0.f, 1.f);
         return true;

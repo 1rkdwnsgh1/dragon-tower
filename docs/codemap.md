@@ -58,7 +58,8 @@ tests/                     코어 규칙 검증
 | 띠로 날아 내려가기 | `src/core/World.cpp` | `beginConfine`, `confining_` |
 | 입력 받을 영역 수집 | `src/win/Renderer.cpp` | `markRegion`, `g_regions` |
 | 장판 그림과 기본 도형 | `src/win/Renderer.cpp`, `src/core/World.cpp` | `drawDotZones`, `DotZone::spriteSkill`, `fx_zone_sprite_only` |
-| 강철룡 기본공격·F06 발사·명중 | `src/core/World.cpp`, `src/win/Renderer.cpp`, `src/win/Preview.cpp` | `basicAttack`, `advanceSteelBasic`, `advanceSteelBasicFlight`, `drawDragon`, `drawProjectiles`, `drawFx`, 강철룡 공격 미리보기 |
+| 용광 폭렬탄 시전·추적·이중 충격파 | `src/core/World.cpp`, `src/win/Renderer.cpp`, `src/win/Sprites.cpp` | `castSkill`, `advanceSteelAttack`, 지정 표적 투사체 분기, 명중 시 표적 중심 반경 및 독립 충격파 시트 |
+| 강철룡 기본공격·F06 발사·명중 | `src/core/World.cpp`, `src/win/Renderer.cpp`, `src/win/Preview.cpp` | `basicAttack`, `advanceSteelAttack`, `advanceSteelBasicFlight`, `drawDragon`, `drawProjectiles`, `drawFx`, 강철룡 공격 미리보기 |
 | 강철룡 대기 배기·보행 배기와 불씨·비행 FX | `src/win/Sprites.cpp`, `src/win/Renderer.cpp` | `loadFxSheets`에서 시트 로드, `drawDragon`에서 상태별로 본체와 FX의 프레임 선택·합성 |
 | 망계의 업화 연출 | `src/win/Renderer.cpp` | `drawDragon`에서 도약·비행·착지 본체 모션, `drawSoulfireBreath`에서 하향 브레스, `drawSoulfire`에서 충돌·지면 연결·독립 화염 |
 | 트레이 아이콘·메뉴 | `src/win/App.cpp` | `createTray`, `showTrayMenu` |

@@ -180,6 +180,17 @@ struct SteelBasicFlight {
     float firstStep = 0.f;
 };
 
+struct FurnaceFlight {
+    float firstStep;
+    float remaining;
+};
+
+struct SteelAttackCast {
+    int targetId;
+    int skill = -1;
+    bool startsThisStep = false;
+};
+
 struct Projectile {
     Vec2 pos;
     int targetId = 0;
@@ -195,6 +206,7 @@ struct Projectile {
     std::optional<CleaveFlight> cleave;
     std::optional<BoneShotFlight> boneShot;
     std::optional<SteelBasicFlight> steelBasic;
+    std::optional<FurnaceFlight> furnace;
 };
 
 // Standing source aligned to the standard 256px revenant cell at 126% scale.
@@ -340,7 +352,7 @@ struct DragonActor {
     Vec2 facing{1.f, 0.f};
     float hp = 1.f;
     float basicCd = 0.f;
-    std::optional<int> steelBasicTarget;  // F06 전까지 유지하는 목표 ID.
+    std::optional<SteelAttackCast> steelAttack;  // F06에서 소모한다.
     // v1.4: 재사용 대기시간은 **스킬마다** 센다(칸이 아니라). 칸을 바꿔 끼워도 대기시간은 그대로다.
     // 크기는 setupDragon에서 그 종의 스킬 수에 맞춘다.
     std::vector<float> skillCd;
@@ -571,7 +583,7 @@ private:
     // v1.4 패시브 PassiveOnKill. 적을 쓰러뜨렸을 때 damageEnemy가 부른다.
     void onEnemyKilled(Vec2 at);
     void basicAttack(float dt);
-    void advanceSteelBasic(float dt);
+    void advanceSteelAttack(float dt);
     void advanceSteelBasicFlight(Projectile& shot, float dt);
     void beginBoneShot(int skillIndex, const Enemy& target, bool basic);
     void updateEnemies(float dt);
