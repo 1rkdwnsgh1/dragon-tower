@@ -509,9 +509,12 @@ void Renderer::drawOverlay(Graphics& g, const Game& game, const Sprites& sprites
         RectF a(game.arena().x, game.arena().y, game.arena().w, game.arena().h);
         fillRound(g, RectF(a.X - 6.f, a.Y - 6.f, a.Width + 12.f, a.Height + 12.f), 18.f, Color(150, 0, 0, 0));
         fillRound(g, a, 14.f, Color(225, 26, 22, 36));
-        Pen grid(Color(40, 140, 120, 200), 1.f);
-        for (float x = a.X + 60.f; x < a.GetRight(); x += 60.f) g.DrawLine(&grid, x, a.Y, x, a.GetBottom());
-        for (float y = a.Y + 60.f; y < a.GetBottom(); y += 60.f) g.DrawLine(&grid, a.X, y, a.GetRight(), y);
+        // 2026-11-25: 층의 지역 배경(1~10층 숲 입구 … 91~100층 심연). 그림이 없으면 예전처럼 격자.
+        if (!drawTowerBackground(g, std::max(1, game.towerFloor()), a)) {
+            Pen grid(Color(40, 140, 120, 200), 1.f);
+            for (float x = a.X + 60.f; x < a.GetRight(); x += 60.f) g.DrawLine(&grid, x, a.Y, x, a.GetBottom());
+            for (float y = a.Y + 60.f; y < a.GetBottom(); y += 60.f) g.DrawLine(&grid, a.X, y, a.GetRight(), y);
+        }
         strokeRound(g, a, 14.f, Color(255, 150, 110, 220), 2.f);
     }
 
@@ -2813,6 +2816,49 @@ void Renderer::drawTowerSelection(Graphics& g, const Game& game, const Sprites& 
     g.Restore(state);
     for (const auto& control : controls)
         out.push_back({placed(control.rect), control.action, control.arg, control.enabled});
+}
+
+bool Renderer::drawTowerBackground(Graphics& g, int floor, const RectF& a) {
+    if (!sprites_ || scale_ <= 0.f) return false;
+    const int zone = std::clamp((floor - 1) / 10 + 1, 1, 10);
+    const int devX = static_cast<int>(std::floor(a.X * scale_ + 0.5f));
+    const int devY = static_cast<int>(std::floor(a.Y * scale_ + 0.5f));
+    const int devW = static_cast<int>(std::floor(a.GetRight() * scale_ + 0.5f)) - devX;
+    const int devH = static_cast<int>(std::floor(a.GetBottom() * scale_ + 0.5f)) - devY;
+    if (devW <= 0 || devH <= 0) return false;
+    if (zone != towerBgZone_ || devW != towerBgW_ || devH != towerBgH_) {
+        towerBgZone_ = zone;
+        towerBgW_ = devW;
+        towerBgH_ = devH;
+        towerBg_.reset();
+        towerBgMissing_ = true;
+        std::unique_ptr<Bitmap> src = sprites_->loadTowerBackground(zone);
+        if (src) {
+            // 전투장 비율에 맞춰 가운데를 잘라(cover) 장치 크기로 한 번만 줄인다.
+            auto dst = std::make_unique<Bitmap>(devW, devH, PixelFormat32bppPARGB);
+            if (dst->GetLastStatus() == Ok) {
+                Graphics cg(dst.get());
+                cg.SetInterpolationMode(InterpolationModeHighQualityBicubic);
+                cg.SetPixelOffsetMode(PixelOffsetModeHalf);
+                const float sw = static_cast<float>(src->GetWidth()), sh = static_cast<float>(src->GetHeight());
+                const float k = std::max(static_cast<float>(devW) / sw, static_cast<float>(devH) / sh);
+                const float cw = static_cast<float>(devW) / k, ch = static_cast<float>(devH) / k;
+                ImageAttributes ia;
+                ia.SetWrapMode(WrapModeTileFlipXY);
+                cg.DrawImage(src.get(), RectF(0.f, 0.f, static_cast<float>(devW), static_cast<float>(devH)),
+                             (sw - cw) * 0.5f, (sh - ch) * 0.5f, cw, ch, UnitPixel, &ia);
+                towerBg_ = std::move(dst);
+                towerBgMissing_ = false;
+            }
+        }
+    }
+    if (towerBgMissing_ || !towerBg_) return false;
+    Matrix saved;
+    g.GetTransform(&saved);
+    g.ResetTransform();
+    g.DrawImage(towerBg_.get(), devX, devY);
+    g.SetTransform(&saved);
+    return true;
 }
 
 void Renderer::drawTowerHud(Graphics& g, const Game& game) {

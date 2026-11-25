@@ -707,6 +707,59 @@ static void testFieldBossParty() {
     }
 }
 
+
+// 2026-11-25 10층 필드 보스 슬라임 왕: 체력이 깎일 때마다 분열하고, 분열체가 살아 있으면 본체가 단단해진다.
+static void testEnemySplit() {
+    std::printf("[enemy split]\n");
+    EnemyKind slime{};
+    CHECK(enemyFromKey("slime", slime));
+    EnemyDef def = enemyDef(slime);   // 실제 slime-king/enemy.txt 와 같은 분열 규칙(그림·수치만 다름)
+    def.key = "test-split-king";
+    def.role = EnemyRole::Boss;
+    def.baseHp = 0.f;
+    def.hpGrowth = 60.f;
+    def.splitKey = "slime";
+    def.splitCount = 2;
+    def.splitEvery = 0.10f;
+    def.splitLevelDrop = 10;
+    def.splitGuard = 0.60f;
+    const EnemyKind king = registerOrUpdateEnemy(def);
+    const EnemyDef& kd = enemyDef(king);
+    World w;
+    w.seed(3);
+    w.setBounds({0.f, 0.f, 1600.f, 900.f});
+    w.setupDragon(Species::Fire, 40, -1.f, {300.f, 450.f});
+    Enemy& e0 = w.spawnEnemy(king, 50, {1100.f, 450.f}, false);
+    const int kingId = e0.id;
+    const float maxHp = e0.maxHp;
+    const auto findKing = [&]() -> Enemy* {
+        for (Enemy& e : w.enemiesMutable()) if (e.id == kingId) return &e;
+        return nullptr;
+    };
+    // 10% 넘게 깎으면 2마리
+    findKing()->def = 0.f;
+    w.debugDamageEnemy(*findKing(), maxHp * 0.15f);
+    PlayerInput none;
+    w.updateCombat(1.f / 30.f, CombatMode::SkillManual, none);
+    int children = 0;
+    for (const Enemy& e : w.enemies()) children += e.parentId == kingId ? 1 : 0;
+    CHECK(children == 2);
+    // 분열체가 있으면 본체 피해가 (1 - split_guard) 배
+    Enemy* k = findKing();
+    CHECK(k != nullptr);
+    if (k) {
+        const float before = k->hp;
+        k->def = 0.f;
+        w.debugDamageEnemy(*k, 100.f);
+        const float guarded = before - k->hp;
+        for (Enemy& e : w.enemiesMutable()) if (e.parentId == kingId) e.alive = false;
+        const float before2 = k->hp;
+        w.debugDamageEnemy(*k, 100.f);
+        const float open = before2 - k->hp;
+        CHECK(guarded < open * (1.f - kd.splitGuard) + 1.f && guarded > 0.f);
+    }
+}
+
 static void testTowerFlow() {
     std::printf("[tower flow]\n");
     SaveData s;
@@ -4565,6 +4618,7 @@ int main(int argc, char** argv) {
     testHuntFloorPool();
     testEconomy();
     testFieldBossParty();
+    testEnemySplit();
     testDefenseWaveGrows();
     testAutoBattleNoLongerCapped();
     testUiSettingsSaved();
