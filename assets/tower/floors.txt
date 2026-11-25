@@ -48,11 +48,10 @@ spacing=105
 enemy=slime x3 lv45
 
 [floor.10]
-title=10층
+title=10층: 슬라임 왕
 boss=yes
 spacing=145
-enemy=elite-lich x1 lv50 inset=35
-enemy=elite-goblin x2 lv47 inset=130
+enemy=slime-king x1 lv50 inset=60
 
 [floor.11]
 title=11층

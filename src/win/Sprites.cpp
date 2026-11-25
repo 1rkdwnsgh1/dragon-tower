@@ -1,3 +1,4 @@
+#include <cstdio>
 #include "Sprites.h"
 
 #include "core/World.h"
@@ -181,6 +182,7 @@ void Sprites::loadPreviewEnemy(const std::filesystem::path& dir, const EnemyDef&
 }
 
 void Sprites::load(const std::filesystem::path& assetDir) {
+    assetDir_ = assetDir;
     images_.clear();
     sheets_.clear();
     breathSheets_.clear();
@@ -603,6 +605,13 @@ UiPiece Sprites::ui(const std::string& skinKey, const std::string& name) const {
         return p;
     }
     return UiPiece{};
+}
+
+std::unique_ptr<Gdiplus::Bitmap> Sprites::loadTowerBackground(int zone) const {
+    if (assetDir_.empty() || zone < 1) return nullptr;
+    char name[32];
+    std::snprintf(name, sizeof(name), "zone_%02d.png", zone);
+    return loadPng(assetDir_ / "tower" / "bg" / name);
 }
 
 Gdiplus::Bitmap* Sprites::get(const std::string& key) const {

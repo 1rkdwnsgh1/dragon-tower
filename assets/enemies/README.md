@@ -50,6 +50,14 @@ phase2=yes          ; 체력 절반에서 2페이즈
 summon=goblin       ; 그때 부를 적의 키
 summon_count=2
 summon_level=5
+
+; 분열(2026-11-25, 10층 슬라임 왕). 최대 체력의 split_every 만큼 깎일 때마다 split 적을 split_count 마리 낳는다.
+; 분열체가 살아 있는 동안 본체가 받는 피해는 (1 - split_guard) 배(회색 숫자로 보인다). 분열은 공격이 아니라 예고가 없다.
+split=slime
+split_count=2         ; 0~6
+split_every=0.10      ; 0~1. 0 이면 분열하지 않는다
+split_level_drop=10   ; 분열체 레벨 = 본체 레벨 - 이 값(최소 1)
+split_guard=0.60      ; 0~0.95
 ```
 
 애니메이션은 드래곤과 같습니다(`[anim.idle]` 의 `fps` `loop` `frame_w` `render_scale`).

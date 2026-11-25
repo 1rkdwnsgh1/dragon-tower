@@ -545,6 +545,11 @@ EnemyParseResult parseEnemyText(const std::string& text, const std::string& fold
             else if (key == "summon") d.summonKey = val;
             else if (key == "summon_count") ok = parseInt(val, d.summonCount);
             else if (key == "summon_level") ok = parseInt(val, d.summonLevel);
+            else if (key == "split") d.splitKey = val;
+            else if (key == "split_count") ok = parseInt(val, d.splitCount);
+            else if (key == "split_every") ok = parseFloat(val, d.splitEvery);
+            else if (key == "split_level_drop") ok = parseInt(val, d.splitLevelDrop);
+            else if (key == "split_guard") ok = parseFloat(val, d.splitGuard);
             else warn("모르는 키 " + key + " ([enemy])");
         } else if (section == "anim") {
             AnimDef& a = r.def.anims[static_cast<int>(animSec)];
@@ -583,6 +588,10 @@ EnemyParseResult parseEnemyText(const std::string& text, const std::string& fold
     clampF("attack_cooldown", d.attackCooldown, 0.1f, 30.f);
     clampI("summon_count", d.summonCount, 0, 8);
     clampI("summon_level", d.summonLevel, 1, 99);
+    clampI("split_count", d.splitCount, 0, 6);
+    clampF("split_every", d.splitEvery, 0.f, 1.f);
+    clampI("split_level_drop", d.splitLevelDrop, 0, 500);
+    clampF("split_guard", d.splitGuard, 0.f, 0.95f);
     clampI("exp", d.baseExp, 0, 100000);
     clampI("exp_growth", d.expGrowth, 0, 100000);
     for (int i = 0; i < kAnimStateCount; ++i) {

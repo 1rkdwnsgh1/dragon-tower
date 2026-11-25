@@ -110,6 +110,9 @@ struct Enemy {
     float breathSlowLeft = 0.f;
     float breathMoveFactor = 1.f;
     double curseZoneCooldown = 0.0;  // 같은 적에게 닿는 모든 저주 장판이 공유한다.
+    // 분열(EnemyDef::split*). splitNext 는 다음 분열이 일어나는 체력. parentId 는 분열체의 본체.
+    float splitNext = -1.f;
+    int parentId = 0;
 };
 
 enum class ZoneShape { Circle, Line };
@@ -410,6 +413,8 @@ public:
     void setAllyLevel(int index, int level);
     // 테스트용: 예고 판정 하나를 바로 처리한다(실제 게임에서는 updateCombat 이 부른다)
     void debugResolveZone(const AttackZone& z, CombatMode mode) { resolveZone(z, mode); }
+    // 테스트용: 적 하나에게 피해를 준다(분열·보호 규칙을 그대로 거친다)
+    void debugDamageEnemy(Enemy& e, float raw) { damageEnemy(e, raw, false); }
     // 준비는 영혼을 건드리지 않는다. 성공한 타격 한 번에만 같은 ID로 확정한다.
     std::optional<uint64_t> beginUltimatePayment(const UltimateUseConditions& conditions);
     bool commitUltimatePayment(uint64_t id);
@@ -513,6 +518,10 @@ private:
     // T7: 동료를 잠깐 dragon_ 자리에 바꿔 넣어 같은 코드(AI·피격·예고)를 그대로 쓴다.
     std::vector<PartyMember> party_;
     int swappedAlly_ = -1;
+    // 분열은 damageEnemy 안에서 정하고 실제로 낳는 것은 프레임 끝에서 한다(적 목록을 도는 중에 늘리면 안 된다).
+    struct PendingSplit { EnemyKind kind; int level; Vec2 at; int count; int parentId; };
+    std::vector<PendingSplit> pendingSplits_;
+    int aliveChildren(int parentId) const;
     void swapAlly(int k);
     void controlDragon(float dt, CombatMode mode, const PlayerInput& in, bool ultimateInput);
     int nearestDragonFor(Vec2 from) const;  // -1 = 조작 드래곤, k = 동료, -2 = 모두 쓰러짐

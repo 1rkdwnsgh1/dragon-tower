@@ -54,6 +54,15 @@ struct EnemyDef {
     int summonCount = 0;
     int summonLevel = 5;
 
+    // 분열(10층 필드 보스 슬라임 왕, 2026-11-25). 최대 체력의 split_every 만큼 깎일 때마다
+    // split 적을 split_count 마리 낳는다. 분열체가 살아 있는 동안 본체가 받는 피해는 (1 - split_guard) 배.
+    // 분열은 공격이 아니므로 예고가 없다. 분열체의 공격은 평소처럼 예고한다.
+    std::string splitKey;
+    int splitCount = 0;
+    float splitEvery = 0.f;   // 0 이면 분열하지 않는다
+    int splitLevelDrop = 5;   // 분열체 레벨 = 본체 레벨 − 이 값(최소 1)
+    float splitGuard = 0.f;
+
     AnimDef anims[kAnimStateCount];
 };
 

@@ -1556,13 +1556,29 @@ void World::damageEnemy(Enemy& e, float raw, bool showNumber, bool detonatesCurs
         e.curseStacks = 0;
         e.curseRemaining = 0.0;
     }
-    const float dmg = mitigate(raw * (1.f + static_cast<float>(consumed) / kCurseMaxStacks), e.def);
+    float dmg = mitigate(raw * (1.f + static_cast<float>(consumed) / kCurseMaxStacks), e.def);
+    const EnemyDef& edef = enemyDef(e.kind);
+    const bool guarded = edef.splitGuard > 0.f && aliveChildren(e.id) > 0;
+    if (guarded) dmg *= 1.f - edef.splitGuard;  // 분열체가 본체를 지킨다
     e.hp -= dmg;
+    // 분열: 체력이 정해진 만큼 깎일 때마다(죽는 타격이면 낳지 않는다)
+    if (edef.splitEvery > 0.f && edef.splitCount > 0 && e.hp > 0.f) {
+        EnemyKind child{};
+        if (enemyFromKey(edef.splitKey, child)) {
+            if (e.splitNext < 0.f) e.splitNext = e.maxHp * (1.f - edef.splitEvery);
+            int guard = 0;
+            while (e.hp <= e.splitNext && e.splitNext > 0.f && guard++ < 8) {
+                pendingSplits_.push_back({child, std::max(1, e.level - edef.splitLevelDrop), e.pos, edef.splitCount, e.id});
+                e.splitNext -= e.maxHp * edef.splitEvery;
+                addText("분열!", e.pos - Vec2{0.f, e.radius + 40.f}, 0xFF8CFF8C, 20.f, 1.0f);
+            }
+        }
+    }
     e.hitFlash = 0.15f;
     if (showNumber) {
         const std::string number = exploded ? "저주 폭발! " + intText(dmg) : intText(dmg);
         addText(number, e.pos - Vec2{0.f, e.radius + 14.f},
-                exploded ? 0xFFE4AEFF : kColorDamageToEnemy, exploded ? 19.f : 16.f, 0.8f);
+                exploded ? 0xFFE4AEFF : guarded ? 0xFF9AA0B4 : kColorDamageToEnemy, exploded ? 19.f : 16.f, 0.8f);
     }
     if (e.hp <= 0.f) {
         e.alive = false;
@@ -1933,6 +1949,20 @@ void World::updateCombat(float dt, CombatMode mode, const PlayerInput& in) {
     }
     dots_.erase(std::remove_if(dots_.begin(), dots_.end(), [](const DotZone& z) { return z.remaining <= 0.f; }), dots_.end());
 
+    // 분열체를 낳는다(본체 둘레에 고르게)
+    if (!pendingSplits_.empty()) {
+        std::vector<PendingSplit> splits;
+        splits.swap(pendingSplits_);
+        for (const PendingSplit& sp : splits) {
+            for (int c = 0; c < sp.count; ++c) {
+                const float ang = 6.2831853f * (static_cast<float>(c) + 0.5f) / static_cast<float>(sp.count) + rng_.uniform(-0.4f, 0.4f);
+                const Vec2 at = bounds_.clampPoint(sp.at + Vec2{std::cos(ang), std::sin(ang)} * (70.f * sizeScale_), 30.f);
+                spawnEnemy(sp.kind, sp.level, at);
+                enemies_.back().parentId = sp.parentId;
+                addFx(FxType::Ring, at, at, 36.f, 0.35f, 0xFF8CFF8C);
+            }
+        }
+    }
     enemies_.erase(std::remove_if(enemies_.begin(), enemies_.end(), [](const Enemy& e) { return !e.alive; }), enemies_.end());
 
     updateDragonAnim(dt);
@@ -2025,6 +2055,12 @@ int World::nearestDragonFor(Vec2 from) const {
         if (d < bestD) { bestD = d; best = k; }
     }
     return best;
+}
+
+int World::aliveChildren(int parentId) const {
+    int n = 0;
+    for (const Enemy& e : enemies_) n += (e.alive && e.parentId == parentId) ? 1 : 0;
+    return n;
 }
 
 }  // namespace dt
