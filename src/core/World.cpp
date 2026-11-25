@@ -1460,65 +1460,75 @@ void World::enemyAttack(Enemy& e) {
     e.attackCd = cfg::kGuardianPatternCooldown * k + cast;
 }
 
+bool World::updateEnemy(Enemy& e, float dt) {
+    if (!e.alive) return false;
+    e.hitFlash = std::max(0.f, e.hitFlash - dt);
+    const float slowed = std::min(dt, e.breathSlowLeft);
+    const float moveTime = dt - slowed * (1.f - e.breathMoveFactor);
+    e.breathSlowLeft -= slowed;
+    if (e.stun > 0.f) {
+        e.stun -= dt;
+        return false;
+    }
+    e.attackCd -= dt;
+    if (e.castTimer > 0.f) {
+        e.castTimer -= dt;
+        return false;
+    }
+    if (!dragon_.alive) return false;
+
+    const EnemyDef& ed = enemyDef(e.kind);
+    if (ed.phase2 && !e.phase2 && e.hp < e.maxHp * 0.5f) {
+        e.phase2 = true;
+        addText(ed.name + "이(가) 분노했다!", e.pos - Vec2{0.f, 90.f}, 0xFFFF7070, 20.f, 1.6f);
+        EnemyKind add;
+        if (!e.spawnedAdds && ed.summonCount > 0 && enemyFromKey(ed.summonKey, add)) {
+            e.spawnedAdds = true;
+            // spawnEnemy 가 enemies_ 를 재할당하면 e 는 그 자리에서 무효가 된다.
+            // 소환 좌표의 기준점은 반드시 먼저 복사해 둔다 (두 번째 소환이 해제된 메모리를 읽었다).
+            const Vec2 origin = e.pos;
+            const int count = ed.summonCount;
+            const int summonLevel = ed.summonLevel;
+            // 아래 spawnEnemy 는 enemies_ 를 재할당할 수 있다. 루프가 끝나면 바로 return
+            // 하므로 범위 for 의 반복자는 다시 쓰이지 않고, 좌표·횟수도 위에서 복사해 두었다.
+            // 이 셋이 동시에 성립해야 안전하다.
+            for (int i = 0; i < count; ++i) {
+                float dy = -80.f + 160.f * (count == 1 ? 0.5f : static_cast<float>(i) / (count - 1));
+                // cppcheck-suppress invalidContainerLoop
+                spawnEnemy(add, summonLevel, bounds_.clampPoint(origin + Vec2{-120.f, dy}, 40.f));
+            }
+            return true;  // 벡터가 재할당되었을 수 있으므로 이번 프레임은 여기서 멈춘다
+        }
+    }
+
+    Vec2 to = dragon_.pos - e.pos;
+    float dist = to.length();
+    if (std::fabs(to.x) > 4.f) e.facing = to.x > 0.f ? 1.f : -1.f;
+    // 몬스터도 몸집이 커지면 닿는 거리가 늘어난다(2026-11-17 사람 결정).
+    float attackRange = ed.attackRange * sizeScale_;
+    float keepDist = attackRange * ed.keepRatio;
+    if (dist <= attackRange && e.attackCd <= 0.f) {
+        enemyAttack(e);
+        return false;
+    }
+    if (dist > keepDist) e.pos += to.normalized() * (e.speed * moveTime);
+    if (e.entering) {
+        // 경계 안으로 완전히 들어오면 그때부터 가둔다
+        if (bounds_.contains(e.pos.x, e.pos.y)) e.entering = false;
+    } else {
+        e.pos = bounds_.clampPoint(e.pos, e.radius);
+    }
+    return false;
+}
+
 void World::updateEnemies(float dt) {
     for (Enemy& e : enemies_) {
-        if (!e.alive) continue;
-        e.hitFlash = std::max(0.f, e.hitFlash - dt);
-        const float slowed = std::min(dt, e.breathSlowLeft);
-        const float moveTime = dt - slowed * (1.f - e.breathMoveFactor);
-        e.breathSlowLeft -= slowed;
-        if (e.stun > 0.f) {
-            e.stun -= dt;
-            continue;
-        }
-        e.attackCd -= dt;
-        if (e.castTimer > 0.f) {
-            e.castTimer -= dt;
-            continue;
-        }
-        if (!dragon_.alive) continue;
-
-        const EnemyDef& ed = enemyDef(e.kind);
-        if (ed.phase2 && !e.phase2 && e.hp < e.maxHp * 0.5f) {
-            e.phase2 = true;
-            addText(ed.name + "이(가) 분노했다!", e.pos - Vec2{0.f, 90.f}, 0xFFFF7070, 20.f, 1.6f);
-            EnemyKind add;
-            if (!e.spawnedAdds && ed.summonCount > 0 && enemyFromKey(ed.summonKey, add)) {
-                e.spawnedAdds = true;
-                // spawnEnemy 가 enemies_ 를 재할당하면 e 는 그 자리에서 무효가 된다.
-                // 소환 좌표의 기준점은 반드시 먼저 복사해 둔다 (두 번째 소환이 해제된 메모리를 읽었다).
-                const Vec2 origin = e.pos;
-                const int count = ed.summonCount;
-                const int summonLevel = ed.summonLevel;
-                // 아래 spawnEnemy 는 enemies_ 를 재할당할 수 있다. 루프가 끝나면 바로 return
-                // 하므로 범위 for 의 반복자는 다시 쓰이지 않고, 좌표·횟수도 위에서 복사해 두었다.
-                // 이 셋이 동시에 성립해야 안전하다.
-                for (int i = 0; i < count; ++i) {
-                    float dy = -80.f + 160.f * (count == 1 ? 0.5f : static_cast<float>(i) / (count - 1));
-                    // cppcheck-suppress invalidContainerLoop
-                    spawnEnemy(add, summonLevel, bounds_.clampPoint(origin + Vec2{-120.f, dy}, 40.f));
-                }
-                return;  // 벡터가 재할당되었을 수 있으므로 이번 프레임은 여기서 멈춘다
-            }
-        }
-
-        Vec2 to = dragon_.pos - e.pos;
-        float dist = to.length();
-        if (std::fabs(to.x) > 4.f) e.facing = to.x > 0.f ? 1.f : -1.f;
-        // 몬스터도 몸집이 커지면 닿는 거리가 늘어난다(2026-11-17 사람 결정).
-        float attackRange = ed.attackRange * sizeScale_;
-        float keepDist = attackRange * ed.keepRatio;
-        if (dist <= attackRange && e.attackCd <= 0.f) {
-            enemyAttack(e);
-            continue;
-        }
-        if (dist > keepDist) e.pos += to.normalized() * (e.speed * moveTime);
-        if (e.entering) {
-            // 경계 안으로 완전히 들어오면 그때부터 가둔다
-            if (bounds_.contains(e.pos.x, e.pos.y)) e.entering = false;
-        } else {
-            e.pos = bounds_.clampPoint(e.pos, e.radius);
-        }
+        // T7: 가장 가까운 살아 있는 드래곤(조작 드래곤 또는 동료)을 노린다
+        const int target = e.alive ? nearestDragonFor(e.pos) : -1;
+        if (target >= 0) swapAlly(target);
+        const bool stop = updateEnemy(e, dt);
+        if (target >= 0) swapAlly(target);
+        if (stop) return;  // enemies_ 가 재할당되었을 수 있다
     }
     // 적끼리 겹치지 않게 밀어낸다
     for (size_t i = 0; i < enemies_.size(); ++i) {
@@ -1585,32 +1595,39 @@ void World::damageDragon(float raw) {
         resetSouls();
         d.breath.reset();
         if (d.skillCast && d.skillCast->soulfireCastId) advanceSkillCast(0.f, true);
-        events_.push_back({WorldEventType::DragonDied, EnemyKind{}, 0});
+        events_.push_back({WorldEventType::DragonDied, EnemyKind{}, 0, 0, swappedAlly_});
         addFx(FxType::Death, d.pos, d.pos, 90.f, 0.9f, speciesDef(d.species).color);
     }
 }
 
 void World::resolveZone(const AttackZone& z, CombatMode mode) {
-    DragonActor& d = dragon_;
     if (z.shape == ZoneShape::Circle) addFx(FxType::Ring, z.a, z.a, z.radius, 0.25f, 0xFFFF6040);
     else addFx(FxType::LineBlast, z.a, z.b, z.radius, 0.3f, 0xFFFF6040);
-    if (!d.alive) return;
-
-    float reach = cfg::kDragonRadius * 0.4f * sizeScale_;
-    bool inside = z.shape == ZoneShape::Circle ? distance(d.pos, z.a) <= z.radius + reach
-                                               : distancePointSegment(d.pos, z.a, z.b) <= z.radius + reach;
-    if (!inside) return;
-
-    bool dodged = d.invuln > 0.f;
-    // 스킬 수동·자동 모드는 공격마다 확률로 회피한다(무적 보장 없음)
-    if (!dodged && mode != CombatMode::Direct) dodged = rng_.chance(dragonDodgeChance());
-    if (dodged) {
-        statDodges++;
-        addText("회피!", d.pos - Vec2{0.f, 56.f}, kColorDodge, 20.f, 0.8f);
-        addFx(FxType::Dodge, d.pos, d.pos, 50.f, 0.35f, kColorDodge);
-        return;
+    // T7: 예고 범위 안의 모든 드래곤이 맞는다. 동료는 자동 사냥과 같이 확률로 피한다.
+    const auto hit = [&](CombatMode m) {
+        DragonActor& d = dragon_;
+        if (!d.alive) return;
+        float reach = cfg::kDragonRadius * 0.4f * sizeScale_;
+        bool inside = z.shape == ZoneShape::Circle ? distance(d.pos, z.a) <= z.radius + reach
+                                                   : distancePointSegment(d.pos, z.a, z.b) <= z.radius + reach;
+        if (!inside) return;
+        bool dodged = d.invuln > 0.f;
+        // 스킬 수동·자동 모드는 공격마다 확률로 회피한다(무적 보장 없음)
+        if (!dodged && m != CombatMode::Direct) dodged = rng_.chance(dragonDodgeChance());
+        if (dodged) {
+            statDodges++;
+            addText("회피!", d.pos - Vec2{0.f, 56.f}, kColorDodge, 20.f, 0.8f);
+            addFx(FxType::Dodge, d.pos, d.pos, 50.f, 0.35f, kColorDodge);
+            return;
+        }
+        damageDragon(z.damage);
+    };
+    hit(mode);
+    for (int k = 0; k < static_cast<int>(party_.size()); ++k) {
+        swapAlly(k);
+        hit(CombatMode::Auto);
+        swapAlly(k);
     }
-    damageDragon(z.damage);
 }
 
 void SoulfireHit::advance(float dt, bool damaged) {
@@ -1682,8 +1699,7 @@ void World::advanceBoneShot(Projectile& shot, BoneShotFlight& flight, float dt) 
     shot.alive = step < limit;
 }
 
-void World::updateCombat(float dt, CombatMode mode, const PlayerInput& in) {
-    currentMode_ = mode;
+void World::controlDragon(float dt, CombatMode mode, const PlayerInput& in, bool ultimateInput) {
     DragonActor& d = dragon_;
     // 전투 중에는 자동 행동(날기)을 쓰지 않는다. 적이 없어 wander가 돌면 그 안에서 다시 켜진다.
     d.flying = false;
@@ -1700,13 +1716,6 @@ void World::updateCombat(float dt, CombatMode mode, const PlayerInput& in) {
     d.guardTime = std::max(0.f, d.guardTime - dt);
     d.swiftTime = std::max(0.f, d.swiftTime - dt);
 
-    for (Enemy& enemy : enemies_) {
-        enemy.curseRemaining = std::max(0.0, enemy.curseRemaining - dt);
-        enemy.curseZoneCooldown = std::max(0.0, enemy.curseZoneCooldown - dt);
-        if (enemy.curseRemaining == 0.0) enemy.curseStacks = 0;
-    }
-
-    const bool ultimateInput = std::exchange(ultimateRequested_, false) || (mode != CombatMode::Auto && in.ultimate);
     if (mode == CombatMode::Direct && in.dodge && d.dodgeCd <= 0.f && d.procession)
         cancelProcession();
     const auto& activeProcession = d.procession;
@@ -1769,6 +1778,27 @@ void World::updateCombat(float dt, CombatMode mode, const PlayerInput& in) {
             }
         }
         if (!d.procession) basicAttack();
+    }
+
+}
+
+void World::updateCombat(float dt, CombatMode mode, const PlayerInput& in) {
+    currentMode_ = mode;
+    DragonActor& d = dragon_;
+    for (Enemy& enemy : enemies_) {
+        enemy.curseRemaining = std::max(0.0, enemy.curseRemaining - dt);
+        enemy.curseZoneCooldown = std::max(0.0, enemy.curseZoneCooldown - dt);
+        if (enemy.curseRemaining == 0.0) enemy.curseStacks = 0;
+    }
+
+    const bool ultimateInput = std::exchange(ultimateRequested_, false) || (mode != CombatMode::Auto && in.ultimate);
+    controlDragon(dt, mode, in, ultimateInput);
+    // T7: 동료는 자동 사냥과 같은 AI 로 싸운다(dragon_ 자리에 잠깐 바꿔 넣는다)
+    for (int k = 0; k < static_cast<int>(party_.size()); ++k) {
+        if (!party_[static_cast<size_t>(k)].actor.alive) continue;
+        swapAlly(k);
+        controlDragon(dt, CombatMode::Auto, PlayerInput{}, false);
+        swapAlly(k);
     }
 
     updateEnemies(dt);
@@ -1906,6 +1936,11 @@ void World::updateCombat(float dt, CombatMode mode, const PlayerInput& in) {
     enemies_.erase(std::remove_if(enemies_.begin(), enemies_.end(), [](const Enemy& e) { return !e.alive; }), enemies_.end());
 
     updateDragonAnim(dt);
+    for (int k = 0; k < static_cast<int>(party_.size()); ++k) {
+        swapAlly(k);
+        updateDragonAnim(dt);
+        swapAlly(k);
+    }
 }
 
 void World::updateFx(float dt, bool combatEnded) {
@@ -1929,6 +1964,67 @@ void World::updateFx(float dt, bool combatEnded) {
         t.pos.y -= 32.f * dt;
     }
     texts_.erase(std::remove_if(texts_.begin(), texts_.end(), [](const FloatText& t) { return t.t >= t.duration; }), texts_.end());
+}
+
+// ---------------- 탑 100층 T7: 파티 ----------------
+
+void World::swapAlly(int k) {
+    // 같은 k 로 두 번 부르면 제자리로 돌아온다.
+    PartyMember& m = party_[static_cast<size_t>(k)];
+    std::swap(dragon_, m.actor);
+    std::swap(slots_, m.slots);
+    swappedAlly_ = swappedAlly_ == k ? -1 : k;
+}
+
+void World::setParty(std::vector<PartyMember> allies) {
+    party_ = std::move(allies);
+    swappedAlly_ = -1;
+}
+
+void World::addAlly(Species s, int level, float hp, Vec2 pos, const std::array<int, kSkillSlots>& slots, int id) {
+    PartyMember m;
+    m.id = id;
+    party_.push_back(m);
+    const int k = static_cast<int>(party_.size()) - 1;
+    swapAlly(k);
+    setupDragon(s, level, hp, pos);
+    bool any = false;
+    for (int v : slots) any = any || v >= 0;
+    if (any) slots_ = slots;
+    swapAlly(k);
+}
+
+void World::setAllyLevel(int index, int level) {
+    if (index < 0 || index >= static_cast<int>(party_.size())) return;
+    swapAlly(index);
+    setDragonLevel(level);
+    swapAlly(index);
+}
+
+int World::aliveAllyCount() const {
+    int n = 0;
+    for (const PartyMember& m : party_) n += m.actor.alive ? 1 : 0;
+    return n;
+}
+
+bool World::promoteAlly(int index) {
+    if (index < 0 || index >= static_cast<int>(party_.size())) return false;
+    if (!party_[static_cast<size_t>(index)].actor.alive) return false;
+    swapAlly(index);   // 쓰러진 조작 드래곤은 동료 자리로, 동료는 조작 자리로
+    swappedAlly_ = -1;
+    return true;
+}
+
+int World::nearestDragonFor(Vec2 from) const {
+    int best = dragon_.alive ? -1 : -2;
+    float bestD = dragon_.alive ? distance(from, dragon_.pos) : 1e30f;
+    for (int k = 0; k < static_cast<int>(party_.size()); ++k) {
+        const DragonActor& a = party_[static_cast<size_t>(k)].actor;
+        if (!a.alive) continue;
+        const float d = distance(from, a.pos);
+        if (d < bestD) { bestD = d; best = k; }
+    }
+    return best;
 }
 
 }  // namespace dt

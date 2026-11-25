@@ -74,6 +74,8 @@ constexpr int kMaxEnemyLevel = 500;          // enemy= 의 레벨(lv<N>)
 constexpr int kTowerTopFloor = 100;
 constexpr int kMidBossEvery = 5;            // 5의 배수는 중간 보스(10의 배수와 겹치면 필드 보스)
 constexpr int kFieldBossEvery = 10;         // 10의 배수는 필드 보스(파티)
+constexpr int kFieldBossHpMul = 8;          // 필드 보스층 적의 체력 배율(2026-11-24 사용자 결정: 한 방 피해는 그대로, 체력만 크게. 임시값)
+constexpr int kFieldBossFirstPotions = 10;  // 필드 보스 계정 첫 클리어: 탑 물약(소) 묶음(임시값)
 constexpr int kFieldBossLevelPerFloor = 5;  // 필드 보스 입장: 출전 드래곤 각각 층 × 5 레벨 이하
 constexpr int kFieldBossPartySize = 4;
 // v1.8 UI 조각 캐시(큐 12번). 그린 결과를 장치 픽셀 크기로 캐시해 매 프레임 다시 줄이지 않는다.

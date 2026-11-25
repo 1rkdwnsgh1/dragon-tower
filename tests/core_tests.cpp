@@ -591,6 +591,122 @@ static void testEconomy() {
     }
 }
 
+
+// 탑 100층 T7(2026-11-24): 필드 보스는 4마리 파티만. 동료도 경험치·돌파 기록을 받는다.
+// 조작 드래곤이 쓰러지면 다음 동료로 넘어간다. 첫 클리어 특별 보상은 계정에 한 번.
+static void testFieldBossParty() {
+    std::printf("[field boss party]\n");
+    EnemyKind slime{};
+    CHECK(enemyFromKey("slime", slime));
+    std::vector<TowerFloorDef> floors(20);
+    for (auto& f : floors) f.spawns = {{"slime", 1, 1, 0.f}};
+    floors[19].spawns = {{"slime", 1, 1, 0.f}};
+    const auto makeSave = [](int lastLevel) {
+        SaveData s;
+        s.nextDragonId = 10;
+        for (int i = 0; i < 4; ++i) {
+            DragonRecord d;
+            d.id = i + 1;
+            d.species = Species::Fire;
+            d.level = i == 3 ? lastLevel : 40;
+            d.alive = true;
+            s.stable.push_back(d);
+        }
+        s.activeIndex = 0;
+        s.dragon = s.stable[0];
+        s.hasDragon = true;
+        s.freeDragonsUsed = 4;
+        return s;
+    };
+    {
+        // 레벨 상한(10층 = 50) 넘는 드래곤이 있으면 못 들어간다
+        Game g;
+        g.setTowerFloors(floors);
+        g.init(makeSave(51), kDesk);
+        g.openTowerSelection();
+        g.selectTowerFloor(10);
+        g.openTowerWarning();
+        CHECK(g.fieldBossFloorSelected());
+        for (int i = 1; i < 4; ++i) g.togglePartyMember(i);
+        CHECK(g.partyPick().size() == 4);
+        CHECK(g.partyBlockedReason() != nullptr);
+        g.enterTower(CombatMode::SkillManual);
+        CHECK(g.screen() == Screen::TowerWarning);
+    }
+    Game g;
+    g.seed(21);
+    g.setTowerFloors(floors);
+    g.init(makeSave(40), kDesk);
+    g.openTowerSelection();
+    g.selectTowerFloor(10);
+    g.openTowerWarning();
+    CHECK(g.partyBlockedReason() != nullptr);  // 혼자서는 못 들어간다
+    g.enterTower(CombatMode::SkillManual);
+    CHECK(g.screen() == Screen::TowerWarning);
+    g.togglePartyMember(0);  // 조작 드래곤은 빠지지 않는다
+    CHECK(g.partyPicked(1));
+    for (int i = 1; i < 4; ++i) g.togglePartyMember(i);
+    CHECK(g.partyBlockedReason() == nullptr);
+    g.enterTower(CombatMode::SkillManual);
+    CHECK(g.screen() == Screen::Tower);
+    CHECK(g.partyRun() && g.world().party().size() == 3);
+    // 필드 보스층 적은 체력이 kFieldBossHpMul 배
+    CHECK(!g.world().enemies().empty());
+    if (!g.world().enemies().empty()) {
+        const Enemy& e = g.world().enemies().front();
+        CHECK(e.maxHp >= enemyStatsFor(slime, 1).maxHp * static_cast<float>(cfg::kFieldBossHpMul) - 0.5f);
+    }
+    const int exp2 = g.stable()[1].exp;
+    PlayerInput in;
+    in.skill[0] = in.skill[1] = in.skill[2] = true;
+    for (int i = 0; i < 30 * 120 && g.screen() == Screen::Tower; ++i) g.update(1.f / 30.f, in, false, true);
+    CHECK(g.screen() == Screen::FloorClear);
+    if (g.screen() == Screen::FloorClear) {
+        CHECK(g.save().fieldBossCleared.count(10) == 1);
+        CHECK(g.save().potionSmall == cfg::kFieldBossFirstPotions);
+        bool allyCleared = true;
+        for (const DragonRecord& d : g.stable()) allyCleared = allyCleared && d.clearedFloors.count(10) == 1;
+        CHECK(allyCleared);
+        CHECK(g.stable()[1].exp > exp2 || g.stable()[1].level > 40);  // 동료도 경험치
+        // 다음 층으로 가면 파티가 풀리고 혼자 오른다
+        g.nextFloor();
+        CHECK(!g.partyRun() && g.world().party().empty());
+    }
+
+    // 조작 드래곤이 쓰러지면 다음 동료로. 영구 사망은 그대로(목록에서 빠지고 묘비)
+    {
+        Game gd;
+        gd.seed(5);
+        std::vector<TowerFloorDef> hard = floors;
+        hard[9].spawns = {{"slime", 1, 1, 0.f}};
+        gd.setTowerFloors(hard);
+        gd.init(makeSave(40), kDesk);
+        gd.openTowerSelection();
+        gd.selectTowerFloor(10);
+        gd.openTowerWarning();
+        for (int i = 1; i < 4; ++i) gd.togglePartyMember(i);
+        gd.enterTower(CombatMode::SkillManual);
+        CHECK(gd.partyRun());
+        // 조작 드래곤에게 큰 피해를 직접 준다(예고 판정과 같은 길)
+        World& w = gd.world();
+        w.dragon().hp = 1.f;
+        w.dragon().invuln = 0.f;
+        AttackZone z;
+        z.shape = ZoneShape::Circle;
+        z.a = w.dragon().pos;
+        z.radius = 5.f;
+        z.damage = 9999.f;
+        z.windup = 0.f;
+        w.debugResolveZone(z, CombatMode::Direct);
+        PlayerInput none;
+        gd.update(1.f / 30.f, none, false, true);
+        CHECK(gd.screen() == Screen::Tower);
+        CHECK(gd.hasDragon() && gd.dragonRecord().id != 1);
+        CHECK(gd.stable().size() == 3);
+        CHECK(!gd.save().graves.empty() && gd.save().graves.back().id == 1);
+    }
+}
+
 static void testTowerFlow() {
     std::printf("[tower flow]\n");
     SaveData s;
@@ -651,7 +767,12 @@ static void testTowerSelection(const std::filesystem::path& assets) {
     alternate.level = 35;
     alternate.cleared = 2;
     alternate.clearedFloors = {2};
-    save.stable = {save.dragon, alternate};
+    // T7(2026-11-24): 필드 보스층(10의 배수)은 4마리 파티만. 100층을 깨려면 4마리가 있어야 한다.
+    DragonRecord third = alternate, fourth = alternate;
+    third.id = 3;
+    fourth.id = 4;
+    save.stable = {save.dragon, alternate, third, fourth};
+    save.nextDragonId = 5;
     save.activeIndex = 0;
     Game g;
     g.setTowerFloors(tower.floors);
@@ -671,13 +792,21 @@ static void testTowerSelection(const std::filesystem::path& assets) {
     g.enterTower(CombatMode::Auto);
     CHECK(g.screen() == Screen::TowerWarning);
     g.enterTower(CombatMode::Direct);
-    CHECK(g.screen() == Screen::Tower && g.towerFloor() == 10);
+    CHECK(g.screen() == Screen::TowerWarning);  // 10층은 필드 보스 — 혼자서는 못 들어간다
+    g.closeModal();
+    g.selectTowerFloor(15);  // 중간 보스층은 혼자 들어간다
+    g.openTowerWarning();
+    g.enterTower(CombatMode::Direct);
+    CHECK(g.screen() == Screen::Tower && g.towerFloor() == 15);
     CHECK(!g.world().enemies().empty());
 
     const auto selectAndClear = [&](int floor) {
         g.openTowerSelection();
         g.selectTowerFloor(floor);
         g.openTowerWarning();
+        if (g.fieldBossFloorSelected())
+            for (int i = 0; i < static_cast<int>(g.stable().size()) && g.partyPick().size() < 4; ++i)
+                g.togglePartyMember(i);
         g.enterTower(CombatMode::Direct);
         CHECK(g.towerFloor() == floor);
         g.world().clearEnemies(false);
@@ -686,9 +815,9 @@ static void testTowerSelection(const std::filesystem::path& assets) {
     g.world().clearEnemies(false);
     g.update(0.f, {}, false, true);
     g.leaveTower();
-    selectAndClear(50);
-    CHECK(g.dragonRecord().clearedFloors.count(50) && !g.dragonRecord().clearedFloors.count(49));
-    CHECK(g.save().firstClearFloors.count(50) && !g.save().firstClearFloors.count(49));
+    selectAndClear(45);
+    CHECK(g.dragonRecord().clearedFloors.count(45) && !g.dragonRecord().clearedFloors.count(44));
+    CHECK(g.save().firstClearFloors.count(45) && !g.save().firstClearFloors.count(44));
     CHECK(g.save().fieldBossCleared.empty());
     g.leaveTower();
     selectAndClear(100);
@@ -702,7 +831,7 @@ static void testTowerSelection(const std::filesystem::path& assets) {
 
     SaveData loaded;
     const bool saved = deserializeSave(serializeSave(g.snapshotForSave()), loaded);
-    CHECK(saved && loaded.dragon.clearedFloors.count(50) && !loaded.dragon.clearedFloors.count(49));
+    CHECK(saved && loaded.dragon.clearedFloors.count(45) && !loaded.dragon.clearedFloors.count(44));
     CHECK(loaded.firstClearFloors.count(100) && !loaded.firstClearFloors.count(99));
     SaveData legacy;
     CHECK(deserializeSave("version=1\nhasDragon=1\ndragon.cleared=10\ntower.firstClear=10\n", legacy));
@@ -710,8 +839,10 @@ static void testTowerSelection(const std::filesystem::path& assets) {
     g.leaveTower();
     CHECK(g.switchDragon(1));
     g.openTowerSelection();
-    CHECK(g.selectedTowerFloor() == 3 && g.world().dragon().level == 35);
-    CHECK(g.dragonRecord().clearedFloors.count(2) && !g.dragonRecord().clearedFloors.count(50));
+    // 이 드래곤은 100층 필드 보스 파티에 동료로 나가 100층 돌파를 함께 받았다(T7). 45층은 혼자 간 기록이라 없다.
+    CHECK(g.selectedTowerFloor() == 100 && g.world().dragon().level == 35);
+    CHECK(g.dragonRecord().clearedFloors.count(2) && g.dragonRecord().clearedFloors.count(100) &&
+          !g.dragonRecord().clearedFloors.count(45));
 }
 
 // v1.6: 탑 층을 데이터로 뺐다. 파일이 없으면 v1.5와 똑같이 동작해야 한다 — 그것을 여기서 고정한다.
@@ -4433,6 +4564,7 @@ int main(int argc, char** argv) {
     testBattleWithoutConfine();
     testHuntFloorPool();
     testEconomy();
+    testFieldBossParty();
     testDefenseWaveGrows();
     testAutoBattleNoLongerCapped();
     testUiSettingsSaved();
