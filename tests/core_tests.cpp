@@ -4160,8 +4160,10 @@ static void testSteelDragon(const std::filesystem::path& assets) {
     if (!found) return;
     const auto& def = speciesDef(steel);
     CHECK(def.name == "강철룡" && def.role != "Preview" && def.flipAllowed);
-    CHECK(def.anims[static_cast<int>(AnimState::Idle)].fps == 16.f);
-    CHECK(def.anims[static_cast<int>(AnimState::Idle)].loop);
+    for (const auto state : {AnimState::Idle, AnimState::Fly}) {
+        const auto& anim = def.anims[static_cast<int>(state)];
+        CHECK(anim.fps == 12.f && anim.frameW == 256 && anim.loop);
+    }
     CHECK(def.skills.size() == 3);
 
     Game game;

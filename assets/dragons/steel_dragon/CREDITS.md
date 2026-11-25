@@ -1,9 +1,14 @@
-# 강철룡 자료 출처
+# 강철룡 에셋 출처
 
-사용자가 승인한 `STEEL_DRAGON_IDLE_WING_TAIL_PREVIEW.zip`의 `steel_dragon/` 상태 시트를 사용했다. 대기 시트는 원본 본체와 연기의 재생 순서를 조정해 다시 합성했다. [ChatGPT 라이브러리의 승인 패키지](https://chatgpt.com/library?file_id=libfile_c1a7fece9cc4819180dd6810118995b4&account_id=personal)
+사용자가 승인한 A안 원본을 사용했다.
 
-SHA-256 `b7b9032e9ec1dc7420c4959005882bad98136f74f6129b0b6bf3cc0efb066eb0`.
+| 원본 | SHA-256 |
+|---|---|
+| `STEEL_DRAGON_A_HEAVY_VENT_V5.zip` | `039fff959e32d45ac02f2b11fe3cb41ded45854ae5c33a7a60364407a233e84b` |
+| `STEEL_DRAGON_A_FLY_24F.png` | `12c557c7e8cea27178d17200e59aff9aa55e877ba11454886240b7f43f9bcfc2` |
+| `STEEL_DRAGON_A_FLY_THRUST_FX_V2.zip` | `8fff462ae769e2502e0a4c7fd10586399ba77003706700450f3a8bc32cc052f4` |
+| `STEEL_DRAGON_A_FLY_VENT_FX_V2.zip` | `0199da237be01b734221753a6eb96277cc7c6033994f94e1f0918500a3ec849c` |
 
-대기는 96칸을 16 FPS로 반복한다. 날개 연기는 검수용 6초 주기에서 3초간 재생하며, 꼬리 연기는 대기 중 이어진다. 그 외 상태는 패키지의 연기 없는 대체 시트를 사용한다. 별도 라이선스와 제작자 정보는 패키지에 명시되어 있지 않다.
+FLY는 2400×1588 RGBA, 6열×4행, 셀 400×397px이다. 24개 슬롯에 10개 고유 자세가 들어 있으며 각 슬롯의 RGBA 해시가 두 V2 패키지 기록과 일치한다. 2048×1355 사본의 동일성은 미검증이다.
 
-대기 본체는 1초에 한 번 반복하던 호흡을 6초에 한 번으로 늦췄다. 0~1.5초에 들이쉬고, 1.5~1.75초에 가슴이 부푼 상태를 유지한다. 1.75초에 가슴이 내려가기 시작하면서 날개 연기를 3초간 재생한다. 꼬리 연기는 기존 타이밍을 유지한다.
+MOVE·ATTACK·HIT·DEATH·REST는 기존 `STEEL_DRAGON_IDLE_WING_TAIL_PREVIEW.zip`의 연기 없는 대체 시트다. [기존 승인 패키지](https://chatgpt.com/library?file_id=libfile_c1a7fece9cc4819180dd6810118995b4&account_id=personal)

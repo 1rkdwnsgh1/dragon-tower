@@ -3,13 +3,13 @@
 key=steel_dragon
 name=강철룡
 role=미정
-desc=날개와 꼬리 아래에서 옅은 연기가 피어오르는 강철룡이다.
+desc=주황빛 용광로 코어와 기계식 날개를 가진 강철룡이다.
 flip=yes
 
 [anim.idle]
 file=idle.png
 frame_w=256
-fps=16
+fps=12
 loop=yes
 
 [anim.move]
@@ -21,7 +21,7 @@ loop=yes
 [anim.fly]
 file=fly.png
 frame_w=256
-fps=8
+fps=12
 loop=yes
 
 [anim.rest]

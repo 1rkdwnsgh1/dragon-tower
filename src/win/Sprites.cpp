@@ -408,6 +408,17 @@ const std::string& soulfireLayerKey(int variant, SoulfirePass pass) {
 }
 
 void Sprites::loadFxSheets(const std::filesystem::path& dir, const SpeciesDef& def, const std::string& label) {
+    if (def.key == "steel_dragon") {
+        const auto load = [&](const char* layer, int cell) {
+            const std::string name = std::string("fx_") + layer;
+            loadSheetFile(dir / (name + ".png"), AnimDef{12.f, false, cell, 1.f},
+                          def.key + "/" + name, label + "/" + name + ".png");
+        };
+        load("fly_thrust", 384);
+        load("fly_vent", 384);
+        load("idle_vent_body", 256);
+        load("idle_vent", 288);
+    }
     for (const SkillDef& sk : def.skills) {
         if (sk.kind == SkillKind::Procession && def.key == "revenant") {
             const AnimDef sheet{8.f, false, 256, 1.f};

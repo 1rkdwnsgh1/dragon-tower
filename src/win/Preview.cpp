@@ -280,7 +280,13 @@ void PreviewWindow::reset() {
     stepFps_ = std::max(1.f, anim.fps);
     duration_ = std::max(1.f, body.frames / stepFps_);
 
-    if (!sk) return;
+    if (!sk) {
+        if (def.key == "steel_dragon" && state == AnimState::Idle && body.frames == steel::idleFrames &&
+            sprites_.fxSheet(def.key, "idle_vent_body").frames == steel::ventBodyFrames &&
+            sprites_.fxSheet(def.key, "idle_vent").frames == steel::ventFrames)
+            duration_ = steel::idleCycleFrames / stepFps_;
+        return;
+    }
 
     const float distance = std::clamp(sk->range * 0.7f, 0.f, 280.f);
     const float aim = captureAim_ * kPi / 180.f;
@@ -464,7 +470,11 @@ void PreviewWindow::updateInfo() {
         if (body.bmp) {
             out << (sk && custom.bmp ? L"skill_" + widen(sk->motion) : widen(animStateName(resolved))) << L".png"
                 << L"  ·  " << body.frames << L"프레임  ·  " << anim.fps << L" FPS";
-            if (dragon.anim == state || (layered && dragon.breath)) {
+            if (!sk && state == AnimState::Idle && def.key == "steel_dragon" &&
+                duration_ == steel::idleCycleFrames / stepFps_) {
+                const int frame = animFrame(dragon.animTime, anim.fps, steel::idleCycleFrames, true);
+                out << L"  ·  V5 대기·배기 순서 " << frame + 1 << L"/" << steel::idleCycleFrames;
+            } else if (dragon.anim == state || (layered && dragon.breath)) {
                 const int frame = layered && dragon.breath ? dragon.breath->bodyFrame(*sk)
                                                            : animFrame(dragon.animTime, anim.fps, body.frames, anim.loop);
                 out << L"  ·  현재 " << frame + 1

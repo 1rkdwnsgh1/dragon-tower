@@ -998,7 +998,25 @@ void Renderer::drawDragon(Graphics& g, const DragonActor& d, const Sprites& spri
         }
         if (!preview)
             markRegion(RectF(x - drawH * 0.5f, cyAdj - drawH * 0.5f, drawH, drawH), 4.f);
-        const int frame = breathing ? d.breath->bodyFrame(*breath) : animFrame(t, ad.fps, sh.frames, ad.loop);
+        int frame = breathing ? d.breath->bodyFrame(*breath) : animFrame(t, ad.fps, sh.frames, ad.loop);
+        const bool steelMotion = !preview && !skillAnim && !breathing && sp.key == "steel_dragon";
+        int idleVentFrame = -1;
+        if (steelMotion && state == AnimState::Idle && sh.frames == steel::idleFrames) {
+            const Sheet ventBody = sprites.fxSheet(sp.key, "idle_vent_body");
+            const Sheet ventFx = sprites.fxSheet(sp.key, "idle_vent");
+            if (ventBody.frames == steel::ventBodyFrames && ventFx.frames == steel::ventFrames) {
+                // V5 미리보기 순서: IDLE F01–F24 → VENT F01–F20 → IDLE F02–F24.
+                const int cycle = animFrame(t, ad.fps, steel::idleCycleFrames, true);
+                const int ventEnd = steel::idleFrames + steel::ventFrames;
+                if (cycle >= steel::idleFrames && cycle < ventEnd) {
+                    idleVentFrame = cycle - steel::idleFrames;
+                    sh = ventBody;
+                    frame = std::min(idleVentFrame, ventBody.frames - 1);
+                } else {
+                    frame = cycle < steel::idleFrames ? cycle : cycle - ventEnd + 1;
+                }
+            }
+        }
         if (soulfire && skillAnim && effects)
             drawSoulfireBodyVfx(g, d, sprites, sp.key, frame, {x, cyAdj}, drawH, flip, false);
         const auto drawCleaveCast = [&](const char* layer) {
@@ -1015,6 +1033,21 @@ void Renderer::drawDragon(Graphics& g, const DragonActor& d, const Sprites& spri
                            x, cyAdj, drawH, flip, 0.f, alpha);
         }
         if (showBody) drawSheetFrame(g, sh, frame, x, cyAdj, drawH, flip, flash, alpha);
+        if (steelMotion && effects) {
+            if (state == AnimState::Fly && sh.frames == 24) {
+                // V2 원본의 알파가 본체에 가려지는 영역을 반영한다. 연기 위에 추진 화염을 그린다.
+                for (const char* layer : {"fly_vent", "fly_thrust"}) {
+                    const Sheet fx = sprites.fxSheet(sp.key, layer);
+                    if (fx.frames == sh.frames)
+                        drawSheetFrame(g, fx, frame, x, cyAdj, drawH * (384.f / 256.f), flip, 0.f, alpha);
+                }
+            } else if (idleVentFrame >= 0) {
+                const Sheet fx = sprites.fxSheet(sp.key, "idle_vent");
+                // 288px 셀을 256px 본체의 좌상단 (-16, -24)에 놓는다.
+                drawSheetFrame(g, fx, idleVentFrame, x, cyAdj - drawH * (8.f / 256.f),
+                               drawH * (288.f / 256.f), flip, 0.f, alpha);
+            }
+        }
         if (cleave && effects) drawCleaveCast("_cast_front");
         if (soulfire && skillAnim && effects)
             drawSoulfireBodyVfx(g, d, sprites, sp.key, frame, {x, cyAdj}, drawH, flip, true);
@@ -1726,8 +1759,10 @@ void Renderer::drawAnimationPreview(Graphics& g, const World& w, const Sprites& 
         }
         if (effects) drawCleaveImpacts(g, w, sprites, true);
     }
-    if (body || (effects && d.skillCast && (d.skillCast->soulfireCastId ||
-            species.skills[d.skillCast->skill].spectralCleave))) {
+    const bool steelMotionFx = species.key == "steel_dragon" &&
+        (d.anim == AnimState::Idle || d.anim == AnimState::Fly);
+    if (body || (effects && (steelMotionFx || (d.skillCast && (d.skillCast->soulfireCastId ||
+            species.skills[d.skillCast->skill].spectralCleave))))) {
         const float height = cfg::kDragonRadius * 3.f * charScale;
         const float cy = d.pos.y + cfg::kDragonRadius - (240.f / 256.f - 0.5f) * height;
         drawDragon(g, d, sprites, time, d.pos.x, cy, height, false, body, effects);
