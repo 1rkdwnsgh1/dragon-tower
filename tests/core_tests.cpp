@@ -4558,6 +4558,150 @@ static void testBoneShot(const std::filesystem::path& assets) {
     CHECK(reopened.world().dragon().awakened);
 }
 
+static void testSteelBasicAttack(Species steel) {
+    World world;
+    world.setBounds(kDesk);
+    world.setupDragon(steel, 1, 0.f, {300.f, 350.f});
+    auto& actor = world.dragon();
+    auto& enemy = world.spawnEnemy(defaultMelee(), 1, {470.f, 360.f}, false);
+    enemy.stun = 100.f;
+    enemy.hp = enemy.maxHp = 1000.f;
+    const auto tick = [&](float dt, PlayerInput input = {}) {
+        world.updateCombat(dt, CombatMode::Direct, input);
+        world.updateFx(dt);
+    };
+    tick(0.01f);
+    CHECK(actor.anim == AnimState::Attack && actor.animTime == 0.f);
+    CHECK(actor.basicCd == cfg::kBasicAttackCooldown && world.projectiles().empty());
+    PlayerInput moving;
+    moving.moveX = 1.f;
+    const float start = actor.pos.x;
+    tick(0.25f, moving);
+    CHECK(actor.pos.x > start && actor.anim == AnimState::Attack && world.projectiles().empty());
+    tick(0.0625f, moving);
+    CHECK(actor.animTime == kSteelBasicLaunch && world.projectiles().size() == 1);
+    if (world.projectiles().size() != 1) return;
+    const auto& shot = world.projectiles().front();
+    const float bodyHeight = 3.f * cfg::kDragonRadius;
+    CHECK(shot.steelBasic && shot.t == 0.f && shot.speed == cfg::kProjectileSpeed);
+    CHECK(std::fabs(shot.pos.x - actor.pos.x - kSteelBasicMouthX * bodyHeight) < 0.001f);
+    CHECK(std::fabs(shot.pos.y - actor.pos.y - cfg::kDragonRadius + kSteelBasicMouthY * bodyHeight) < 0.001f);
+    CHECK(shot.damage == actor.stats.atk * cfg::kBasicAttackPower);
+    moving.moveX = -1.f;
+    const float fireX = actor.pos.x;
+    tick(0.3125f, moving);
+    CHECK(actor.pos.x < fireX && actor.facing.x < 0.f && actor.anim == AnimState::Move);
+    CHECK(world.projectiles().empty());
+    CHECK(std::fabs(enemy.hp - (1000.f - mitigate(actor.stats.atk * cfg::kBasicAttackPower, enemy.def))) < 0.001f);
+    const auto hit = [&] { return std::find_if(world.fx().begin(), world.fx().end(),
+        [](const Fx& fx) { return fx.key == "basic_hit"; }); };
+    CHECK(hit() != world.fx().end());
+    if (hit() != world.fx().end()) {
+        CHECK(hit()->t == 0.f && hit()->duration == kSteelBasicHitDuration);
+        CHECK(std::fabs(distance(hit()->a, enemy.pos) - enemy.radius * 0.6f) < 0.01f);
+    }
+    world.updateFx(kSteelBasicHitDuration);
+    CHECK(hit() == world.fx().end());
+
+    world.clearEnemies(false);
+    world.setSizeScale(1.5f);
+    actor.basicCd = 0.f;
+    auto& movingTarget = world.spawnEnemy(defaultMelee(), 1, {actor.pos.x - 130.f, actor.pos.y}, false);
+    movingTarget.stun = 100.f;
+    movingTarget.hp = movingTarget.maxHp = 1000.f;
+    tick(0.01f);
+    tick(0.34f);  // F06 경계를 건너도 발사는 한 번뿐이다.
+    CHECK(world.projectiles().size() == 1 && actor.facing.x < 0.f);
+    if (world.projectiles().size() != 1 || !world.projectiles().front().steelBasic) return;
+    const auto& leftShot = world.projectiles().front();
+    CHECK(leftShot.steelBasic->scale == 1.5f && leftShot.steelBasic->aim.x < 0.f);
+    const Vec2 leftStart = leftShot.pos - leftShot.steelBasic->aim * (leftShot.t * leftShot.speed);
+    CHECK(std::fabs(leftStart.x - actor.pos.x + kSteelBasicMouthX * bodyHeight * 1.5f) < 0.001f);
+    movingTarget.pos.y += 100.f;
+    tick(0.46f);
+    CHECK(world.projectiles().empty() && hit() == world.fx().end());
+    CHECK(movingTarget.hp == 1000.f && actor.anim == AnimState::Idle);
+    tick(0.11f);
+    CHECK(actor.anim == AnimState::Attack && world.projectiles().empty());
+    world.clearEnemies(false);
+    tick(0.4f);
+    CHECK(world.projectiles().empty() && !actor.steelBasicTarget);
+}
+
+static void testSteelDragon(const std::filesystem::path& assets) {
+    std::printf("[steel dragon registration]\n");
+    const DragonScanResult scan = loadDragonFolders(assets / "dragons");
+    for (const auto& warning : scan.warnings)
+        CHECK(warning.find("steel_dragon") == std::string::npos);
+
+    Species steel{};
+    const bool found = speciesFromKey("steel_dragon", steel);
+    CHECK(found);
+    if (!found) return;
+    const auto& def = speciesDef(steel);
+    CHECK(def.name == "강철룡" && def.role != "Preview" && def.flipAllowed);
+    for (const auto state : {AnimState::Idle, AnimState::Fly}) {
+        const auto& anim = def.anims[static_cast<int>(state)];
+        CHECK(anim.fps == 12.f && anim.frameW == 256 && anim.loop);
+    }
+    const auto& move = def.anims[static_cast<int>(AnimState::Move)];
+    CHECK(move.fps == 16.f && move.frameW == 256 && move.loop);
+    const auto& attack = def.anims[static_cast<int>(AnimState::Attack)];
+    CHECK(attack.fps == kSteelBasicFps && attack.frameW == 256 && !attack.loop);
+    CHECK(def.skills.size() == 3);
+
+    Game game;
+    game.init(SaveData{}, kDesk);
+    CHECK(game.screen() == Screen::Select);
+    game.chooseSpecies(steel);
+    CHECK(game.screen() == Screen::Desktop && game.hasDragon());
+    CHECK(game.dragonRecord().species == steel && game.consumeSaveRequest());
+
+    SaveData saved;
+    CHECK(deserializeSave(serializeSave(game.snapshotForSave()), saved));
+    Game restarted;
+    restarted.init(saved, kDesk);
+    CHECK(restarted.hasDragon() && restarted.dragonRecord().species == steel);
+    testSteelBasicAttack(steel);
+
+    game.placeDragon({700.f, 500.f});
+    auto& world = game.world();
+    auto& actor = world.dragon();
+    actor.behavior = IdleBehavior::Rest;
+    actor.behaviorLeft = 3.f;
+    world.updateWander(0.01f);
+    CHECK(actor.anim == AnimState::Idle);
+
+    actor.behavior = IdleBehavior::Walk;
+    actor.wanderTarget = {900.f, actor.groundY};
+    world.updateWander(0.01f);
+    CHECK(actor.anim == AnimState::Move && actor.animTime == 0.f && actor.facing.x > 0.f);
+    const auto start = actor.pos;
+    for (int i = 0; i < 16; ++i) world.updateWander(1.f / move.fps);
+    CHECK(actor.anim == AnimState::Move && actor.animTime == 1.f);
+    CHECK(std::fabs(actor.pos.x - start.x - actor.stats.speed * cfg::kIdleWalkSpeed) < 0.01f);
+    CHECK(actor.pos.y == start.y);
+    std::printf("  steel desktop walk: %.2f px per 16-frame cycle\n", actor.pos.x - start.x);
+
+    actor.behavior = IdleBehavior::Rest;
+    world.updateWander(0.01f);
+    CHECK(actor.anim == AnimState::Idle && actor.animTime == 0.f);
+
+    actor.behavior = IdleBehavior::Walk;
+    actor.wanderTarget = {650.f, actor.groundY};
+    world.updateWander(0.01f);
+    CHECK(actor.anim == AnimState::Move && actor.facing.x < 0.f);
+
+    actor.behavior = IdleBehavior::Fly;
+    actor.wanderTarget = {900.f, actor.groundY - 100.f};
+    world.updateWander(0.01f);
+    CHECK(actor.anim == AnimState::Fly && actor.animTime == 0.f);
+    actor.behavior = IdleBehavior::Walk;
+    actor.wanderTarget = {900.f, actor.groundY};
+    world.updateWander(0.01f);
+    CHECK(actor.anim == AnimState::Move && actor.animTime == 0.f);
+}
+
 int main(int argc, char** argv) {
     if (argc == 3 && std::string(argv[1]) == "--bone-shot") {
         testBoneShot(std::filesystem::u8path(argv[2]));
@@ -4671,6 +4815,7 @@ int main(int argc, char** argv) {
         testNetherSoulfire(assets);
         testSpectralCleave(assets);
         testBoneShot(assets);
+        testSteelDragon(assets);
     }
     else std::printf("[elite variants spawn] assets 경로 인자가 없어 건너뜀\n");
     std::printf("\n%d passed, %d failed\n", g_passed, g_failed);

@@ -44,6 +44,13 @@ struct Sheet {
     const float* visibleHeight = nullptr;  // Enemy frame height as a fraction of the cell.
 };
 
+namespace steel {
+inline constexpr int idleFrames = 24;
+inline constexpr int ventBodyFrames = 16;
+inline constexpr int ventFrames = 20;
+inline constexpr int idleCycleFrames = 2 * idleFrames + ventFrames - 1;
+}
+
 namespace bonestorm {
 inline constexpr float anchorX = 64.f;
 inline constexpr float coreTipX = 965.f;

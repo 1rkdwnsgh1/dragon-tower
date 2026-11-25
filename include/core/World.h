@@ -166,6 +166,20 @@ struct BoneShotFlight {
     std::vector<int> hitIds;
 };
 
+inline constexpr float kSteelBasicFps = 16.f;
+inline constexpr float kSteelBasicLaunch = 5.f / kSteelBasicFps;
+inline constexpr float kSteelBasicDuration = 10.f / kSteelBasicFps;
+inline constexpr float kSteelBasicHitDuration = 8.f / kSteelBasicFps;
+// 승인 F06 입 좌표를 공격 셀의 중심/접지 기준으로 변환한 값이다.
+inline constexpr float kSteelBasicMouthX = 570.f * (269.f / 1280.f) / 256.f;
+inline constexpr float kSteelBasicMouthY = 235.f * (269.f / 1280.f) / 256.f;
+
+struct SteelBasicFlight {
+    Vec2 aim;
+    float scale = 1.f;
+    float firstStep = 0.f;
+};
+
 struct Projectile {
     Vec2 pos;
     int targetId = 0;
@@ -180,6 +194,7 @@ struct Projectile {
     bool appliesCurse = false;
     std::optional<CleaveFlight> cleave;
     std::optional<BoneShotFlight> boneShot;
+    std::optional<SteelBasicFlight> steelBasic;
 };
 
 // Standing source aligned to the standard 256px revenant cell at 126% scale.
@@ -325,6 +340,7 @@ struct DragonActor {
     Vec2 facing{1.f, 0.f};
     float hp = 1.f;
     float basicCd = 0.f;
+    std::optional<int> steelBasicTarget;  // F06 전까지 유지하는 목표 ID.
     // v1.4: 재사용 대기시간은 **스킬마다** 센다(칸이 아니라). 칸을 바꿔 끼워도 대기시간은 그대로다.
     // 크기는 setupDragon에서 그 종의 스킬 수에 맞춘다.
     std::vector<float> skillCd;
@@ -554,7 +570,9 @@ private:
     bool skillCastLocked() const { return dragon_.skillCast && dragon_.skillCast->elapsed < dragon_.skillCast->lockTime; }
     // v1.4 패시브 PassiveOnKill. 적을 쓰러뜨렸을 때 damageEnemy가 부른다.
     void onEnemyKilled(Vec2 at);
-    void basicAttack();
+    void basicAttack(float dt);
+    void advanceSteelBasic(float dt);
+    void advanceSteelBasicFlight(Projectile& shot, float dt);
     void beginBoneShot(int skillIndex, const Enemy& target, bool basic);
     void updateEnemies(float dt);
     void enemyAttack(Enemy& e);
