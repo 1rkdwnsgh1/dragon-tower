@@ -420,6 +420,9 @@ void Sprites::loadFxSheets(const std::filesystem::path& dir, const SpeciesDef& d
         load("idle_vent", 288);
         load("walk_vent", 256, 16.f);
         load("walk_ember", 256, 16.f);
+        load("basic_heat", 256, kSteelBasicFps);
+        load("basic_projectile", 512, kSteelBasicFps);
+        load("basic_hit", 256, kSteelBasicFps);
     }
     for (const SkillDef& sk : def.skills) {
         if (sk.kind == SkillKind::Procession && def.key == "revenant") {

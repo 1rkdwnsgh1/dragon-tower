@@ -33,7 +33,7 @@ loop=yes
 [anim.attack]
 file=attack.png
 frame_w=256
-fps=8
+fps=16
 loop=no
 
 [anim.hit]

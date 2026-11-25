@@ -84,6 +84,7 @@ private:
     float duration_ = 1.f;
     float stepFps_ = 8.f;
     float captureScale_ = 1.f;
+    bool steelBasicPreview_ = false;
     float captureAim_ = 0.f;  // Degrees above the horizontal.
     Clock::time_point lastTick_{};
 };
@@ -279,6 +280,18 @@ void PreviewWindow::reset() {
     const AnimDef& anim = sk && custom.bmp ? sk->motionAnim : def.anims[static_cast<int>(state)];
     stepFps_ = std::max(1.f, anim.fps);
     duration_ = std::max(1.f, body.frames / stepFps_);
+    steelBasicPreview_ = !sk && def.key == "steel_dragon" && state == AnimState::Attack;
+    if (steelBasicPreview_) {
+        target_ = origin + Vec2{direction * 175.f, 0.f};
+        Enemy& target = world_.spawnEnemy(defaultMelee(), 1, target_, false);
+        target.hp = target.maxHp = 1e20f;
+        target.stun = 10000.f;
+        dragon.basicCd = 0.f;
+        world_.updateCombat(0.f, CombatMode::Direct, {});
+        dragon.basicCd = 10000.f;
+        duration_ = kSteelBasicLaunch + cfg::kBasicAttackRange / cfg::kProjectileSpeed + kSteelBasicHitDuration;
+        return;
+    }
 
     if (!sk) {
         if (def.key == "steel_dragon" && state == AnimState::Idle && body.frames == steel::idleFrames &&
@@ -371,13 +384,18 @@ void PreviewWindow::seek(float time) {
     if (folder_.empty()) return;
     if (time < time_) reset();
     time = std::clamp(time, 0.f, duration_);
-    if (!skill()) {
+    if (!skill() && !steelBasicPreview_) {
         world_.dragon().animTime = time;
     } else {
         for (float remaining = time - time_; remaining > 0.f; remaining -= kStep) {
             const float dt = std::min(kStep, remaining);
-            world_.updateFx(dt);
-            world_.updateCombat(dt, CombatMode::Direct, {});
+            if (steelBasicPreview_) {
+                world_.updateCombat(dt, CombatMode::Direct, {});
+                world_.updateFx(dt);
+            } else {
+                world_.updateFx(dt);
+                world_.updateCombat(dt, CombatMode::Direct, {});
+            }
         }
     }
     time_ = time;
@@ -549,7 +567,7 @@ bool PreviewWindow::saveCapture(const fs::path& file, const Enemy* enemy, AnimSt
         canvas.ScaleTransform(camera, camera);
         canvas.TranslateTransform(-kWorldWidth * 0.5f, -kFloorY);
         if (enemy) renderer_.drawEnemyPreview(canvas, *enemy, sprites_, state, time, scale);
-        else renderer_.drawAnimationPreview(canvas, world_, sprites_, time, layer != 2, layer != 1, scale, sk && (sk->spectralCleave || sk->boneShot));
+        else renderer_.drawAnimationPreview(canvas, world_, sprites_, time, layer != 2, layer != 1, scale, steelBasicPreview_ || (sk && (sk->spectralCleave || sk->boneShot)));
     }
     CLSID png{};
     if (FAILED(CLSIDFromString(L"{557CF406-1A04-11D3-9A73-0000F81EF32E}", &png))) return false;
@@ -673,7 +691,7 @@ void PreviewWindow::paint() {
                     canvas.DrawLine(&target, target_.x, target_.y - 13.f, target_.x, target_.y + 13.f);
                 }
                 renderer_.drawAnimationPreview(canvas, world_, sprites_, time_, selected(Layer) != 2,
-                                               selected(Layer) != 1, 1.f, sk && (sk->spectralCleave || sk->boneShot));
+                                               selected(Layer) != 1, 1.f, steelBasicPreview_ || (sk && (sk->spectralCleave || sk->boneShot)));
             }
         }
         Graphics screen(dc);

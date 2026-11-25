@@ -121,6 +121,7 @@ void World::setDragonAnim(AnimState s, float hold) {
     // 사망 상태는 어떤 것으로도 덮이지 않는다.
     if (d.anim == AnimState::Death) return;
     if (d.anim != s) {
+        d.steelBasicTarget.reset();
         d.anim = s;
         d.animTime = 0.f;
     }
@@ -225,6 +226,7 @@ Vec2 World::randomEdgePoint(float margin) {
 }
 
 void World::clearEnemies(bool withPoof) {
+    dragon_.steelBasicTarget.reset();
     cancelProcession();
     if (dragon_.skillCast && (dragon_.skillCast->soulfireCastId || dragon_.skillCast->boneShotOrigin))
         advanceSkillCast(0.f, true);
@@ -382,7 +384,7 @@ void World::moveDragon(float dt, Vec2 dir, float speedMul) {
     d.pos = bounds_.clampPoint(d.pos, cfg::kDragonRadius);
 }
 
-void World::basicAttack() {
+void World::basicAttack(float dt) {
     DragonActor& d = dragon_;
     if (d.basicCd > 0.f || (d.breath && d.breath->elapsed < d.breath->inputLock)) return;
     if (d.awakened) {
@@ -400,6 +402,16 @@ void World::basicAttack() {
     }
     Enemy* t = nearestEnemy(d.pos, cfg::kBasicAttackRange);
     if (!t) return;
+    if (speciesDef(d.species).key == "steel_dragon") {
+        if (d.steelBasicTarget || (d.anim == AnimState::Attack && d.animHold > 0.f) || d.skillCast || d.breath)
+            return;
+        setDragonAnim(AnimState::Attack, kSteelBasicDuration + dt);
+        // 입력을 받은 틱의 끝에서 F01을 시작한다.
+        d.animTime = -dt;
+        d.steelBasicTarget = t->id;
+        d.basicCd = cfg::kBasicAttackCooldown;
+        return;
+    }
     Projectile p;
     p.pos = d.pos;
     p.targetId = t->id;
@@ -409,6 +421,70 @@ void World::basicAttack() {
     d.basicCd = cfg::kBasicAttackCooldown;
     if (std::fabs(t->pos.x - d.pos.x) > 4.f) d.facing = Vec2{t->pos.x > d.pos.x ? 1.f : -1.f, 0.f};
     setDragonAnim(AnimState::Attack, cfg::kAnimAttackHold);
+}
+
+void World::advanceSteelBasic(float dt) {
+    DragonActor& d = dragon_;
+    if (!d.steelBasicTarget) return;
+    const Enemy* target = findEnemy(*d.steelBasicTarget);
+    if (!d.alive || d.anim != AnimState::Attack || d.skillMotion >= 0 || d.skillCast || d.breath || !target) {
+        d.steelBasicTarget.reset();
+        return;
+    }
+    // 이동 입력과 조준 방향은 별개다. 발사 전에는 표적 쪽을 바라본다.
+    if (target->pos.x != d.pos.x)
+        d.facing = {target->pos.x < d.pos.x ? -1.f : 1.f, 0.f};
+    const float untilLaunch = kSteelBasicLaunch - d.animTime;
+    if (dt < untilLaunch) return;
+    d.steelBasicTarget.reset();
+
+    const float height = cfg::kDragonRadius * 3.f * sizeScale_ *
+        speciesDef(d.species).anims[static_cast<int>(AnimState::Attack)].renderScale;
+    Projectile shot;
+    shot.pos = d.pos + Vec2{d.facing.x * kSteelBasicMouthX * height,
+                            cfg::kDragonRadius - kSteelBasicMouthY * height};
+    shot.targetId = target->id;
+    shot.speed = cfg::kProjectileSpeed;
+    shot.damage = d.stats.atk * cfg::kBasicAttackPower;
+    const Vec2 to = target->pos - shot.pos;
+    Vec2 aim = to.normalized();
+    if (aim.length() == 0.f) aim = d.facing;
+    shot.steelBasic = SteelBasicFlight{aim, sizeScale_, std::clamp(dt - untilLaunch, 0.f, dt)};
+    projectiles_.push_back(shot);
+}
+
+void World::advanceSteelBasicFlight(Projectile& shot, float dt) {
+    auto& flight = *shot.steelBasic;
+    const float elapsed = flight.firstStep >= 0.f ? flight.firstStep : dt;
+    flight.firstStep = -1.f;
+    const float distanceLeft = std::max(0.f, cfg::kBasicAttackRange - shot.speed * shot.t);
+    const float step = std::clamp(shot.speed * elapsed, 0.f, distanceLeft);
+    Enemy* target = findEnemy(shot.targetId);
+    if (target) {
+        // 지정된 단일 표적의 기존 충돌 반경과 직선 구간의 첫 교점을 찾는다.
+        const Vec2 to = target->pos - shot.pos;
+        const float along = to.x * flight.aim.x + to.y * flight.aim.y;
+        const float radius = target->radius * 0.6f;
+        const float perpendicular = to.x * flight.aim.y - to.y * flight.aim.x;
+        const float chordSquared = radius * radius - perpendicular * perpendicular;
+        if (chordSquared >= 0.f) {
+            const float chord = std::sqrt(chordSquared);
+            const float contact = std::max(0.f, along - chord);
+            if (along + chord >= 0.f && contact <= step) {
+                const Vec2 at = shot.pos + flight.aim * contact;
+                damageEnemy(*target, shot.damage);
+                addFx(FxType::Hit, at, at + flight.aim, 80.f * flight.scale, kSteelBasicHitDuration,
+                      speciesDef(dragon_.species).color);
+                fx_.back().key = "basic_hit";
+                fx_.back().t = -dt;  // 같은 틱의 updateFx 후 F01로 시작한다.
+                shot.alive = false;
+                return;
+            }
+        }
+    }
+    shot.pos += flight.aim * step;
+    shot.t += elapsed;
+    shot.alive = step < distanceLeft && bounds_.contains(shot.pos.x, shot.pos.y);
 }
 
 void World::beginBoneShot(int skillIndex, const Enemy& target, bool basic) {
@@ -1763,8 +1839,9 @@ void World::updateCombat(float dt, CombatMode mode, const PlayerInput& in) {
                 castSkill(i, false);
             }
         }
-        if (!d.procession) basicAttack();
+        if (!d.procession) basicAttack(dt);
     }
+    advanceSteelBasic(dt);
 
     updateEnemies(dt);
 
@@ -1783,6 +1860,10 @@ void World::updateCombat(float dt, CombatMode mode, const PlayerInput& in) {
 
     // 투사체
     for (Projectile& p : projectiles_) {
+        if (p.steelBasic) {
+            advanceSteelBasicFlight(p, dt);
+            continue;
+        }
         if (p.boneShot) {
             advanceBoneShot(p, *p.boneShot, dt);
             continue;
@@ -1905,8 +1986,9 @@ void World::updateCombat(float dt, CombatMode mode, const PlayerInput& in) {
 
 void World::updateFx(float dt, bool combatEnded) {
     if (combatEnded) {
+        dragon_.steelBasicTarget.reset();
         projectiles_.erase(std::remove_if(projectiles_.begin(), projectiles_.end(),
-            [](const Projectile& projectile) { return projectile.boneShot.has_value(); }), projectiles_.end());
+            [](const Projectile& projectile) { return projectile.boneShot.has_value() || projectile.steelBasic.has_value(); }), projectiles_.end());
         for (Enemy& enemy : enemies_) enemy.soulfireHit = {};
         cancelProcession();
         dots_.erase(std::remove_if(dots_.begin(), dots_.end(), [](const DotZone& z) { return z.soulfireCastId != 0; }),

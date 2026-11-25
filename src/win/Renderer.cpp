@@ -1048,6 +1048,10 @@ void Renderer::drawDragon(Graphics& g, const DragonActor& d, const Sprites& spri
                     if (fx.frames == sh.frames && fx.frameW == sh.frameW && fx.frameH == sh.frameH)
                         drawSheetFrame(g, fx, frame, x, cyAdj, drawH, flip, 0.f, alpha);
                 }
+            } else if (state == AnimState::Attack && sh.frames == 10) {
+                const Sheet heat = sprites.fxSheet(sp.key, "basic_heat");
+                if (heat.frames == sh.frames && heat.frameW == sh.frameW && heat.frameH == sh.frameH)
+                    drawSheetFrame(g, heat, frame, x, cyAdj, drawH, flip, 0.f, alpha);
             } else if (idleVentFrame >= 0) {
                 const Sheet fx = sprites.fxSheet(sp.key, "idle_vent");
                 // 288px 셀을 256px 본체의 좌상단 (-16, -24)에 놓는다.
@@ -1663,6 +1667,24 @@ void Renderer::drawProjectiles(Graphics& g, const World& w, const Sprites& sprit
     const uint32_t spColor = dragonSp.color;
     // 투사체
     for (const Projectile& p : w.projectiles()) {
+        if (p.steelBasic) {
+            const Sheet sheet = sprites.fxSheet(dragonSp.key, "basic_projectile");
+            if (sheet.frames == 8) {
+                const Vec2 aim = p.steelBasic->aim;
+                const bool left = aim.x < 0.f;
+                const float angle = std::atan2(aim.y, aim.x) * 180.f / kPi - (left ? 180.f : 0.f);
+                const float height = 18.f * p.steelBasic->scale;
+                // 원본의 탄두 끝 x=990, 중심선 y=144를 월드 투사체 위치에 고정한다.
+                const float tip = (990.f - 512.f) / 288.f * height;
+                const auto previous = g.Save();
+                g.TranslateTransform(p.pos.x, p.pos.y);
+                g.RotateTransform(angle);
+                drawSheetFrame(g, sheet, animFrame(p.t, kSteelBasicFps, sheet.frames, true),
+                               left ? tip : -tip, 0.f, height, left, 0.f, 1.f);
+                g.Restore(previous);
+                continue;
+            }
+        }
         // 2026-11-17: fx= 를 적은 스킬이 쏜 발사체는 그 시트를 **현재 위치에** 그린다.
         // Fx 를 쓰지 않는 이유는 Fx 의 시작점·끝점이 고정이라 날아가는 것을 못 따라가서다.
         // 시트가 없거나 스킬을 못 찾으면 전과 똑같이 동그라미로 그린다.
@@ -1767,7 +1789,8 @@ void Renderer::drawAnimationPreview(Graphics& g, const World& w, const Sprites& 
         if (effects) drawCleaveImpacts(g, w, sprites, true);
     }
     const bool steelMotionFx = species.key == "steel_dragon" &&
-        (d.anim == AnimState::Idle || d.anim == AnimState::Move || d.anim == AnimState::Fly);
+        (d.anim == AnimState::Idle || d.anim == AnimState::Move ||
+         d.anim == AnimState::Fly || d.anim == AnimState::Attack);
     if (body || (effects && (steelMotionFx || (d.skillCast && (d.skillCast->soulfireCastId ||
             species.skills[d.skillCast->skill].spectralCleave))))) {
         const float height = cfg::kDragonRadius * 3.f * charScale;
@@ -1991,6 +2014,14 @@ void Renderer::drawFx(Graphics& g, const World& w, const Sprites& sprites, const
     for (const Fx& f : w.fx()) {
         if (f.t < 0.f || f.type == FxType::CleaveImpact) continue;
         if (f.inFront != inFront) continue;  // 이 층이 아니다
+        if (f.type == FxType::Hit && f.key == "basic_hit") {
+            const Sheet sheet = sprites.fxSheet(sp.key, f.key);
+            if (sheet.frames == 8) {
+                drawSheetFrame(g, sheet, animFrame(f.t, kSteelBasicFps, sheet.frames, false),
+                               f.a.x, f.a.y, f.radius, f.b.x < f.a.x, 0.f, 1.f);
+                continue;
+            }
+        }
         // v1.6: 시트가 있으면 스프라이트로 그리고, 없으면 아래 도형 분기로 내려간다.
         if (!f.key.empty() && drawFxSheet(g, f, sprites, sp, charScale)) continue;
         float p = std::clamp(f.t / std::max(0.01f, f.duration), 0.f, 1.f);
