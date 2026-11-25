@@ -230,6 +230,14 @@ void Sprites::load(const std::filesystem::path& assetDir) {
         std::error_code ec;
         if (!std::filesystem::is_directory(dir, ec)) continue;
         loadSheetsFor(dir, def.anims, "enemy:" + def.key, "enemies/" + artKey);
+        // 2026-11-25 분열 연출(있을 때만): 본체 동작 split.png, 효과 fx_split.png·fx_split_land.png
+        if (!def.splitKey.empty()) {
+            const AnimDef square{};
+            const std::string k = "enemy:" + def.key;
+            loadSheetFile(dir / "split.png", square, k + "/skill_split", "enemies/" + artKey + "/split.png");
+            loadSheetFile(dir / "fx_split.png", square, k + "/fx_split", "enemies/" + artKey + "/fx_split.png");
+            loadSheetFile(dir / "fx_split_land.png", square, k + "/fx_split_land", "enemies/" + artKey + "/fx_split_land.png");
+        }
     }
 }
 

@@ -742,8 +742,26 @@ static void testEnemySplit() {
     PlayerInput none;
     w.updateCombat(1.f / 30.f, CombatMode::SkillManual, none);
     int children = 0;
-    for (const Enemy& e : w.enemies()) children += e.parentId == kingId ? 1 : 0;
+    bool hopping = true;
+    for (const Enemy& e : w.enemies()) {
+        if (e.parentId != kingId) continue;
+        ++children;
+        hopping = hopping && e.hopping() && distance(e.pos, findKing()->pos) < 30.f;  // 왕 몸에서 튀어나온다
+    }
     CHECK(children == 2);
+    CHECK(hopping);
+    CHECK(findKing()->squashLeft > 0.f);
+    // 나는 동안은 맞지 않고, kSplitHopTime 뒤에 착지한다
+    for (Enemy& e : w.enemiesMutable()) {
+        if (e.parentId != kingId) continue;
+        const float hp = e.hp;
+        w.debugDamageEnemy(e, 50.f);
+        CHECK(e.hp == hp);
+        break;
+    }
+    for (int i = 0; i < 20; ++i) w.updateCombat(1.f / 30.f, CombatMode::SkillManual, none);
+    for (const Enemy& e : w.enemies())
+        if (e.parentId == kingId) CHECK(!e.hopping() && distance(e.pos, findKing()->pos) > 60.f);
     // 분열체가 있으면 본체 피해가 (1 - split_guard) 배
     Enemy* k = findKing();
     CHECK(k != nullptr);

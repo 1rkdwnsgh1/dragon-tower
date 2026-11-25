@@ -1095,15 +1095,29 @@ void Renderer::drawEnemy(Graphics& g, const Enemy& e, const Sprites& sprites, fl
     // v1.5: 맞았을 때 번쩍임이 너무 밝다는 이야기가 있어 낮췄다(0.7 -> 0.3).
     float flash = e.hitFlash > 0.f ? 0.3f : 0.f;
     float bob = std::sin(time * 6.f + e.id) * 2.f;
+    // 2026-11-25 분열 연출: 분열체는 포물선으로 떠서 날아가고(그림만 위로), 본체는 움찔 부푼다.
+    float hopLift = 0.f;
+    if (e.hopping()) {
+        const float p = 1.f - e.hopLeft / std::max(0.01f, e.hopTime);
+        hopLift = std::sin(3.14159265f * p) * cfg::kSplitHopHeight * charScale;
+        bob = 0.f;
+    }
+    // 분열 그림(split.png)이 있으면 그 동작을 재생하고, 없으면 크기만 움찔 키운다.
+    const float splitAge = e.squashLeft > 0.f ? cfg::kSplitSquashTime - e.squashLeft : -1.f;
+    const Sheet splitBody = splitAge >= 0.f ? sprites.skillSheet("enemy:" + edef.key, "split") : Sheet{};
+    const bool splitArt = splitBody.bmp && splitAge < cfg::kSplitBodyTime;
+    const float squash = (e.squashLeft > 0.f && !splitBody.bmp)
+        ? 1.f + 0.18f * std::sin(3.14159265f * (1.f - e.squashLeft / cfg::kSplitSquashTime)) : 1.f;
+    bob -= hopLift;
     float x = e.pos.x;
     float y = e.pos.y + bob;
     const EnemyDef& ed = edef;
     bool isBoss = ed.role == EnemyRole::Boss;
-    float height = e.radius * 2.6f * charScale;
+    float height = e.radius * 2.6f * charScale * squash;
     // #49: 그림(시트·한 장 그림)은 발을 판정 원의 아래 끝(pos.y + 반지름)에 맞춘다. 드래곤과 같은 까닭이다.
     const float artY = e.pos.y + e.radius + bob - (240.f / 256.f - 0.5f) * height;
 
-    SolidBrush sh(Color(70, 0, 0, 0));
+    SolidBrush sh(Color(static_cast<BYTE>(hopLift > 0.f ? 40 : 70), 0, 0, 0));  // 떠 있으면 그림자가 옅다
     g.FillEllipse(&sh, x - e.radius, e.pos.y + e.radius * 0.9f, e.radius * 2.f, e.radius * 0.5f);
 
     if (isBoss && e.phase2) {
@@ -1152,7 +1166,27 @@ void Renderer::drawEnemy(Graphics& g, const Enemy& e, const Sprites& sprites, fl
     };
 
     drawAttachedFire(false);
-    if (drawnBySheet) {
+    // 착지 점액(분열체). 본체 폴더의 fx_split_land.png, 없으면 초록 고리.
+    if (e.landLeft > 0.f) {
+        const float lp = 1.f - e.landLeft / cfg::kSplitLandTime;
+        const Sheet land = sprites.fxSheet("enemy:" + enemyDef(e.parentKind).key, "split_land");
+        const float foot = e.pos.y + e.radius;
+        if (land.bmp) {
+            const int lf = std::clamp(static_cast<int>(lp * static_cast<float>(land.frames)), 0, land.frames - 1);
+            const float lh = height * ad.renderScale;  // 착지점 (128, 200) 이 발에 오게
+            drawSheetFrame(g, land, lf, x, foot - (200.f / 256.f - 0.5f) * lh, lh, false, 0.f, 1.f);
+        } else {
+            fillCircle(g, x, foot - e.radius * 0.5f, 36.f * (0.6f + 0.4f * lp), col(0xFF8CFF8C, 0.25f * (1.f - lp)));
+        }
+    }
+    if (drawnBySheet && splitArt) {
+        const AnimDef& idleDef = ed.anims[static_cast<int>(AnimState::Idle)];
+        const float bodyH = height * idleDef.renderScale;
+        const int sf = std::clamp(static_cast<int>(splitAge / cfg::kSplitBodyTime * static_cast<float>(splitBody.frames)), 0,
+                                  splitBody.frames - 1);
+        drawSheetFrame(g, splitBody, sf, x, artY - (240.f / 256.f - 0.5f) * height * (idleDef.renderScale - 1.f), bodyH,
+                       flip, flash, 1.f);
+    } else if (drawnBySheet) {
         const float cyAdj = artY - (240.f / 256.f - 0.5f) * height * (ad.renderScale - 1.f);
         drawSheetFrame(g, sh2, frame, x, cyAdj, height * ad.renderScale, flip, flash, 1.f);
     } else if (bmp) {
@@ -1190,6 +1224,18 @@ void Renderer::drawEnemy(Graphics& g, const Enemy& e, const Sprites& sprites, fl
         g.FillRectangle(&armor, x - r * 0.6f, y + r * 0.25f, r * 1.2f, r * 0.18f);
     }
 
+    // 분열 점액 터짐(본체 몸 가운데, 0.40초). 칸 512 = 본체 칸 256 의 2배, Codex 미리보기 표시 배율 0.65.
+    if (splitAge >= 0.f) {
+        const Sheet burst = sprites.fxSheet("enemy:" + edef.key, "split");
+        if (burst.bmp) {
+            const AnimDef& idleDef = ed.anims[static_cast<int>(AnimState::Idle)];
+            const float bodyH = height * idleDef.renderScale;
+            const int bf = std::clamp(static_cast<int>(splitAge / cfg::kSplitSquashTime * static_cast<float>(burst.frames)), 0,
+                                      burst.frames - 1);
+            const float bodyCenterY = e.pos.y + e.radius + bob - bodyH * 0.40f;
+            drawSheetFrame(g, burst, bf, x, bodyCenterY, bodyH * 2.f * 0.65f, flip, 0.f, 1.f);
+        }
+    }
     drawAttachedFire(true);
 
     if (e.stun > 0.f) {
