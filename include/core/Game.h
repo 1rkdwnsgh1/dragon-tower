@@ -223,6 +223,16 @@ public:
     int carryLarge() const { return carried(PotionKind::Large); }
     // 탑 안에서 물약을 마신다. kPotionDrinkTime 동안 이동이 느려지고 끝나면 회복한다.
     bool drinkPotion(PotionKind k);
+    // ---- 탑 100층 T7: 필드 보스 4마리 파티(2026-11-24 사용자 결정) ----
+    bool fieldBossFloorSelected() const { return floorType(selectedTowerFloor_) == FloorType::FieldBoss; }
+    // 진입 경고창에서 고른 출전 드래곤(DragonRecord::id). 지금 띄운 드래곤은 늘 들어 있다.
+    const std::vector<int>& partyPick() const { return partyPick_; }
+    bool partyPicked(int id) const;
+    void togglePartyMember(int stableIndex);
+    // 들어갈 수 없는 이유(4마리·중복·사망·레벨 상한). 들어갈 수 있으면 nullptr
+    const char* partyBlockedReason() const;
+    bool partyRun() const { return !allyIds_.empty(); }
+    const std::vector<int>& allyIds() const { return allyIds_; }  // world().party() 와 같은 순서
     // 사냥꾼의 부적 남은 초(실제 시간). 0 이면 꺼져 있다.
     long long hunterCharmLeft() const;
     // 테스트용: 현재 시각(유닉스 초)을 고정한다. 0 이면 시스템 시계.
@@ -274,6 +284,14 @@ private:
     bool carryTaken_ = false;               // 진입하면서 가방에서 뺐는가
     float drinkTimer_ = 0.f;
     PotionKind drinking_ = PotionKind::Small;
+    // T7
+    std::vector<int> partyPick_;
+    std::vector<int> allyIds_;
+    int stableIndexOf(int id) const;
+    void applyFloorCleared(DragonRecord& d, int floor);
+    void buryDragon(int id, const std::string& place);   // 묘비로 옮기고 보유 목록에서 뺀다(영구 사망)
+    void endParty();                                       // 동료 체력을 기록에 적고 파티를 푼다
+    void grantFieldBossRewards(int floor);
     Screen shopReturn_ = Screen::Stable;
     void placeDragonForDesktop();
 

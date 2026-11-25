@@ -1322,6 +1322,19 @@ void Renderer::drawWorld(Graphics& g, const Game& game, const Sprites& sprites, 
     drawSoulfireImpact(g, w, sprites);
     if (game.hasDragon()) warmBreathCache(g, w, sprites, cs);
 
+    // T7: 필드 보스 파티 동료(자동). 조작 드래곤보다 먼저 그려 뒤에 선다.
+    for (const PartyMember& m : w.party()) {
+        const DragonActor& a = m.actor;
+        if (!a.alive) continue;
+        drawBreath(g, a, sprites, cs);
+        const float ah = cfg::kDragonRadius * 3.f * cs;
+        const float acy = a.pos.y + cfg::kDragonRadius - (240.f / 256.f - 0.5f) * ah;
+        drawDragon(g, a, sprites, time, a.pos.x, acy, ah, false);
+        const float aTop = acy - ah * 0.5f;
+        bar(g, RectF(a.pos.x - 30.f, aTop - 18.f, 60.f, 7.f), a.hp / std::max(1.f, a.stats.maxHp), kHpC);
+        text(g, "Lv." + std::to_string(a.level) + " 자동", a.pos.x, aTop - 36.f, 12.f, 0xFFBFD4FF, 1, true, true);
+    }
+
     const DragonActor& d = w.dragon();
     if (d.alive && game.hasDragon()) {
         if (d.shieldTime > 0.f) {
@@ -2887,12 +2900,16 @@ void Renderer::drawModal(Graphics& g, const Game& game, const Sprites& sprites, 
             break;
         }
         case Screen::TowerWarning: {
-            RectF r(cx - 310.f, cy - 236.f, 620.f, 472.f);
+            const bool partyFloor = game.fieldBossFloorSelected();
+            const int partyRows = partyFloor ? static_cast<int>(game.stable().size()) : 0;
+            const float extraH = partyFloor ? 70.f + 40.f * static_cast<float>(partyRows) : 0.f;
+            RectF r(cx - 310.f, cy - 236.f - extraH * 0.5f, 620.f, 472.f + extraH);
             panel(g, r);
             text(g, "탑에 도전할까요?", r.X + 24.f, r.Y + 20.f, 20.f, kText, 0, true);
             const int floor = game.selectedTowerFloor();
             const int recommended = game.towerRecommendedLevel(floor);
-            text(g, std::to_string(floor) + "층 · 단독 도전", r.X + 24.f, r.Y + 56.f, 14.f, kSub);
+            text(g, std::to_string(floor) + (partyFloor ? "층 · 필드 보스 · 4마리 파티 도전" : "층 · 단독 도전"), r.X + 24.f,
+                 r.Y + 56.f, 14.f, partyFloor ? 0xFFFFAD7C : kSub, 0, partyFloor);
             bool low = rec.level < recommended;
             text(g, "현재 Lv." + std::to_string(rec.level) + "  ·  권장 Lv." + std::to_string(recommended),
                  r.X + 24.f, r.Y + 84.f, 16.f, low ? kWarnC : kHpC, 0, true);
@@ -2923,6 +2940,32 @@ void Renderer::drawModal(Graphics& g, const Game& game, const Sprites& sprites, 
                      14.f, total > 0 ? kText : 0xFF7C8090);
                 text(g, "가방에 있는 물약을 모두 가지고 갑니다. 남은 것은 나올 때 돌려받습니다.", r.X + 24.f, py + 48.f, 12.f, kSub);
             }
+            if (partyFloor) {
+                // T7: 출전 4마리 고르기. 지금 띄운 드래곤은 늘 들어가고 조작한다. 상한을 넘으면 고를 수 없다.
+                const int cap = fieldBossLevelCap(floor);
+                float py = r.Y + 360.f;
+                text(g, "출전 드래곤 " + std::to_string(game.partyPick().size()) + " / " +
+                            std::to_string(cfg::kFieldBossPartySize) + "  ·  레벨 상한 Lv." + std::to_string(cap),
+                     r.X + 24.f, py, 14.f, kText, 0, true);
+                py += 26.f;
+                const auto& list = game.stable();
+                for (int i = 0; i < static_cast<int>(list.size()); ++i) {
+                    const DragonRecord& d = list[static_cast<size_t>(i)];
+                    const bool me = d.id == rec.id;
+                    const bool picked = game.partyPicked(d.id);
+                    const bool over = d.level > cap;
+                    text(g, dragonName(d) + "  Lv." + std::to_string(d.level) + (me ? "  (조작)" : "") +
+                                (over ? "  — 레벨 상한 초과" : ""),
+                         r.X + 32.f, py + 8.f, 13.f, over ? kWarnC : (picked ? kText : kSub));
+                    button(g, out, ctx, RectF(r.GetRight() - 24.f - 120.f, py + 2.f, 120.f, 32.f),
+                           me ? "조작" : (picked ? "빼기" : "넣기"), UiAction::TogglePartyMember, i,
+                           !me && (picked || (!over && static_cast<int>(game.partyPick().size()) < cfg::kFieldBossPartySize)),
+                           picked);
+                    py += 40.f;
+                }
+                if (const char* why = game.partyBlockedReason())
+                    text(g, why, r.X + 24.f, py + 4.f, 13.f, kWarnC, 0, true);
+            }
             float bw = (r.Width - 48.f - 16.f) / 3.f;
             float by = r.GetBottom() - 68.f;
             button(g, out, ctx, RectF(r.X + 24.f, by, bw, 46.f), "직접 조작으로 도전", UiAction::EnterTower,
@@ -2942,10 +2985,12 @@ void Renderer::drawModal(Graphics& g, const Game& game, const Sprites& sprites, 
             bar(g, RectF(r.X + 60.f, r.Y + 100.f, r.Width - 120.f, 16.f), d.hp / d.stats.maxHp, kHpC,
                 "체력 " + fmtInt(d.hp) + " / " + fmtInt(d.stats.maxHp));
             // v1.6: 층 수가 데이터에서 오므로 "마지막 층인가"가 아니라 "다음 층이 보스인가"로 본다.
-            std::string next =
-                game.towerFloorDef(game.towerFloor() + 1).boss ? "다음은 보스 층입니다." : "다음 층으로 갈까요?";
-            text(g, next, r.X + r.Width * 0.5f, r.Y + 130.f, 14.f, kSub, 1);
-            button(g, out, ctx, RectF(r.X + 24.f, r.GetBottom() - 66.f, 220.f, 46.f), "다음 층", UiAction::NextFloor);
+            const bool nextParty = floorType(game.towerFloor() + 1) == FloorType::FieldBoss;
+            std::string next = nextParty ? "다음은 필드 보스입니다. 탑 선택창에서 4마리로 도전하세요."
+                               : game.towerFloorDef(game.towerFloor() + 1).boss ? "다음은 보스 층입니다." : "다음 층으로 갈까요?";
+            text(g, next, r.X + r.Width * 0.5f, r.Y + 130.f, 14.f, nextParty ? kWarnC : kSub, 1);
+            button(g, out, ctx, RectF(r.X + 24.f, r.GetBottom() - 66.f, 220.f, 46.f), "다음 층", UiAction::NextFloor, 0,
+                   !nextParty);
             button(g, out, ctx, RectF(r.GetRight() - 24.f - 220.f, r.GetBottom() - 66.f, 220.f, 46.f), "탑에서 나가기",
                    UiAction::LeaveTower);
             break;

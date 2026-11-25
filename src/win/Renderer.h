@@ -66,6 +66,7 @@ enum class UiAction {
     BuyItem,          // arg = ShopItem
     HatchEgg,
     DrinkPotion,      // arg = PotionKind
+    TogglePartyMember,  // T7: arg = 보유 목록 자리. 필드 보스 출전에 넣고 뺀다
 };
 
 struct UiButton {

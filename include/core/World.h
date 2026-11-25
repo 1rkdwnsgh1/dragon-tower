@@ -361,6 +361,14 @@ struct WorldEvent {
     EnemyKind enemyKind{};
     int exp = 0;
     int level = 0;  // T6: 쓰러뜨린 적의 레벨(크레딧 계산)
+    int ally = -1;  // T7: DragonDied 가 파티 동료의 것이면 그 번호(party() 의 자리). 조작 중인 드래곤이면 -1
+};
+
+// 탑 100층 T7(2026-11-24): 필드 보스 파티의 동료. 조작하지 않는 드래곤은 자동 사냥과 같은 AI 로 싸운다.
+struct PartyMember {
+    DragonActor actor;
+    std::array<int, kSkillSlots> slots{-1, -1, -1, -1};
+    int id = 0;  // DragonRecord::id
 };
 
 class World {
@@ -388,6 +396,20 @@ public:
     bool castUltimate(bool aiChoice);
     // 상태창 아이콘 클릭. 다음 전투 갱신에서 모드와 상관없이 한 번 시도한다.
     void requestUltimate() { ultimateRequested_ = true; }
+    // ---- T7 파티(필드 보스) ----
+    // 동료를 세운다(조작하는 드래곤은 넣지 않는다). 빈 목록이면 혼자 싸운다.
+    void setParty(std::vector<PartyMember> allies);
+    void clearParty() { party_.clear(); }
+    const std::vector<PartyMember>& party() const { return party_; }
+    std::vector<PartyMember>& party() { return party_; }
+    int aliveAllyCount() const;
+    // 조작하는 드래곤이 쓰러졌을 때 동료 하나를 조작 자리로 올린다. 쓰러진 드래곤은 그 동료 자리로 간다.
+    bool promoteAlly(int index);
+    // 동료 하나를 더한다(setupDragon 과 같은 규칙으로 세운 뒤 저장해 둔 장착 칸을 쓴다)
+    void addAlly(Species s, int level, float hp, Vec2 pos, const std::array<int, kSkillSlots>& slots, int id);
+    void setAllyLevel(int index, int level);
+    // 테스트용: 예고 판정 하나를 바로 처리한다(실제 게임에서는 updateCombat 이 부른다)
+    void debugResolveZone(const AttackZone& z, CombatMode mode) { resolveZone(z, mode); }
     // 준비는 영혼을 건드리지 않는다. 성공한 타격 한 번에만 같은 ID로 확정한다.
     std::optional<uint64_t> beginUltimatePayment(const UltimateUseConditions& conditions);
     bool commitUltimatePayment(uint64_t id);
@@ -488,6 +510,13 @@ private:
     void dragonAi(float dt, bool castSkills, const PlayerInput& in, bool allowManual);
     int keepRange_ = 0;
     std::array<int, kSkillSlots> slots_{-1, -1, -1, -1};
+    // T7: 동료를 잠깐 dragon_ 자리에 바꿔 넣어 같은 코드(AI·피격·예고)를 그대로 쓴다.
+    std::vector<PartyMember> party_;
+    int swappedAlly_ = -1;
+    void swapAlly(int k);
+    void controlDragon(float dt, CombatMode mode, const PlayerInput& in, bool ultimateInput);
+    int nearestDragonFor(Vec2 from) const;  // -1 = 조작 드래곤, k = 동료, -2 = 모두 쓰러짐
+    bool updateEnemy(Enemy& e, float dt);   // true 면 enemies_ 가 바뀌었으니 이번 프레임은 멈춘다
     bool ultimateRequested_ = false;
     void autoFillSlots();  // 빈 칸을 해제된 액티브로 채운다(이미 든 칸은 그대로)
     bool castSkill(int i, bool aiChoice);  // i = 스킬 목록 번호

@@ -669,6 +669,12 @@ bool Game::recordFloorCleared(int floor) {
         s.cleared = d.cleared;
         s.clearedFloors = d.clearedFloors;
     }
+    // T7: 살아서 함께 깬 동료도 그 층을 돌파한 것으로 친다
+    for (size_t k = 0; k < allyIds_.size(); ++k) {
+        if (k >= world_.party().size() || !world_.party()[k].actor.alive) continue;
+        const int idx = stableIndexOf(allyIds_[k]);
+        if (idx >= 0) applyFloorCleared(save_.stable[static_cast<size_t>(idx)], floor);
+    }
     return save_.firstClearFloors.insert(floor).second;
 }
 
@@ -740,6 +746,8 @@ int Game::towerRecommendedLevel(int floor) const {
 void Game::openTowerWarning() {
     if (!save_.hasDragon || (screen_ != Screen::Desktop && screen_ != Screen::TowerSelect)) return;
     warningFromSelection_ = screen_ == Screen::TowerSelect;
+    partyPick_.clear();
+    partyPick_.push_back(save_.dragon.id);  // T7: 지금 띄운 드래곤이 조작하는 드래곤이다
     if (!warningFromSelection_) selectedTowerFloor_ = 1;
     screen_ = Screen::TowerWarning;
 }
@@ -791,11 +799,26 @@ void Game::spawnTowerFloor() {
         float offset = (static_cast<float>(i) - static_cast<float>(n - 1) * 0.5f) * f.spacing;
         world_.spawnEnemy(k, s.level, {rx - s.inset, cy + offset});
     }
+    // T7: 필드 보스층은 한 방 피해는 그대로, 체력만 크게(혼자면 아주 오래 걸린다)
+    if (floorType(towerFloor_) == FloorType::FieldBoss) {
+        for (Enemy& e : world_.enemiesMutable()) {
+            e.maxHp *= static_cast<float>(cfg::kFieldBossHpMul);
+            e.hp = e.maxHp;
+        }
+    }
 }
 
 void Game::enterTower(CombatMode m) {
     if (screen_ != Screen::TowerWarning || !save_.hasDragon) return;
     if (m == CombatMode::Auto) return;  // 탑에서는 자동 사냥을 쓸 수 없다
+    const int entryFloor = std::clamp(selectedTowerFloor_, 1, towerFloorCount());
+    const bool party = floorType(entryFloor) == FloorType::FieldBoss;
+    if (party) {
+        if (const char* why = partyBlockedReason()) {  // T7: 필드 보스는 4마리 파티만
+            notify(why, kWarn, 3.5f);
+            return;
+        }
+    }
     world_.resetSouls();
     if (hunting_) {
         hunting_ = false;
@@ -818,6 +841,25 @@ void Game::enterTower(CombatMode m) {
     world_.setBounds(a);
     world_.healPercent(1.f);
     world_.dragon().pos = {a.x + 120.f, a.center().y};
+    world_.clearParty();
+    allyIds_.clear();
+    if (party) {
+        // 동료 3마리는 조작 드래곤 위아래로 선다. 탑에 들어오면 체력이 가득 찬다.
+        const float dys[] = {-90.f, 90.f, -180.f, 180.f};
+        int n = 0;
+        for (int id : partyPick_) {
+            if (id == save_.dragon.id) continue;
+            const int idx = stableIndexOf(id);
+            if (idx < 0) continue;
+            const DragonRecord& r = save_.stable[static_cast<size_t>(idx)];
+            const float back = n >= 2 ? 40.f : 0.f;  // 셋째부터 한 줄 뒤에 선다
+            const Vec2 at = a.clampPoint({a.x + 120.f - back, a.center().y + dys[n % 4]},
+                                         cfg::kDragonRadius);
+            world_.addAlly(r.species, r.level, -1.f, at, r.slots, r.id);
+            allyIds_.push_back(id);
+            ++n;
+        }
+    }
     spawnTowerFloor();
     screen_ = Screen::Tower;
     saveRequested_ = true;
@@ -826,6 +868,11 @@ void Game::enterTower(CombatMode m) {
 
 void Game::nextFloor() {
     if (screen_ != Screen::FloorClear) return;
+    if (floorType(towerFloor_ + 1) == FloorType::FieldBoss) {
+        notify("필드 보스는 탑 선택창에서 4마리 파티로 도전합니다.", kWarn, 3.5f);
+        return;
+    }
+    endParty();  // T7: 필드 보스를 깬 뒤 다음 층은 혼자 오른다
     towerFloor_++;
     save_.bestFloor = std::max(save_.bestFloor, towerFloor_);
     RectF a = arena();
@@ -839,6 +886,7 @@ void Game::nextFloor() {
 void Game::leaveTower() {
     if (screen_ != Screen::FloorClear && screen_ != Screen::TowerVictory) return;
     returnTowerPotions();
+    endParty();
     world_.resetSouls();
     world_.clearEnemies(false);
     towerFloor_ = 0;
@@ -945,6 +993,15 @@ void Game::processEvents(bool autoExp) {
             // 사냥꾼의 부적: 바탕화면 직접 조작·스킬 수동 처치만(자동 제외, 탑 제외)
             if (!autoExp && screen_ != Screen::Tower && hunterCharmLeft() > 0)
                 gain = static_cast<int>(static_cast<float>(gain) * cfg::kHunterCharmExpMul);
+            // T7: 파티 동료도 같은 경험치를 받는다(살아 있는 동료만)
+            for (size_t k = 0; k < allyIds_.size() && k < world_.party().size(); ++k) {
+                if (!world_.party()[k].actor.alive) continue;
+                const int idx = stableIndexOf(allyIds_[k]);
+                if (idx < 0) continue;
+                DragonRecord& ar = save_.stable[static_cast<size_t>(idx)];
+                ExpResult er = grantExp(ar, gain, false);
+                if (er.levelsGained > 0) world_.setAllyLevel(static_cast<int>(k), ar.level);
+            }
             ExpResult r = grantExp(save_.dragon, gain, autoExp);
             if (r.levelsGained > 0) {
                 world_.setDragonLevel(save_.dragon.level);
@@ -964,6 +1021,34 @@ void Game::processEvents(bool autoExp) {
                 return;  // 남은 처치 경험치는 상한 때문에 지급되지 않는다
             }
         } else if (ev.type == WorldEventType::DragonDied) {
+            const std::string place = "tower" + std::to_string(towerFloor_);
+            if (ev.ally >= 0) {
+                // T7: 동료가 쓰러졌다. 영구 사망은 그대로 — 바로 묘비로 옮기고 저장한다.
+                if (ev.ally < static_cast<int>(allyIds_.size())) buryDragon(allyIds_[static_cast<size_t>(ev.ally)], place);
+                continue;
+            }
+            if (partyRun() && world_.aliveAllyCount() > 0) {
+                // T7: 조작하던 드래곤이 쓰러지면 다음 살아 있는 동료로 조작을 넘긴다
+                const int deadId = save_.dragon.id;
+                int next = -1;
+                for (int k = 0; k < static_cast<int>(world_.party().size()); ++k)
+                    if (world_.party()[static_cast<size_t>(k)].actor.alive) { next = k; break; }
+                world_.promoteAlly(next);
+                const int newId = allyIds_[static_cast<size_t>(next)];
+                allyIds_[static_cast<size_t>(next)] = deadId;
+                save_.hasDragon = false;
+                buryDragon(deadId, place);
+                const int idx = stableIndexOf(newId);
+                if (idx >= 0) {
+                    save_.activeIndex = idx;
+                    save_.dragon = save_.stable[static_cast<size_t>(idx)];
+                    save_.hasDragon = true;
+                    save_.dragon.slots = world_.slots();
+                    notify(speciesDef(save_.dragon.species).name + " #" + std::to_string(save_.dragon.id) + "(으)로 조작이 넘어갑니다.", kWarn, 3.f);
+                }
+                continue;
+            }
+            endParty();
             onDragonDied();
             return;
         }
@@ -1081,7 +1166,8 @@ void Game::update(float dt, const PlayerInput& in, bool hidden, bool inputEnable
                 drinkTimer_ = 0.f;
                 world_.dragon().moveScale = 1.f;
                 const bool firstClear = recordFloorCleared(towerFloor_);
-                addCredits(creditsForFloorClear(towerFloor_, accountFirst, dragonAlready, false), "층 돌파");
+                addCredits(creditsForFloorClear(towerFloor_, accountFirst, dragonAlready, partyRun()), "층 돌파");
+                if (partyRun()) grantFieldBossRewards(towerFloor_);
                 if (towerFloor_ >= towerFloorCount()) {
                     world_.resetSouls();
                     save_.towerClears++;
@@ -1275,6 +1361,92 @@ bool Game::freeDragonAvailable() const {
     if (stableFull()) return false;
     if (save_.freeDragonsUsed < cfg::kFreeDragonPicks) return true;
     return save_.stable.empty();  // 모두 죽었으면 한 마리는 공짜(2026-11-24 사용자 결정)
+}
+
+// ---------------- 탑 100층 T7: 필드 보스 파티 ----------------
+
+int Game::stableIndexOf(int id) const {
+    for (size_t i = 0; i < save_.stable.size(); ++i)
+        if (save_.stable[i].id == id && save_.stable[i].alive) return static_cast<int>(i);
+    return -1;
+}
+
+void Game::applyFloorCleared(DragonRecord& d, int floor) {
+    d.clearedFloors.insert(floor);
+    d.cleared = std::clamp(std::max(d.cleared, floor), 0, cfg::kTowerTopFloor);
+    const int top = std::max(1, std::min(cfg::kTowerTopFloor, towerFloorCount()));
+    d.floor = std::clamp(std::max(d.floor, floor + 1), 1, top);
+}
+
+bool Game::partyPicked(int id) const {
+    return std::find(partyPick_.begin(), partyPick_.end(), id) != partyPick_.end();
+}
+
+void Game::togglePartyMember(int stableIndex) {
+    if (screen_ != Screen::TowerWarning) return;
+    if (stableIndex < 0 || stableIndex >= static_cast<int>(save_.stable.size())) return;
+    const int id = save_.stable[static_cast<size_t>(stableIndex)].id;
+    if (id == save_.dragon.id) return;  // 조작하는 드래곤은 늘 들어간다
+    auto it = std::find(partyPick_.begin(), partyPick_.end(), id);
+    if (it != partyPick_.end()) partyPick_.erase(it);
+    else if (static_cast<int>(partyPick_.size()) < cfg::kFieldBossPartySize) partyPick_.push_back(id);
+}
+
+const char* Game::partyBlockedReason() const {
+    if (!save_.hasDragon) return "플레이 중인 드래곤이 없습니다.";
+    if (static_cast<int>(partyPick_.size()) != cfg::kFieldBossPartySize) return "필드 보스는 드래곤 4마리로만 도전할 수 있습니다.";
+    std::vector<int> levels;
+    for (size_t i = 0; i < partyPick_.size(); ++i) {
+        if (std::count(partyPick_.begin(), partyPick_.end(), partyPick_[i]) > 1) return "같은 드래곤을 두 번 넣을 수 없습니다.";
+        const int idx = stableIndexOf(partyPick_[i]);
+        if (idx < 0) return "보유 목록에 없거나 쓰러진 드래곤이 있습니다.";
+        levels.push_back(save_.stable[static_cast<size_t>(idx)].level);
+    }
+    if (!partyMeetsLevelCap(selectedTowerFloor_, levels)) return "레벨 상한을 넘은 드래곤은 들어갈 수 없습니다.";
+    return nullptr;
+}
+
+void Game::buryDragon(int id, const std::string& place) {
+    const int idx = stableIndexOf(id);
+    if (idx < 0) return;
+    DragonRecord d = save_.stable[static_cast<size_t>(idx)];
+    GraveEntry g;
+    g.id = d.id;
+    g.species = d.species;
+    g.level = d.level;
+    g.place = place;
+    save_.graves.push_back(g);
+    // 영구 사망: 보유 목록에서 지운다. 남겨 두면 다시 켤 때 되살아난다.
+    save_.stable.erase(save_.stable.begin() + idx);
+    if (save_.activeIndex == idx) save_.activeIndex = -1;
+    else if (save_.activeIndex > idx) --save_.activeIndex;
+    alert(speciesDef(d.species).name + " 사망",
+          "Lv." + std::to_string(d.level) + " · 필드 보스에서 쓰러졌습니다. 되살릴 수 없습니다.", true);
+    saveRequested_ = true;
+}
+
+void Game::endParty() {
+    for (size_t k = 0; k < allyIds_.size() && k < world_.party().size(); ++k) {
+        const DragonActor& a = world_.party()[k].actor;
+        if (!a.alive) continue;
+        const int idx = stableIndexOf(allyIds_[k]);
+        if (idx >= 0) save_.stable[static_cast<size_t>(idx)].hp = a.hp;
+    }
+    world_.clearParty();
+    allyIds_.clear();
+}
+
+void Game::grantFieldBossRewards(int floor) {
+    // 2026-11-24 사용자 결정: 특별 보상(물약 묶음·알)은 계정 첫 클리어 때만. 크레딧은 평소 규칙대로.
+    if (floorType(floor) != FloorType::FieldBoss || !save_.fieldBossCleared.insert(floor).second) return;
+    save_.potionSmall = std::min(cfg::kMaxInventory, save_.potionSmall + cfg::kFieldBossFirstPotions);
+    notify("필드 보스 첫 클리어: 물약(소) " + std::to_string(cfg::kFieldBossFirstPotions) + "개", 0xFFFFD45A, 4.f);
+    if (floor % cfg::kStableBonusEvery == 0) {
+        notify("마구간 칸이 하나 늘었습니다.", kGood, 4.f);
+        save_.eggs = std::min(cfg::kMaxInventory, save_.eggs + 1);
+        if (!hatchEgg()) notify("드래곤 알을 받았습니다. 빈 칸이 생기면 상점에서 부화할 수 있습니다.", kGood, 4.f);
+    }
+    saveRequested_ = true;
 }
 
 }  // namespace dt
