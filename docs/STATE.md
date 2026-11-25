@@ -5,13 +5,13 @@
 
 작업을 끝낼 때 이 문서를 같은 PR 에서 고친다. **낡은 상태 문서는 없는 것보다 해롭다.**
 
-최종 갱신: 2026-11-25 (강철룡 A안 IDLE·FLY 적용)
+최종 갱신: 2026-11-25 (강철룡 A안 WALK V2 적용)
 
 ---
 
 ## 한눈에
 
-- [강철룡 A안](characters/steel-dragon.md)의 IDLE V3·HEAVY VENT V5 및 FLY 본체·추진 화염 V2·VENT V2를 [PR #123](https://github.com/1rkdwnsgh1/dragon-tower/pull/123) 브랜치에 적용했다. MOVE·ATTACK·HIT·DEATH·REST는 구형 임시 시트다. Windows x64 Release, CTest 8종, 시트 46개·문서 검사와 Windows 렌더러 미리보기를 통과했다. Windows 실전에서 종 선택, 비행·방향·크기·상태 전환, 저장 후 재실행을 확인해야 한다.
+- [강철룡 A안](characters/steel-dragon.md)의 IDLE V3·HEAVY VENT V5 및 FLY 본체·추진 화염 V2·VENT V2를 [PR #123](https://github.com/1rkdwnsgh1/dragon-tower/pull/123) 브랜치에 적용했다. 사용자가 Windows에서 IDLE·FLY를 확인했다. 승인된 WALK 16F V2를 MOVE에 연결했고 Windows Release·CTest·시트·문서 검사와 렌더러 검수를 통과했다. 실제 플레이 중 접지·전환 검수와 보행 미끄러짐 조정은 남아 있다. ATTACK·HIT·DEATH·REST는 구형 임시 시트다.
 
 - 각성 화석룡 골각 사출을 망령룡의 11번째 스킬로 연결했다. 각성은 다시 수동 사용하기 전까지 유지하며, 대기·이동에 각성 시트를 사용하고 기본 공격은 조준 거리 제한 없는 골각 사출을 반복하며 첫 표적에 명중할 때까지 유도한다. Windows 빌드·자동 전투 테스트·미리보기 검수를 진행했으며 바탕화면·탑 실전 확인이 남아 있다. [제작 진행 및 검수](characters/revenant-dragon-progress.md#awakened-bone-shot-2026-11-23)
 

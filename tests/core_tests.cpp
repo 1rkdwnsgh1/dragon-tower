@@ -4164,6 +4164,8 @@ static void testSteelDragon(const std::filesystem::path& assets) {
         const auto& anim = def.anims[static_cast<int>(state)];
         CHECK(anim.fps == 12.f && anim.frameW == 256 && anim.loop);
     }
+    const auto& move = def.anims[static_cast<int>(AnimState::Move)];
+    CHECK(move.fps == 16.f && move.frameW == 256 && move.loop);
     CHECK(def.skills.size() == 3);
 
     Game game;
@@ -4178,6 +4180,43 @@ static void testSteelDragon(const std::filesystem::path& assets) {
     Game restarted;
     restarted.init(saved, kDesk);
     CHECK(restarted.hasDragon() && restarted.dragonRecord().species == steel);
+
+    game.placeDragon({700.f, 500.f});
+    auto& world = game.world();
+    auto& actor = world.dragon();
+    actor.behavior = IdleBehavior::Rest;
+    actor.behaviorLeft = 3.f;
+    world.updateWander(0.01f);
+    CHECK(actor.anim == AnimState::Idle);
+
+    actor.behavior = IdleBehavior::Walk;
+    actor.wanderTarget = {900.f, actor.groundY};
+    world.updateWander(0.01f);
+    CHECK(actor.anim == AnimState::Move && actor.animTime == 0.f && actor.facing.x > 0.f);
+    const auto start = actor.pos;
+    for (int i = 0; i < 16; ++i) world.updateWander(1.f / move.fps);
+    CHECK(actor.anim == AnimState::Move && actor.animTime == 1.f);
+    CHECK(std::fabs(actor.pos.x - start.x - actor.stats.speed * cfg::kIdleWalkSpeed) < 0.01f);
+    CHECK(actor.pos.y == start.y);
+    std::printf("  steel desktop walk: %.2f px per 16-frame cycle\n", actor.pos.x - start.x);
+
+    actor.behavior = IdleBehavior::Rest;
+    world.updateWander(0.01f);
+    CHECK(actor.anim == AnimState::Idle && actor.animTime == 0.f);
+
+    actor.behavior = IdleBehavior::Walk;
+    actor.wanderTarget = {650.f, actor.groundY};
+    world.updateWander(0.01f);
+    CHECK(actor.anim == AnimState::Move && actor.facing.x < 0.f);
+
+    actor.behavior = IdleBehavior::Fly;
+    actor.wanderTarget = {900.f, actor.groundY - 100.f};
+    world.updateWander(0.01f);
+    CHECK(actor.anim == AnimState::Fly && actor.animTime == 0.f);
+    actor.behavior = IdleBehavior::Walk;
+    actor.wanderTarget = {900.f, actor.groundY};
+    world.updateWander(0.01f);
+    CHECK(actor.anim == AnimState::Move && actor.animTime == 0.f);
 }
 
 int main(int argc, char** argv) {
