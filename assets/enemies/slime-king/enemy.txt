@@ -1,0 +1,65 @@
+; 10층 필드 보스 — 슬라임 왕(2026-11-25). 설계: docs/tower-100-bosses.md 필드보스 10층
+; 패턴: 맞을수록 작은 슬라임으로 갈라진다. 분열체가 살아 있는 동안 본체는 피해를 덜 받는다
+;       → 파티가 분열체를 먼저 처리해야 한다(4마리 파티 전용 층).
+; 수치는 모두 임시값. 필드 보스층은 체력이 cfg::kFieldBossHpMul 배가 된다(Game::spawnTowerFloor).
+[enemy]
+name=슬라임 왕
+role=boss
+desc=거대한 슬라임. 맞을 때마다 몸이 갈라져 작은 슬라임이 쏟아진다. 갈라진 몸이 살아 있으면 왕은 단단해진다.
+color=FF5CE07A
+art_facing=right
+
+hp=0
+atk=4
+def=1
+speed=46
+radius=78
+exp=60
+
+hp_growth=60
+atk_growth=1.6
+def_growth=0.5
+speed_growth=0.0
+exp_growth=10
+
+attack_range=150
+keep_ratio=0.55
+windup=1.10
+attack_cooldown=2.6
+
+; 분열: 최대 체력의 10% 가 깎일 때마다 슬라임 2마리, 분열체 레벨 = 왕 레벨 − 10
+split=slime
+split_count=2
+split_every=0.10
+split_level_drop=10
+split_guard=0.60
+
+[anim.idle]
+fps=6
+loop=yes
+frame_w=256
+render_scale=1.6
+
+[anim.move]
+fps=7
+loop=yes
+frame_w=256
+render_scale=1.6
+
+[anim.attack]
+fps=8
+loop=no
+frame_w=256
+render_scale=1.6
+
+[anim.hit]
+fps=8
+loop=no
+frame_w=256
+render_scale=1.6
+
+[anim.death]
+fps=6
+loop=no
+frame_w=256
+render_scale=1.6

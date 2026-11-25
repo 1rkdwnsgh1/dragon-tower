@@ -74,6 +74,13 @@ constexpr int kMaxEnemyLevel = 500;          // enemy= 의 레벨(lv<N>)
 constexpr int kTowerTopFloor = 100;
 constexpr int kMidBossEvery = 5;            // 5의 배수는 중간 보스(10의 배수와 겹치면 필드 보스)
 constexpr int kFieldBossEvery = 10;         // 10의 배수는 필드 보스(파티)
+constexpr float kSplitHopTime = 0.45f;     // 분열체가 본체에서 튀어나와 착지하기까지(초)
+constexpr float kSplitHopHeight = 70.f;    // 포물선 꼭대기 높이(그림 기준 픽셀, 판정과 무관)
+constexpr float kSplitSquashTime = 0.40f;  // 분열 연출 길이: 본체 split 동작 0.35초 + 점액 효과 0.40초
+constexpr float kSplitBodyTime = 0.35f;    // 본체 split.png 를 재생하는 시간
+constexpr float kSplitLandTime = 0.35f;    // 착지 점액 fx_split_land.png 길이
+constexpr int kFieldBossHpMul = 8;          // 필드 보스층 적의 체력 배율(2026-11-24 사용자 결정: 한 방 피해는 그대로, 체력만 크게. 임시값)
+constexpr int kFieldBossFirstPotions = 10;  // 필드 보스 계정 첫 클리어: 탑 물약(소) 묶음(임시값)
 constexpr int kFieldBossLevelPerFloor = 5;  // 필드 보스 입장: 출전 드래곤 각각 층 × 5 레벨 이하
 constexpr int kFieldBossPartySize = 4;
 // v1.8 UI 조각 캐시(큐 12번). 그린 결과를 장치 픽셀 크기로 캐시해 매 프레임 다시 줄이지 않는다.
@@ -161,6 +168,35 @@ constexpr int kStableBonusEvery = 20;
 constexpr int kMaxStableTotal = kMaxStable + kTowerTopFloor / kStableBonusEvery;
 // 크레딧 저장 상한(64비트). 손으로 고친 저장 파일이 넘쳐도 읽을 때 이 값으로 자른다.
 constexpr long long kMaxCredits = 999999999999LL;
+
+// ---- 탑 100층 T6(2026-11-24): 크레딧·상점·탑 물약. 모두 임시값(tower-100-design.md 4.4) ----
+constexpr int kCreditKillBase = 2;          // 바탕화면 처치 = 2 + 적 레벨 ÷ kCreditKillLevelDiv
+constexpr int kCreditKillLevelDiv = 5;
+constexpr int kCreditEliteMul = 3;          // 정예 처치 배율
+constexpr float kCreditAutoMul = 0.7f;      // 자동 사냥 배율(버림, 최소 1)
+constexpr int kCreditFloorFirst = 10;       // 일반층 첫 돌파 = 층 × 이 값
+constexpr int kCreditMidBossFirst = 30;     // 중간 보스층 첫 돌파
+constexpr int kCreditFieldBossFirst = 100;  // 필드 보스층 첫 돌파(파티, T7)
+constexpr float kCreditRepeatRatio = 0.2f;  // 계정이 이미 깬 층을 다른 드래곤이 돌파
+constexpr long long kEggBasePrice = 3000;   // 알 = 기본 + 단계 × (살아 있는 드래곤 수 − 1)
+constexpr long long kEggStepPrice = 1000;
+constexpr long long kPotionSmallPrice = 50;
+constexpr long long kPotionLargePrice = 150;
+constexpr float kPotionSmallHeal = 0.30f;   // 최대 체력 비율
+constexpr float kPotionLargeHeal = 0.60f;
+constexpr long long kPotionFuryPrice = 200;   // 분노의 물약: kFuryTime 초 동안 공격력 × kFuryAtkMul
+constexpr long long kPotionGuardPrice = 200;  // 수호의 물약: kGuardTime 초 동안 받는 피해 × kGuardDamageMul
+constexpr long long kPotionSwiftPrice = 200;  // 신속의 물약: kSwiftTime 초 동안 스킬 쿨타임이 kSwiftCdMul 배 빨리 돈다
+constexpr float kFuryTime = 20.f, kFuryAtkMul = 1.25f;
+constexpr float kGuardTime = 15.f, kGuardDamageMul = 0.70f;
+constexpr float kSwiftTime = 20.f, kSwiftCdMul = 1.5f;
+constexpr long long kHunterCharmPrice = 500;  // 사냥꾼의 부적: 실제 시간 kHunterCharmSeconds 동안 처치 경험치 × kHunterCharmExpMul
+constexpr long long kHunterCharmSeconds = 30LL * 60LL; // (직접 조작·스킬 수동만. 자동 사냥 제외 — 2026-11-24 사용자 결정)
+constexpr float kHunterCharmExpMul = 1.5f;
+constexpr float kPotionDrinkTime = 1.0f;    // 마시는 데 걸리는 시간(초)
+constexpr float kPotionDrinkMove = 0.5f;    // 마시는 동안 이동 속도 배율
+constexpr int kFreeDragonPicks = 4;       // 처음에 공짜로 고르는 드래곤 수(2026-11-24 사용자 결정)
+constexpr int kMaxInventory = 9999;         // 물약·알 보유 상한(저장 값 범위)
 // v1.4 드래곤 하나가 가질 수 있는 스킬 수의 상한. 제한이 필요해서가 아니라
 // dragon.txt에 [skill.9999] 같은 오타가 들어왔을 때 메모리를 그만큼 잡지 않으려는 안전장치다.
 // 레벨마다 하나씩 해제되므로 최고 레벨보다 많아 봐야 열리지 않는다.

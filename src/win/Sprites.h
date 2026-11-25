@@ -103,6 +103,10 @@ public:
     // 그림이 없으면 렌더러가 예전처럼 도형으로 그린다.
     UiPiece ui(const std::string& skinKey, const std::string& name) const;
 
+    // 탑 전투 지역 배경(assets/tower/bg/zone_NN.png, 2026-11-25). 크기가 커서(1920×1200) 미리 읽지 않고
+    // 부를 때마다 새로 읽어 돌려준다. 그리는 쪽이 화면 크기로 한 번 줄여 두고 원본은 버린다. 없으면 nullptr.
+    std::unique_ptr<Gdiplus::Bitmap> loadTowerBackground(int zone) const;
+
     int loadedCount() const { return static_cast<int>(images_.size()); }
     int sheetCount() const { return static_cast<int>(sheets_.size()); }
     const std::vector<std::string>& warnings() const { return warnings_; }
@@ -143,6 +147,7 @@ private:
     std::map<std::string, BreathSheets> breathSheets_;
     std::vector<std::string> warnings_;
     bool detachFiles_ = false;
+    std::filesystem::path assetDir_;
     unsigned generation_ = 0;
 };
 

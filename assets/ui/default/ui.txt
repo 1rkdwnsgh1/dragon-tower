@@ -119,3 +119,62 @@ fit=contain
 
 [square_off]
 fit=contain
+
+; ---------------------------------------------------------------------------
+; 상점 창(2026-11-24, Codex 제작). 그림은 게임 크기의 2배로 그려졌다.
+; shop_panel 은 상점 창(720 × 약 690)에 통째로 맞춰 그린다(ui.txt 항목 없음 = 늘려 그리기).
+; 9조각으로 그리면 테두리가 원본 픽셀(200)로 그려져 두 배로 두꺼워진다.
+; ---------------------------------------------------------------------------
+[shop_header]
+fit=height
+left=160
+right=160
+
+[shop_row]
+fit=height
+left=120
+right=120
+
+[shop_row_hover]
+fit=height
+left=120
+right=120
+
+[shop_buy]
+fit=height
+left=60
+right=60
+
+[shop_buy_hover]
+fit=height
+left=60
+right=60
+
+[shop_buy_off]
+fit=height
+left=60
+right=60
+
+[shop_icon_egg]
+fit=contain
+
+[shop_icon_potion_small]
+fit=contain
+
+[shop_icon_potion_large]
+fit=contain
+
+[shop_icon_potion_fury]
+fit=contain
+
+[shop_icon_potion_guard]
+fit=contain
+
+[shop_icon_potion_swift]
+fit=contain
+
+[shop_icon_charm]
+fit=contain
+
+[icon_credit]
+fit=contain

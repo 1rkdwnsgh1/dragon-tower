@@ -13,6 +13,11 @@ namespace dt {
 
 enum class CombatMode { Direct = 0, SkillManual = 1, Auto = 2 };
 
+// 탑 100층 T6 탑 물약 종류(2026-11-24). 모두 탑 안에서만, 마시는 데 cfg::kPotionDrinkTime.
+enum class PotionKind { Small = 0, Large, Fury, Guard, Swift };
+constexpr int kPotionKinds = 5;
+const char* potionName(PotionKind k);
+
 const char* combatModeName(CombatMode m);
 
 struct GraveEntry {
@@ -67,6 +72,28 @@ struct SaveData {
     std::set<int> fieldBossCleared; // 계정이 깬 필드 보스층(10, 20, ...)
     std::set<int> firstClearFloors;
     int firstClear = 0;             // 계정이 처음 돌파한 가장 높은 층(첫 돌파 보상 판정)
+    // 탑 100층 T6(2026-11-24) 가방. 계정 공용 — 드래곤이 죽어도 남는다.
+    int potionSmall = 0;            // 탑 물약(소)
+    int potionLarge = 0;            // 탑 물약(대)
+    int potionFury = 0;             // 분노의 물약(공격력)
+    int potionGuard = 0;            // 수호의 물약(받는 피해 감소)
+    int potionSwift = 0;            // 신속의 물약(쿨타임)
+    long long hunterCharmUntil = 0; // 사냥꾼의 부적이 끝나는 시각(유닉스 초). 실제 시간으로 줄어든다
+    int& potion(PotionKind k) {
+        switch (k) {
+            case PotionKind::Small: return potionSmall;
+            case PotionKind::Large: return potionLarge;
+            case PotionKind::Fury: return potionFury;
+            case PotionKind::Guard: return potionGuard;
+            case PotionKind::Swift: break;
+        }
+        return potionSwift;
+    }
+    int potion(PotionKind k) const { return const_cast<SaveData*>(this)->potion(k); }
+    int eggs = 0;                   // 아직 부화하지 않은 알(보상으로 받았는데 칸이 없을 때)
+    // 2026-11-24: 처음 kFreeDragonPicks 마리만 공짜로 고른다. 그 뒤는 알(상점·보상)로만 늘린다.
+    // 살아 있는 드래곤이 하나도 없으면 한 마리를 공짜로 더 고를 수 있다(구조).
+    int freeDragonsUsed = 0;
     // 지금 가질 수 있는 드래곤 수 = kMaxStable + 깬 20의 배수 필드 보스층 수.
     int stableCapacity() const;
 

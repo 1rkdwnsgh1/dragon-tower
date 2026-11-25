@@ -24,7 +24,13 @@ enum class Screen {
     Codex,         // 기록·도감
     Stable,        // v1.3 드래곤 관리창(보유 목록·묘비)
     Skills,        // v1.4 스킬 관리창(해제된 스킬 목록과 장착 4칸)
+    Shop,          // 탑 100층 T6 상점(관리창에서 연다)
 };
+
+// 탑 100층 T6(2026-11-24): 상점 품목
+// 2026-11-24: 훈련서는 뺐다. 분노·수호·신속의 물약과 사냥꾼의 부적을 더했다.
+enum class ShopItem { Egg, PotionSmall, PotionLarge, PotionFury, PotionGuard, PotionSwift, HunterCharm };
+constexpr int kShopItemCount = 7;
 
 struct Notice {
     std::string text;
@@ -150,7 +156,8 @@ public:
     // 보유 목록. 죽은 개체는 들어 있지 않다(묘비로만 남는다).
     const std::vector<DragonRecord>& stable() const { return save_.stable; }
     int activeIndex() const { return save_.activeIndex; }
-    bool stableFull() const { return save_.stable.size() >= static_cast<size_t>(cfg::kMaxStable); }
+    // T6: 칸 수는 기본 4 + 깬 20의 배수 필드 보스층(SaveData::stableCapacity)
+    bool stableFull() const { return save_.stable.size() >= static_cast<size_t>(save_.stableCapacity()); }
     // 전투·탑 밖에서만 바꿀 수 있다(불리할 때 바꿔 끼워 위험을 피하는 것을 막는다).
     bool canSwitchDragon() const;
     const char* switchBlockedReason() const;  // 못 바꾸는 이유. 바꿀 수 있으면 nullptr
@@ -196,6 +203,42 @@ public:
     // 보관 중인(띄우지 않은) 개체의 최대 체력. 체력바를 그리는 데 쓴다.
     float maxHpOf(const DragonRecord& d) const;
 
+    // ---- 탑 100층 T6: 크레딧·상점·탑 물약 ----
+    long long credits() const { return save_.credits; }
+    long long shopPrice(ShopItem item) const;
+    // 살 수 없는 이유. 살 수 있으면 nullptr
+    const char* shopBlockedReason(ShopItem item) const;
+    // 사면 바로 효과가 난다: 알은 즉시 부화, 물약은 가방에
+    bool buy(ShopItem item);
+    // 가방의 알 하나를 부화시킨다(보상으로 받았는데 칸이 없어 남겨 둔 알)
+    bool hatchEgg();
+    void openShop();             // 관리창·바탕화면에서 연다
+    void closeShop();            // 연 곳으로 돌아간다
+    // 공짜로 고를 수 있는가: 처음 kFreeDragonPicks 마리, 또는 살아 있는 드래곤이 하나도 없을 때 한 마리
+    bool freeDragonAvailable() const;
+    int freePicksLeft() const { return std::max(0, cfg::kFreeDragonPicks - save_.freeDragonsUsed); }
+    // 탑에 들어가면 가방의 물약을 모두 가지고 간다(2026-11-24: 개수 제한 없음). 아래는 지금 가진 수.
+    int carried(PotionKind k) const { return carry_[static_cast<size_t>(k)]; }
+    int carrySmall() const { return carried(PotionKind::Small); }
+    int carryLarge() const { return carried(PotionKind::Large); }
+    // 탑 안에서 물약을 마신다. kPotionDrinkTime 동안 이동이 느려지고 끝나면 회복한다.
+    bool drinkPotion(PotionKind k);
+    // ---- 탑 100층 T7: 필드 보스 4마리 파티(2026-11-24 사용자 결정) ----
+    bool fieldBossFloorSelected() const { return floorType(selectedTowerFloor_) == FloorType::FieldBoss; }
+    // 진입 경고창에서 고른 출전 드래곤(DragonRecord::id). 지금 띄운 드래곤은 늘 들어 있다.
+    const std::vector<int>& partyPick() const { return partyPick_; }
+    bool partyPicked(int id) const;
+    void togglePartyMember(int stableIndex);
+    // 들어갈 수 없는 이유(4마리·중복·사망·레벨 상한). 들어갈 수 있으면 nullptr
+    const char* partyBlockedReason() const;
+    bool partyRun() const { return !allyIds_.empty(); }
+    const std::vector<int>& allyIds() const { return allyIds_; }  // world().party() 와 같은 순서
+    // 사냥꾼의 부적 남은 초(실제 시간). 0 이면 꺼져 있다.
+    long long hunterCharmLeft() const;
+    // 테스트용: 현재 시각(유닉스 초)을 고정한다. 0 이면 시스템 시계.
+    void setClockForTest(long long epoch) { clockOverride_ = epoch; }
+    float drinkLeft() const { return drinkTimer_; }
+
     const RectF& desktopBounds() const { return desktop_; }
     const GraveEntry* lastGrave() const { return save_.graves.empty() ? nullptr : &save_.graves.back(); }
 
@@ -230,6 +273,26 @@ private:
     std::string towerFloorLabel(int floor) const;  // "탑 1층" / "탑 3층: 수호자"
     void processEvents(bool autoExp);
     void onDragonDied();
+    // T6
+    void addCredits(long long amount, const char* why);
+    DragonRecord makeDragonRecord(Species s);
+    void addDragonToStable(const DragonRecord& d);
+    void returnTowerPotions();   // 탑을 나갈 때 쓰지 않은 물약을 가방으로 돌려준다
+    std::array<int, kPotionKinds> carry_{};  // 탑에 가지고 들어간 물약(들어가면 가방의 것을 모두)
+    long long clockOverride_ = 0;
+    long long nowEpoch() const;
+    bool carryTaken_ = false;               // 진입하면서 가방에서 뺐는가
+    float drinkTimer_ = 0.f;
+    PotionKind drinking_ = PotionKind::Small;
+    // T7
+    std::vector<int> partyPick_;
+    std::vector<int> allyIds_;
+    int stableIndexOf(int id) const;
+    void applyFloorCleared(DragonRecord& d, int floor);
+    void buryDragon(int id, const std::string& place);   // 묘비로 옮기고 보유 목록에서 뺀다(영구 사망)
+    void endParty();                                       // 동료 체력을 기록에 적고 파티를 푼다
+    void grantFieldBossRewards(int floor);
+    Screen shopReturn_ = Screen::Stable;
     void placeDragonForDesktop();
 
     SaveData save_;

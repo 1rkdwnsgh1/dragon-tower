@@ -94,6 +94,17 @@ tests/                     코어 규칙 검증
 | 보관 중 체력 회복 | `src/core/Game.cpp` | `Game::update` 앞부분, `cfg::kStableRegenRatio` |
 | 보유 목록 저장 | `src/core/SaveData.cpp` | `stable.*` 키와 옛 저장 파일 변환 |
 | 바탕화면 사냥 적 구성(T3) | `src/core/Game.cpp` | `huntFloor`, `huntPool`(직전 일반 층의 일반 적), `spawnWave`, 탑 돌파 기록 `recordFloorCleared` |
+| 탑 100층 경제(T6) — 크레딧 계산·상점 가격 | `src/core/Economy.cpp`, `include/core/Economy.h` | `creditsForKill`, `creditsForFloorClear`, `eggPrice` (수치는 `cfg::kCredit*`·`kEgg*`·`kPotion*`) |
+| 탑 100층 경제(T6) — 상점·알·탑 물약 | `src/core/Game.cpp` | `Game::buy`·`shopBlockedReason`·`hatchEgg`, `enterTower`(물약을 모두 꺼냄)·`drinkPotion`·`returnTowerPotions`, 처치 크레딧은 `processEvents`, 층 돌파 크레딧은 `update`의 탑 분기. 가방 저장 키 `inv.potionSmall`·`inv.potionLarge`·`inv.eggs` |
+| 탑 100층 상점 화면·탑 물약 버튼(T6) | `src/win/Renderer.cpp`, `src/win/App.cpp`, 그림 `assets/ui/default/shop_*` | `drawShop`(그림이 있으면 그림, 없으면 도형), `drawTowerPotions`, `drawModal` 의 `TowerWarning` 물약 줄(종류별 수), `drawStable` 의 상점 버튼·칸 수. 동작 `UiAction::OpenShop`·`BuyItem`·`HatchEgg`·`DrinkPotion` |
+| 탑 물약 효과(분노·수호·신속)·사냥꾼의 부적 | `include/core/World.h`, `src/core/World.cpp`, `src/core/Game.cpp` | `DragonActor::furyTime`·`guardTime`·`swiftTime`·`attack()`, `damageDragon`(수호), 타이머 갱신(신속 `cdStep`), `Game::drinkPotion(PotionKind)`·`hunterCharmLeft`·`nowEpoch`, `processEvents`(부적 경험치). 종류 `PotionKind`·`potionName`(`SaveData`) |
+| 탑 100층 필드 보스 파티(T7) — 전투 | `include/core/World.h`, `src/core/World.cpp` | `PartyMember`, `setParty`·`addAlly`·`setAllyLevel`·`promoteAlly`·`aliveAllyCount`, 바꿔 넣기 `swapAlly`, 조작 분리 `controlDragon`, 적 표적 `nearestDragonFor`·`updateEnemy`, 예고 판정 `resolveZone`(모든 드래곤), 동료 사망 `WorldEvent::ally` |
+| 탑 100층 필드 보스 파티(T7) — 규칙·보상 | `src/core/Game.cpp` | `partyPick`·`togglePartyMember`·`partyBlockedReason`, `enterTower`(동료 세우기), `processEvents`(동료 경험치·사망·조작 넘기기), `buryDragon`, `endParty`, `grantFieldBossRewards`, 체력 배율은 `spawnTowerFloor`(`cfg::kFieldBossHpMul`) |
+| 탑 100층 필드 보스 파티(T7) — 화면 | `src/win/Renderer.cpp` | `drawModal` 의 `TowerWarning` 출전 고르기, `FloorClear` 다음 층 막기, `drawWorld` 의 동료 그리기 |
+| 탑 전투 지역 배경 | `src/win/Renderer.cpp`, `src/win/Sprites.cpp`, 그림 `assets/tower/bg/zone_NN.png` | `Renderer::drawTowerBackground`(지역 = (층−1)÷10+1, 장치 크기로 한 번 줄여 둠), `Sprites::loadTowerBackground` |
+| 분열 연출(튀어나와 날아가기·움찔·점액) | `src/core/World.cpp`, `src/win/Renderer.cpp`, `src/win/Sprites.cpp` | `updateEnemy` 앞부분(`hopping`·`landLeft`), `nearestEnemy`·`damageEnemy`(나는 중 제외), `drawEnemy`(포물선 `hopLift`, `split.png`·`fx_split`·`fx_split_land`, 없으면 `squash`·고리), 시트 읽기는 `Sprites::load` 의 적 루프(`skill_split`·`fx_split`), 수치 `cfg::kSplit*` |
+| 적 분열(슬라임 왕) | `src/core/World.cpp`, `include/core/Enemy.h`, `src/core/DragonData.cpp` | `EnemyDef::split*`(`enemy.txt` 의 `split=`·`split_count`·`split_every`·`split_level_drop`·`split_guard`), `damageEnemy`(분열 예약·보호), `updateCombat` 의 `pendingSplits_` 처리, `aliveChildren`, `Enemy::parentId`·`splitNext` |
+| 공짜 드래곤 4마리·구조 한 마리 | `src/core/Game.cpp` | `freeDragonAvailable`, `chooseSpecies`, `beginAddDragon`, 저장 키 `freeDragonsUsed`(옛 저장은 `deserializeSave` 끝에서 채움) |
 | 탑 100층 저장(T2) | `src/core/SaveData.cpp`, `include/core/Tower.h` | `stable.N.floor`·`cleared`, `credits`, `tower.firstClear`·`tower.firstClearFloors`·`fieldBossCleared`·`clearedFloors`, 슬롯 수 `stableCapacityFor`/`SaveData::stableCapacity` |
 | 관리창 그리기 | `src/win/Renderer.cpp` | `drawStable` |
 | 싸울 때 유지할 간격 | `src/core/World.cpp` | `desiredRange`, `Game::setKeepRange` |

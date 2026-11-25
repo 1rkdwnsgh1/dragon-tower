@@ -16,7 +16,7 @@ T4 에서 층에 배치할 때 폴더를 `assets/enemies/<키>/` 로 옮기고 `
 |---|---|
 | 일반 몬스터 17종 | `wolf` `treant` `yeti` `frost-spirit` `ice-golem` `skeleton` `orc` `lizardman` `hydra` `water-dragon` `fire-elemental` `basilisk` `lava-giant` `wraith` `death-knight` `chimera` `abyss-lord` |
 | 중간보스 9종 | `goblin-chief` `alpha-wolf` `giant-yeti` `orc-warlord` `swamp-witch` `volcanic-smith` `black-knight-captain` `basilisk-queen` `abyss-gatekeeper` (35층은 기존 `lich`) |
-| 필드보스 10종 | `slime-king` `ancient-world-tree` `frost-queen` `bone-dragon` `great-hydra-body` `leviathan` `volcano-lord` `king-of-dead` `chimera-lord` (100층은 `abyss-lord` 와 따로 그린 큰 그림 — 아래) |
+| 필드보스 10종 | `slime-king`(2026-11-25 `assets/enemies/slime-king` 으로 옮김 — 여기 남은 사본은 지워도 된다) `ancient-world-tree` `frost-queen` `bone-dragon` `great-hydra-body` `leviathan` `volcano-lord` `king-of-dead` `chimera-lord` (100층은 `abyss-lord` 와 따로 그린 큰 그림 — 아래) |
 | 보스 부품 3종 | `world-tree-fruit`(세계수 열매) `hydra-head`(히드라 머리) `leviathan-tentacle`(리바이어던 촉수) |
 
 지역·보스 배치는 [보스 구성안](../../../docs/tower-100-bosses.md).
