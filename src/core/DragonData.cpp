@@ -271,6 +271,7 @@ DragonParseResult parseDragonText(const std::string& text, const std::string& fo
             else if (key == "fx") s.fx = val;
             else if (key == "fx_impact") s.fxImpact = val;
             else if (key == "furnace_burst") ok = parseBool(val, s.furnaceBurst);
+            else if (key == "core_overheat") ok = parseBool(val, s.coreOverheat);
             else if (key == "fx_impact_fps") {
                 float fps = 0.f;
                 ok = parseFloat(val, fps) && (fps == 0.f || (fps >= 1.f && fps <= 60.f));

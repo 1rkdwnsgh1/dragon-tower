@@ -4699,6 +4699,62 @@ static void testSteelFurnaceBurst(Species steel) {
     CHECK(w.projectiles().empty() && impact() == w.fx().end());
 }
 
+static void testSteelCoreOverheat(Species steel) {
+    World w;
+    w.setBounds(kDesk);
+    w.setupDragon(steel, 3, 0.f, {450.f, 360.f});
+    w.setSlots({1, -1, -1, -1});
+    auto& d = w.dragon();
+    d.basicCd = 1000.f;
+    const auto spawn = [&](Vec2 pos) {
+        auto& enemy = w.spawnEnemy(defaultMelee(), 1, pos, false);
+        enemy.hp = enemy.maxHp = 1000.f;
+        enemy.stun = 99.f;
+        return enemy.id;
+    };
+    const int nearby = spawn({495.f, 405.f});
+    const int elevated = spawn({515.f, 280.f});
+    const int distant = spawn({750.f, 360.f});
+    const auto enemy = [&](int id) -> const Enemy& {
+        return *std::find_if(w.enemies().begin(), w.enemies().end(),
+                             [&](const Enemy& value) { return value.id == id; });
+    };
+    const SkillDef& skill = speciesDef(steel).skills[1];
+    CHECK(skill.coreOverheat && speciesDef(steel).skills[0].furnaceBurst);
+    PlayerInput input;
+    input.skill[0] = true;
+    input.moveX = 1.f;
+    const auto tick = [&](float dt) {
+        w.updateCombat(dt, CombatMode::Direct, input);
+        w.updateFx(dt);
+    };
+    tick(.10f);
+    CHECK(d.overheatSkill == 1 && d.anim == AnimState::Move);
+    CHECK(enemy(nearby).hp == 1000.f && enemy(elevated).hp == 1000.f);
+    tick(.13f);
+    CHECK(d.pos.x > 480.f && d.overheatSkill < 0 && d.overheatResidual > .59f);
+    CHECK(enemy(distant).hp == 1000.f);
+    const float expected = 1000.f - mitigate(d.attack() * skill.power, enemy(nearby).def);
+    CHECK(std::fabs(enemy(nearby).hp - expected) < .01f);
+    CHECK(std::fabs(enemy(elevated).hp - expected) < .01f);
+    int layers = 0;
+    for (const Fx& fx : w.fx()) {
+        if (fx.key != skill.fx && fx.key != skill.fxImpact) continue;
+        ++layers;
+        CHECK(distance(fx.a, d.pos) == 0.f && fx.t == 0.f && fx.duration == .8f);
+    }
+    CHECK(layers == 2);
+    input.moveX = -1.f;
+    tick(.3f);
+    CHECK(d.facing.x < 0.f && d.anim == AnimState::Move && d.overheatResidual > 0.f);
+    tick(.51f);
+    CHECK(d.overheatResidual == 0.f);
+    CHECK(std::none_of(w.fx().begin(), w.fx().end(), [&](const Fx& fx) {
+        return fx.key == skill.fx || fx.key == skill.fxImpact;
+    }));
+    CHECK(std::fabs(enemy(nearby).hp - expected) < .01f);
+}
+
 static void testSteelDragon(const std::filesystem::path& assets) {
     std::printf("[steel dragon registration]\n");
     const DragonScanResult scan = loadDragonFolders(assets / "dragons");
@@ -4735,6 +4791,7 @@ static void testSteelDragon(const std::filesystem::path& assets) {
     CHECK(restarted.hasDragon() && restarted.dragonRecord().species == steel);
     testSteelBasicAttack(steel);
     testSteelFurnaceBurst(steel);
+    testSteelCoreOverheat(steel);
 
     game.placeDragon({700.f, 500.f});
     auto& world = game.world();

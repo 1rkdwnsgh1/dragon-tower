@@ -226,6 +226,7 @@ Vec2 World::randomEdgePoint(float margin) {
 }
 
 void World::clearEnemies(bool withPoof) {
+    dragon_.overheatSkill = -1;
     dragon_.steelAttack.reset();
     cancelProcession();
     if (dragon_.skillCast && (dragon_.skillCast->soulfireCastId || dragon_.skillCast->boneShotOrigin))
@@ -421,6 +422,36 @@ void World::basicAttack(float dt) {
     d.basicCd = cfg::kBasicAttackCooldown;
     if (std::fabs(t->pos.x - d.pos.x) > 4.f) d.facing = Vec2{t->pos.x > d.pos.x ? 1.f : -1.f, 0.f};
     setDragonAnim(AnimState::Attack, cfg::kAnimAttackHold);
+}
+
+void World::advanceCoreOverheat(float dt) {
+    DragonActor& d = dragon_;
+    if (d.overheatSkill < 0) return;
+    if (!d.alive || d.held) {
+        d.overheatSkill = -1;
+        return;
+    }
+    d.overheatWindup -= dt;
+    if (d.overheatWindup > 0.f) return;
+
+    const SpeciesDef& sp = speciesDef(d.species);
+    const SkillDef& skill = sp.skills[static_cast<size_t>(d.overheatSkill)];
+    d.overheatSkill = -1;
+    d.overheatResidual = kCoreOverheatResidual + dt;
+    const Vec2 center = d.pos;
+    for (Enemy& enemy : enemies_) {
+        if (inSkillCircle(enemy, center, skillRadius(skill), sizeScale_))
+            damageEnemy(enemy, d.attack() * skill.power);
+    }
+    // 뒤의 원형 파동과 앞의 불꽃은 같은 월드 좌표와 수명을 사용한다.
+    const float height = 2.4f * skillRadius(skill);
+    addFx(FxType::Ring, center, center, height, skill.duration, sp.color);
+    fx_.back().key = skill.fx;
+    fx_.back().inFront = false;
+    fx_.back().t = -dt;
+    addFx(FxType::Hit, center, center, height, skill.duration, sp.color);
+    fx_.back().key = skill.fxImpact;
+    fx_.back().t = -dt;
 }
 
 void World::advanceSteelAttack(float dt) {
@@ -669,6 +700,13 @@ bool World::castSkill(int i, bool aiChoice) {
             for (Enemy& e : enemies_)
                 if (inSkillCircle(e, d.pos, skillRadius(s), sizeScale_)) any = true;
             if (aiChoice && !any) return false;
+            if (s.coreOverheat) {
+                if (d.overheatSkill >= 0) return false;
+                d.overheatSkill = i;
+                d.overheatWindup = kCoreOverheatWindup;
+                d.skillCd[static_cast<size_t>(i)] = s.cooldown;
+                return true;
+            }
             for (Enemy& e : enemies_) {
                 if (!inSkillCircle(e, d.pos, skillRadius(s), sizeScale_)) continue;
                 damageEnemy(e, d.attack() * s.power, true, s.detonatesCurse);
@@ -1909,6 +1947,7 @@ void World::controlDragon(float dt, CombatMode mode, const PlayerInput& in, bool
         if (!d.procession) basicAttack(dt);
     }
     advanceSteelAttack(dt);
+    advanceCoreOverheat(dt);
 
 }
 
@@ -2119,6 +2158,8 @@ void World::updateCombat(float dt, CombatMode mode, const PlayerInput& in) {
 }
 
 void World::updateFx(float dt, bool combatEnded) {
+    dragon_.overheatResidual = std::max(0.f, dragon_.overheatResidual - dt);
+    if (combatEnded || !dragon_.alive) dragon_.overheatSkill = -1;
     if (combatEnded) {
         dragon_.steelAttack.reset();
         projectiles_.erase(std::remove_if(projectiles_.begin(), projectiles_.end(),

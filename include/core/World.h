@@ -341,6 +341,9 @@ struct SkillCast {
     float soulfireTrailNext = 0.f;  // Remaining distance measured at 100% size.
 };
 
+inline constexpr float kCoreOverheatWindup = 0.22f;
+inline constexpr float kCoreOverheatResidual = 0.6f;
+
 struct DragonActor {
     bool awakened = false;
     int souls = 0;  // Current combat session only.
@@ -352,6 +355,9 @@ struct DragonActor {
     Vec2 facing{1.f, 0.f};
     float hp = 1.f;
     float basicCd = 0.f;
+    int overheatSkill = -1;
+    float overheatWindup = 0.f;
+    float overheatResidual = 0.f;
     std::optional<SteelAttackCast> steelAttack;  // F06에서 소모한다.
     // v1.4: 재사용 대기시간은 **스킬마다** 센다(칸이 아니라). 칸을 바꿔 끼워도 대기시간은 그대로다.
     // 크기는 setupDragon에서 그 종의 스킬 수에 맞춘다.
@@ -584,6 +590,7 @@ private:
     void onEnemyKilled(Vec2 at);
     void basicAttack(float dt);
     void advanceSteelAttack(float dt);
+    void advanceCoreOverheat(float dt);
     void advanceSteelBasicFlight(Projectile& shot, float dt);
     void beginBoneShot(int skillIndex, const Enemy& target, bool basic);
     void updateEnemies(float dt);

@@ -1039,6 +1039,21 @@ void Renderer::drawDragon(Graphics& g, const DragonActor& d, const Sprites& spri
                            x, cyAdj, drawH, flip, 0.f, alpha);
         }
         if (showBody) drawSheetFrame(g, sh, frame, x, cyAdj, drawH, flip, flash, alpha);
+        if (steelMotion && effects && (d.overheatSkill >= 0 || d.overheatResidual > 0.f)) {
+            const char* mask = nullptr;
+            if (state == AnimState::Idle) mask = idleVentFrame >= 0 ? "overheat_idle_vent" : "overheat_idle";
+            if (state == AnimState::Move) mask = "overheat_move";
+            if (state == AnimState::Fly) mask = "overheat_fly";
+            if (state == AnimState::Attack) mask = "overheat_attack";
+            if (mask) {
+                const Sheet heat = sprites.fxSheet(sp.key, mask);
+                const float cooling = std::clamp(d.overheatResidual / kCoreOverheatResidual, 0.f, 1.f);
+                const float charge = d.overheatSkill >= 0
+                    ? 0.25f + 0.65f * std::clamp(1.f - d.overheatWindup / kCoreOverheatWindup, 0.f, 1.f) : 0.f;
+                if (heat.frames == sh.frames && heat.frameW == sh.frameW && heat.frameH == sh.frameH)
+                    drawSheetFrame(g, heat, frame, x, cyAdj, drawH, flip, 0.f, alpha * std::max(charge, cooling));
+            }
+        }
         if (steelMotion && effects) {
             if (state == AnimState::Fly && sh.frames == 24) {
                 // V2 원본의 알파가 본체에 가려지는 영역을 반영한다. 연기 위에 추진 화염을 그린다.
@@ -1922,7 +1937,7 @@ bool Renderer::drawFxSheet(Graphics& g, const Fx& f, const Sprites& sprites, con
         ad.fps = sk->fxPlaybackFps(f.key);
     }
 
-    if (sk && (sk->boneShot || sk->furnaceBurst) && f.key == sk->fxImpact) {
+    if (sk && (sk->coreOverheat || ((sk->boneShot || sk->furnaceBurst) && f.key == sk->fxImpact))) {
         drawSheetFrame(g, sh, animFrame(f.t, ad.fps, sh.frames, false),
                        f.a.x, f.a.y, f.radius, false, 0.f, 1.f);
         return true;

@@ -26,4 +26,6 @@ ATTACK과 HEAT LEAK는 6400×1360 RGBA(5열×2행), 화염탄은 4096×576, 명�
 
 HIT·DEATH·REST는 기존 `STEEL_DRAGON_IDLE_WING_TAIL_PREVIEW.zip`의 연기 없는 대체 시트다. [기존 승인 패키지](https://chatgpt.com/library?file_id=libfile_c1a7fece9cc4819180dd6810118995b4&account_id=personal)
 
+노심 과열파는 사용자 제공 용광 해방형 콘셉트와 강철룡 마스터를 참고해 독립 화염·원형 열파를 생성했다. 본체 시트 원본에서 프레임별 열 마스크를 추출한다.
+
 용광 폭렬탄 폭발은 승인 V3의 7개 RGBA 레이어와 키 6장을 보존했다. 신규 중간 컷과 독립 포탄은 저장소의 제작 스크립트로 생성한다. BASIC ATTACK·PROJECTILE 두 패키지는 발사 포즈와 화염탄 스타일의 참조다.

@@ -433,6 +433,8 @@ void Sprites::loadFxSheets(const std::filesystem::path& dir, const SpeciesDef& d
         load("basic_heat", 256, kSteelBasicFps);
         load("basic_projectile", 512, kSteelBasicFps);
         load("basic_hit", 256, kSteelBasicFps);
+        for (const char* mask : {"overheat_idle", "overheat_idle_vent", "overheat_move", "overheat_fly", "overheat_attack"})
+            load(mask, 256);
     }
     for (const SkillDef& sk : def.skills) {
         if (sk.kind == SkillKind::Procession && def.key == "revenant") {
