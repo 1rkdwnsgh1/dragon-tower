@@ -26,6 +26,13 @@ ATTACK과 HEAT LEAK는 6400×1360 RGBA(5열×2행), 화염탄은 4096×576, 명�
 
 HIT·DEATH·REST는 기존 `STEEL_DRAGON_IDLE_WING_TAIL_PREVIEW.zip`의 연기 없는 대체 시트다. [기존 승인 패키지](https://chatgpt.com/library?file_id=libfile_c1a7fece9cc4819180dd6810118995b4&account_id=personal)
 
-노심 과열파는 사용자 제공 용광 해방형 콘셉트와 강철룡 마스터를 참고해 독립 화염·원형 열파를 생성했다. 본체 시트 원본에서 프레임별 열 마스크를 추출한다.
+노심 과열파 V2는 승인 ZIP의 두 게임 시트를 그대로 사용한다. ZIP SHA-256 `f936fc46d84d788162fbfa689b7351338bf020cb9bf22af79cb01d2130a29920`. 기존 과열 마스크와 본체 시트는 유지한다.
+
+| 게임용 승인 PNG | SHA-256 |
+|---|---|
+| `fx_overheat_rear.png` | `f336ac68a30a2666efcc9ba5afb2d70d30b9292637849d69efb4f93424985749` |
+| `fx_overheat_front.png` | `b24bccb50d48019037058e0ed0300ce37438206eef327b0f7632203bd4f16a88` |
+
+V1은 사용자 제공 용광 해방형 콘셉트와 강철룡 마스터를 참고한 절차적 폭발이었다. 포즈별 열 마스크는 V1에서 기존 본체 원본으로부터 추출했다.
 
 용광 폭렬탄 폭발은 승인 V3의 7개 RGBA 레이어와 키 6장을 보존했다. 신규 중간 컷과 독립 포탄은 저장소의 제작 스크립트로 생성한다. BASIC ATTACK·PROJECTILE 두 패키지는 발사 포즈와 화염탄 스타일의 참조다.
