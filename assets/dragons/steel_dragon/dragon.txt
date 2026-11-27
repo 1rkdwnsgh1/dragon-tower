@@ -83,3 +83,18 @@ fx=overheat_rear
 fx_impact=overheat_front
 fx_frame_w=384
 fx_fps=20
+
+; 4초 동안 0.25초 간격의 피해와 B4 관통 탄막을 재생한다.
+[skill.3]
+name=방열 칼날환
+desc=회전 칼날로 주변을 공격하고 관통 칼날을 세 차례 사출한다.
+kind=Line
+level=6
+cooldown=10
+radius=105
+range=420
+power=0.16
+extra=0.44
+duration=4
+heat_blade_storm=yes
+heat_blade_repeat_targets=no

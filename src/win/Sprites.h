@@ -119,6 +119,7 @@ private:
         int frames = 1;
         int frameW = 0;
         int frameH = 0;
+        int columns = 0;
         std::vector<float> visibleHeight;
     };
     // prefix는 시트 이름 앞에 붙는 구분자다(적은 "enemy:<키>").

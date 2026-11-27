@@ -58,6 +58,7 @@ tests/                     코어 규칙 검증
 | 띠로 날아 내려가기 | `src/core/World.cpp` | `beginConfine`, `confining_` |
 | 입력 받을 영역 수집 | `src/win/Renderer.cpp` | `markRegion`, `g_regions` |
 | 장판 그림과 기본 도형 | `src/win/Renderer.cpp`, `src/core/World.cpp` | `drawDotZones`, `DotZone::spriteSkill`, `fx_zone_sprite_only` |
+| 방열 칼날환 | `src/core/World.cpp`, `src/win/HeatBladeAtlases.h`, `src/win/Renderer.cpp` | `advanceHeatBladeStorm`과 `advanceHeatBladeFlight`, 승인 아틀라스 인덱싱 및 전후 패스 |
 | 노심 과열파 시전·범위·갑주 냉각 | `src/core/World.cpp`, `src/win/Renderer.cpp`, `src/win/Sprites.cpp` | `advanceCoreOverheat`의 단발 원형 판정과 앞뒤 시트, `drawDragon`의 프레임별 적열 합성 |
 | 용광 폭렬탄 시전·추적·이중 충격파 | `src/core/World.cpp`, `src/win/Renderer.cpp`, `src/win/Sprites.cpp` | `castSkill`, `advanceSteelAttack`, 지정 표적 투사체 분기, 명중 시 표적 중심 반경 및 독립 충격파 시트 |
 | 강철룡 기본공격·F06 발사·명중 | `src/core/World.cpp`, `src/win/Renderer.cpp`, `src/win/Preview.cpp` | `basicAttack`, `advanceSteelAttack`, `advanceSteelBasicFlight`, `drawDragon`, `drawProjectiles`, `drawFx`, 강철룡 공격 미리보기 |

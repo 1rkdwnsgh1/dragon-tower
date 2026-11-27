@@ -191,6 +191,26 @@ struct SteelAttackCast {
     bool startsThisStep = false;
 };
 
+inline constexpr Vec2 heatBladeTorso(AnimState state) {
+    return state == AnimState::Fly ? Vec2{151.317f, 136.633f} :
+           state == AnimState::Move ? Vec2{158.123f, 190.393f} : Vec2{157.849f, 192.947f};
+}
+
+struct HeatBladeFlight {
+    Vec2 aim;
+    float remaining;
+    float firstStep;
+    float scale;
+    std::vector<int> hitIds;
+};
+
+struct HeatBladeStorm {
+    int skill;
+    int nextPulse = 1;
+    int nextVolley = 0;
+    float time = 0.f;
+};
+
 struct Projectile {
     Vec2 pos;
     int targetId = 0;
@@ -207,6 +227,7 @@ struct Projectile {
     std::optional<BoneShotFlight> boneShot;
     std::optional<SteelBasicFlight> steelBasic;
     std::optional<FurnaceFlight> furnace;
+    std::optional<HeatBladeFlight> heatBlade;
 };
 
 // Standing source aligned to the standard 256px revenant cell at 126% scale.
@@ -356,6 +377,7 @@ struct DragonActor {
     float hp = 1.f;
     float basicCd = 0.f;
     int overheatSkill = -1;
+    std::optional<HeatBladeStorm> heatBladeStorm;
     float overheatWindup = 0.f;
     float overheatResidual = 0.f;
     std::optional<SteelAttackCast> steelAttack;  // F06에서 소모한다.
@@ -591,6 +613,8 @@ private:
     void basicAttack(float dt);
     void advanceSteelAttack(float dt);
     void advanceCoreOverheat(float dt);
+    void advanceHeatBladeStorm(float dt);
+    void advanceHeatBladeFlight(Projectile& shot, float dt);
     void advanceSteelBasicFlight(Projectile& shot, float dt);
     void beginBoneShot(int skillIndex, const Enemy& target, bool basic);
     void updateEnemies(float dt);

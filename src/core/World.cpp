@@ -227,6 +227,8 @@ Vec2 World::randomEdgePoint(float margin) {
 
 void World::clearEnemies(bool withPoof) {
     dragon_.overheatSkill = -1;
+    dragon_.heatBladeStorm.reset();
+    for (auto& member : party_) member.actor.heatBladeStorm.reset();
     dragon_.steelAttack.reset();
     cancelProcession();
     if (dragon_.skillCast && (dragon_.skillCast->soulfireCastId || dragon_.skillCast->boneShotOrigin))
@@ -422,6 +424,98 @@ void World::basicAttack(float dt) {
     d.basicCd = cfg::kBasicAttackCooldown;
     if (std::fabs(t->pos.x - d.pos.x) > 4.f) d.facing = Vec2{t->pos.x > d.pos.x ? 1.f : -1.f, 0.f};
     setDragonAnim(AnimState::Attack, cfg::kAnimAttackHold);
+}
+
+void World::advanceHeatBladeStorm(float dt) {
+    DragonActor& d = dragon_;
+    if (!d.heatBladeStorm) return;
+    if (!d.alive || d.held) {
+        d.heatBladeStorm.reset();
+        return;
+    }
+    auto& cast = *d.heatBladeStorm;
+    const SkillDef& skill = speciesDef(d.species).skills[static_cast<size_t>(cast.skill)];
+    const float end = std::min(cast.time + dt, 4.f);
+    const Vec2 torso = heatBladeTorso(d.anim);
+    const float height = cfg::kDragonRadius * 3.f * sizeScale_;
+    const float sign = d.facing.x < 0.f ? -1.f : 1.f;
+    const Vec2 center = d.pos + Vec2{sign * (torso.x - 128.f) * height / 256.f,
+                                   cfg::kDragonRadius + (torso.y - 240.f) * height / 256.f};
+    constexpr float launches[] = {.6f, 1.8f, 3.f};
+    for (;;) {
+        const float pulse = cast.nextPulse <= 16 ? .25f * cast.nextPulse : 5.f;
+        const float launch = cast.nextVolley < 3 ? launches[cast.nextVolley] : 5.f;
+        if (std::min(pulse, launch) > end + .000001f) break;
+        if (pulse < launch) {
+            for (auto& enemy : enemies_)
+                if (inSkillCircle(enemy, center, skillRadius(skill), sizeScale_))
+                    damageEnemy(enemy, d.attack() * skill.power);
+            ++cast.nextPulse;
+            continue;
+        }
+        ++cast.nextVolley;
+        std::vector<const Enemy*> targets;
+        for (const auto& enemy : enemies_)
+            if (enemy.alive && distance(enemy.pos, center) <= skill.range) targets.push_back(&enemy);
+        std::stable_sort(targets.begin(), targets.end(), [&](const Enemy* a, const Enemy* b) {
+            return distance(a->pos, center) < distance(b->pos, center);
+        });
+        for (int i = 0; i < 3; ++i) {
+            Vec2 aim = d.facing.x < 0.f ? Vec2{-1.f, 0.f} : Vec2{1.f, 0.f};
+            if (i < static_cast<int>(targets.size()) || (skill.heatBladeRepeatTargets && !targets.empty())) {
+                const Vec2 direction = (targets[static_cast<size_t>(i) % targets.size()]->pos - center).normalized();
+                if (direction.length() > 0.f) aim = direction;
+            } else {
+                // 부족한 표적 대신 정면으로 벌어진 부채꼴을 쏜다.
+                aim = Vec2{aim.x, (i - 1) * .24f}.normalized();
+            }
+            Projectile shot;
+            shot.pos = center;
+            shot.speed = 780.f;
+            shot.damage = d.attack() * skill.extra;
+            shot.heatBlade = HeatBladeFlight{aim, skill.range, std::max(0.f, cast.time + dt - launch), sizeScale_, {}};
+            projectiles_.push_back(std::move(shot));
+        }
+        addFx(FxType::Hit, center, center, 51.2f * sizeScale_, .4f, 0);
+        fx_.back().key = "heat_blade_launch";
+        fx_.back().t = -dt;
+    }
+    cast.time = end;
+    if (end >= 4.f) d.heatBladeStorm.reset();
+}
+
+void World::advanceHeatBladeFlight(Projectile& shot, float dt) {
+    auto& flight = *shot.heatBlade;
+    const float elapsed = flight.firstStep >= 0.f ? std::exchange(flight.firstStep, -1.f) : dt;
+    const float step = std::min(flight.remaining, shot.speed * elapsed);
+    const Vec2 next = shot.pos + flight.aim * step;
+    for (auto& enemy : enemies_) {
+        if (!enemy.alive || step <= 0.f ||
+            std::find(flight.hitIds.begin(), flight.hitIds.end(), enemy.id) != flight.hitIds.end()) continue;
+        const Vec2 to = enemy.pos - shot.pos;
+        const float along = to.x * flight.aim.x + to.y * flight.aim.y;
+        const float normal = to.x * flight.aim.y - to.y * flight.aim.x;
+        const float radius = enemy.radius * flight.scale + 5.f * flight.scale;
+        const float chordSquared = radius * radius - normal * normal;
+        if (chordSquared < 0.f) continue;
+        const float chord = std::sqrt(chordSquared);
+        if (along + chord < 0.f || along - chord > step) continue;
+        const Vec2 contact = shot.pos + flight.aim * std::max(0.f, along - chord);
+        flight.hitIds.push_back(enemy.id);
+        damageEnemy(enemy, shot.damage);
+        addFx(FxType::Hit, contact, contact, 51.2f * flight.scale, .4f, 0);
+        fx_.back().key = "heat_blade_contact";
+        fx_.back().t = -dt;
+    }
+    shot.pos = next;
+    shot.t += elapsed;
+    flight.remaining -= step;
+    if (flight.remaining <= 0.f || !bounds_.contains(next.x, next.y)) {
+        addFx(FxType::Hit, next, next, 51.2f * flight.scale, .4f, 0);
+        fx_.back().key = "heat_blade_disappear";
+        fx_.back().t = -dt;
+        shot.alive = false;
+    }
 }
 
 void World::advanceCoreOverheat(float dt) {
@@ -716,6 +810,12 @@ bool World::castSkill(int i, bool aiChoice) {
             break;
         }
         case SkillKind::Line: {
+            if (s.heatBladeStorm) {
+                if (d.heatBladeStorm || (aiChoice && !nearestEnemy(d.pos, s.range))) return false;
+                d.heatBladeStorm = HeatBladeStorm{i};
+                d.skillCd[static_cast<size_t>(i)] = s.cooldown;
+                return true;
+            }
             Enemy* t = nearestEnemy(d.pos, s.spectralCleave ? skillRange(s) : s.range + 80.f);
             if (aiChoice && !t) return false;
             Vec2 dir = t ? (t->pos - d.pos).normalized() : facingDir;
@@ -1948,6 +2048,7 @@ void World::controlDragon(float dt, CombatMode mode, const PlayerInput& in, bool
     }
     advanceSteelAttack(dt);
     advanceCoreOverheat(dt);
+    advanceHeatBladeStorm(dt);
 
 }
 
@@ -1987,6 +2088,10 @@ void World::updateCombat(float dt, CombatMode mode, const PlayerInput& in) {
 
     // 투사체
     for (Projectile& p : projectiles_) {
+        if (p.heatBlade) {
+            advanceHeatBladeFlight(p, dt);
+            continue;
+        }
         if (p.steelBasic) {
             advanceSteelBasicFlight(p, dt);
             continue;
@@ -2159,11 +2264,19 @@ void World::updateCombat(float dt, CombatMode mode, const PlayerInput& in) {
 
 void World::updateFx(float dt, bool combatEnded) {
     dragon_.overheatResidual = std::max(0.f, dragon_.overheatResidual - dt);
+    if (!dragon_.alive) dragon_.heatBladeStorm.reset();
+    if (combatEnded) {
+        dragon_.heatBladeStorm.reset();
+        for (auto& member : party_) member.actor.heatBladeStorm.reset();
+        fx_.erase(std::remove_if(fx_.begin(), fx_.end(), [](const Fx& fx) {
+            return fx.key.rfind("heat_blade_", 0) == 0;
+        }), fx_.end());
+    }
     if (combatEnded || !dragon_.alive) dragon_.overheatSkill = -1;
     if (combatEnded) {
         dragon_.steelAttack.reset();
         projectiles_.erase(std::remove_if(projectiles_.begin(), projectiles_.end(),
-            [](const Projectile& projectile) { return projectile.boneShot.has_value() || projectile.steelBasic.has_value() || projectile.furnace.has_value(); }), projectiles_.end());
+            [](const Projectile& projectile) { return projectile.boneShot.has_value() || projectile.steelBasic.has_value() || projectile.furnace.has_value() || projectile.heatBlade.has_value(); }), projectiles_.end());
         for (Enemy& enemy : enemies_) enemy.soulfireHit = {};
         cancelProcession();
         dots_.erase(std::remove_if(dots_.begin(), dots_.end(), [](const DotZone& z) { return z.soulfireCastId != 0; }),

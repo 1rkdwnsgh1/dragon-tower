@@ -1,5 +1,6 @@
 #include <cstdio>
 #include "Sprites.h"
+#include "HeatBladeAtlases.h"
 
 #include "core/World.h"
 
@@ -433,6 +434,24 @@ void Sprites::loadFxSheets(const std::filesystem::path& dir, const SpeciesDef& d
         load("basic_heat", 256, kSteelBasicFps);
         load("basic_projectile", 512, kSteelBasicFps);
         load("basic_hit", 256, kSteelBasicFps);
+        for (const auto& atlas : heatBlade::atlases) {
+            const auto file = dir / "heat_blade" / atlas.path;
+            auto image = loadPng(file, detachFiles_);
+            if (!image || image->GetWidth() % atlas.width != 0 ||
+                image->GetHeight() % atlas.height != 0 ||
+                (image->GetWidth() / atlas.width) * (image->GetHeight() / atlas.height) <
+                    static_cast<unsigned>(atlas.frames)) {
+                warnings_.push_back(label + "/heat_blade/" + atlas.path + ": 승인 아틀라스 규격 불일치");
+                continue;
+            }
+            SheetData data;
+            data.frames = atlas.frames;
+            data.frameW = atlas.width;
+            data.frameH = atlas.height;
+            data.columns = static_cast<int>(image->GetWidth()) / atlas.width;
+            data.bmp = std::move(image);
+            sheets_[def.key + "/fx_" + atlas.path] = std::move(data);
+        }
         for (const char* mask : {"overheat_idle", "overheat_idle_vent", "overheat_move", "overheat_fly", "overheat_attack"})
             load(mask, 256);
     }
@@ -495,6 +514,7 @@ Sheet Sprites::fxSheet(const std::string& speciesKey, const std::string& fxKey) 
     out.frames = it->second.frames;
     out.frameW = it->second.frameW;
     out.frameH = it->second.frameH;
+    out.columns = it->second.columns;
     return out;
 }
 
