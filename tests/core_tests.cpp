@@ -4714,13 +4714,15 @@ static void testSteelCoreOverheat(Species steel) {
     };
     const int nearby = spawn({495.f, 405.f});
     const int elevated = spawn({515.f, 280.f});
-    const int distant = spawn({750.f, 360.f});
+    const int extended = spawn({750.f, 360.f});
+    const int distant = spawn({950.f, 360.f});
     const auto enemy = [&](int id) -> const Enemy& {
         return *std::find_if(w.enemies().begin(), w.enemies().end(),
                              [&](const Enemy& value) { return value.id == id; });
     };
     const SkillDef& skill = speciesDef(steel).skills[1];
     CHECK(skill.coreOverheat && speciesDef(steel).skills[0].furnaceBurst);
+    CHECK(skill.radius == 330.f);
     PlayerInput input;
     input.skill[0] = true;
     input.moveX = 1.f;
@@ -4737,11 +4739,13 @@ static void testSteelCoreOverheat(Species steel) {
     const float expected = 1000.f - mitigate(d.attack() * skill.power, enemy(nearby).def);
     CHECK(std::fabs(enemy(nearby).hp - expected) < .01f);
     CHECK(std::fabs(enemy(elevated).hp - expected) < .01f);
+    CHECK(std::fabs(enemy(extended).hp - expected) < .01f);
     int layers = 0;
     for (const Fx& fx : w.fx()) {
         if (fx.key != skill.fx && fx.key != skill.fxImpact) continue;
         ++layers;
         CHECK(distance(fx.a, d.pos) == 0.f && fx.t == 0.f && fx.duration == .8f);
+        CHECK(std::fabs(fx.radius - 792.f) < .01f);
     }
     CHECK(layers == 2);
     input.moveX = -1.f;
@@ -4757,13 +4761,14 @@ static void testSteelCoreOverheat(Species steel) {
 
 static void testSteelHeatBladeStorm(Species steel) {
     World w;
-    w.setBounds(kDesk);
+    w.setBounds({-1000.f, 0.f, 4000.f, 900.f});
     w.setupDragon(steel, 6, 0.f, {660.f, 360.f});
     w.setSlots({2, -1, -1, -1});
     auto& d = w.dragon();
     d.basicCd = 1000.f;
     const SkillDef& skill = speciesDef(steel).skills[2];
     CHECK(skill.heatBladeStorm && skill.duration == 4.f);
+    CHECK(skill.range == 1260.f && skill.radius == 105.f);
     const auto add = [&](Vec2 pos) {
         auto& enemy = w.spawnEnemy(defaultMelee(), 1, pos, false);
         enemy.hp = enemy.maxHp = 1000.f;
@@ -4796,7 +4801,9 @@ static void testSteelHeatBladeStorm(Species steel) {
     tick(1.2f);
     CHECK(d.heatBladeStorm && d.heatBladeStorm->nextVolley == 3);
     tick(1.01f);
-    CHECK(!d.heatBladeStorm && w.projectiles().empty());
+    CHECK(!d.heatBladeStorm && !w.projectiles().empty());
+    tick(.65f);
+    CHECK(w.projectiles().empty());
 
     // 같은 선상의 적을 관통한 뒤 다시 같은 적과 겹쳐도 각 탄은 한 번만 맞힌다.
     w.clearEnemies(false);
@@ -4823,7 +4830,7 @@ static void testSteelHeatBladeStorm(Species steel) {
     w.setupDragon(steel, 6, 0.f, {660.f, 360.f});
     w.setSlots({2, -1, -1, -1});
     input.skill[0] = true;
-    tick(4.f);
+    tick(5.f);
     CHECK(!d.heatBladeStorm && w.projectiles().empty());
     CHECK(std::count_if(w.fx().begin(), w.fx().end(), [](const Fx& f) {
         return f.key == "heat_blade_disappear";

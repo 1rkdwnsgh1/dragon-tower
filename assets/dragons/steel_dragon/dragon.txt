@@ -68,7 +68,7 @@ fx_fps=16
 fx_impact_fps=20
 fx_scale=0.34
 
-; 기존 스킬 2의 피해·반경·쿨다운을 초기 검수값으로 보존한다.
+; 노심 과열파의 광역 반경과 폭발 표시 크기는 같은 반경 설정을 따른다.
 [skill.2]
 name=노심 과열파
 desc=노심을 과열해 주변에 한 번 피해를 주고 갑주에 잔열이 남는다.
@@ -76,7 +76,7 @@ kind=Burst
 level=3
 cooldown=8
 power=1.6
-radius=110
+radius=330
 duration=0.8
 core_overheat=yes
 fx=overheat_rear
@@ -92,7 +92,7 @@ kind=Line
 level=6
 cooldown=10
 radius=105
-range=420
+range=1260
 power=0.16
 extra=0.44
 duration=4
