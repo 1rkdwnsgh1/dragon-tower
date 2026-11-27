@@ -9,3 +9,8 @@
 - 원본이 오른쪽을 보므로 뒤집지 않았다. `enemy.txt` 에 `art_facing=right`.
 - 원본 칸이 작아(약 162px) 칸에 맞추며 확대했다. 화면에서 크게 그리면 조금 흐릴 수 있다.
 - 예전 그림(이전 프로젝트 `kospher123-sys/dragon_` 에서 옮긴 것)은 이 PR 에서 교체했다. 기록은 git 이력에 있다.
+
+## 투사체 `projectile.png` (2026-11-25, T8)
+
+- 제작: 사용자가 Codex(OpenAI built-in imagegen)로 생성. 생성형 AI 그림이다. 칸 128×128, 8프레임, 오른쪽으로 날아가는 그림.
+- 원본·프롬프트·미리보기: `assets/references/t8-first-2026-11-25/`(README.txt, manifest.json).

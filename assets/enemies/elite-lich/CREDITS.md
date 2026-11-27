@@ -13,3 +13,9 @@
 
 이 폴더에 `idle.png` 같은 파일을 넣으면 그 파일이 쓰이지 않는다(`art_from` 이 폴더 전체를
 가리키기 때문이다). 변종만의 그림이 생기면 `art_from` 줄을 지우고 다섯 장을 모두 넣는다.
+
+## 투사체 `projectile.png` (2026-11-25, T8)
+
+- 제작: 사용자가 Codex(OpenAI built-in imagegen)로 생성. 생성형 AI 그림이다. 칸 128×128, 8프레임, 오른쪽으로 날아가는 그림.
+- 원본·프롬프트·미리보기: `assets/references/t8-first-2026-11-25/`(README.txt, manifest.json).
+- 정예 리치 전용 뼈 화살(리치보다 길고 톱니가 있다). 이 폴더에 있으면 `art_from` 보다 먼저 쓴다.

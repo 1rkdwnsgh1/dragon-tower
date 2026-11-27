@@ -160,7 +160,9 @@ tests/                     코어 규칙 검증
 | 효과 시트 읽기 (`fx_<이름>.png`) | `src/win/Sprites.cpp` | `loadFxSheets`/`fxSheet` |
 | 효과의 앞·뒤 층 나누기 | `src/win/Renderer.cpp` | `drawWorld` 가 `drawFx` 를 두 번 부른다(뒤→앞) |
 | 스킬 칸 수·모션 유지 시간 | `include/core/Species.h`, `include/core/Config.h` | `kSkillSlots`, `cfg::kSkillMotionHold` |
-| 적 행동과 공격 예고 | `src/core/World.cpp` | `updateEnemies`, `resolveZone` |
+| 적 행동과 공격 예고 | `src/core/World.cpp` | `updateEnemies`, `resolveZone`, 공격 모양(T8) `enemyAttack`·`attackZoneContains`(부채꼴 `ZoneShape::Fan`)·`hitDragons`, 투사체 `EnemyShot`·`updateEnemyShots`, 달려들기 `Enemy::lungeDash` |
+| 적 공격 정의(T8) | `include/core/Enemy.h`, `src/core/DragonData.cpp` | `EnemyAttackKind`, `EnemyAttackDef`, `[attack]` 구역 읽기, `attackHitFrame`(`[anim.attack] hit_frame`) |
+| 적 공격 그리기(T8) | `src/win/Renderer.cpp`, `src/win/Sprites.cpp` | 부채꼴 예고(`FillPie`), 적 투사체(`fx_projectile`), `hit_frame` 맞춰 재생(`drawEnemy`) |
 | 애니메이션 상태 전환 | `src/core/World.cpp` | `updateDragonAnim`, `setDragonAnim` |
 | 바탕화면 자동 행동(쉬기·걷기·날기·착지) | `src/core/World.cpp` | `pickBehavior`, `wander`, `randomRoamTarget` |
 | 상태별 그리기 크기 보정 | `src/win/Renderer.cpp` | `drawDragon`의 `render_scale` |

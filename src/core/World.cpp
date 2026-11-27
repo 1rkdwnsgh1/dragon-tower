@@ -240,6 +240,7 @@ void World::clearEnemies(bool withPoof) {
     }
     enemies_.clear();
     zones_.clear();
+    enemyShots_.clear();
     projectiles_.clear();
     dots_.clear();
 }
@@ -1476,7 +1477,61 @@ void World::enemyAttack(Enemy& e) {
     Vec2 toDragon = dragon_.pos - e.pos;
     Vec2 dir = toDragon.normalized();
     if (dir.length() < 0.01f) dir = {e.facing, 0.f};
-    if (enemyDef(e.kind).role != EnemyRole::Boss) {
+    const EnemyDef& def = enemyDef(e.kind);
+    if (def.role != EnemyRole::Boss && def.attack.kind != EnemyAttackKind::Legacy) {
+        // T8: 몬스터마다 공격 모양과 예고값을 쓴다. 판정은 언제나 예고가 끝나는 순간이다.
+        const EnemyAttackDef& ad = def.attack;
+        const float s = sizeScale_;
+        AttackZone z;
+        z.windup = std::max(0.2f, ad.windup);
+        z.damage = e.atk;
+        z.ownerId = e.id;
+        switch (ad.kind) {
+        case EnemyAttackKind::Swing:
+            z.shape = ZoneShape::Fan;
+            z.a = e.pos;
+            z.b = e.pos + dir * ad.length * s;
+            z.arc = ad.arc;
+            break;
+        case EnemyAttackKind::Slam:
+            z.shape = ZoneShape::Circle;
+            z.a = e.pos + dir * ad.offset * s;
+            z.radius = ad.radius * s;
+            break;
+        case EnemyAttackKind::Thrust:
+            z.shape = ZoneShape::Line;
+            z.a = e.pos;
+            z.b = e.pos + dir * ad.length * s;
+            z.radius = ad.radius * s;
+            break;
+        case EnemyAttackKind::Lunge: {
+            // 드래곤 쪽으로 length 만큼(드래곤을 넘어가지 않게) 달려들 자리를 미리 보여 준다
+            const float reachDist = std::min(ad.length * s, std::max(0.f, toDragon.length() - e.radius * 0.5f));
+            z.shape = ZoneShape::Circle;
+            z.a = bounds_.clampPoint(e.pos + dir * reachDist, e.radius);
+            z.radius = ad.radius * s;
+            e.lungeFrom = e.pos;
+            e.lungeTo = z.a;
+            e.lungeDash = std::min(cfg::kEnemyLungeDash, z.windup);
+            break;
+        }
+        case EnemyAttackKind::Shot:
+            z.shape = ZoneShape::Line;
+            z.a = e.pos;
+            z.b = e.pos + dir * ad.length * s;
+            z.radius = ad.radius * s;
+            z.shotSpeed = ad.shotSpeed * s;
+            break;
+        case EnemyAttackKind::Legacy:
+            break;
+        }
+        zones_.push_back(z);
+        e.castTimer = z.windup;
+        e.castTotal = z.windup;
+        e.attackCd = ad.cooldown + z.windup;
+        return;
+    }
+    if (def.role != EnemyRole::Boss) {
         AttackZone z;
         z.shape = ZoneShape::Circle;
         z.a = e.pos + dir * 36.f * sizeScale_;
@@ -1486,6 +1541,7 @@ void World::enemyAttack(Enemy& e) {
         z.ownerId = e.id;
         zones_.push_back(z);
         e.castTimer = z.windup;
+        e.castTotal = z.windup;
         e.attackCd = cfg::kImpAttackCooldown + z.windup;
         return;
     }
@@ -1533,6 +1589,7 @@ void World::enemyAttack(Enemy& e) {
         cast = z.windup;
     }
     e.castTimer = cast;
+    e.castTotal = cast;
     e.attackCd = cfg::kGuardianPatternCooldown * k + cast;
 }
 
@@ -1559,6 +1616,12 @@ bool World::updateEnemy(Enemy& e, float dt) {
     e.attackCd -= dt;
     if (e.castTimer > 0.f) {
         e.castTimer -= dt;
+        // T8 lunge: 예고 끝 lungeDash 초 동안 보여 준 자리로 달려든다
+        if (e.lungeDash > 0.f && e.castTimer < e.lungeDash) {
+            const float p = std::clamp(1.f - std::max(0.f, e.castTimer) / e.lungeDash, 0.f, 1.f);
+            e.pos = e.lungeFrom + (e.lungeTo - e.lungeFrom) * p;
+            if (e.castTimer <= 0.f) e.lungeDash = 0.f;
+        }
         return false;
     }
     if (!dragon_.alive) return false;
@@ -1703,17 +1766,15 @@ void World::damageDragon(float raw) {
     }
 }
 
-void World::resolveZone(const AttackZone& z, CombatMode mode) {
-    if (z.shape == ZoneShape::Circle) addFx(FxType::Ring, z.a, z.a, z.radius, 0.25f, 0xFFFF6040);
-    else addFx(FxType::LineBlast, z.a, z.b, z.radius, 0.3f, 0xFFFF6040);
-    // T7: 예고 범위 안의 모든 드래곤이 맞는다. 동료는 자동 사냥과 같이 확률로 피한다.
+int World::hitDragons(const std::function<bool(Vec2, float)>& inside, float damage, CombatMode mode, int maxHits) {
+    int hits = 0;
+    // T7: 범위 안의 모든 드래곤이 맞는다. 동료는 자동 사냥과 같이 확률로 피한다.
     const auto hit = [&](CombatMode m) {
         DragonActor& d = dragon_;
-        if (!d.alive) return;
-        float reach = cfg::kDragonRadius * 0.4f * sizeScale_;
-        bool inside = z.shape == ZoneShape::Circle ? distance(d.pos, z.a) <= z.radius + reach
-                                                   : distancePointSegment(d.pos, z.a, z.b) <= z.radius + reach;
-        if (!inside) return;
+        if (!d.alive || hits >= maxHits) return;
+        const float reach = cfg::kDragonRadius * 0.4f * sizeScale_;
+        if (!inside(d.pos, reach)) return;
+        ++hits;  // 피해도 맞은 것으로 센다(투사체는 회피한 드래곤에서도 사라진다)
         bool dodged = d.invuln > 0.f;
         // 스킬 수동·자동 모드는 공격마다 확률로 회피한다(무적 보장 없음)
         if (!dodged && m != CombatMode::Direct) dodged = rng_.chance(dragonDodgeChance());
@@ -1723,7 +1784,7 @@ void World::resolveZone(const AttackZone& z, CombatMode mode) {
             addFx(FxType::Dodge, d.pos, d.pos, 50.f, 0.35f, kColorDodge);
             return;
         }
-        damageDragon(z.damage);
+        damageDragon(damage);
     };
     hit(mode);
     for (int k = 0; k < static_cast<int>(party_.size()); ++k) {
@@ -1731,6 +1792,72 @@ void World::resolveZone(const AttackZone& z, CombatMode mode) {
         hit(CombatMode::Auto);
         swapAlly(k);
     }
+    return hits;
+}
+
+bool attackZoneContains(const AttackZone& z, Vec2 p, float reach) {
+    switch (z.shape) {
+    case ZoneShape::Circle:
+        return distance(p, z.a) <= z.radius + reach;
+    case ZoneShape::Line:
+        return distancePointSegment(p, z.a, z.b) <= z.radius + reach;
+    case ZoneShape::Fan: {
+        const Vec2 axis = z.b - z.a;
+        const float len = axis.length();
+        const Vec2 to = p - z.a;
+        const float d = to.length();
+        if (d > len + reach) return false;
+        if (d <= reach) return true;  // 꼭짓점에 붙어 있으면 맞는다
+        const float c = (to.x * axis.x + to.y * axis.y) / (d * std::max(0.01f, len));
+        // 가장자리에서 닿는 여유(reach)만큼 각도를 넓혀 준다
+        const float half = z.arc * 0.5f * 3.14159265f / 180.f + std::asin(std::min(1.f, reach / d));
+        return c >= std::cos(std::min(3.14159265f, half));
+    }
+    }
+    return false;
+}
+
+void World::resolveZone(const AttackZone& z, CombatMode mode) {
+    if (z.shotSpeed > 0.f) {
+        // T8 shot: 예고가 끝나면 줄을 따라 투사체가 날아간다(판정은 투사체가 한다)
+        EnemyShot shot;
+        shot.pos = z.a;
+        shot.dir = (z.b - z.a).normalized();
+        shot.remain = distance(z.a, z.b);
+        shot.speed = z.shotSpeed;
+        shot.radius = z.radius;
+        shot.damage = z.damage;
+        shot.ownerId = z.ownerId;
+        if (const Enemy* owner = findEnemy(z.ownerId)) shot.kind = owner->kind;
+        enemyShots_.push_back(shot);
+        return;
+    }
+    if (z.shape == ZoneShape::Circle) addFx(FxType::Ring, z.a, z.a, z.radius, 0.25f, 0xFFFF6040);
+    else if (z.shape == ZoneShape::Fan) addFx(FxType::Ring, z.a + (z.b - z.a) * 0.5f, z.a, distance(z.a, z.b) * 0.5f, 0.25f, 0xFFFF6040);
+    else addFx(FxType::LineBlast, z.a, z.b, z.radius, 0.3f, 0xFFFF6040);
+    hitDragons([&](Vec2 p, float reach) { return attackZoneContains(z, p, reach); }, z.damage, mode);
+}
+
+void World::updateEnemyShots(float dt, CombatMode mode) {
+    for (EnemyShot& s : enemyShots_) {
+        if (!s.alive) continue;
+        s.t += dt;
+        const float step = std::min(s.remain, s.speed * dt);
+        const Vec2 from = s.pos;
+        s.pos += s.dir * step;
+        s.remain -= step;
+        const int hits = hitDragons(
+            [&](Vec2 p, float reach) { return distancePointSegment(p, from, s.pos) <= s.radius + reach; },
+            s.damage, mode, 1);
+        if (hits > 0) {
+            addFx(FxType::Ring, s.pos, s.pos, s.radius * 2.f, 0.2f, 0xFFFF6040);
+            s.alive = false;
+        } else if (s.remain <= 0.f) {
+            s.alive = false;
+        }
+    }
+    enemyShots_.erase(std::remove_if(enemyShots_.begin(), enemyShots_.end(), [](const EnemyShot& s) { return !s.alive; }),
+                      enemyShots_.end());
 }
 
 void SoulfireHit::advance(float dt, bool damaged) {
@@ -1919,6 +2046,7 @@ void World::updateCombat(float dt, CombatMode mode, const PlayerInput& in) {
     }
     zones_.swap(keep);
     for (const AttackZone& z : fire) resolveZone(z, mode);
+    updateEnemyShots(dt, mode);
 
     // 투사체
     for (Projectile& p : projectiles_) {

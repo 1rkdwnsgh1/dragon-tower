@@ -19,6 +19,28 @@ enum class EnemyRole {
     Boss,   // 거리를 두고 패턴을 쓴다. 밀려나지 않는다
 };
 
+// T8(2026-11-25): 일반 몬스터의 공격 모양. enemy.txt 의 [attack] 구역에서 고른다.
+// Legacy 는 [attack] 을 적지 않은 적 — 예전처럼 앞쪽 작은 원 + 공통 예고값(cfg::kImp*)을 쓴다.
+enum class EnemyAttackKind {
+    Legacy,
+    Swing,   // 앞쪽 부채꼴
+    Slam,    // 원(자기 앞 offset 거리)
+    Thrust,  // 앞쪽 가는 줄
+    Lunge,   // 착지할 자리 원 → 예고 끝에 달려들어 판정
+    Shot,    // 날아갈 줄 예고 → 예고 끝에 투사체가 줄을 따라 날아간다
+};
+
+struct EnemyAttackDef {
+    EnemyAttackKind kind = EnemyAttackKind::Legacy;
+    float windup = 0.85f;    // 예고 시간
+    float cooldown = 2.2f;   // 판정이 끝난 뒤 다음 공격까지
+    float radius = 56.f;     // Swing·Slam·Lunge: 반경 / Thrust·Shot: 반폭
+    float length = 110.f;    // Swing: 부채꼴 길이 / Thrust·Shot: 줄 길이 / Lunge: 달려드는 거리
+    float arc = 100.f;       // Swing: 부채꼴 각도(도)
+    float offset = 36.f;     // Slam: 원 중심이 몸 앞으로 떨어진 거리
+    float shotSpeed = 420.f; // Shot: 투사체 속도(px/초)
+};
+
 struct EnemyDef {
     // v1.5: 그림이 어느 쪽을 보고 그려졌는가. 지금 적 그림은 모두 왼쪽을 본다.
     // 드래곤(오른쪽 기준)과 반대라 뒤집기 규칙이 반대로 적용돼 거꾸로 걸어 보였다.
@@ -62,6 +84,11 @@ struct EnemyDef {
     float splitEvery = 0.f;   // 0 이면 분열하지 않는다
     int splitLevelDrop = 5;   // 분열체 레벨 = 본체 레벨 − 이 값(최소 1)
     float splitGuard = 0.f;
+
+    EnemyAttackDef attack;
+    // [anim.attack] hit_frame — 공격 시트에서 판정이 나는 칸(1부터). 0 이면 시트를 처음부터 재생한다.
+    // 예고가 끝나는 순간 이 칸이 보이도록 재생 시작을 늦춘다(그리는 쪽).
+    int attackHitFrame = 0;
 
     AnimDef anims[kAnimStateCount];
 };
