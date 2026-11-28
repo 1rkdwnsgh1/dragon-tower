@@ -180,6 +180,37 @@ struct SteelBasicFlight {
     float firstStep = 0.f;
 };
 
+struct FurnaceFlight {
+    float firstStep;
+    float remaining;
+};
+
+struct SteelAttackCast {
+    int targetId;
+    int skill = -1;
+    bool startsThisStep = false;
+};
+
+inline constexpr Vec2 heatBladeTorso(AnimState state) {
+    return state == AnimState::Fly ? Vec2{151.317f, 136.633f} :
+           state == AnimState::Move ? Vec2{158.123f, 190.393f} : Vec2{157.849f, 192.947f};
+}
+
+struct HeatBladeFlight {
+    Vec2 aim;
+    float remaining;
+    float firstStep;
+    float scale;
+    std::vector<int> hitIds;
+};
+
+struct HeatBladeStorm {
+    int skill;
+    int nextPulse = 1;
+    int nextVolley = 0;
+    float time = 0.f;
+};
+
 struct Projectile {
     Vec2 pos;
     int targetId = 0;
@@ -195,6 +226,8 @@ struct Projectile {
     std::optional<CleaveFlight> cleave;
     std::optional<BoneShotFlight> boneShot;
     std::optional<SteelBasicFlight> steelBasic;
+    std::optional<FurnaceFlight> furnace;
+    std::optional<HeatBladeFlight> heatBlade;
 };
 
 // Standing source aligned to the standard 256px revenant cell at 126% scale.
@@ -329,6 +362,9 @@ struct SkillCast {
     float soulfireTrailNext = 0.f;  // Remaining distance measured at 100% size.
 };
 
+inline constexpr float kCoreOverheatWindup = 0.22f;
+inline constexpr float kCoreOverheatResidual = 0.6f;
+
 struct DragonActor {
     bool awakened = false;
     int souls = 0;  // Current combat session only.
@@ -340,7 +376,11 @@ struct DragonActor {
     Vec2 facing{1.f, 0.f};
     float hp = 1.f;
     float basicCd = 0.f;
-    std::optional<int> steelBasicTarget;  // F06 전까지 유지하는 목표 ID.
+    int overheatSkill = -1;
+    std::optional<HeatBladeStorm> heatBladeStorm;
+    float overheatWindup = 0.f;
+    float overheatResidual = 0.f;
+    std::optional<SteelAttackCast> steelAttack;  // F06에서 소모한다.
     // v1.4: 재사용 대기시간은 **스킬마다** 센다(칸이 아니라). 칸을 바꿔 끼워도 대기시간은 그대로다.
     // 크기는 setupDragon에서 그 종의 스킬 수에 맞춘다.
     std::vector<float> skillCd;
@@ -571,7 +611,10 @@ private:
     // v1.4 패시브 PassiveOnKill. 적을 쓰러뜨렸을 때 damageEnemy가 부른다.
     void onEnemyKilled(Vec2 at);
     void basicAttack(float dt);
-    void advanceSteelBasic(float dt);
+    void advanceSteelAttack(float dt);
+    void advanceCoreOverheat(float dt);
+    void advanceHeatBladeStorm(float dt);
+    void advanceHeatBladeFlight(Projectile& shot, float dt);
     void advanceSteelBasicFlight(Projectile& shot, float dt);
     void beginBoneShot(int skillIndex, const Enemy& target, bool basic);
     void updateEnemies(float dt);

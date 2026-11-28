@@ -4625,7 +4625,216 @@ static void testSteelBasicAttack(Species steel) {
     CHECK(actor.anim == AnimState::Attack && world.projectiles().empty());
     world.clearEnemies(false);
     tick(0.4f);
-    CHECK(world.projectiles().empty() && !actor.steelBasicTarget);
+    CHECK(world.projectiles().empty() && !actor.steelAttack);
+}
+
+static void testSteelFurnaceBurst(Species steel) {
+    World w;
+    w.setBounds(kDesk);
+    w.setupDragon(steel, 1, 0.f, {490.f, 430.f});
+    w.setSlots({0, -1, -1, -1});
+    w.setSizeScale(1.5f);
+    auto& dragon = w.dragon();
+    dragon.basicCd = 10000.f;
+    PlayerInput cast;
+    cast.skill[0] = true;
+    const SkillDef& skill = speciesDef(steel).skills[0];
+    CHECK(skill.furnaceBurst && skill.fxImpactFps == 20.f);
+    const auto tick = [&](float dt, PlayerInput input = {}) {
+        w.updateCombat(dt, CombatMode::Direct, input);
+        w.updateFx(dt);
+    };
+    tick(0.01f, cast);
+    CHECK(w.projectiles().empty() && dragon.skillCd[0] == 0.f);
+    const auto spawn = [&](Vec2 pos) {
+        auto& e = w.spawnEnemy(defaultMelee(), 1, pos, false);
+        e.hp = e.maxHp = 1000.f;
+        e.stun = 99.f;
+        return e.id;
+    };
+    const int direct = spawn({270.f, 355.f});
+    const int splash = spawn({230.f, 312.f});
+    const int outside = spawn({145.f, 350.f});
+    const auto enemy = [&](int id) -> const Enemy& {
+        return *std::find_if(w.enemies().begin(), w.enemies().end(),
+                             [&](const Enemy& e) { return e.id == id; });
+    };
+    tick(0.01f, cast);
+    CHECK(dragon.anim == AnimState::Attack && dragon.animTime == 0.f && dragon.skillCd[0] == skill.cooldown);
+    cast.moveX = 1.f;
+    const float initialX = dragon.pos.x;
+    tick(0.25f, cast);
+    CHECK(dragon.pos.x > initialX && dragon.facing.x < 0.f && w.projectiles().empty());
+    tick(0.0625f, cast);
+    CHECK(w.projectiles().size() == 1);
+    if (w.projectiles().size() != 1) return;
+    const auto& shot = w.projectiles().front();
+    const float raw = shot.damage;
+    CHECK(shot.furnace && shot.skill == 0 && shot.targetId == direct && shot.t == 0.f);
+    CHECK(std::fabs(shot.pos.x - dragon.pos.x + kSteelBasicMouthX * 3.f * cfg::kDragonRadius * 1.5f) < .001f);
+    for (int i = 0; i < 100 && !w.projectiles().empty(); ++i) tick(0.01f);
+    CHECK(w.projectiles().empty());
+    CHECK(std::fabs(enemy(direct).hp - (1000.f - mitigate(raw, enemy(direct).def))) < .01f);
+    CHECK(std::fabs(enemy(splash).hp - (1000.f - mitigate(raw * skill.extra, enemy(splash).def))) < .01f);
+    CHECK(enemy(outside).hp == 1000.f);
+    const auto impact = [&] {
+        return std::find_if(w.fx().begin(), w.fx().end(), [&](const Fx& f) { return f.key == skill.fxImpact; });
+    };
+    CHECK(impact() != w.fx().end());
+    if (impact() != w.fx().end()) {
+        CHECK(distance(impact()->a, enemy(direct).pos) == 0.f && impact()->duration == 0.6f && impact()->t == 0.f);
+    }
+    tick(0.6f);
+    CHECK(impact() == w.fx().end() && w.projectiles().empty());
+    CHECK(std::fabs(enemy(direct).hp - (1000.f - mitigate(raw, enemy(direct).def))) < .01f);
+    w.clearEnemies(false);
+    auto& vanishing = w.spawnEnemy(defaultMelee(), 1, {dragon.pos.x - 180.f, dragon.pos.y}, false);
+    vanishing.stun = 99.f;
+    dragon.skillCd[0] = 0.f;
+    tick(.01f, cast);
+    tick(.33f);
+    CHECK(w.projectiles().size() == 1);
+    vanishing.alive = false;
+    tick(.02f);
+    CHECK(w.projectiles().empty() && impact() == w.fx().end());
+}
+
+static void testSteelCoreOverheat(Species steel) {
+    World w;
+    w.setBounds(kDesk);
+    w.setupDragon(steel, 3, 0.f, {450.f, 360.f});
+    w.setSlots({1, -1, -1, -1});
+    auto& d = w.dragon();
+    d.basicCd = 1000.f;
+    const auto spawn = [&](Vec2 pos) {
+        auto& enemy = w.spawnEnemy(defaultMelee(), 1, pos, false);
+        enemy.hp = enemy.maxHp = 1000.f;
+        enemy.stun = 99.f;
+        return enemy.id;
+    };
+    const int nearby = spawn({495.f, 405.f});
+    const int elevated = spawn({515.f, 280.f});
+    const int extended = spawn({750.f, 360.f});
+    const int distant = spawn({950.f, 360.f});
+    const auto enemy = [&](int id) -> const Enemy& {
+        return *std::find_if(w.enemies().begin(), w.enemies().end(),
+                             [&](const Enemy& value) { return value.id == id; });
+    };
+    const SkillDef& skill = speciesDef(steel).skills[1];
+    CHECK(skill.coreOverheat && speciesDef(steel).skills[0].furnaceBurst);
+    CHECK(skill.radius == 330.f);
+    PlayerInput input;
+    input.skill[0] = true;
+    input.moveX = 1.f;
+    const auto tick = [&](float dt) {
+        w.updateCombat(dt, CombatMode::Direct, input);
+        w.updateFx(dt);
+    };
+    tick(.10f);
+    CHECK(d.overheatSkill == 1 && d.anim == AnimState::Move);
+    CHECK(enemy(nearby).hp == 1000.f && enemy(elevated).hp == 1000.f);
+    tick(.13f);
+    CHECK(d.pos.x > 480.f && d.overheatSkill < 0 && d.overheatResidual > .59f);
+    CHECK(enemy(distant).hp == 1000.f);
+    const float expected = 1000.f - mitigate(d.attack() * skill.power, enemy(nearby).def);
+    CHECK(std::fabs(enemy(nearby).hp - expected) < .01f);
+    CHECK(std::fabs(enemy(elevated).hp - expected) < .01f);
+    CHECK(std::fabs(enemy(extended).hp - expected) < .01f);
+    int layers = 0;
+    for (const Fx& fx : w.fx()) {
+        if (fx.key != skill.fx && fx.key != skill.fxImpact) continue;
+        ++layers;
+        CHECK(distance(fx.a, d.pos) == 0.f && fx.t == 0.f && fx.duration == .8f);
+        CHECK(std::fabs(fx.radius - 792.f) < .01f);
+    }
+    CHECK(layers == 2);
+    input.moveX = -1.f;
+    tick(.3f);
+    CHECK(d.facing.x < 0.f && d.anim == AnimState::Move && d.overheatResidual > 0.f);
+    tick(.51f);
+    CHECK(d.overheatResidual == 0.f);
+    CHECK(std::none_of(w.fx().begin(), w.fx().end(), [&](const Fx& fx) {
+        return fx.key == skill.fx || fx.key == skill.fxImpact;
+    }));
+    CHECK(std::fabs(enemy(nearby).hp - expected) < .01f);
+}
+
+static void testSteelHeatBladeStorm(Species steel) {
+    World w;
+    w.setBounds({-1000.f, 0.f, 4000.f, 900.f});
+    w.setupDragon(steel, 6, 0.f, {660.f, 360.f});
+    w.setSlots({2, -1, -1, -1});
+    auto& d = w.dragon();
+    d.basicCd = 1000.f;
+    const SkillDef& skill = speciesDef(steel).skills[2];
+    CHECK(skill.heatBladeStorm && skill.duration == 4.f);
+    CHECK(skill.range == 1260.f && skill.radius == 105.f);
+    const auto add = [&](Vec2 pos) {
+        auto& enemy = w.spawnEnemy(defaultMelee(), 1, pos, false);
+        enemy.hp = enemy.maxHp = 1000.f;
+        enemy.stun = 99.f;
+    };
+    add({665.f, 420.f});
+    add({660.f, 300.f});
+    add({350.f, 375.f});
+    PlayerInput input{};
+    input.skill[0] = true;
+    input.moveX = 1.f;
+    const auto tick = [&](float dt) {
+        w.updateCombat(dt, CombatMode::Direct, input);
+        w.updateFx(dt);
+    };
+    tick(.10f);
+    CHECK(d.heatBladeStorm && d.anim == AnimState::Move && d.pos.x > 660.f);
+    CHECK(w.enemies()[0].hp == 1000.f);
+    input = {};
+    tick(.41f);
+    CHECK(d.heatBladeStorm && d.heatBladeStorm->nextPulse == 3 && w.projectiles().empty());
+    CHECK(std::fabs(w.enemies()[0].hp - (1000.f - 2.f * mitigate(d.attack() * skill.power, w.enemies()[0].def))) < .01f);
+    CHECK(w.enemies()[1].hp < 1000.f && w.enemies()[2].hp == 1000.f);
+    tick(.09f);
+    CHECK(w.projectiles().size() == 3 && d.heatBladeStorm->nextVolley == 1);
+    if (w.projectiles().size() == 3)
+        CHECK(distance(w.projectiles()[0].heatBlade->aim, w.projectiles()[1].heatBlade->aim) > .1f);
+    tick(1.2f);
+    CHECK(d.heatBladeStorm && d.heatBladeStorm->nextVolley == 2);
+    tick(1.2f);
+    CHECK(d.heatBladeStorm && d.heatBladeStorm->nextVolley == 3);
+    tick(1.01f);
+    CHECK(!d.heatBladeStorm && !w.projectiles().empty());
+    tick(.65f);
+    CHECK(w.projectiles().empty());
+
+    // 같은 선상의 적을 관통한 뒤 다시 같은 적과 겹쳐도 각 탄은 한 번만 맞힌다.
+    w.clearEnemies(false);
+    w.setupDragon(steel, 6, 0.f, {660.f, 360.f});
+    w.setSlots({2, -1, -1, -1});
+    d.basicCd = 1000.f;
+    add({474.f, 368.f});
+    add({400.f, 368.f});
+    input.skill[0] = true;
+    tick(.6f);
+    input = {};
+    CHECK(w.projectiles().size() == 3);
+    for (int i = 0; i < 12; ++i) tick(.04f);
+    const float damage = mitigate(d.attack() * skill.extra, w.enemies()[0].def);
+    CHECK(std::fabs(w.enemies()[0].hp - (1000.f - 2.f * damage)) < .02f);
+    CHECK(std::fabs(w.enemies()[1].hp - (1000.f - 2.f * damage)) < .02f);
+    w.updateFx(0.f, true);
+    CHECK(!d.heatBladeStorm && w.projectiles().empty());
+    CHECK(std::none_of(w.fx().begin(), w.fx().end(), [](const Fx& f) {
+        return f.key.rfind("heat_blade_", 0) == 0;
+    }));
+
+    w.clearEnemies(false);
+    w.setupDragon(steel, 6, 0.f, {660.f, 360.f});
+    w.setSlots({2, -1, -1, -1});
+    input.skill[0] = true;
+    tick(5.f);
+    CHECK(!d.heatBladeStorm && w.projectiles().empty());
+    CHECK(std::count_if(w.fx().begin(), w.fx().end(), [](const Fx& f) {
+        return f.key == "heat_blade_disappear";
+    }) == 9);
 }
 
 static void testSteelDragon(const std::filesystem::path& assets) {
@@ -4663,6 +4872,9 @@ static void testSteelDragon(const std::filesystem::path& assets) {
     restarted.init(saved, kDesk);
     CHECK(restarted.hasDragon() && restarted.dragonRecord().species == steel);
     testSteelBasicAttack(steel);
+    testSteelFurnaceBurst(steel);
+    testSteelCoreOverheat(steel);
+    testSteelHeatBladeStorm(steel);
 
     game.placeDragon({700.f, 500.f});
     auto& world = game.world();

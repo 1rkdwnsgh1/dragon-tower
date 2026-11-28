@@ -14,6 +14,7 @@
 | `STEEL_DRAGON_A_BASIC_ATTACK_10F_V1.zip` | `30d62628e88ed2d84bcb6f67bb1daf63abca87fb99f3020fb914bf05fec0fd3d` |
 | `STEEL_DRAGON_A_BASIC_PROJECTILE_FX_V2.zip` | `94e02cfa16424c4bb8a8e12b6f65f822df77b7c42e22f253a8adbcb39e80df9f` |
 | `STEEL_DRAGON_A_BASIC_HIT_FX_V2.zip` | `0063d09efb63be2c3eb9084f895780fc474a7642238caa44eb56eafde27b0a46` |
+| `STEEL_DRAGON_A_SKILL01_DOUBLE_SHOCKWAVE_KEYFRAMES_V3.zip` | `91d9b1144dca7ac4f35355c9426c61369fbe120ccd08e616ca6b241301be6738` |
 
 FLY는 2400×1588 RGBA, 6열×4행, 셀 400×397px이다. 24개 슬롯에 10개 고유 자세가 들어 있으며 각 슬롯의 RGBA 해시가 두 V2 패키지 기록과 일치한다. 2048×1355 사본의 동일성은 미검증이다.
 
@@ -24,3 +25,14 @@ WALK VENT V2.1의 7200×3616 RGBA 시트 6장은 WALK 마스터와 같은 4×4 �
 ATTACK과 HEAT LEAK는 6400×1360 RGBA(5열×2행), 화염탄은 4096×576, 명중은 1024×512다(둘 다 4열×2행). 승인 레이어 합성과 동봉 합성 시트가 픽셀 단위로 일치했다. 게임용 본체와 발광은 269/1280 균일 배율 및 공통 접지점 변환을 적용했다. 화염탄은 절반 크기의 비정사각형 셀, 명중 FX는 256px 정사각 셀로 각각 한 줄 배열을 사용한다.
 
 HIT·DEATH·REST는 기존 `STEEL_DRAGON_IDLE_WING_TAIL_PREVIEW.zip`의 연기 없는 대체 시트다. [기존 승인 패키지](https://chatgpt.com/library?file_id=libfile_c1a7fece9cc4819180dd6810118995b4&account_id=personal)
+
+노심 과열파 V2는 승인 ZIP의 두 게임 시트를 그대로 사용한다. ZIP SHA-256 `f936fc46d84d788162fbfa689b7351338bf020cb9bf22af79cb01d2130a29920`. 기존 과열 마스크와 본체 시트는 유지한다.
+
+| 게임용 승인 PNG | SHA-256 |
+|---|---|
+| `fx_overheat_rear.png` | `f336ac68a30a2666efcc9ba5afb2d70d30b9292637849d69efb4f93424985749` |
+| `fx_overheat_front.png` | `b24bccb50d48019037058e0ed0300ce37438206eef327b0f7632203bd4f16a88` |
+
+V1은 사용자 제공 용광 해방형 콘셉트와 강철룡 마스터를 참고한 절차적 폭발이었다. 포즈별 열 마스크는 V1에서 기존 본체 원본으로부터 추출했다.
+
+용광 폭렬탄 폭발은 승인 V3의 7개 RGBA 레이어와 키 6장을 보존했다. 신규 중간 컷과 독립 포탄은 저장소의 제작 스크립트로 생성한다. BASIC ATTACK·PROJECTILE 두 패키지는 발사 포즈와 화염탄 스타일의 참조다.

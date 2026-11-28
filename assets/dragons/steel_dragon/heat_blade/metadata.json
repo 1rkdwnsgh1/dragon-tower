@@ -1,0 +1,996 @@
+{
+  "name": "방열 칼날환 V6.1 · Restored Flame Volume",
+  "fps": 60,
+  "state": "IDLE",
+  "duration": 4.0,
+  "stage": [
+    624,
+    292
+  ],
+  "game_scale": 1,
+  "expected_anchor": [
+    0.5,
+    0.5
+  ],
+  "velocity": [
+    0,
+    0
+  ],
+  "layers": [
+    {
+      "name": "START blade_rear",
+      "file": "assets/orbit_blades_back/start_blade_rear.png",
+      "cell": [
+        528,
+        256
+      ],
+      "frame_count": 12,
+      "fps": 60,
+      "scale": 0.5,
+      "anchor": [
+        264,
+        128
+      ],
+      "z": -2,
+      "attach": "body",
+      "mirror": true,
+      "loop": false,
+      "delay": 0.0,
+      "stop": 0.2
+    },
+    {
+      "name": "START blade_front",
+      "file": "assets/orbit_blades_front/start_blade_front.png",
+      "cell": [
+        528,
+        256
+      ],
+      "frame_count": 12,
+      "fps": 60,
+      "scale": 0.5,
+      "anchor": [
+        264,
+        128
+      ],
+      "z": 30,
+      "attach": "body",
+      "mirror": true,
+      "loop": false,
+      "delay": 0.0,
+      "stop": 0.2
+    },
+    {
+      "name": "START wrap_front",
+      "file": "assets/outer_flame/start_wrap_front.png",
+      "cell": [
+        528,
+        256
+      ],
+      "frame_count": 12,
+      "fps": 60,
+      "scale": 0.5,
+      "anchor": [
+        264,
+        128
+      ],
+      "z": 40,
+      "attach": "body",
+      "mirror": true,
+      "loop": false,
+      "delay": 0.0,
+      "stop": 0.2
+    },
+    {
+      "name": "LOOP blade_rear",
+      "file": "assets/orbit_blades_back/loop_blade_rear.png",
+      "cell": [
+        528,
+        256
+      ],
+      "frame_count": 32,
+      "fps": 60,
+      "scale": 0.5,
+      "anchor": [
+        264,
+        128
+      ],
+      "z": -2,
+      "attach": "body",
+      "mirror": true,
+      "loop": true,
+      "delay": 0.2,
+      "stop": 3.4
+    },
+    {
+      "name": "LOOP blade_front",
+      "file": "assets/orbit_blades_front/loop_blade_front.png",
+      "cell": [
+        528,
+        256
+      ],
+      "frame_count": 32,
+      "fps": 60,
+      "scale": 0.5,
+      "anchor": [
+        264,
+        128
+      ],
+      "z": 30,
+      "attach": "body",
+      "mirror": true,
+      "loop": true,
+      "delay": 0.2,
+      "stop": 3.4
+    },
+    {
+      "name": "LOOP wrap_front",
+      "file": "assets/outer_flame/loop_wrap_front.png",
+      "cell": [
+        528,
+        256
+      ],
+      "frame_count": 32,
+      "fps": 60,
+      "scale": 0.5,
+      "anchor": [
+        264,
+        128
+      ],
+      "z": 40,
+      "attach": "body",
+      "mirror": true,
+      "loop": true,
+      "delay": 0.2,
+      "stop": 3.4
+    },
+    {
+      "name": "END blade_rear",
+      "file": "assets/orbit_blades_back/end_blade_rear.png",
+      "cell": [
+        528,
+        256
+      ],
+      "frame_count": 36,
+      "fps": 60,
+      "scale": 0.5,
+      "anchor": [
+        264,
+        128
+      ],
+      "z": -2,
+      "attach": "body",
+      "mirror": true,
+      "loop": false,
+      "delay": 3.4,
+      "stop": 4.0
+    },
+    {
+      "name": "END blade_front",
+      "file": "assets/orbit_blades_front/end_blade_front.png",
+      "cell": [
+        528,
+        256
+      ],
+      "frame_count": 36,
+      "fps": 60,
+      "scale": 0.5,
+      "anchor": [
+        264,
+        128
+      ],
+      "z": 30,
+      "attach": "body",
+      "mirror": true,
+      "loop": false,
+      "delay": 3.4,
+      "stop": 4.0
+    },
+    {
+      "name": "END wrap_front",
+      "file": "assets/outer_flame/end_wrap_front.png",
+      "cell": [
+        528,
+        256
+      ],
+      "frame_count": 36,
+      "fps": 60,
+      "scale": 0.5,
+      "anchor": [
+        264,
+        128
+      ],
+      "z": 40,
+      "attach": "body",
+      "mirror": true,
+      "loop": false,
+      "delay": 3.4,
+      "stop": 4.0
+    },
+    {
+      "name": "START flame_main_outer rear",
+      "file": "assets/flame_main_outer/start_rear.png",
+      "cell": [
+        228,
+        116
+      ],
+      "frame_count": 12,
+      "fps": 60,
+      "scale": 1,
+      "anchor": [
+        114,
+        58
+      ],
+      "z": -8,
+      "attach": "body",
+      "mirror": true,
+      "loop": false,
+      "delay": 0.0,
+      "stop": 0.2
+    },
+    {
+      "name": "START flame_main_outer front",
+      "file": "assets/flame_main_outer/start_front.png",
+      "cell": [
+        228,
+        116
+      ],
+      "frame_count": 12,
+      "fps": 60,
+      "scale": 1,
+      "anchor": [
+        114,
+        58
+      ],
+      "z": 10,
+      "attach": "body",
+      "mirror": true,
+      "loop": false,
+      "delay": 0.0,
+      "stop": 0.2
+    },
+    {
+      "name": "LOOP flame_main_outer rear",
+      "file": "assets/flame_main_outer/loop_rear.png",
+      "cell": [
+        228,
+        116
+      ],
+      "frame_count": 32,
+      "fps": 60,
+      "scale": 1,
+      "anchor": [
+        114,
+        58
+      ],
+      "z": -8,
+      "attach": "body",
+      "mirror": true,
+      "loop": true,
+      "delay": 0.2,
+      "stop": 3.4
+    },
+    {
+      "name": "LOOP flame_main_outer front",
+      "file": "assets/flame_main_outer/loop_front.png",
+      "cell": [
+        228,
+        116
+      ],
+      "frame_count": 32,
+      "fps": 60,
+      "scale": 1,
+      "anchor": [
+        114,
+        58
+      ],
+      "z": 10,
+      "attach": "body",
+      "mirror": true,
+      "loop": true,
+      "delay": 0.2,
+      "stop": 3.4
+    },
+    {
+      "name": "END flame_main_outer rear",
+      "file": "assets/flame_main_outer/end_rear.png",
+      "cell": [
+        228,
+        116
+      ],
+      "frame_count": 36,
+      "fps": 60,
+      "scale": 1,
+      "anchor": [
+        114,
+        58
+      ],
+      "z": -8,
+      "attach": "body",
+      "mirror": true,
+      "loop": false,
+      "delay": 3.4,
+      "stop": 4.0
+    },
+    {
+      "name": "END flame_main_outer front",
+      "file": "assets/flame_main_outer/end_front.png",
+      "cell": [
+        228,
+        116
+      ],
+      "frame_count": 36,
+      "fps": 60,
+      "scale": 1,
+      "anchor": [
+        114,
+        58
+      ],
+      "z": 10,
+      "attach": "body",
+      "mirror": true,
+      "loop": false,
+      "delay": 3.4,
+      "stop": 4.0
+    },
+    {
+      "name": "START flame_sub_stream rear",
+      "file": "assets/flame_sub_stream/start_rear.png",
+      "cell": [
+        228,
+        116
+      ],
+      "frame_count": 12,
+      "fps": 60,
+      "scale": 1,
+      "anchor": [
+        114,
+        58
+      ],
+      "z": -7,
+      "attach": "body",
+      "mirror": true,
+      "loop": false,
+      "delay": 0.0,
+      "stop": 0.2
+    },
+    {
+      "name": "START flame_sub_stream front",
+      "file": "assets/flame_sub_stream/start_front.png",
+      "cell": [
+        228,
+        116
+      ],
+      "frame_count": 12,
+      "fps": 60,
+      "scale": 1,
+      "anchor": [
+        114,
+        58
+      ],
+      "z": 14,
+      "attach": "body",
+      "mirror": true,
+      "loop": false,
+      "delay": 0.0,
+      "stop": 0.2
+    },
+    {
+      "name": "LOOP flame_sub_stream rear",
+      "file": "assets/flame_sub_stream/loop_rear.png",
+      "cell": [
+        228,
+        116
+      ],
+      "frame_count": 24,
+      "fps": 60,
+      "scale": 1,
+      "anchor": [
+        114,
+        58
+      ],
+      "z": -7,
+      "attach": "body",
+      "mirror": true,
+      "loop": true,
+      "delay": 0.2,
+      "stop": 3.4
+    },
+    {
+      "name": "LOOP flame_sub_stream front",
+      "file": "assets/flame_sub_stream/loop_front.png",
+      "cell": [
+        228,
+        116
+      ],
+      "frame_count": 24,
+      "fps": 60,
+      "scale": 1,
+      "anchor": [
+        114,
+        58
+      ],
+      "z": 14,
+      "attach": "body",
+      "mirror": true,
+      "loop": true,
+      "delay": 0.2,
+      "stop": 3.4
+    },
+    {
+      "name": "END flame_sub_stream rear",
+      "file": "assets/flame_sub_stream/end_rear.png",
+      "cell": [
+        228,
+        116
+      ],
+      "frame_count": 36,
+      "fps": 60,
+      "scale": 1,
+      "anchor": [
+        114,
+        58
+      ],
+      "z": -7,
+      "attach": "body",
+      "mirror": true,
+      "loop": false,
+      "delay": 3.4,
+      "stop": 4.0
+    },
+    {
+      "name": "END flame_sub_stream front",
+      "file": "assets/flame_sub_stream/end_front.png",
+      "cell": [
+        228,
+        116
+      ],
+      "frame_count": 36,
+      "fps": 60,
+      "scale": 1,
+      "anchor": [
+        114,
+        58
+      ],
+      "z": 14,
+      "attach": "body",
+      "mirror": true,
+      "loop": false,
+      "delay": 3.4,
+      "stop": 4.0
+    },
+    {
+      "name": "START flame_speed_trail rear",
+      "file": "assets/flame_speed_trail/start_rear.png",
+      "cell": [
+        228,
+        116
+      ],
+      "frame_count": 12,
+      "fps": 60,
+      "scale": 1,
+      "anchor": [
+        114,
+        58
+      ],
+      "z": -6,
+      "attach": "body",
+      "mirror": true,
+      "loop": false,
+      "delay": 0.0,
+      "stop": 0.2
+    },
+    {
+      "name": "START flame_speed_trail front",
+      "file": "assets/flame_speed_trail/start_front.png",
+      "cell": [
+        228,
+        116
+      ],
+      "frame_count": 12,
+      "fps": 60,
+      "scale": 1,
+      "anchor": [
+        114,
+        58
+      ],
+      "z": 18,
+      "attach": "body",
+      "mirror": true,
+      "loop": false,
+      "delay": 0.0,
+      "stop": 0.2
+    },
+    {
+      "name": "LOOP flame_speed_trail rear",
+      "file": "assets/flame_speed_trail/loop_rear.png",
+      "cell": [
+        228,
+        116
+      ],
+      "frame_count": 192,
+      "fps": 60,
+      "scale": 1,
+      "anchor": [
+        114,
+        58
+      ],
+      "z": -6,
+      "attach": "body",
+      "mirror": true,
+      "loop": true,
+      "delay": 0.2,
+      "stop": 3.4
+    },
+    {
+      "name": "LOOP flame_speed_trail front",
+      "file": "assets/flame_speed_trail/loop_front.png",
+      "cell": [
+        228,
+        116
+      ],
+      "frame_count": 192,
+      "fps": 60,
+      "scale": 1,
+      "anchor": [
+        114,
+        58
+      ],
+      "z": 18,
+      "attach": "body",
+      "mirror": true,
+      "loop": true,
+      "delay": 0.2,
+      "stop": 3.4
+    },
+    {
+      "name": "END flame_speed_trail rear",
+      "file": "assets/flame_speed_trail/end_rear.png",
+      "cell": [
+        228,
+        116
+      ],
+      "frame_count": 36,
+      "fps": 60,
+      "scale": 1,
+      "anchor": [
+        114,
+        58
+      ],
+      "z": -6,
+      "attach": "body",
+      "mirror": true,
+      "loop": false,
+      "delay": 3.4,
+      "stop": 4.0
+    },
+    {
+      "name": "END flame_speed_trail front",
+      "file": "assets/flame_speed_trail/end_front.png",
+      "cell": [
+        228,
+        116
+      ],
+      "frame_count": 36,
+      "fps": 60,
+      "scale": 1,
+      "anchor": [
+        114,
+        58
+      ],
+      "z": 18,
+      "attach": "body",
+      "mirror": true,
+      "loop": false,
+      "delay": 3.4,
+      "stop": 4.0
+    },
+    {
+      "name": "START embers_smoke rear",
+      "file": "assets/embers_smoke/start_rear.png",
+      "cell": [
+        228,
+        116
+      ],
+      "frame_count": 12,
+      "fps": 60,
+      "scale": 1,
+      "anchor": [
+        114,
+        58
+      ],
+      "z": -9,
+      "attach": "body",
+      "mirror": true,
+      "loop": false,
+      "delay": 0.0,
+      "stop": 0.2
+    },
+    {
+      "name": "START embers_smoke front",
+      "file": "assets/embers_smoke/start_front.png",
+      "cell": [
+        228,
+        116
+      ],
+      "frame_count": 12,
+      "fps": 60,
+      "scale": 1,
+      "anchor": [
+        114,
+        58
+      ],
+      "z": 34,
+      "attach": "body",
+      "mirror": true,
+      "loop": false,
+      "delay": 0.0,
+      "stop": 0.2
+    },
+    {
+      "name": "LOOP embers_smoke rear",
+      "file": "assets/embers_smoke/loop_rear.png",
+      "cell": [
+        228,
+        116
+      ],
+      "frame_count": 192,
+      "fps": 60,
+      "scale": 1,
+      "anchor": [
+        114,
+        58
+      ],
+      "z": -9,
+      "attach": "body",
+      "mirror": true,
+      "loop": true,
+      "delay": 0.2,
+      "stop": 3.4
+    },
+    {
+      "name": "LOOP embers_smoke front",
+      "file": "assets/embers_smoke/loop_front.png",
+      "cell": [
+        228,
+        116
+      ],
+      "frame_count": 192,
+      "fps": 60,
+      "scale": 1,
+      "anchor": [
+        114,
+        58
+      ],
+      "z": 34,
+      "attach": "body",
+      "mirror": true,
+      "loop": true,
+      "delay": 0.2,
+      "stop": 3.4
+    },
+    {
+      "name": "END embers_smoke rear",
+      "file": "assets/embers_smoke/end_rear.png",
+      "cell": [
+        228,
+        116
+      ],
+      "frame_count": 36,
+      "fps": 60,
+      "scale": 1,
+      "anchor": [
+        114,
+        58
+      ],
+      "z": -9,
+      "attach": "body",
+      "mirror": true,
+      "loop": false,
+      "delay": 3.4,
+      "stop": 4.0
+    },
+    {
+      "name": "END embers_smoke front",
+      "file": "assets/embers_smoke/end_front.png",
+      "cell": [
+        228,
+        116
+      ],
+      "frame_count": 36,
+      "fps": 60,
+      "scale": 1,
+      "anchor": [
+        114,
+        58
+      ],
+      "z": 34,
+      "attach": "body",
+      "mirror": true,
+      "loop": false,
+      "delay": 3.4,
+      "stop": 4.0
+    }
+  ],
+  "bodies": {
+    "IDLE": {
+      "name": "IDLE",
+      "file": "assets/preview_sources/idle.png",
+      "cell": [
+        256,
+        256
+      ],
+      "frame_count": 24,
+      "fps": 12,
+      "loop": true,
+      "scale": 0.3984375,
+      "z": 0,
+      "offset": [
+        0,
+        0
+      ],
+      "anchor": [
+        157.849,
+        192.947
+      ]
+    },
+    "WALK": {
+      "name": "WALK",
+      "file": "assets/preview_sources/move.png",
+      "cell": [
+        256,
+        256
+      ],
+      "frame_count": 16,
+      "fps": 16,
+      "loop": true,
+      "scale": 0.3984375,
+      "z": 0,
+      "offset": [
+        0,
+        0
+      ],
+      "anchor": [
+        158.123,
+        190.393
+      ]
+    },
+    "FLY": {
+      "name": "FLY",
+      "file": "assets/preview_sources/fly.png",
+      "cell": [
+        256,
+        256
+      ],
+      "frame_count": 24,
+      "fps": 12,
+      "loop": true,
+      "scale": 0.3984375,
+      "z": 0,
+      "offset": [
+        0,
+        0
+      ],
+      "anchor": [
+        151.317,
+        136.633
+      ]
+    }
+  },
+  "skill": {
+    "name": "방열 칼날환",
+    "duration_s": 4.0,
+    "fps": 60,
+    "atlas_cell_px": [
+      528,
+      256
+    ],
+    "atlas_columns": 8,
+    "anchor_px": [
+      264,
+      128
+    ],
+    "render_order": [
+      "embers_smoke rear",
+      "flame_main_outer rear",
+      "flame_sub_stream rear",
+      "flame_speed_trail rear",
+      "blade_rear",
+      "body",
+      "flame_main_outer front",
+      "flame_sub_stream front",
+      "flame_speed_trail front",
+      "blade_front",
+      "embers_smoke front",
+      "wrap_front"
+    ],
+    "orbit": {
+      "blades": 4,
+      "runtime_mode": "baked_frame_only",
+      "follows": "body torso anchor",
+      "loop_count": 6,
+      "phases": {
+        "start": {
+          "frames": 12,
+          "start_tick": 0
+        },
+        "loop": {
+          "frames": 32,
+          "start_tick": 12
+        },
+        "end": {
+          "frames": 36,
+          "start_tick": 204
+        }
+      },
+      "damage": {
+        "type": "caster_center_area",
+        "hits_air_and_ground": true,
+        "tick_interval_s_proposal": 0.25,
+        "uses_individual_blade_mask": false,
+        "radius": "balance and validate against visual."
+      }
+    },
+    "projectile": {
+      "id": "b4_piercing_steel_shard",
+      "events": [
+        {
+          "tick": 36,
+          "t_s": 0.6,
+          "count": 3
+        },
+        {
+          "tick": 108,
+          "t_s": 1.8,
+          "count": 3
+        },
+        {
+          "tick": 180,
+          "t_s": 3.0,
+          "count": 3
+        }
+      ],
+      "total_count": 9,
+      "flight": "launch heading locked; straight world-space travel",
+      "targeting": {
+        "prefer_distinct_valid_targets_per_volley": true,
+        "duplicate_targets_when_fewer_than_three": "configurable"
+      },
+      "meta_only_damage_rules": {
+        "pierces": true,
+        "one_hit_per_target_per_shot": true
+      },
+      "lifetime": "independent of caster FX; may persist after 4s; terminate at configured lifetime or range",
+      "travel_speed_and_range": "game tuning",
+      "flight_sprites": {
+        "left": "assets/projectile_b4/flight_left_12f.png",
+        "right": "assets/projectile_b4/flight_right_12f.png",
+        "cell_px": [
+          320,
+          128
+        ],
+        "frames": 12,
+        "columns": 8,
+        "fps": 60,
+        "left_anchor_px": [
+          44,
+          66
+        ],
+        "right_anchor_px": [
+          275,
+          66
+        ],
+        "heading": "apply the fixed launch orientation to the individual projectile"
+      },
+      "contact": {
+        "file": "assets/hit_fx/pierce_8f.png",
+        "frames": 8,
+        "fps": 20,
+        "cell_px": [
+          128,
+          128
+        ],
+        "anchor_px": [
+          64,
+          64
+        ],
+        "loop": false,
+        "spawn_at": "contact point"
+      },
+      "launch": {
+        "file": "assets/projectile_b4/launch_8f.png",
+        "frames": 8,
+        "fps": 20,
+        "cell_px": [
+          128,
+          128
+        ],
+        "anchor_px": [
+          64,
+          64
+        ],
+        "loop": false
+      },
+      "die": {
+        "file": "assets/disappear_fx/ember_break_8f.png",
+        "frames": 8,
+        "fps": 20,
+        "cell_px": [
+          128,
+          128
+        ],
+        "anchor_px": [
+          64,
+          64
+        ],
+        "loop": false
+      },
+      "flight_layers_left": {
+        "order": [
+          "wake_back",
+          "metal",
+          "rim_front"
+        ],
+        "files": {
+          "wake_back": "assets/projectile_b4/wake_back_12f.png",
+          "metal": "assets/projectile_b4/metal_12f.png",
+          "rim_front": "assets/projectile_b4/rim_front_12f.png"
+        }
+      }
+    },
+    "flame": {
+      "runtime": "play pre-baked atlas frames at a shared skill clock; no runtime orbital transform",
+      "cell_px": [
+        228,
+        116
+      ],
+      "anchor_px": [
+        114,
+        58
+      ],
+      "display_scale": 1,
+      "columns": 8,
+      "fps": 60,
+      "loop_window_ticks": 192,
+      "composite_repeat_ticks": 192,
+      "layers": {
+        "flame_main_outer": {
+          "cycle_frames": 32,
+          "turns_per_cycle": 1,
+          "rear_front_z": [
+            -8,
+            10
+          ],
+          "speed_ratio_vs_main": 1.0
+        },
+        "flame_sub_stream": {
+          "cycle_frames": 24,
+          "turns_per_cycle": 1,
+          "rear_front_z": [
+            -7,
+            14
+          ],
+          "speed_ratio_vs_main": 1.333333
+        },
+        "flame_speed_trail": {
+          "cycle_frames": 192,
+          "turns_per_cycle": 10,
+          "rear_front_z": [
+            -6,
+            18
+          ],
+          "speed_ratio_vs_main": 1.666667
+        },
+        "embers_smoke": {
+          "cycle_frames": 192,
+          "turns_per_cycle": null,
+          "rear_front_z": [
+            -9,
+            34
+          ],
+          "speed_ratio_vs_main": null
+        }
+      }
+    },
+    "asset_launch_fx_unchanged": true
+  }
+}

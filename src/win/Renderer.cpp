@@ -1,3 +1,4 @@
+#include "HeatBladeAtlases.h"
 #include "Renderer.h"
 
 #include <algorithm>
@@ -1038,7 +1039,43 @@ void Renderer::drawDragon(Graphics& g, const DragonActor& d, const Sprites& spri
             drawSheetFrame(g, swing, animFrame(t - cleave->fxTime, skill.fxAnim.fps, swing.frames, false),
                            x, cyAdj, drawH, flip, 0.f, alpha);
         }
+        const auto orbit = [&](bool front) {
+            if (!effects || !d.alive || !d.heatBladeStorm) return;
+            const int tick = static_cast<int>(d.heatBladeStorm->time * 60.f + .0001f);
+            const Vec2 torso = heatBladeTorso(state);
+            const float anchorX = x + (flip ? -1.f : 1.f) * (torso.x - 128.f) * drawH / 256.f;
+            const float anchorY = cyAdj + (torso.y - 128.f) * drawH / 256.f;
+            for (int i = 0; i < heatBlade::orbitLayers; ++i) {
+                const auto& layer = heatBlade::atlases[i];
+                if ((layer.z > 0) != front || tick < layer.startTick || tick >= layer.stopTick) continue;
+                const bool mirror = layer.mirror && flip;
+                const float scale = layer.scale * height / 102.f;
+                const int local = (tick - layer.startTick) * layer.fps / 60;
+                const int index = layer.loop ? local % layer.frames : std::min(local, layer.frames - 1);
+                const Sheet sheet = sprites.fxSheet(sp.key, layer.path);
+                drawSheetFrame(g, sheet, index,
+                               anchorX + (mirror ? -1.f : 1.f) * (layer.width * .5f - layer.anchorX) * scale,
+                               anchorY + (layer.height * .5f - layer.anchorY) * scale,
+                               layer.height * scale, mirror, 0.f, alpha);
+            }
+        };
+        orbit(false);
         if (showBody) drawSheetFrame(g, sh, frame, x, cyAdj, drawH, flip, flash, alpha);
+        if (steelMotion && effects && (d.overheatSkill >= 0 || d.overheatResidual > 0.f)) {
+            const char* mask = nullptr;
+            if (state == AnimState::Idle) mask = idleVentFrame >= 0 ? "overheat_idle_vent" : "overheat_idle";
+            if (state == AnimState::Move) mask = "overheat_move";
+            if (state == AnimState::Fly) mask = "overheat_fly";
+            if (state == AnimState::Attack) mask = "overheat_attack";
+            if (mask) {
+                const Sheet heat = sprites.fxSheet(sp.key, mask);
+                const float cooling = std::clamp(d.overheatResidual / kCoreOverheatResidual, 0.f, 1.f);
+                const float charge = d.overheatSkill >= 0
+                    ? 0.25f + 0.65f * std::clamp(1.f - d.overheatWindup / kCoreOverheatWindup, 0.f, 1.f) : 0.f;
+                if (heat.frames == sh.frames && heat.frameW == sh.frameW && heat.frameH == sh.frameH)
+                    drawSheetFrame(g, heat, frame, x, cyAdj, drawH, flip, 0.f, alpha * std::max(charge, cooling));
+            }
+        }
         if (steelMotion && effects) {
             if (state == AnimState::Fly && sh.frames == 24) {
                 // V2 원본의 알파가 본체에 가려지는 영역을 반영한다. 연기 위에 추진 화염을 그린다.
@@ -1065,6 +1102,7 @@ void Renderer::drawDragon(Graphics& g, const DragonActor& d, const Sprites& spri
                                drawH * (288.f / 256.f), flip, 0.f, alpha);
             }
         }
+        orbit(true);
         if (cleave && effects) drawCleaveCast("_cast_front");
         if (soulfire && skillAnim && effects)
             drawSoulfireBodyVfx(g, d, sprites, sp.key, frame, {x, cyAdj}, drawH, flip, true);
@@ -1732,6 +1770,22 @@ void Renderer::drawProjectiles(Graphics& g, const World& w, const Sprites& sprit
     const uint32_t spColor = dragonSp.color;
     // 투사체
     for (const Projectile& p : w.projectiles()) {
+        if (p.heatBlade) {
+            const Vec2 aim = p.heatBlade->aim;
+            const bool left = aim.x < 0.f;
+            const auto& atlas = heatBlade::atlases[left ? heatBlade::flightLeft : heatBlade::flightRight];
+            const Sheet sheet = sprites.fxSheet("steel_dragon", atlas.path);
+            const float scale = atlas.scale * p.heatBlade->scale;
+            const auto transform = g.Save();
+            g.TranslateTransform(p.pos.x, p.pos.y);
+            g.RotateTransform(std::atan2(aim.y, aim.x) * 180.f / kPi - (left ? 180.f : 0.f));
+            drawSheetFrame(g, sheet, animFrame(p.t, static_cast<float>(atlas.fps), atlas.frames, true),
+                           (atlas.width * .5f - atlas.anchorX) * scale,
+                           (atlas.height * .5f - atlas.anchorY) * scale,
+                           atlas.height * scale, false, 0.f, 1.f);
+            g.Restore(transform);
+            continue;
+        }
         if (p.steelBasic) {
             const Sheet sheet = sprites.fxSheet(dragonSp.key, "basic_projectile");
             if (sheet.frames == 8) {
@@ -1922,7 +1976,7 @@ bool Renderer::drawFxSheet(Graphics& g, const Fx& f, const Sprites& sprites, con
         ad.fps = sk->fxPlaybackFps(f.key);
     }
 
-    if (sk && sk->boneShot && f.key == sk->fxImpact) {
+    if (sk && (sk->coreOverheat || ((sk->boneShot || sk->furnaceBurst) && f.key == sk->fxImpact))) {
         drawSheetFrame(g, sh, animFrame(f.t, ad.fps, sh.frames, false),
                        f.a.x, f.a.y, f.radius, false, 0.f, 1.f);
         return true;
@@ -2079,6 +2133,15 @@ void Renderer::drawFx(Graphics& g, const World& w, const Sprites& sprites, const
     for (const Fx& f : w.fx()) {
         if (f.t < 0.f || f.type == FxType::CleaveImpact) continue;
         if (f.inFront != inFront) continue;  // 이 층이 아니다
+        if (f.key.rfind("heat_blade_", 0) == 0) {
+            const int index = f.key == "heat_blade_launch" ? heatBlade::launch :
+                f.key == "heat_blade_contact" ? heatBlade::contact : heatBlade::disappear;
+            const auto& atlas = heatBlade::atlases[index];
+            const Sheet sheet = sprites.fxSheet("steel_dragon", atlas.path);
+            drawSheetFrame(g, sheet, animFrame(f.t, static_cast<float>(atlas.fps), atlas.frames, false),
+                           f.a.x, f.a.y, f.radius, false, 0.f, 1.f);
+            continue;
+        }
         if (f.type == FxType::Hit && f.key == "basic_hit") {
             const Sheet sheet = sprites.fxSheet(sp.key, f.key);
             if (sheet.frames == 8) {

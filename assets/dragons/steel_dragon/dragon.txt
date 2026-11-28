@@ -1,4 +1,4 @@
-; 능력치와 스킬은 신규 종 템플릿 기본값을 사용한다.
+; 능력치와 2·3번 스킬은 신규 종 기본값이다.
 [dragon]
 key=steel_dragon
 name=강철룡
@@ -47,3 +47,54 @@ file=death.png
 frame_w=256
 fps=8
 loop=no
+
+; 1번 시전과 투사체의 밸런스는 플레이 검수용 임시값이다.
+[skill.1]
+name=용광 폭렬탄
+desc=가까운 적에게 압축 포탄을 쏘고 명중 지점에 이중 충격파를 일으킨다.
+kind=Projectile
+level=1
+cooldown=4
+power=1.9
+range=370
+radius=105
+extra=0.65
+duration=0.6
+furnace_burst=yes
+fx=furnace_round
+fx_impact=furnace_explosion
+fx_frame_w=160
+fx_fps=16
+fx_impact_fps=20
+fx_scale=0.34
+
+; 노심 과열파의 광역 반경과 폭발 표시 크기는 같은 반경 설정을 따른다.
+[skill.2]
+name=노심 과열파
+desc=노심을 과열해 주변에 한 번 피해를 주고 갑주에 잔열이 남는다.
+kind=Burst
+level=3
+cooldown=8
+power=1.6
+radius=330
+duration=0.8
+core_overheat=yes
+fx=overheat_rear
+fx_impact=overheat_front
+fx_frame_w=384
+fx_fps=20
+
+; 4초 동안 0.25초 간격의 피해와 B4 관통 탄막을 재생한다.
+[skill.3]
+name=방열 칼날환
+desc=회전 칼날로 주변을 공격하고 관통 칼날을 세 차례 사출한다.
+kind=Line
+level=6
+cooldown=10
+radius=105
+range=1260
+power=0.16
+extra=0.44
+duration=4
+heat_blade_storm=yes
+heat_blade_repeat_targets=no

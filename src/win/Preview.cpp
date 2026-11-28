@@ -221,7 +221,7 @@ bool PreviewWindow::load(const fs::path& path) {
     auto parsed = parseDragonText(contents, name.empty() ? "preview" : name, nullptr);
     const EnemyDef* targetArt = nullptr;
     if (std::any_of(parsed.def.skills.begin(), parsed.def.skills.end(),
-                    [](const SkillDef& sk) { return sk.spectralCleave; })) {
+                    [](const SkillDef& sk) { return sk.spectralCleave || sk.furnaceBurst || sk.coreOverheat || sk.heatBladeStorm; })) {
         loadEnemyFolders(dir.parent_path().parent_path() / "enemies");
         if (!enemyFromKey("goblin", cleaveTargetKind_)) cleaveTargetKind_ = defaultMelee();
         targetArt = &enemyDef(cleaveTargetKind_);
@@ -262,7 +262,8 @@ void PreviewWindow::reset() {
     world_.setBounds({0.f, 0.f, kWorldWidth, kWorldHeight});
     const bool left = checked(Flip);
     const float direction = left ? -1.f : 1.f;
-    const Vec2 origin{left ? 650.f : 350.f, kFloorY - cfg::kDragonRadius};
+    const bool raised = skill() && (skill()->coreOverheat || skill()->heatBladeStorm) && captureAim_ < 0.f;
+    const Vec2 origin{left ? 650.f : 350.f, kFloorY - cfg::kDragonRadius - (raised ? 92.f : 0.f)};
     const SpeciesDef& def = speciesDef(species_);
     world_.setupDragon(species_, cfg::kMaxLevel, 0.f, origin);
     DragonActor& dragon = world_.dragon();
@@ -301,7 +302,7 @@ void PreviewWindow::reset() {
         return;
     }
 
-    const float distance = std::clamp(sk->range * 0.7f, 0.f, 280.f);
+    const float distance = std::clamp((sk->coreOverheat ? sk->radius : sk->range) * 0.7f, 0.f, 280.f);
     const float aim = captureAim_ * kPi / 180.f;
     target_ = origin + Vec2{direction * std::cos(aim), -std::sin(aim)} * distance;
     // 고정 표적에 생존과 무행동만 설정하고 스킬 발동은 게임의 수동 입력 경로를 쓴다.
@@ -321,9 +322,10 @@ void PreviewWindow::reset() {
             second.stun = 10000.f;
             second.facing = -direction;
         }
-        const EnemyKind kind = sk->spectralCleave ? cleaveTargetKind_ : defaultMelee();
-        Enemy& target = world_.spawnEnemy(kind, 1, target_, !sk->spectralCleave);
-        if (sk->spectralCleave || sk->boneShot) target.facing = -direction;
+        if (sk->furnaceBurst) target_.y = kFloorY - enemyDef(cleaveTargetKind_).radius - distance * std::sin(aim);
+        const EnemyKind kind = (sk->spectralCleave || sk->furnaceBurst || sk->coreOverheat || sk->heatBladeStorm) ? cleaveTargetKind_ : defaultMelee();
+        Enemy& target = world_.spawnEnemy(kind, 1, target_, !sk->spectralCleave && !sk->coreOverheat);
+        if (sk->spectralCleave || sk->boneShot || sk->furnaceBurst || sk->coreOverheat || sk->heatBladeStorm) target.facing = -direction;
         else target.radius = 8.f;
         target.hp = target.maxHp = 1e20f;
         target.stun = 10000.f;
@@ -375,6 +377,10 @@ void PreviewWindow::reset() {
             (sk->fxTail > 0.f ? sk->fxTail : cfg::kFxTail);
         duration_ = std::max(duration_, distance / projectile.speed + impact);
     }
+    if (sk->furnaceBurst)
+        duration_ = std::max(duration_, kSteelBasicLaunch + sk->range / (cfg::kProjectileSpeed * 1.1f) + sk->duration);
+    if (sk->coreOverheat) duration_ = std::max(duration_, kCoreOverheatWindup + sk->duration);
+    if (sk->heatBladeStorm) duration_ = 4.15f;
     duration_ += 0.15f;
     if (selected(Layer) == 2 || !body.bmp || skillIsPassive(sk->kind)) stepFps_ = std::max(1.f, sk->fxAnim.fps);
     if (layered) stepFps_ = 1.f / BreathCast::frameSeconds;
@@ -389,7 +395,7 @@ void PreviewWindow::seek(float time) {
     } else {
         for (float remaining = time - time_; remaining > 0.f; remaining -= kStep) {
             const float dt = std::min(kStep, remaining);
-            if (steelBasicPreview_) {
+            if (steelBasicPreview_ || (skill() && (skill()->furnaceBurst || skill()->coreOverheat || skill()->heatBladeStorm))) {
                 world_.updateCombat(dt, CombatMode::Direct, {});
                 world_.updateFx(dt);
             } else {
@@ -567,7 +573,7 @@ bool PreviewWindow::saveCapture(const fs::path& file, const Enemy* enemy, AnimSt
         canvas.ScaleTransform(camera, camera);
         canvas.TranslateTransform(-kWorldWidth * 0.5f, -kFloorY);
         if (enemy) renderer_.drawEnemyPreview(canvas, *enemy, sprites_, state, time, scale);
-        else renderer_.drawAnimationPreview(canvas, world_, sprites_, time, layer != 2, layer != 1, scale, steelBasicPreview_ || (sk && (sk->spectralCleave || sk->boneShot)));
+        else renderer_.drawAnimationPreview(canvas, world_, sprites_, time, layer != 2, layer != 1, scale, steelBasicPreview_ || (sk && (sk->spectralCleave || sk->boneShot || sk->furnaceBurst || sk->coreOverheat || sk->heatBladeStorm)));
     }
     CLSID png{};
     if (FAILED(CLSIDFromString(L"{557CF406-1A04-11D3-9A73-0000F81EF32E}", &png))) return false;
@@ -635,6 +641,13 @@ int PreviewWindow::capture(const fs::path& initial, const fs::path& jobs) {
             CheckDlgButton(hwnd_, Flip, direction == 'L' ? BST_CHECKED : BST_UNCHECKED);
             reset();
             seek(time);
+            // Heat alignment review: for this skill the optional capture angle selects a moving pose.
+            if (skill() && (skill()->coreOverheat || skill()->heatBladeStorm) && aim != 0.f) {
+                auto& actor = world_.dragon();
+                actor.anim = aim < 0.f ? AnimState::Fly : AnimState::Move;
+                actor.flying = aim < 0.f;
+                actor.animTime = time_;
+            }
             if (!saveCapture(output, nullptr, AnimState::Idle, time_, scale, layer, light)) return 3;
         }
     }
@@ -684,14 +697,14 @@ void PreviewWindow::paint() {
                     ground.SetDashStyle(DashStyleDash);
                     canvas.DrawLine(&ground, -kWorldWidth, kFloorY, 2.f * kWorldWidth, kFloorY);
                 }
-                if (sk && !sk->spectralCleave && !sk->boneShot) {
+                if (sk && !sk->spectralCleave && !sk->boneShot && !sk->furnaceBurst && !sk->coreOverheat) {
                     Pen target(dark ? Color(216, 225, 239) : Color(70, 80, 99), 1.4f / scale);
                     canvas.DrawEllipse(&target, target_.x - 8.f, target_.y - 8.f, 16.f, 16.f);
                     canvas.DrawLine(&target, target_.x - 13.f, target_.y, target_.x + 13.f, target_.y);
                     canvas.DrawLine(&target, target_.x, target_.y - 13.f, target_.x, target_.y + 13.f);
                 }
                 renderer_.drawAnimationPreview(canvas, world_, sprites_, time_, selected(Layer) != 2,
-                                               selected(Layer) != 1, 1.f, steelBasicPreview_ || (sk && (sk->spectralCleave || sk->boneShot)));
+                                               selected(Layer) != 1, 1.f, steelBasicPreview_ || (sk && (sk->spectralCleave || sk->boneShot || sk->furnaceBurst || sk->coreOverheat || sk->heatBladeStorm)));
             }
         }
         Graphics screen(dc);
