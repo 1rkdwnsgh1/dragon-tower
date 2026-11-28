@@ -455,6 +455,7 @@ void World::advanceSteelBasic(float dt) {
 }
 
 void World::advanceSteelBasicFlight(Projectile& shot, float dt) {
+    if (!shot.steelBasic) return;  // 부르는 쪽이 확인하지만 정적 분석(unchecked-optional-access)이 함수 안 확인을 요구한다
     auto& flight = *shot.steelBasic;
     const float elapsed = flight.firstStep >= 0.f ? flight.firstStep : dt;
     flight.firstStep = -1.f;
