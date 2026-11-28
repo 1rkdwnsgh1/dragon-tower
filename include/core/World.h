@@ -218,7 +218,6 @@ struct CarpetFlight {
 
 struct CarpetCast {
     int skill;
-    Vec2 center;
     float direction;
     float time = 0.f;
     int nextShot = 0;
@@ -650,7 +649,7 @@ private:
     void advanceCoreOverheat(float dt);
     void advanceHeatBladeStorm(float dt);
     void advanceHeatBladeFlight(Projectile& shot, float dt);
-    void advanceCarpetCast(float dt, Vec2 previousPosition);
+    void advanceCarpetCast(float dt, Vec2 recoveryInput);
     void advanceCarpetFlight(Projectile& shot, float dt);
     void clearCarpetBombardment();
     void advanceSteelBasicFlight(Projectile& shot, float dt);

@@ -538,7 +538,7 @@ void World::clearCarpetBombardment() {
         [](const Fx& f) { return f.key.rfind("carpet_", 0) == 0; }), fx_.end());
 }
 
-void World::advanceCarpetCast(float dt, Vec2 previousPosition) {
+void World::advanceCarpetCast(float dt, Vec2 recoveryInput) {
     auto& d = dragon_;
     if (!d.carpetCast) return;
     if (!d.alive || d.held) {
@@ -552,17 +552,17 @@ void World::advanceCarpetCast(float dt, Vec2 previousPosition) {
     const float scale = sizeScale_;
     const float height = cfg::kDragonRadius * 3.f * scale * fly.renderScale;
     const float end = cast.time + dt;
-    const float spacing = std::min(56.f, bounds_.w / 6.f);
-    const float facing = d.facing.x < 0.f ? -1.f : 1.f;
+    float cursor = cast.time;
+    const Vec2 forward{cast.direction, 0.f};
     while (cast.nextShot < carpet::shotCount && carpet::shots[cast.nextShot].launch <= end + 1e-6f) {
         const int index = cast.nextShot++;
         const auto& timing = carpet::shots[index];
-        const float step = std::clamp(timing.launch - cast.time, 0.f, dt);
-        const Vec2 position = dt > 0.f ? previousPosition + (d.pos - previousPosition) * (step / dt) : d.pos;
+        moveDragon(std::max(0.f, timing.launch - cursor), forward, carpet::runSpeed);
+        cursor = timing.launch;
         const Vec2 pin = carpet::port(carpet::flyFrame(timing.launch, fly.fps));
-        const Vec2 muzzle = position + Vec2{facing * (pin.x - 128.f) * height / 256.f,
+        const Vec2 muzzle = d.pos + Vec2{cast.direction * (pin.x - 128.f) * height / 256.f,
             cfg::kDragonRadius + (pin.y - 240.f) * height / 256.f - carpet::lift(timing.launch, scale)};
-        const Vec2 target{cast.center.x + cast.direction * (index - 2.5f) * spacing, cast.center.y};
+        const Vec2 target{d.pos.x, std::min(d.pos.y + cfg::kDragonRadius, bounds_.bottom())};
         const Vec2 drop = target - muzzle;
         const float clearance = std::min(carpet::clearance * scale, drop.length() * .35f);
         const Vec2 start = muzzle + drop.normalized() * clearance;
@@ -570,10 +570,15 @@ void World::advanceCarpetCast(float dt, Vec2 previousPosition) {
         Projectile projectile;
         projectile.pos = start;
         projectile.damage = d.attack() * skill.power;
-        projectile.carpetBomb = CarpetFlight{start, target, aim, timing.flight, dt - step,
+        projectile.carpetBomb = CarpetFlight{start, target, aim, timing.flight, std::max(0.f, end - timing.launch),
                                              scale, timing.impactScale, skillRadius(skill)};
         projectiles_.push_back(std::move(projectile));
     }
+    const float autoTime = std::min(end, carpet::lastDrop) - cursor;
+    if (autoTime > 0.f) moveDragon(autoTime, forward, carpet::runSpeed);
+    const float recoveryTime = std::min(end, carpet::flightEnd) - std::max(cursor, carpet::lastDrop);
+    if (recoveryTime > 0.f) moveDragon(recoveryTime, recoveryInput, carpet::recoverySpeed);
+    if (end > carpet::flightEnd) moveDragon(end - carpet::flightEnd, recoveryInput, 1.f);
     cast.time = end;
     if (end >= carpet::flightEnd) d.carpetCast.reset();
     d.flying = d.carpetCast.has_value();
@@ -899,15 +904,13 @@ bool World::castSkill(int i, bool aiChoice) {
         case SkillKind::Line: {
             if (s.carpetBombardment) {
                 if (d.carpetCast || d.breath || d.skillCast || d.steelAttack) return false;
-                const Enemy* target = nearestEnemy(d.pos, s.range);
-                if (aiChoice && !target) return false;
-                const float direction = target && std::fabs(target->pos.x - d.pos.x) > 1.f
-                    ? (target->pos.x > d.pos.x ? 1.f : -1.f) : (d.facing.x < 0.f ? -1.f : 1.f);
-                const float span = std::min(56.f, bounds_.w / 6.f) * 2.5f;
-                const float x = target ? target->pos.x : d.pos.x + direction * s.range * .45f;
-                const float y = target ? target->pos.y + target->radius : d.pos.y + cfg::kDragonRadius;
-                d.carpetCast = CarpetCast{i, {std::clamp(x, bounds_.x + span, bounds_.right() - span),
-                    std::clamp(y, bounds_.y, bounds_.bottom())}, direction};
+                const float direction = d.facing.x < 0.f ? -1.f : 1.f;
+                if (aiChoice && std::none_of(enemies_.begin(), enemies_.end(), [&](const Enemy& enemy) {
+                    return enemy.alive && !enemy.hopping() && (enemy.pos.x - d.pos.x) * direction >= 0.f &&
+                           distance(enemy.pos, d.pos) <= s.range;
+                })) return false;
+                d.carpetCast = CarpetCast{i, direction};
+                d.dashTime = 0.f;
                 d.facing = {direction, 0.f};
                 d.flying = true;
                 d.animHold = 0.f;
@@ -2091,7 +2094,6 @@ void World::controlDragon(float dt, CombatMode mode, const PlayerInput& in, bool
     DragonActor& d = dragon_;
     // 전투 중에는 자동 행동(날기)을 쓰지 않는다. 적이 없어 wander가 돌면 그 안에서 다시 켜진다.
     d.flying = d.carpetCast.has_value();
-    const Vec2 previousPosition = d.pos;
     const bool carpetAlreadyActive = d.carpetCast.has_value();
     // 타이머
     d.basicCd = std::max(0.f, d.basicCd - dt);
@@ -2138,7 +2140,7 @@ void World::controlDragon(float dt, CombatMode mode, const PlayerInput& in, bool
     if (d.alive && ultimateInput) castUltimate(false);
     const auto& procession = d.procession;
     const bool preparingProcession = procession && procession->launched == 0;
-    if (d.alive && !preparingProcession && (!d.breath || d.breath->elapsed >= d.breath->inputLock) && !skillCastLocked()) {
+    if (!carpetAlreadyActive && d.alive && !preparingProcession && (!d.breath || d.breath->elapsed >= d.breath->inputLock) && !skillCastLocked()) {
         if (mode == CombatMode::Direct) {
             if (in.dodge && d.dodgeCd <= 0.f && d.dashTime <= 0.f) {
                 Vec2 dir{in.moveX, in.moveY};
@@ -2175,7 +2177,8 @@ void World::controlDragon(float dt, CombatMode mode, const PlayerInput& in, bool
     advanceCoreOverheat(dt);
     advanceHeatBladeStorm(dt);
     if (mobileBreath) advanceBreath(dt);
-    if (carpetAlreadyActive) advanceCarpetCast(dt, previousPosition);
+    if (carpetAlreadyActive)
+        advanceCarpetCast(dt, mode == CombatMode::Auto ? Vec2{} : Vec2{in.moveX, in.moveY});
 }
 
 void World::updateCombat(float dt, CombatMode mode, const PlayerInput& in) {

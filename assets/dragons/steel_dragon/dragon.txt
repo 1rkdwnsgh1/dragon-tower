@@ -116,11 +116,11 @@ breath_sustained=yes
 ; FLY 자동 이륙과 독립 착탄 여섯 발.
 [skill.5]
 name=용광 융단폭격
-desc=짧게 이륙해 포탄 여섯 발을 두 발씩 투하한다.
+desc=전방으로 비행하며 바로 아래에 포탄 여섯 발을 투하한 뒤 빠른 비행으로 재정비한다.
 kind=Line
 level=12
 cooldown=20
-power=0.95
+power=2.85
 range=520
 radius=74
 carpet_bombardment=yes

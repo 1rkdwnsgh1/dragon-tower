@@ -32,7 +32,11 @@ inline constexpr Shot shots[] = {
     {1.57f, 0.50f, 1.02f},
 };
 inline constexpr int shotCount = sizeof(shots) / sizeof(shots[0]);
-inline constexpr float flightEnd = 2.18f;
+inline constexpr float lastDrop = shots[shotCount - 1].launch;
+inline constexpr float recoveryDuration = 3.f;
+inline constexpr float recoverySpeed = 1.2f;
+inline constexpr float runSpeed = 1.6f;
+inline constexpr float flightEnd = lastDrop + recoveryDuration;
 inline constexpr float clearance = 16.f;
 
 inline float lift(float time, float scale) {

@@ -4888,7 +4888,7 @@ static void testSteelCarpetBombardment(Species steel) {
     w.setBounds(kDesk);
     w.setupDragon(steel, 12, 0.f, {400.f, 460.f});
     const auto& skill = speciesDef(steel).skills[4];
-    CHECK(skill.carpetBombardment);
+    CHECK(skill.carpetBombardment && skill.power == 2.85f);
     w.setSlots({4, -1, -1, -1});
     auto& dragon = w.dragon();
     dragon.basicCd = 100.f;
@@ -4897,9 +4897,12 @@ static void testSteelCarpetBombardment(Species steel) {
         e.hp = e.maxHp = 1000.f;
         e.stun = 100.f;
     };
-    add({680.f, 460.f});
-    add({820.f, 460.f});
-    add({680.f, 290.f});
+    const float speed = dragon.stats.speed * dragon.moveScale;
+    const float runSpeed = speed * carpet::runSpeed;
+    const float impactY = 460.f + cfg::kDragonRadius;
+    add({400.f + runSpeed * .32f, 460.f});
+    add({400.f + runSpeed * 1.49f, 460.f});
+    add({400.f + runSpeed * .83f, 290.f});
     PlayerInput fire;
     fire.skill[0] = true;
     const auto tick = [&](float dt, PlayerInput input = {}) {
@@ -4909,18 +4912,19 @@ static void testSteelCarpetBombardment(Species steel) {
     tick(0.f, fire);
     CHECK(dragon.carpetCast && dragon.anim == AnimState::Fly && dragon.flying);
     if (!dragon.carpetCast) return;
-    const float centerX = dragon.carpetCast->center.x;
-    const float impactY = dragon.carpetCast->center.y;
     tick(.24f);
-    CHECK(w.projectiles().empty());
+    CHECK(w.projectiles().empty() && dragon.pos.x > 400.f);
     PlayerInput move;
-    move.moveX = 1.f;
+    move.moveX = -1.f;
+    move.moveY = -1.f;
     tick(.02f, move);
     CHECK(dragon.pos.x > 400.f && dragon.anim == AnimState::Fly);
     CHECK(w.projectiles().size() == 1 && dragon.carpetCast->nextShot == 1);
     if (w.projectiles().empty()) return;
     const auto first = *w.projectiles().front().carpetBomb;
-    CHECK(first.origin.y < dragon.pos.y - 100.f && first.target.x < centerX);
+    CHECK(first.origin.y < dragon.pos.y - 100.f && first.target.y == impactY);
+    CHECK(std::fabs(first.target.x - (400.f + runSpeed * .25f)) < .01f);
+    CHECK(dragon.pos.y == 460.f && dragon.facing.x > 0.f);
     tick(.14f);
     CHECK(w.projectiles().size() == 2 && dragon.carpetCast->nextShot == 2);
     tick(.33f);
@@ -4939,16 +4943,26 @@ static void testSteelCarpetBombardment(Species steel) {
     for (int e = 0; e < 3; ++e) {
         const auto& enemy = w.enemies()[e];
         int hits = 0;
-        for (int i = 0; i < carpet::shotCount; ++i)
-            if (distance(enemy.pos, {centerX + (i - 2.5f) * 56.f, impactY}) <= skill.radius + enemy.radius)
+        for (const auto& shot : carpet::shots)
+            if (distance(enemy.pos, {400.f + runSpeed * shot.launch, impactY}) <= skill.radius + enemy.radius)
                 ++hits;
         const float damage = mitigate(dragon.attack() * skill.power, enemy.def);
         CHECK(std::fabs(enemy.hp - (1000.f - hits * damage)) < .03f);
         if (e < 2) CHECK(hits > 1);
         else CHECK(hits == 0);
     }
-    tick(1.4f, fire);
+    const float beforeRecoveryMove = dragon.pos.x;
+    CHECK(std::fabs(beforeRecoveryMove - (400.f + runSpeed * carpet::lastDrop)) < .01f);
+    move.moveY = 0.f;
+    tick(.4f, move);
+    CHECK(dragon.flying && dragon.anim == AnimState::Fly && dragon.facing.x < 0.f);
+    CHECK(std::fabs(dragon.pos.x - (beforeRecoveryMove - speed * carpet::recoverySpeed * .4f)) < .01f);
+    tick(2.08f, fire);  // Cast time 4.56, just before the boosted flight ends.
+    CHECK(dragon.carpetCast && dragon.flying);
+    const float beforeLanding = dragon.pos.x;
+    tick(.03f, move);
     CHECK(!dragon.carpetCast && !dragon.flying && dragon.skillCd[4] > 0.f);
+    CHECK(std::fabs(dragon.pos.x - (beforeLanding - speed * (.01f * carpet::recoverySpeed + .02f))) < .02f);
     CHECK(countLayer(carpet::smoke) == 0);
 
     w.clearEnemies(false);
@@ -4961,7 +4975,11 @@ static void testSteelCarpetBombardment(Species steel) {
     std::vector<float> impacts;
     for (const Fx& fx : w.fx())
         if (fx.key == carpet::atlases[carpet::smoke].key) impacts.push_back(fx.a.x);
-    CHECK(std::is_sorted(impacts.rbegin(), impacts.rend()));
+    CHECK(impacts.size() == carpet::shotCount);
+    if (impacts.size() == carpet::shotCount) {
+        for (int i = 0; i < carpet::shotCount; ++i)
+            CHECK(std::fabs(impacts[i] - (500.f - runSpeed * carpet::shots[i].launch)) < .01f);
+    }
     w.updateFx(0.f, true);
     CHECK(!dragon.carpetCast && countLayer(carpet::smoke) == 0);
 

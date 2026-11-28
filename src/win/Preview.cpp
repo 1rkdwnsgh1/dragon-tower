@@ -1,6 +1,7 @@
 #include "Platform.h"
 #include "Renderer.h"
 #include "core/TowerData.h"
+#include "core/CarpetBombardment.h"
 #include "core/Config.h"
 #include "core/DragonData.h"
 #include "core/EnemyData.h"
@@ -382,7 +383,7 @@ void PreviewWindow::reset() {
         duration_ = std::max(duration_, kSteelBasicLaunch + sk->range / (cfg::kProjectileSpeed * 1.1f) + sk->duration);
     if (sk->coreOverheat) duration_ = std::max(duration_, kCoreOverheatWindup + sk->duration);
     if (sk->heatBladeStorm) duration_ = 4.15f;
-    if (sk->carpetBombardment) duration_ = 3.35f;
+    if (sk->carpetBombardment) duration_ = carpet::flightEnd;
     duration_ += 0.15f;
     if (selected(Layer) == 2 || !body.bmp || skillIsPassive(sk->kind)) stepFps_ = std::max(1.f, sk->fxAnim.fps);
     if (layered) stepFps_ = 1.f / BreathCast::frameSeconds;
@@ -401,8 +402,9 @@ void PreviewWindow::seek(float time) {
             if (steelBasicPreview_ || (skill() && (skill()->furnaceBurst || skill()->coreOverheat ||
                                                     skill()->heatBladeStorm || skill()->carpetBombardment))) {
                 PlayerInput input;
-                if (const auto& cast = world_.dragon().carpetCast; cast && cast->time < 1.45f)
-                    input.moveX = cast->direction;
+                if (const auto& cast = world_.dragon().carpetCast;
+                    cast && cast->time > carpet::lastDrop + .3f && cast->time < carpet::lastDrop + 1.f)
+                    input.moveX = -cast->direction;
                 world_.updateCombat(dt, CombatMode::Direct, input);
                 world_.updateFx(dt);
             } else {
