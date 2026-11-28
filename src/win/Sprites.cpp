@@ -231,6 +231,15 @@ void Sprites::load(const std::filesystem::path& assetDir) {
         std::error_code ec;
         if (!std::filesystem::is_directory(dir, ec)) continue;
         loadSheetsFor(dir, def.anims, "enemy:" + def.key, "enemies/" + artKey);
+        // T8(2026-11-25): shot 공격의 투사체 그림(있을 때만). 오른쪽으로 날아가는 가로 한 줄, 정사각 칸.
+        if (def.attack.kind == EnemyAttackKind::Shot) {
+            const AnimDef square{};
+            // 변종(art_from)이라도 자기 폴더에 projectile.png 가 있으면 그것을 쓴다(정예 리치).
+            const std::filesystem::path own = assetDir / "enemies" / def.key / "projectile.png";
+            const bool hasOwn = std::filesystem::exists(own, ec);
+            loadSheetFile(hasOwn ? own : dir / "projectile.png", square, "enemy:" + def.key + "/fx_projectile",
+                          "enemies/" + (hasOwn ? def.key : artKey) + "/projectile.png");
+        }
         // 2026-11-25 분열 연출(있을 때만): 본체 동작 split.png, 효과 fx_split.png·fx_split_land.png
         if (!def.splitKey.empty()) {
             const AnimDef square{};

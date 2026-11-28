@@ -1219,7 +1219,14 @@ void Renderer::drawEnemy(Graphics& g, const Enemy& e, const Sprites& sprites, fl
     const Sheet sh2 = sprites.sheet("enemy:" + ed.key, st);
     const bool drawnBySheet = sh2.bmp != nullptr;
     const AnimDef& ad = ed.anims[static_cast<int>(st)];
-    const int frame = drawnBySheet ? animFrame(time, ad.fps, sh2.frames, ad.loop) : 0;
+    int frame = drawnBySheet ? animFrame(time, ad.fps, sh2.frames, ad.loop) : 0;
+    // T8: hit_frame 을 적은 적은 예고가 끝나는 순간 그 칸이 보이도록 공격 시트를 맞춰 재생한다.
+    // 예고가 짧아 앞 칸을 다 보여 줄 수 없으면 그만큼 앞 칸을 건너뛴다.
+    if (drawnBySheet && st == AnimState::Attack && !forcedState && ed.attackHitFrame > 0 && e.castTimer > 0.f) {
+        const float hitAt = static_cast<float>(ed.attackHitFrame - 1) / std::max(1.f, ad.fps);
+        const float animT = std::max(0.f, hitAt - e.castTimer);
+        frame = std::clamp(static_cast<int>(animT * ad.fps), 0, sh2.frames - 1);
+    }
     Bitmap* bmp = drawnBySheet ? nullptr : sprites.get(isBoss ? "boss_guardian" : "enemy_imp");
     const float visibleHeight = drawnBySheet
         ? height * ad.renderScale * (sh2.visibleHeight ? sh2.visibleHeight[frame] : 1.f)
@@ -1403,7 +1410,22 @@ void Renderer::drawWorld(Graphics& g, const Game& game, const Sprites& sprites, 
     for (const AttackZone& z : w.zones()) {
         float p = std::clamp(z.t / std::max(0.01f, z.windup), 0.f, 1.f);
         BYTE fillA = static_cast<BYTE>(35 + 70 * p);
-        if (z.shape == ZoneShape::Circle) {
+        if (z.shape == ZoneShape::Fan) {
+            // T8 휘두르기: 부채꼴. 안쪽 채움이 꼭짓점에서 바깥으로 자란다
+            const Vec2 axis = z.b - z.a;
+            const float len = axis.length();
+            const float mid = std::atan2(axis.y, axis.x) * 180.f / 3.14159265f;
+            const float start = mid - z.arc * 0.5f;
+            SolidBrush fb(Color(fillA, 255, 60, 40));
+            g.FillPie(&fb, z.a.x - len, z.a.y - len, len * 2.f, len * 2.f, start, z.arc);
+            const float r2 = len * p;
+            if (r2 > 1.f) {
+                SolidBrush ib(Color(80, 255, 40, 20));
+                g.FillPie(&ib, z.a.x - r2, z.a.y - r2, r2 * 2.f, r2 * 2.f, start, z.arc);
+            }
+            Pen pen(Color(230, 255, 80, 60), 2.f);
+            g.DrawPie(&pen, z.a.x - len, z.a.y - len, len * 2.f, len * 2.f, start, z.arc);
+        } else if (z.shape == ZoneShape::Circle) {
             fillCircle(g, z.a.x, z.a.y, z.radius, Color(fillA, 255, 60, 40));
             fillCircle(g, z.a.x, z.a.y, z.radius * p, Color(80, 255, 40, 20));
             strokeCircle(g, z.a.x, z.a.y, z.radius, Color(230, 255, 80, 60), 2.f);
@@ -1421,6 +1443,31 @@ void Renderer::drawWorld(Graphics& g, const Game& game, const Sprites& sprites, 
             g.FillPolygon(&ib, inner, 4);
             Pen pen(Color(230, 255, 80, 60), 2.f);
             g.DrawPolygon(&pen, pts, 4);
+        }
+    }
+
+    // T8 적 투사체. 적 폴더의 projectile.png(오른쪽으로 날아가는 그림)가 있으면 그것을, 없으면 빛나는 구슬을 그린다.
+    for (const EnemyShot& shot : w.enemyShots()) {
+        const EnemyDef& sd = enemyDef(shot.kind);
+        const Sheet ps = sprites.fxSheet("enemy:" + sd.key, "projectile");
+        if (ps.bmp) {
+            const float size = std::max(32.f, shot.radius * 5.f);
+            const int pf = animFrame(shot.t, 14.f, ps.frames, true);
+            const FrameCache::Source cell{ps.bmp, pf * ps.frameW, 0, ps.frameW, ps.frameH};
+            const float ang = std::atan2(shot.dir.y, shot.dir.x) * 180.f / 3.14159265f;
+            const GraphicsState gs = g.Save();
+            g.TranslateTransform(shot.pos.x, shot.pos.y);
+            g.RotateTransform(ang);
+            drawFrameCached(g, cell, 0.f, 0.f, size, size, false, 0.f, 1.f);
+            g.Restore(gs);
+        } else {
+            const Vec2 tail = shot.pos - shot.dir * shot.radius * 3.f;
+            Pen trail(Color(140, 255, 120, 70), shot.radius * 1.2f);
+            trail.SetStartCap(LineCapRound);
+            trail.SetEndCap(LineCapRound);
+            g.DrawLine(&trail, tail.x, tail.y, shot.pos.x, shot.pos.y);
+            fillCircle(g, shot.pos.x, shot.pos.y, shot.radius, Color(235, 255, 110, 60));
+            fillCircle(g, shot.pos.x, shot.pos.y, shot.radius * 0.5f, Color(255, 255, 230, 180));
         }
     }
 

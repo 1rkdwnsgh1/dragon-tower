@@ -3,6 +3,7 @@
 
 #include <array>
 #include <cstdint>
+#include <functional>
 #include <optional>
 #include <string>
 #include <vector>
@@ -121,9 +122,15 @@ struct Enemy {
     float landLeft = 0.f;        // 착지 점액이 남은 시간(그리기용)
     EnemyKind parentKind{};      // 분열체의 본체 종류(착지 점액 그림을 본체 폴더에서 찾는다)
     bool hopping() const { return hopLeft > 0.f; }
+    // T8: 공격 예고의 전체 길이(그리는 쪽이 hit_frame 에 맞춰 공격 시트를 재생한다)
+    float castTotal = 0.f;
+    // T8 lunge: 예고 끝 lungeDash 초 동안 lungeFrom → lungeTo 로 달려든다
+    float lungeDash = 0.f;
+    Vec2 lungeFrom, lungeTo;
 };
 
-enum class ZoneShape { Circle, Line };
+// Fan(T8): a = 꼭짓점, b = 가운데 방향의 끝(길이 = |b - a|), arc = 전체 각도(도)
+enum class ZoneShape { Circle, Line, Fan };
 
 // 적 공격 예고. windup이 끝나는 순간 판정한다.
 struct AttackZone {
@@ -134,6 +141,25 @@ struct AttackZone {
     float t = 0.f;
     float damage = 1.f;
     int ownerId = 0;
+    float arc = 0.f;        // Fan 전용
+    float shotSpeed = 0.f;  // 0 보다 크면 판정 대신 a → b 로 투사체를 날린다(T8 shot)
+};
+
+// p(닿는 여유 reach 포함)가 예고 범위 안인가. 판정과 시뮬레이션 봇이 같은 규칙을 쓴다.
+bool attackZoneContains(const AttackZone& z, Vec2 p, float reach);
+
+// T8: 적의 투사체. 예고 줄(a → b)을 따라 날아가며 처음 닿은 드래곤 하나를 맞힌다.
+// 예고가 끝난 뒤 날아오므로 줄에서 벗어나면 피할 수 있다.
+struct EnemyShot {
+    Vec2 pos, dir;
+    float remain = 0.f;   // 남은 거리
+    float speed = 400.f;
+    float radius = 10.f;
+    float damage = 1.f;
+    int ownerId = 0;
+    EnemyKind kind{};     // 그림(projectile.png)을 찾을 적 종류
+    float t = 0.f;
+    bool alive = true;
 };
 
 inline constexpr float kCleaveFlight = 0.50f;
@@ -538,6 +564,7 @@ public:
     bool hasActiveFx() const { return !fx_.empty() || !texts_.empty(); }
     std::vector<Enemy>& enemiesMutable() { return enemies_; }
     const std::vector<AttackZone>& zones() const { return zones_; }
+    const std::vector<EnemyShot>& enemyShots() const { return enemyShots_; }
     const std::vector<Projectile>& projectiles() const { return projectiles_; }
     const std::vector<DotZone>& dots() const { return dots_; }
     const std::vector<Fx>& fx() const { return fx_; }
@@ -620,6 +647,10 @@ private:
     void updateEnemies(float dt);
     void enemyAttack(Enemy& e);
     void resolveZone(const AttackZone& z, CombatMode mode);
+    // 조작 드래곤과 동료 중 inside(드래곤 위치, 닿는 여유) 가 참인 드래곤에게 피해를 준다.
+    // 회피 규칙은 예고 판정과 같다. maxHits 마리까지 맞히고 맞힌 수를 돌려준다.
+    int hitDragons(const std::function<bool(Vec2, float)>& inside, float damage, CombatMode mode, int maxHits = 99);
+    void updateEnemyShots(float dt, CombatMode mode);
     void damageEnemy(Enemy& e, float raw, bool showNumber = true, bool detonatesCurse = false);
     void damageDragon(float raw);
     float dragonDodgeChance() const;
@@ -635,6 +666,7 @@ private:
     DragonActor dragon_;
     std::vector<Enemy> enemies_;
     std::vector<AttackZone> zones_;
+    std::vector<EnemyShot> enemyShots_;
     std::vector<Projectile> projectiles_;
     std::vector<DotZone> dots_;
     std::vector<Fx> fx_;

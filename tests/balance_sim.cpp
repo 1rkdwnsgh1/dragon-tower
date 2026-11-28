@@ -64,12 +64,11 @@ static PlayerInput directBot(const World& w) {
     float soonest = 99.f;
     for (const AttackZone& z : w.zones()) {
         float reach = cfg::kDragonRadius * 0.4f + 10.f;
-        bool inside = z.shape == ZoneShape::Circle ? distance(d.pos, z.a) <= z.radius + reach
-                                                   : distancePointSegment(d.pos, z.a, z.b) <= z.radius + reach;
+        bool inside = attackZoneContains(z, d.pos, reach);
         if (!inside) continue;
         danger = true;
         soonest = std::min(soonest, z.windup - z.t);
-        Vec2 c = z.shape == ZoneShape::Circle ? z.a : (z.a + z.b) * 0.5f;
+        Vec2 c = z.shape == ZoneShape::Line ? (z.a + z.b) * 0.5f : z.a;
         Vec2 away = d.pos - c;
         if (z.shape == ZoneShape::Line) {
             Vec2 dir = (z.b - z.a).normalized();

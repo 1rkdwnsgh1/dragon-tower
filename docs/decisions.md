@@ -117,6 +117,12 @@
 
 원문: [archive/revenant-dragon-zone-skills.md](archive/revenant-dragon-zone-skills.md)
 
+## 몬스터·보스 스킬 구성 (2026-11-25)
+
+- 중간보스 스킬 3개, 필드보스 고유 규칙 + 스킬 3개. 표는 [monster-boss-skills.md](monster-boss-skills.md) 그대로.
+- 몬스터별 예고값으로 바꾸되 탑 난이도는 측정해서 지금과 비슷하게.
+- Codex 그림은 5·10층부터 받아 검증한 뒤 지역 순서대로.
+
 ## E. 궁극기 전용 칸·클릭 통과·상태창 배치 (2026-11-20)
 
 - 궁극기는 장착 칸 4개와 따로 쓴다(키 5·상태창 아이콘 클릭). 자동 모드는 AI 가 쓴다.

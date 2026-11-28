@@ -1,0 +1,237 @@
+{
+  "version": 1,
+  "index_base": 0,
+  "facing": "right",
+  "timings": "provisional",
+  "assets": {
+    "assets/enemies/lich/projectile.png": {
+      "frames": 8,
+      "cell": [
+        128,
+        128
+      ],
+      "origin": [
+        64,
+        64
+      ],
+      "fps": 24,
+      "note": "Forward flight loop; heading +X."
+    },
+    "assets/enemies/elite-lich/projectile.png": {
+      "frames": 8,
+      "cell": [
+        128,
+        128
+      ],
+      "origin": [
+        64,
+        64
+      ],
+      "fps": 24,
+      "note": "Forward flight loop; heading +X."
+    },
+    "assets/enemies/frost-spirit/projectile.png": {
+      "frames": 8,
+      "cell": [
+        128,
+        128
+      ],
+      "origin": [
+        64,
+        64
+      ],
+      "fps": 24,
+      "note": "Forward flight loop; heading +X."
+    },
+    "assets/enemies/hydra/projectile.png": {
+      "frames": 8,
+      "cell": [
+        128,
+        128
+      ],
+      "origin": [
+        64,
+        64
+      ],
+      "fps": 24,
+      "note": "Forward flight loop; heading +X."
+    },
+    "assets/enemies/water-dragon/projectile.png": {
+      "frames": 8,
+      "cell": [
+        128,
+        128
+      ],
+      "origin": [
+        64,
+        64
+      ],
+      "fps": 24,
+      "note": "Forward flight loop; heading +X."
+    },
+    "assets/enemies/fire-elemental/projectile.png": {
+      "frames": 8,
+      "cell": [
+        128,
+        128
+      ],
+      "origin": [
+        64,
+        64
+      ],
+      "fps": 24,
+      "note": "Forward flight loop; heading +X."
+    },
+    "assets/enemies/wraith/projectile.png": {
+      "frames": 8,
+      "cell": [
+        128,
+        128
+      ],
+      "origin": [
+        64,
+        64
+      ],
+      "fps": 24,
+      "note": "Forward flight loop; heading +X."
+    },
+    "assets/enemies/_unassigned/projectile-reserve/projectile.png": {
+      "frames": 8,
+      "cell": [
+        128,
+        128
+      ],
+      "origin": [
+        64,
+        64
+      ],
+      "fps": 24,
+      "note": "Unassigned reserve prototype."
+    },
+    "assets/enemies/goblin-chief/fx_dagger.png": {
+      "frames": 12,
+      "cell": [
+        512,
+        512
+      ],
+      "origin": [
+        256,
+        256
+      ],
+      "fps": 24,
+      "note": "Forward flight loop; heading +X. Dagger spread directions are set by gameplay."
+    },
+    "assets/enemies/goblin-chief/skill_dagger_throw.png": {
+      "frames": 12,
+      "cell": [
+        256,
+        256
+      ],
+      "origin": [
+        128,
+        240
+      ],
+      "fps": 20,
+      "note": "Wind-up through hit_frame−1; hit_frame marks impact or launch; final frame returns to idle.",
+      "hit_frame": 6,
+      "source": "Existing idle/attack sprites, remapped pose timing and squash/stretch."
+    },
+    "assets/enemies/goblin-chief/skill_cleaver_swing.png": {
+      "frames": 12,
+      "cell": [
+        256,
+        256
+      ],
+      "origin": [
+        128,
+        240
+      ],
+      "fps": 18,
+      "note": "Wind-up through hit_frame−1; hit_frame marks impact or launch; final frame returns to idle.",
+      "hit_frame": 6,
+      "source": "Existing idle/attack sprites, remapped pose timing and squash/stretch."
+    },
+    "assets/enemies/slime-king/skill_slime_pool.png": {
+      "frames": 12,
+      "cell": [
+        256,
+        256
+      ],
+      "origin": [
+        128,
+        240
+      ],
+      "fps": 20,
+      "note": "Wind-up through hit_frame−1; hit_frame marks impact or launch; final frame returns to idle.",
+      "hit_frame": 6,
+      "source": "Existing idle/attack sprites, remapped pose timing and squash/stretch."
+    },
+    "assets/enemies/slime-king/skill_roll_charge.png": {
+      "frames": 12,
+      "cell": [
+        256,
+        256
+      ],
+      "origin": [
+        128,
+        240
+      ],
+      "fps": 20,
+      "note": "Wind-up through hit_frame−1; hit_frame marks impact or launch; final frame returns to idle.",
+      "hit_frame": 5,
+      "source": "Existing idle/attack sprites, remapped pose timing and squash/stretch."
+    },
+    "assets/enemies/goblin-chief/fx_cleaver_swing.png": {
+      "frames": 12,
+      "cell": [
+        512,
+        512
+      ],
+      "origin": [
+        256,
+        256
+      ],
+      "fps": 24,
+      "note": "Trigger on cleaver hit_frame. Cosmetic trailing arc."
+    },
+    "assets/enemies/slime-king/fx_slime_pool.png": {
+      "frames": 12,
+      "cell": [
+        512,
+        512
+      ],
+      "origin": [
+        256,
+        320
+      ],
+      "fps": 24,
+      "note": "Trigger when a pool spawns. Hold last frame while active; gameplay owns lifetime."
+    },
+    "assets/enemies/slime-king/fx_jump_slam.png": {
+      "frames": 12,
+      "cell": [
+        512,
+        512
+      ],
+      "origin": [
+        256,
+        320
+      ],
+      "fps": 24,
+      "note": "Trigger at the primary jump-slam landing. Reuses existing boss attack sheet."
+    },
+    "assets/enemies/slime-king/fx_roll_charge.png": {
+      "frames": 12,
+      "cell": [
+        512,
+        512
+      ],
+      "origin": [
+        256,
+        320
+      ],
+      "fps": 24,
+      "note": "Display during actual movement. Repeat only while moving."
+    }
+  }
+}

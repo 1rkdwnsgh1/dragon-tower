@@ -13,6 +13,7 @@
 | `attack.png` | 공격 예고 중에 쓰는 시트 | `idle.png` |
 | `hit.png` | 피격 시트 | `idle.png` + 깜빡임 |
 | `death.png` | 사망 시트 | `idle.png` + 사라지는 효과 |
+| `projectile.png` | `[attack] kind=shot` 의 투사체. 가로 한 줄, 정사각 칸, **오른쪽으로 날아가는 그림**(날아가는 방향으로 돌려 그린다). 변종(`art_from`)도 자기 폴더의 것을 먼저 쓴다 | 빛나는 구슬 |
 | `CREDITS.md` | 제작자·출처·라이선스 | (직접 적어 주세요) |
 
 시트 규격은 드래곤과 같습니다: 가로 한 줄, 칸 256×256, 발이 (128, 240), 오른쪽 지향.
@@ -42,7 +43,7 @@ exp_growth=2
 
 attack_range=72     ; 이 거리 안이면 공격한다
 keep_ratio=0.8      ; attack_range * 이 값보다 멀면 다가간다
-windup=0.8          ; 공격 예고 시간(초). 0이면 기본값
+windup=0.8          ; (T8 전 값. [attack] 을 쓰면 아래 값을 쓴다)
 attack_cooldown=2.2
 
 ; 보스만 쓰는 값
@@ -59,6 +60,35 @@ split_every=0.10      ; 0~1. 0 이면 분열하지 않는다
 split_level_drop=10   ; 분열체 레벨 = 본체 레벨 - 이 값(최소 1)
 split_guard=0.60      ; 0~0.95
 ```
+
+### 공격 모양 `[attack]` (T8, 2026-11-25)
+
+일반 몬스터(`role=melee`)의 공격 모양. **적지 않으면 예전처럼** 앞쪽 작은 원 + 공통 예고값(0.85초, 쿨 2.2초)을 쓴다.
+모든 공격은 예고가 끝나는 순간 판정한다. 몬스터별 표는 [몬스터·보스 스킬 구성](../../docs/monster-boss-skills.md).
+
+```
+[attack]
+kind=swing        ; swing 부채꼴 / slam 원 / thrust 줄 / lunge 달려들기 / shot 투사체
+windup=0.8        ; 예고 시간(초, 0.2~5)
+cooldown=2.25     ; 판정 뒤 다음 공격까지(초)
+length=92         ; swing 부채꼴 길이 / thrust·shot 줄 길이 / lunge 달려드는 거리
+arc=100           ; swing 부채꼴 전체 각도(도)
+radius=56         ; slam·lunge 원 반경 / thrust·shot 줄 반폭
+offset=36         ; slam 원 중심이 몸 앞으로 떨어진 거리
+shot_speed=340    ; shot 투사체 속도(px/초)
+```
+
+| kind | 예고 | 판정 |
+|---|---|---|
+| `swing` | 앞쪽 부채꼴 | 부채꼴 안 |
+| `slam` | 몸 앞 `offset` 자리의 원 | 원 안 |
+| `thrust` | 앞쪽 가는 줄 | 줄 안 |
+| `lunge` | 달려들 자리의 원(드래곤을 넘어가지 않는다) | 예고 끝 0.18초 동안 그 자리로 달려들어 원 안 |
+| `shot` | 날아갈 줄 | 예고가 끝나면 탄이 줄을 따라 날아가 처음 닿은 드래곤 하나. 줄에서 벗어나면 피한다 |
+
+길이·반경은 화면 배율(`sizeScale`)을 따라 커진다. 예고+쿨 합이 한 번 공격의 주기다 — 예전 값(약 3초)에서 크게 벗어나면 탑 난이도가 바뀐다(`balance_sim floors` 로 잰다).
+
+`[anim.attack]` 에 `hit_frame=6` 을 적으면 **예고가 끝나는 순간 6번째 칸이 보이도록** 공격 시트를 늦춰 재생한다. 예고가 짧아 앞 칸을 다 보여 줄 수 없으면 앞 칸을 건너뛴다.
 
 애니메이션은 드래곤과 같습니다(`[anim.idle]` 의 `fps` `loop` `frame_w` `render_scale`).
 

@@ -481,6 +481,8 @@ EnemyParseResult parseEnemyText(const std::string& text, const std::string& fold
             sectionValid = true;
             if (name == "enemy") {
                 section = "enemy";
+            } else if (name == "attack") {
+                section = "attack";
             } else if (name.rfind("anim.", 0) == 0) {
                 AnimState st;
                 if (animStateFromName(name.substr(5), st)) { section = "anim"; animSec = st; }
@@ -555,12 +557,34 @@ EnemyParseResult parseEnemyText(const std::string& text, const std::string& fold
             else if (key == "split_level_drop") ok = parseInt(val, d.splitLevelDrop);
             else if (key == "split_guard") ok = parseFloat(val, d.splitGuard);
             else warn("모르는 키 " + key + " ([enemy])");
+        } else if (section == "attack") {
+            // T8: 공격 모양. 쓰는 법은 assets/enemies/README.md
+            EnemyAttackDef& a = r.def.attack;
+            if (key == "kind") {
+                const std::string v = lower(val);
+                if (v == "swing") a.kind = EnemyAttackKind::Swing;
+                else if (v == "slam") a.kind = EnemyAttackKind::Slam;
+                else if (v == "thrust") a.kind = EnemyAttackKind::Thrust;
+                else if (v == "lunge") a.kind = EnemyAttackKind::Lunge;
+                else if (v == "shot") a.kind = EnemyAttackKind::Shot;
+                else if (v == "legacy") a.kind = EnemyAttackKind::Legacy;
+                else ok = false;
+            }
+            else if (key == "windup") ok = parseFloat(val, a.windup);
+            else if (key == "cooldown") ok = parseFloat(val, a.cooldown);
+            else if (key == "radius") ok = parseFloat(val, a.radius);
+            else if (key == "length") ok = parseFloat(val, a.length);
+            else if (key == "arc") ok = parseFloat(val, a.arc);
+            else if (key == "offset") ok = parseFloat(val, a.offset);
+            else if (key == "shot_speed") ok = parseFloat(val, a.shotSpeed);
+            else warn("모르는 키 " + key + " ([attack])");
         } else if (section == "anim") {
             AnimDef& a = r.def.anims[static_cast<int>(animSec)];
             if (key == "fps") ok = parseFloat(val, a.fps);
             else if (key == "loop") ok = parseBool(val, a.loop);
             else if (key == "frame_w") ok = parseInt(val, a.frameW);
             else if (key == "render_scale") ok = parseFloat(val, a.renderScale);
+            else if (key == "hit_frame" && animSec == AnimState::Attack) ok = parseInt(val, r.def.attackHitFrame);
             else warn("모르는 키 " + key + " ([anim." + animStateName(animSec) + "])");
         }
         if (!ok) warn(key + " 값을 읽을 수 없습니다: " + val);
@@ -590,6 +614,14 @@ EnemyParseResult parseEnemyText(const std::string& text, const std::string& fold
     clampF("keep_ratio", d.keepRatio, 0.05f, 1.f);
     clampF("windup", d.windup, 0.f, 5.f);
     clampF("attack_cooldown", d.attackCooldown, 0.1f, 30.f);
+    clampF("attack.windup", d.attack.windup, 0.2f, 5.f);
+    clampF("attack.cooldown", d.attack.cooldown, 0.1f, 30.f);
+    clampF("attack.radius", d.attack.radius, 4.f, 600.f);
+    clampF("attack.length", d.attack.length, 8.f, 2000.f);
+    clampF("attack.arc", d.attack.arc, 10.f, 360.f);
+    clampF("attack.offset", d.attack.offset, 0.f, 600.f);
+    clampF("attack.shot_speed", d.attack.shotSpeed, 50.f, 3000.f);
+    clampI("hit_frame", d.attackHitFrame, 0, 64);
     clampI("summon_count", d.summonCount, 0, 8);
     clampI("summon_level", d.summonLevel, 1, 99);
     clampI("split_count", d.splitCount, 0, 6);

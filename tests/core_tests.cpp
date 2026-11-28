@@ -709,6 +709,99 @@ static void testFieldBossParty() {
 
 
 // 2026-11-25 10층 필드 보스 슬라임 왕: 체력이 깎일 때마다 분열하고, 분열체가 살아 있으면 본체가 단단해진다.
+// T8: 일반 몬스터 공격 모양 — 부채꼴 판정, 달려들기, 투사체(예고 줄을 벗어나면 피한다)
+static void testEnemyAttackKinds() {
+    std::printf("[enemy attack kinds]\n");
+    // 부채꼴: 앞은 맞고, 옆 80도·뒤는 안 맞는다(전체 100도)
+    AttackZone fan;
+    fan.shape = ZoneShape::Fan;
+    fan.a = {0.f, 0.f};
+    fan.b = {100.f, 0.f};
+    fan.arc = 100.f;
+    CHECK(attackZoneContains(fan, {80.f, 10.f}, 0.f));
+    CHECK(attackZoneContains(fan, {50.f, 50.f}, 0.f));            // 45도
+    CHECK(!attackZoneContains(fan, {20.f, 90.f}, 0.f));           // 약 77도
+    CHECK(!attackZoneContains(fan, {-60.f, 0.f}, 0.f));           // 뒤
+    CHECK(!attackZoneContains(fan, {130.f, 0.f}, 0.f));           // 너무 멀다
+    CHECK(attackZoneContains(fan, {115.f, 0.f}, 20.f));           // 닿는 여유
+
+    EnemyKind slime{};
+    CHECK(enemyFromKey("slime", slime));
+    const auto make = [&](const char* key, EnemyAttackKind kind, float range) {
+        EnemyDef def = enemyDef(slime);
+        def.key = key;
+        def.role = EnemyRole::Melee;
+        def.attackRange = range;
+        def.keepRatio = 1.f;
+        def.baseSpeed = 0.f;
+        def.speedGrowth = 0.f;
+        def.attack = EnemyAttackDef{};
+        def.attack.kind = kind;
+        def.attack.windup = 0.6f;
+        def.attack.cooldown = 30.f;
+        def.attack.length = kind == EnemyAttackKind::Shot ? 400.f : 120.f;
+        def.attack.radius = kind == EnemyAttackKind::Shot ? 12.f : 50.f;
+        def.attack.shotSpeed = 600.f;
+        return registerOrUpdateEnemy(def);
+    };
+    PlayerInput none;
+    const float dt = 1.f / 30.f;
+    const auto setup = [&](World& w, EnemyKind k, float gap) -> int {
+        w.seed(5);
+        w.setBounds({0.f, 0.f, 1600.f, 900.f});
+        w.setupDragon(Species::Fire, 40, -1.f, {400.f, 450.f});
+        const int id = w.spawnEnemy(k, 10, {400.f + gap, 450.f}, false).id;
+        // 첫 공격까지의 대기(무작위 0.6~1.6초)를 넘긴다 — 예고가 생긴 프레임에서 멈춘다
+        for (int i = 0; i < 90 && w.zones().empty(); ++i) w.updateCombat(dt, CombatMode::Direct, none);
+        return id;
+    };
+
+    // 달려들기: 예고 동안은 제자리, 예고가 끝나면 드래곤 쪽으로 옮겨 가 있다
+    {
+        World w;
+        const EnemyKind k = make("test-lunge", EnemyAttackKind::Lunge, 160.f);
+        const int id = setup(w, k, 150.f);
+        CHECK(w.zones().size() == 1);
+        float startX = 0.f;
+        for (const Enemy& e : w.enemies()) if (e.id == id) startX = e.pos.x;
+        for (int i = 0; i < 6; ++i) w.updateCombat(dt, CombatMode::Direct, none);
+        float midX = 0.f;
+        for (const Enemy& e : w.enemies()) if (e.id == id) midX = e.pos.x;
+        CHECK(std::fabs(midX - startX) < 1.f);  // 0.2초: 아직 예고 중
+        const float hp0 = w.dragon().hp;
+        for (int i = 0; i < 20; ++i) w.updateCombat(dt, CombatMode::Direct, none);
+        float endX = 0.f;
+        for (const Enemy& e : w.enemies()) if (e.id == id) endX = e.pos.x;
+        CHECK(startX - endX > 80.f);           // 달려들었다
+        CHECK(w.dragon().hp < hp0);            // 직접 조작은 확률 회피가 없다
+    }
+    // 투사체: 예고가 끝나면 날아가고, 가만히 있으면 맞는다
+    {
+        World w;
+        const EnemyKind k = make("test-shot", EnemyAttackKind::Shot, 320.f);
+        setup(w, k, 300.f);
+        CHECK(w.zones().size() == 1 && w.zones()[0].shotSpeed > 0.f);
+        const float hp0 = w.dragon().hp;
+        for (int i = 0; i < 17; ++i) w.updateCombat(dt, CombatMode::Direct, none);
+        CHECK(w.dragon().hp == hp0);           // 예고만으로는 맞지 않는다
+        CHECK(!w.enemyShots().empty());
+        for (int i = 0; i < 30; ++i) w.updateCombat(dt, CombatMode::Direct, none);
+        CHECK(w.dragon().hp < hp0);
+        CHECK(w.enemyShots().empty());
+    }
+    // 투사체: 예고 줄에서 벗어나면 피한다
+    {
+        World w;
+        const EnemyKind k = make("test-shot2", EnemyAttackKind::Shot, 320.f);
+        setup(w, k, 300.f);
+        const float hp0 = w.dragon().hp;
+        w.dragon().pos.y += 150.f;             // 줄 밖으로
+        for (int i = 0; i < 60; ++i) w.updateCombat(dt, CombatMode::Direct, none);
+        CHECK(w.dragon().hp == hp0);
+        CHECK(w.enemyShots().empty());         // 끝까지 날아가 사라졌다
+    }
+}
+
 static void testEnemySplit() {
     std::printf("[enemy split]\n");
     EnemyKind slime{};
@@ -4993,6 +5086,7 @@ int main(int argc, char** argv) {
     testEconomy();
     testFieldBossParty();
     testEnemySplit();
+    testEnemyAttackKinds();
     testDefenseWaveGrows();
     testAutoBattleNoLongerCapped();
     testUiSettingsSaved();

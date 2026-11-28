@@ -26,6 +26,15 @@ keep_ratio=0.8
 windup=1.1
 attack_cooldown=2.8
 
+; ---- 공격 모양(T8, 2026-11-25) ---- 몽둥이 내려치기 — 크고 느리다
+; 예고+쿨 합(한 번 공격 주기)은 T8 전 공통값(0.85+2.2초)과 비슷하게 맞췄다. 수치 임시.
+[attack]
+kind=slam
+windup=1.1
+cooldown=1.95
+offset=40
+radius=68
+
 ; ---- 애니메이션 ----
 ; idle/move/hit/death 는 monsters-desk.png(칸 256), attack 은 monsters.png(칸이 더 커서
 ; 같은 배율로는 크게 보인다)에서 왔다. render_scale 로 몸 크기를 맞춘다.
@@ -40,6 +49,7 @@ loop=yes
 frame_w=256
 
 [anim.attack]
+hit_frame=6
 fps=8
 loop=no
 frame_w=256

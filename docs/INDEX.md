@@ -24,6 +24,7 @@
 | **각성 화석룡 골각 사출** | [확정 규칙](game-design.md#awakened-bone-shot-rules) → [승인 에셋·검수 기록](characters/revenant-dragon-progress.md#awakened-bone-shot-2026-11-23) |
 | **탑 층 구성** | [../assets/tower/README.md](../assets/tower/README.md) → [tower-100-design.md](tower-100-design.md) |
 | **탑 보스 기획** | [tower-100-bosses.md](tower-100-bosses.md) |
+| **몬스터·보스 스킬(T8)** | [monster-boss-skills.md](monster-boss-skills.md) |
 | **UI 스킨** | [../assets/ui/README.md](../assets/ui/README.md) |
 | **밸런스 수치 조정** | [implementation-notes.md](implementation-notes.md) 임시값·시뮬레이션 참고값 |
 | **테스트·정적 분석·퍼저** | [quality-tools.md](quality-tools.md) |
@@ -51,7 +52,7 @@
 - [roadmap.md](roadmap.md) — 개발 단계와 체크포인트
 - [character-pipeline.md](character-pipeline.md) — 캐릭터 이미지·애니메이션·스킬 적용 규격
 - [skill-production.md](skill-production.md) — 전투 스킬 제작 표준, 명세·검수 양식, 망령익참 사례와 [Codex 스킬](../.agents/skills/dragon-tower-skill-production/SKILL.md)
-- [tower-100-design.md](tower-100-design.md) · [tower-100-bosses.md](tower-100-bosses.md) — 탑 100층 설계·보스
+- [tower-100-design.md](tower-100-design.md) · [tower-100-bosses.md](tower-100-bosses.md) · [monster-boss-skills.md](monster-boss-skills.md) — 탑 100층 설계·보스·몬스터 스킬
 - [quality-tools.md](quality-tools.md) — 빌드 확인·새니타이저·퍼저·정적 분석·시트 검사
 - [implementation-notes.md](implementation-notes.md) — 임시값과 시뮬레이션 참고값
 - [windows-checklist.md](windows-checklist.md) — 사람이 Windows 에서 확인할 것

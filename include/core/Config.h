@@ -42,6 +42,7 @@ constexpr float kImpAttackRange = 72.f;
 constexpr float kImpZoneRadius = 56.f;
 constexpr float kImpWindup = 0.85f;        // 공격 예고 시간
 constexpr float kImpAttackCooldown = 2.2f;
+constexpr float kEnemyLungeDash = 0.18f;    // T8 lunge: 예고 끝에 달려드는 시간
 
 // 적: 탑의 수호자(보스)
 constexpr float kGuardianSlamRadius = 135.f;
