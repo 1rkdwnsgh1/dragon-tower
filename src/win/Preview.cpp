@@ -221,7 +221,7 @@ bool PreviewWindow::load(const fs::path& path) {
     auto parsed = parseDragonText(contents, name.empty() ? "preview" : name, nullptr);
     const EnemyDef* targetArt = nullptr;
     if (std::any_of(parsed.def.skills.begin(), parsed.def.skills.end(),
-                    [](const SkillDef& sk) { return sk.spectralCleave || sk.furnaceBurst || sk.coreOverheat || sk.heatBladeStorm; })) {
+                    [](const SkillDef& sk) { return sk.spectralCleave || sk.furnaceBurst || sk.coreOverheat || sk.heatBladeStorm || sk.carpetBombardment; })) {
         loadEnemyFolders(dir.parent_path().parent_path() / "enemies");
         if (!enemyFromKey("goblin", cleaveTargetKind_)) cleaveTargetKind_ = defaultMelee();
         targetArt = &enemyDef(cleaveTargetKind_);
@@ -322,10 +322,10 @@ void PreviewWindow::reset() {
             second.stun = 10000.f;
             second.facing = -direction;
         }
-        if (sk->furnaceBurst) target_.y = kFloorY - enemyDef(cleaveTargetKind_).radius - distance * std::sin(aim);
-        const EnemyKind kind = (sk->spectralCleave || sk->furnaceBurst || sk->coreOverheat || sk->heatBladeStorm) ? cleaveTargetKind_ : defaultMelee();
-        Enemy& target = world_.spawnEnemy(kind, 1, target_, !sk->spectralCleave && !sk->coreOverheat);
-        if (sk->spectralCleave || sk->boneShot || sk->furnaceBurst || sk->coreOverheat || sk->heatBladeStorm) target.facing = -direction;
+        if (sk->furnaceBurst || sk->carpetBombardment) target_.y = kFloorY - enemyDef(cleaveTargetKind_).radius - distance * std::sin(aim);
+        const EnemyKind kind = (sk->spectralCleave || sk->furnaceBurst || sk->coreOverheat || sk->heatBladeStorm || sk->carpetBombardment) ? cleaveTargetKind_ : defaultMelee();
+        Enemy& target = world_.spawnEnemy(kind, 1, target_, !sk->spectralCleave && !sk->coreOverheat && !sk->carpetBombardment);
+        if (sk->spectralCleave || sk->boneShot || sk->furnaceBurst || sk->coreOverheat || sk->heatBladeStorm || sk->carpetBombardment) target.facing = -direction;
         else target.radius = 8.f;
         target.hp = target.maxHp = 1e20f;
         target.stun = 10000.f;
@@ -382,6 +382,7 @@ void PreviewWindow::reset() {
         duration_ = std::max(duration_, kSteelBasicLaunch + sk->range / (cfg::kProjectileSpeed * 1.1f) + sk->duration);
     if (sk->coreOverheat) duration_ = std::max(duration_, kCoreOverheatWindup + sk->duration);
     if (sk->heatBladeStorm) duration_ = 4.15f;
+    if (sk->carpetBombardment) duration_ = 3.35f;
     duration_ += 0.15f;
     if (selected(Layer) == 2 || !body.bmp || skillIsPassive(sk->kind)) stepFps_ = std::max(1.f, sk->fxAnim.fps);
     if (layered) stepFps_ = 1.f / BreathCast::frameSeconds;
@@ -397,8 +398,12 @@ void PreviewWindow::seek(float time) {
     } else {
         for (float remaining = time - time_; remaining > 0.f; remaining -= kStep) {
             const float dt = std::min(kStep, remaining);
-            if (steelBasicPreview_ || (skill() && (skill()->furnaceBurst || skill()->coreOverheat || skill()->heatBladeStorm))) {
-                world_.updateCombat(dt, CombatMode::Direct, {});
+            if (steelBasicPreview_ || (skill() && (skill()->furnaceBurst || skill()->coreOverheat ||
+                                                    skill()->heatBladeStorm || skill()->carpetBombardment))) {
+                PlayerInput input;
+                if (const auto& cast = world_.dragon().carpetCast; cast && cast->time < 1.45f)
+                    input.moveX = cast->direction;
+                world_.updateCombat(dt, CombatMode::Direct, input);
                 world_.updateFx(dt);
             } else {
                 world_.updateFx(dt);
@@ -575,7 +580,7 @@ bool PreviewWindow::saveCapture(const fs::path& file, const Enemy* enemy, AnimSt
         canvas.ScaleTransform(camera, camera);
         canvas.TranslateTransform(-kWorldWidth * 0.5f, -kFloorY);
         if (enemy) renderer_.drawEnemyPreview(canvas, *enemy, sprites_, state, time, scale);
-        else renderer_.drawAnimationPreview(canvas, world_, sprites_, time, layer != 2, layer != 1, scale, steelBasicPreview_ || (sk && (sk->spectralCleave || sk->boneShot || sk->furnaceBurst || sk->coreOverheat || sk->heatBladeStorm || sk->usesFurnaceBreath())));
+        else renderer_.drawAnimationPreview(canvas, world_, sprites_, time, layer != 2, layer != 1, scale, steelBasicPreview_ || (sk && (sk->spectralCleave || sk->boneShot || sk->furnaceBurst || sk->coreOverheat || sk->heatBladeStorm || sk->carpetBombardment || sk->usesFurnaceBreath())));
     }
     CLSID png{};
     if (FAILED(CLSIDFromString(L"{557CF406-1A04-11D3-9A73-0000F81EF32E}", &png))) return false;
@@ -699,14 +704,14 @@ void PreviewWindow::paint() {
                     ground.SetDashStyle(DashStyleDash);
                     canvas.DrawLine(&ground, -kWorldWidth, kFloorY, 2.f * kWorldWidth, kFloorY);
                 }
-                if (sk && !sk->spectralCleave && !sk->boneShot && !sk->furnaceBurst && !sk->coreOverheat) {
+                if (sk && !sk->spectralCleave && !sk->boneShot && !sk->furnaceBurst && !sk->coreOverheat && !sk->carpetBombardment) {
                     Pen target(dark ? Color(216, 225, 239) : Color(70, 80, 99), 1.4f / scale);
                     canvas.DrawEllipse(&target, target_.x - 8.f, target_.y - 8.f, 16.f, 16.f);
                     canvas.DrawLine(&target, target_.x - 13.f, target_.y, target_.x + 13.f, target_.y);
                     canvas.DrawLine(&target, target_.x, target_.y - 13.f, target_.x, target_.y + 13.f);
                 }
                 renderer_.drawAnimationPreview(canvas, world_, sprites_, time_, selected(Layer) != 2,
-                                               selected(Layer) != 1, 1.f, steelBasicPreview_ || (sk && (sk->spectralCleave || sk->boneShot || sk->furnaceBurst || sk->coreOverheat || sk->heatBladeStorm || sk->usesFurnaceBreath())));
+                                               selected(Layer) != 1, 1.f, steelBasicPreview_ || (sk && (sk->spectralCleave || sk->boneShot || sk->furnaceBurst || sk->coreOverheat || sk->heatBladeStorm || sk->carpetBombardment || sk->usesFurnaceBreath())));
             }
         }
         Graphics screen(dc);

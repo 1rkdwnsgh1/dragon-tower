@@ -1,6 +1,7 @@
 #include <cstdio>
 #include "Sprites.h"
 #include "HeatBladeAtlases.h"
+#include "core/CarpetBombardment.h"
 
 #include "core/World.h"
 
@@ -500,6 +501,24 @@ void Sprites::loadFxSheets(const std::filesystem::path& dir, const SpeciesDef& d
             data.columns = static_cast<int>(image->GetWidth()) / atlas.width;
             data.bmp = std::move(image);
             sheets_[def.key + "/fx_" + atlas.path] = std::move(data);
+        }
+        if (std::any_of(def.skills.begin(), def.skills.end(), [](const SkillDef& sk) { return sk.carpetBombardment; })) {
+            for (const auto& atlas : carpet::atlases) {
+                const auto file = dir / "carpet_bombardment_v1_1" / (atlas.key + 7) / "sheet.png";
+                auto image = loadPng(file, detachFiles_);
+                if (!image || image->GetWidth() != static_cast<unsigned>(atlas.width * atlas.columns) ||
+                    image->GetHeight() != static_cast<unsigned>(atlas.height * atlas.rows)) {
+                    warnings_.push_back(label + "/" + atlas.key + ": invalid V1.1 atlas");
+                    continue;
+                }
+                SheetData data;
+                data.frames = atlas.frames;
+                data.frameW = atlas.width;
+                data.frameH = atlas.height;
+                data.columns = atlas.columns;
+                data.bmp = std::move(image);
+                sheets_[def.key + "/fx_" + atlas.key] = std::move(data);
+            }
         }
         for (const char* mask : {"overheat_idle", "overheat_idle_vent", "overheat_move", "overheat_fly", "overheat_attack"})
             load(mask, 256);

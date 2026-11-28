@@ -112,3 +112,15 @@ radius=45
 scale_with_size=yes
 layered_breath=furnace_breath_v3_1
 breath_sustained=yes
+
+; FLY 자동 이륙과 독립 착탄 여섯 발.
+[skill.5]
+name=용광 융단폭격
+desc=짧게 이륙해 포탄 여섯 발을 두 발씩 투하한다.
+kind=Line
+level=12
+cooldown=20
+power=0.95
+range=520
+radius=74
+carpet_bombardment=yes

@@ -198,6 +198,8 @@ private:
     // true 면 본체 위 효과만 그린다 — 그래서 드래곤 앞뒤로 두 번 부른다.
     // sp·charScale 은 스프라이트 효과의 크기 기준(본체 크기)과 fx_ 시트를 찾는 데 쓴다.
     void drawCleaveImpacts(Gdiplus::Graphics& g, const World& w, const Sprites& sprites, bool front);
+    void drawCarpetSprite(Gdiplus::Graphics& g, const Sprites& sprites, int layer,
+                          Vec2 origin, float time, float scale, float degrees = 0.f, bool flip = false);
     void drawFx(Gdiplus::Graphics& g, const World& w, const Sprites& sprites, const SpeciesDef& sp,
                 float charScale, bool inFront);
     // 효과 하나를 fx_<key>.png 시트로 그린다. 시트가 없으면 false — 부르는 쪽이 도형으로 그린다.

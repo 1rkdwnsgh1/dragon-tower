@@ -1,3 +1,4 @@
+#include "core/CarpetBombardment.h"
 // 핵심 규칙 검증. Windows 없이도 빌드·실행된다.
 #include <cstdio>
 #include <cstdlib>
@@ -4882,6 +4883,100 @@ static void testSteelFurnaceBreath(Species steel) {
     CHECK(!dragon.breath && w.enemies()[1].hp == afterSustain && dragon.skillCd[3] > 0.f);
 }
 
+static void testSteelCarpetBombardment(Species steel) {
+    World w;
+    w.setBounds(kDesk);
+    w.setupDragon(steel, 12, 0.f, {400.f, 460.f});
+    const auto& skill = speciesDef(steel).skills[4];
+    CHECK(skill.carpetBombardment);
+    w.setSlots({4, -1, -1, -1});
+    auto& dragon = w.dragon();
+    dragon.basicCd = 100.f;
+    const auto add = [&](Vec2 pos) {
+        auto& e = w.spawnEnemy(defaultMelee(), 1, pos, false);
+        e.hp = e.maxHp = 1000.f;
+        e.stun = 100.f;
+    };
+    add({680.f, 460.f});
+    add({820.f, 460.f});
+    add({680.f, 290.f});
+    PlayerInput fire;
+    fire.skill[0] = true;
+    const auto tick = [&](float dt, PlayerInput input = {}) {
+        w.updateCombat(dt, CombatMode::Direct, input);
+        w.updateFx(dt);
+    };
+    tick(0.f, fire);
+    CHECK(dragon.carpetCast && dragon.anim == AnimState::Fly && dragon.flying);
+    if (!dragon.carpetCast) return;
+    const float centerX = dragon.carpetCast->center.x;
+    const float impactY = dragon.carpetCast->center.y;
+    tick(.24f);
+    CHECK(w.projectiles().empty());
+    PlayerInput move;
+    move.moveX = 1.f;
+    tick(.02f, move);
+    CHECK(dragon.pos.x > 400.f && dragon.anim == AnimState::Fly);
+    CHECK(w.projectiles().size() == 1 && dragon.carpetCast->nextShot == 1);
+    if (w.projectiles().empty()) return;
+    const auto first = *w.projectiles().front().carpetBomb;
+    CHECK(first.origin.y < dragon.pos.y - 100.f && first.target.x < centerX);
+    tick(.14f);
+    CHECK(w.projectiles().size() == 2 && dragon.carpetCast->nextShot == 2);
+    tick(.33f);
+    const auto countLayer = [&](int layer) {
+        return std::count_if(w.fx().begin(), w.fx().end(), [&](const Fx& f) {
+            return f.key == carpet::atlases[layer].key;
+        });
+    };
+    CHECK(countLayer(carpet::flash) == 1 && countLayer(carpet::shockwave) == 1);
+    CHECK(std::any_of(w.fx().begin(), w.fx().end(), [](const Fx& fx) {
+        return fx.key == carpet::atlases[carpet::explosion].key && fx.t < 0.f;
+    }));
+    tick(1.35f);
+    CHECK(w.projectiles().empty() && dragon.carpetCast && dragon.carpetCast->nextShot == 6);
+    CHECK(countLayer(carpet::smoke) >= 3);
+    for (int e = 0; e < 3; ++e) {
+        const auto& enemy = w.enemies()[e];
+        int hits = 0;
+        for (int i = 0; i < carpet::shotCount; ++i)
+            if (distance(enemy.pos, {centerX + (i - 2.5f) * 56.f, impactY}) <= skill.radius + enemy.radius)
+                ++hits;
+        const float damage = mitigate(dragon.attack() * skill.power, enemy.def);
+        CHECK(std::fabs(enemy.hp - (1000.f - hits * damage)) < .03f);
+        if (e < 2) CHECK(hits > 1);
+        else CHECK(hits == 0);
+    }
+    tick(1.4f, fire);
+    CHECK(!dragon.carpetCast && !dragon.flying && dragon.skillCd[4] > 0.f);
+    CHECK(countLayer(carpet::smoke) == 0);
+
+    w.clearEnemies(false);
+    w.setupDragon(steel, 12, 0.f, {500.f, 460.f});
+    w.setSlots({4, -1, -1, -1});
+    dragon.facing = {-1.f, 0.f};
+    tick(0.f, fire);
+    w.updateCombat(2.1f, CombatMode::Direct, {});  // Count all impacts before expired visuals are erased.
+    CHECK(countLayer(carpet::smoke) == 6 && w.projectiles().empty());
+    std::vector<float> impacts;
+    for (const Fx& fx : w.fx())
+        if (fx.key == carpet::atlases[carpet::smoke].key) impacts.push_back(fx.a.x);
+    CHECK(std::is_sorted(impacts.rbegin(), impacts.rend()));
+    w.updateFx(0.f, true);
+    CHECK(!dragon.carpetCast && countLayer(carpet::smoke) == 0);
+
+    w.setupDragon(steel, 12, 0.f, {500.f, 460.f});
+    w.setSlots({4, -1, -1, -1});
+    tick(0.f, fire);
+    tick(.30f);
+    CHECK(w.projectiles().size() == 1);
+    dragon.alive = false;
+    tick(.40f);
+    CHECK(!dragon.carpetCast && w.projectiles().size() == 1);
+    tick(.05f);
+    CHECK(w.projectiles().empty() && countLayer(carpet::flash) == 1);
+}
+
 static void testSteelDragon(const std::filesystem::path& assets) {
     std::printf("[steel dragon registration]\n");
     const DragonScanResult scan = loadDragonFolders(assets / "dragons");
@@ -4902,7 +4997,7 @@ static void testSteelDragon(const std::filesystem::path& assets) {
     CHECK(move.fps == 16.f && move.frameW == 256 && move.loop);
     const auto& attack = def.anims[static_cast<int>(AnimState::Attack)];
     CHECK(attack.fps == kSteelBasicFps && attack.frameW == 256 && !attack.loop);
-    CHECK(def.skills.size() == 4);
+    CHECK(def.skills.size() == 5);
 
     Game game;
     game.init(SaveData{}, kDesk);
@@ -4921,6 +5016,7 @@ static void testSteelDragon(const std::filesystem::path& assets) {
     testSteelCoreOverheat(steel);
     testSteelHeatBladeStorm(steel);
     testSteelFurnaceBreath(steel);
+    testSteelCarpetBombardment(steel);
 
     game.placeDragon({700.f, 500.f});
     auto& world = game.world();

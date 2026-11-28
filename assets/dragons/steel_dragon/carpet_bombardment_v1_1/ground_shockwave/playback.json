@@ -1,0 +1,21 @@
+{
+  "cell": [
+    512,
+    128
+  ],
+  "anchor": [
+    256,
+    62
+  ],
+  "frame_count": 6,
+  "fps": 24,
+  "loop": false,
+  "preview_scale": 0.25,
+  "columns": 3,
+  "rows": 2,
+  "order": "row-major",
+  "duration_s": 0.25,
+  "pixel_format": "RGBA8",
+  "file": "assets/ground_shockwave/sheet.png",
+  "frames": "assets/ground_shockwave/frames/"
+}

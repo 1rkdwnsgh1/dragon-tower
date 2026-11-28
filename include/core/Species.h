@@ -138,6 +138,7 @@ struct SkillDef {
     AnimDef fxAnim{12.f, false, 0, 1.f};
     bool furnaceBurst = false;
     bool coreOverheat = false;
+    bool carpetBombardment = false;
     bool heatBladeStorm = false;
     bool heatBladeRepeatTargets = false;
     float fxImpactFps = 0.f;  // Zero inherits the projectile sheet's FPS.

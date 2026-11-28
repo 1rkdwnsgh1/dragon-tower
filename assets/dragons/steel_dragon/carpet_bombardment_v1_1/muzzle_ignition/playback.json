@@ -1,0 +1,26 @@
+{
+  "frame_count": 6,
+  "fps": 16,
+  "loop": false,
+  "duration_s": 0.375,
+  "cell": [
+    384,
+    352
+  ],
+  "anchor": [
+    116,
+    125
+  ],
+  "source_anchor": [
+    402,
+    454
+  ],
+  "columns": 3,
+  "rows": 2,
+  "order": "row-major",
+  "pixel_format": "RGBA8",
+  "frames": "assets/muzzle_ignition/frames/",
+  "file": "assets/muzzle_ignition/sheet.png",
+  "normalized_from_master_scale": 0.43,
+  "preview_scale": 0.153
+}

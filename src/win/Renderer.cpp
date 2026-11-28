@@ -1,4 +1,5 @@
 #include "HeatBladeAtlases.h"
+#include "core/CarpetBombardment.h"
 #include "Renderer.h"
 
 #include <algorithm>
@@ -893,6 +894,7 @@ void Renderer::drawSoulfireBodyVfx(Graphics& g, const DragonActor& d, const Spri
 void Renderer::drawDragon(Graphics& g, const DragonActor& d, const Sprites& sprites, float time, float x, float y,
                           float height, bool preview, bool showBody, bool effects) {
     const bool soulfire = !preview && d.skillCast && d.skillCast->soulfireCastId;
+    const CarpetCast* bombing = !preview && d.alive && d.carpetCast ? &*d.carpetCast : nullptr;
     const SpeciesDef& sp = speciesDef(d.species);
     bool flip = sp.flipAllowed && d.facing.x < 0.f;
     float alpha = (!preview && d.invuln > 0.f) ? 0.55f : 1.f;
@@ -900,7 +902,7 @@ void Renderer::drawDragon(Graphics& g, const DragonActor& d, const Sprites& spri
     float flash = (!preview && d.hitFlash > 0.f) ? 0.25f : 0.f;
 
     // 시트 애니메이션이 있으면 그것으로 그린다(v0.2). 미리보기는 항상 대기 동작.
-    AnimState state = preview ? AnimState::Idle : d.anim;
+    AnimState state = preview ? AnimState::Idle : bombing ? AnimState::Fly : d.anim;
     const SkillDef* breath = !preview && d.breath ? &sp.skills[static_cast<size_t>(d.breath->skill)] : nullptr;
     const Sheet breathBody = breath ? sprites.breathBody(sp, *breath) : Sheet{};
     const bool breathing = breathBody.bmp != nullptr;
@@ -941,7 +943,7 @@ void Renderer::drawDragon(Graphics& g, const DragonActor& d, const Sprites& spri
 
     // 시트가 여러 칸이면 그림 자체가 움직이므로 위아래 흔들기를 하지 않는다.
     float bob = animated ? 0.f : std::sin(time * (d.moving ? 9.f : 3.f)) * (d.moving ? 4.f : 2.5f);
-    float cy = y + bob;
+    float cy = y + bob - (bombing ? carpet::lift(bombing->time, height / (cfg::kDragonRadius * 3.f)) : 0.f);
 
     // 그림자. 날고 있으면 작고 옅게 그려 공중에 떠 있는 것을 알린다.
     if (showBody) {
@@ -967,7 +969,7 @@ void Renderer::drawDragon(Graphics& g, const DragonActor& d, const Sprites& spri
 
     if (sh.bmp) {
         const AnimDef& ad = skillAnim ? *skillAnim : sp.anims[static_cast<int>(state)];
-        float t = preview ? time : d.animTime;
+        float t = preview ? time : bombing ? bombing->time : d.animTime;
         // render_scale 로 이 상태만 크게/작게 그린다. 칸 안의 바닥 기준선(240/256)이
         // 제자리에 남도록 그만큼 위로 올려 그려, 발 위치가 흔들리지 않게 한다.
         const float kAnchorFrac = 240.f / 256.f;
@@ -1060,6 +1062,15 @@ void Renderer::drawDragon(Graphics& g, const DragonActor& d, const Sprites& spri
             }
         };
         orbit(false);
+        if (effects && bombing && sh.frames == 24) {
+            const Vec2 pin = carpet::port(frame);
+            const Vec2 muzzle{x + (flip ? -1.f : 1.f) * (pin.x - 128.f) * drawH / 256.f,
+                              cyAdj + (pin.y - 128.f) * drawH / 256.f};
+            for (int i = 0; i < bombing->nextShot; ++i) {
+                drawCarpetSprite(g, sprites, carpet::ignition, muzzle, t - carpet::shots[i].launch,
+                                 height / (cfg::kDragonRadius * 3.f), 0.f, flip);
+            }
+        }
         if (showBody) drawSheetFrame(g, sh, frame, x, cyAdj, drawH, flip, flash, alpha);
         if (steelMotion && effects && (d.overheatSkill >= 0 || d.overheatResidual > 0.f)) {
             const char* mask = nullptr;
@@ -1461,7 +1472,7 @@ void Renderer::drawWorld(Graphics& g, const Game& game, const Sprites& sprites, 
         const float ah = cfg::kDragonRadius * 3.f * cs;
         const float acy = a.pos.y + cfg::kDragonRadius - (240.f / 256.f - 0.5f) * ah;
         drawDragon(g, a, sprites, time, a.pos.x, acy, ah, false);
-        const float aTop = acy - ah * 0.5f;
+        const float aTop = acy - ah * 0.5f - (a.carpetCast ? carpet::lift(a.carpetCast->time, cs) : 0.f);
         bar(g, RectF(a.pos.x - 30.f, aTop - 18.f, 60.f, 7.f), a.hp / std::max(1.f, a.stats.maxHp), kHpC);
         text(g, "Lv." + std::to_string(a.level) + " 자동", a.pos.x, aTop - 36.f, 12.f, 0xFFBFD4FF, 1, true, true);
     }
@@ -1487,7 +1498,7 @@ void Renderer::drawWorld(Graphics& g, const Game& game, const Sprites& sprites, 
         const float dh = cfg::kDragonRadius * 3.f * cs;
         const float dcy = d.pos.y + cfg::kDragonRadius - (240.f / 256.f - 0.5f) * dh;
         drawDragon(g, d, sprites, time, d.pos.x, dcy, dh, false);
-        const float dTop = dcy - dh * 0.5f;
+        const float dTop = dcy - dh * 0.5f - (d.carpetCast ? carpet::lift(d.carpetCast->time, cs) : 0.f);
         float bw = 74.f;
         bar(g, RectF(d.pos.x - bw * 0.5f, dTop - 22.f, bw, 8.f), d.hp / d.stats.maxHp, kHpC);
         text(g, "Lv." + std::to_string(game.dragonRecord().level), d.pos.x, dTop - 42.f,
@@ -1770,6 +1781,12 @@ void Renderer::drawProjectiles(Graphics& g, const World& w, const Sprites& sprit
     const uint32_t spColor = dragonSp.color;
     // 투사체
     for (const Projectile& p : w.projectiles()) {
+        if (p.carpetBomb) {
+            const Vec2 aim = p.carpetBomb->aim;
+            drawCarpetSprite(g, sprites, carpet::projectile, p.pos, p.t, p.carpetBomb->scale,
+                             std::atan2(aim.y, aim.x) * 180.f / kPi);
+            continue;
+        }
         if (p.heatBlade) {
             const Vec2 aim = p.heatBlade->aim;
             const bool left = aim.x < 0.f;
@@ -2179,9 +2196,42 @@ void Renderer::warmBreathCache(Graphics& g, const World& w, const Sprites& sprit
     }
 }
 
+void Renderer::drawCarpetSprite(Graphics& g, const Sprites& sprites, int layer, Vec2 origin,
+                                float time, float size, float degrees, bool flip) {
+    const auto& atlas = carpet::atlases[layer];
+    if (time < 0.f || (!atlas.loop && time >= atlas.duration())) return;
+    const Sheet sheet = sprites.fxSheet("steel_dragon", atlas.key);
+    if (!sheet.bmp) return;
+    const float scale = atlas.scale * size;
+    const float x = (atlas.width * .5f - atlas.anchorX) * scale * (flip ? -1.f : 1.f);
+    const float y = (atlas.height * .5f - atlas.anchorY) * scale;
+    const float width = atlas.width * scale, height = atlas.height * scale;
+    const float angle = degrees * kPi / 180.f;
+    const float cosine = std::cos(angle), sine = std::sin(angle);
+    const float rx = std::fabs(cosine) * width * .5f + std::fabs(sine) * height * .5f;
+    const float ry = std::fabs(sine) * width * .5f + std::fabs(cosine) * height * .5f;
+    const Vec2 center = origin + Vec2{x * cosine - y * sine, x * sine + y * cosine};
+    markRegion(RectF(center.x - rx, center.y - ry, 2.f * rx, 2.f * ry));
+    const auto transform = g.Save();
+    g.TranslateTransform(origin.x, origin.y);
+    if (degrees != 0.f) g.RotateTransform(degrees);
+    drawSheetFrame(g, sheet, animFrame(time, static_cast<float>(atlas.fps), atlas.frames, atlas.loop),
+                   x, y, atlas.height * scale, flip, 0.f, 1.f);
+    g.Restore(transform);
+}
+
 void Renderer::drawFx(Graphics& g, const World& w, const Sprites& sprites, const SpeciesDef& sp, float charScale,
                       bool inFront) {
+    if (!inFront) {
+        for (int layer = carpet::smoke; layer <= carpet::explosion; ++layer) {
+            for (const Fx& f : w.fx()) {
+                if (f.key == carpet::atlases[layer].key)
+                    drawCarpetSprite(g, sprites, layer, f.a, f.t, f.radius);
+            }
+        }
+    }
     for (const Fx& f : w.fx()) {
+        if (f.key.rfind("carpet_", 0) == 0) continue;
         if (f.t < 0.f || f.type == FxType::CleaveImpact) continue;
         if (f.inFront != inFront) continue;  // 이 층이 아니다
         if (f.key.rfind("heat_blade_", 0) == 0) {

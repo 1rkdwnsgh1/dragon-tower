@@ -1,4 +1,5 @@
 #include "core/World.h"
+#include "core/CarpetBombardment.h"
 
 #include <algorithm>
 #include <cmath>
@@ -82,6 +83,7 @@ void World::cancelUltimatePayment(uint64_t id) {
 }
 
 void World::setupDragon(Species s, int level, float hp, Vec2 pos) {
+    clearCarpetBombardment();
     dragon_ = DragonActor{};
     resetSouls();
     dragon_.species = s;
@@ -134,6 +136,10 @@ void World::updateDragonAnim(float dt, bool allowForcedMotion) {
     d.animHold = std::max(0.f, d.animHold - dt);
     if (d.skillCast && d.skillCast->soulfireCastId)
         d.animHold = std::max(0.f, d.skillCast->lockTime - d.skillCast->elapsed);
+    if (d.alive && d.carpetCast) {
+        setDragonAnim(AnimState::Fly, 0.f);
+        return;
+    }
     if (allowForcedMotion && d.animForced && d.alive && !d.held && !confining_ && !d.landing &&
         d.dashTime <= 0.f && d.animHold <= 0.f) {
         d.skillMotion = -1;
@@ -226,6 +232,7 @@ Vec2 World::randomEdgePoint(float margin) {
 }
 
 void World::clearEnemies(bool withPoof) {
+    clearCarpetBombardment();
     dragon_.overheatSkill = -1;
     dragon_.heatBladeStorm.reset();
     for (auto& member : party_) member.actor.heatBladeStorm.reset();
@@ -389,7 +396,7 @@ void World::moveDragon(float dt, Vec2 dir, float speedMul) {
 
 void World::basicAttack(float dt) {
     DragonActor& d = dragon_;
-    if (d.basicCd > 0.f || (d.breath && d.breath->elapsed < d.breath->inputLock)) return;
+    if (d.carpetCast || d.basicCd > 0.f || (d.breath && d.breath->elapsed < d.breath->inputLock)) return;
     if (d.awakened) {
         if (d.skillCast) return;
         const auto& skills = speciesDef(d.species).skills;
@@ -515,6 +522,86 @@ void World::advanceHeatBladeFlight(Projectile& shot, float dt) {
         fx_.back().key = "heat_blade_disappear";
         fx_.back().t = -dt;
         shot.alive = false;
+    }
+}
+
+void World::clearCarpetBombardment() {
+    if (dragon_.carpetCast) dragon_.flying = false;
+    dragon_.carpetCast.reset();
+    for (auto& member : party_) {
+        if (member.actor.carpetCast) member.actor.flying = false;
+        member.actor.carpetCast.reset();
+    }
+    projectiles_.erase(std::remove_if(projectiles_.begin(), projectiles_.end(),
+        [](const Projectile& p) { return p.carpetBomb.has_value(); }), projectiles_.end());
+    fx_.erase(std::remove_if(fx_.begin(), fx_.end(),
+        [](const Fx& f) { return f.key.rfind("carpet_", 0) == 0; }), fx_.end());
+}
+
+void World::advanceCarpetCast(float dt, Vec2 previousPosition) {
+    auto& d = dragon_;
+    if (!d.carpetCast) return;
+    if (!d.alive || d.held) {
+        d.carpetCast.reset();
+        d.flying = false;
+        return;
+    }
+    auto& cast = *d.carpetCast;
+    const SkillDef& skill = speciesDef(d.species).skills[cast.skill];
+    const AnimDef& fly = speciesDef(d.species).anims[static_cast<int>(AnimState::Fly)];
+    const float scale = sizeScale_;
+    const float height = cfg::kDragonRadius * 3.f * scale * fly.renderScale;
+    const float end = cast.time + dt;
+    const float spacing = std::min(56.f, bounds_.w / 6.f);
+    const float facing = d.facing.x < 0.f ? -1.f : 1.f;
+    while (cast.nextShot < carpet::shotCount && carpet::shots[cast.nextShot].launch <= end + 1e-6f) {
+        const int index = cast.nextShot++;
+        const auto& timing = carpet::shots[index];
+        const float step = std::clamp(timing.launch - cast.time, 0.f, dt);
+        const Vec2 position = dt > 0.f ? previousPosition + (d.pos - previousPosition) * (step / dt) : d.pos;
+        const Vec2 pin = carpet::port(carpet::flyFrame(timing.launch, fly.fps));
+        const Vec2 muzzle = position + Vec2{facing * (pin.x - 128.f) * height / 256.f,
+            cfg::kDragonRadius + (pin.y - 240.f) * height / 256.f - carpet::lift(timing.launch, scale)};
+        const Vec2 target{cast.center.x + cast.direction * (index - 2.5f) * spacing, cast.center.y};
+        const Vec2 drop = target - muzzle;
+        const float clearance = std::min(carpet::clearance * scale, drop.length() * .35f);
+        const Vec2 start = muzzle + drop.normalized() * clearance;
+        const Vec2 aim{target.x - start.x, (target.y - start.y) * .4f};
+        Projectile projectile;
+        projectile.pos = start;
+        projectile.damage = d.attack() * skill.power;
+        projectile.carpetBomb = CarpetFlight{start, target, aim, timing.flight, dt - step,
+                                             scale, timing.impactScale, skillRadius(skill)};
+        projectiles_.push_back(std::move(projectile));
+    }
+    cast.time = end;
+    if (end >= carpet::flightEnd) d.carpetCast.reset();
+    d.flying = d.carpetCast.has_value();
+}
+
+void World::advanceCarpetFlight(Projectile& projectile, float dt) {
+    auto& f = *projectile.carpetBomb;
+    const float elapsed = f.firstStep >= 0.f ? std::exchange(f.firstStep, -1.f) : dt;
+    projectile.t += elapsed;
+    const float u = std::clamp(projectile.t / f.duration, 0.f, 1.f);
+    const Vec2 span = f.target - f.origin;
+    projectile.pos = f.origin + Vec2{span.x * u, span.y * u * (.4f + .6f * u)};
+    f.aim = {span.x, span.y * (.4f + 1.2f * u)};
+    if (u < 1.f) return;
+    projectile.alive = false;
+    if (!bounds_.contains(f.target.x, f.target.y)) return;
+    for (Enemy& enemy : enemies_) {
+        if (!enemy.hopping() && inSkillCircle(enemy, f.target, f.radius, sizeScale_))
+            damageEnemy(enemy, projectile.damage);
+    }
+    const float endTimeSinceImpact = projectile.t - f.duration;
+    for (int layer = carpet::smoke; layer <= carpet::explosion; ++layer) {
+        const auto& atlas = carpet::atlases[layer];
+        addFx(FxType::Hit, f.target, f.target, f.scale * f.impactScale,
+              atlas.duration(), 0);
+        fx_.back().key = atlas.key;
+        fx_.back().inFront = false;
+        fx_.back().t = endTimeSinceImpact - dt - carpet::impactDelay[layer];
     }
 }
 
@@ -704,7 +791,7 @@ bool World::castUltimate(bool aiChoice) {
 
 bool World::castSkill(int i, bool aiChoice) {
     DragonActor& d = dragon_;
-    if (d.breath && d.breath->elapsed < d.breath->inputLock) return false;
+    if (d.carpetCast || (d.breath && d.breath->elapsed < d.breath->inputLock)) return false;
     if (d.steelAttack && d.steelAttack->skill >= 0) return false;
     if (d.skillCast || d.procession) return false;  // 2026-11-18: 타격 프레임 스킬이 끝날 때까지 다른 스킬을 막는다
     const SpeciesDef& sp = speciesDef(d.species);
@@ -810,6 +897,25 @@ bool World::castSkill(int i, bool aiChoice) {
             break;
         }
         case SkillKind::Line: {
+            if (s.carpetBombardment) {
+                if (d.carpetCast || d.breath || d.skillCast || d.steelAttack) return false;
+                const Enemy* target = nearestEnemy(d.pos, s.range);
+                if (aiChoice && !target) return false;
+                const float direction = target && std::fabs(target->pos.x - d.pos.x) > 1.f
+                    ? (target->pos.x > d.pos.x ? 1.f : -1.f) : (d.facing.x < 0.f ? -1.f : 1.f);
+                const float span = std::min(56.f, bounds_.w / 6.f) * 2.5f;
+                const float x = target ? target->pos.x : d.pos.x + direction * s.range * .45f;
+                const float y = target ? target->pos.y + target->radius : d.pos.y + cfg::kDragonRadius;
+                d.carpetCast = CarpetCast{i, {std::clamp(x, bounds_.x + span, bounds_.right() - span),
+                    std::clamp(y, bounds_.y, bounds_.bottom())}, direction};
+                d.facing = {direction, 0.f};
+                d.flying = true;
+                d.animHold = 0.f;
+                d.skillMotion = -1;
+                setDragonAnim(AnimState::Fly, 0.f);
+                d.skillCd[i] = s.cooldown;
+                return true;
+            }
             if (s.heatBladeStorm) {
                 if (d.heatBladeStorm || (aiChoice && !nearestEnemy(d.pos, s.range))) return false;
                 d.heatBladeStorm = HeatBladeStorm{i};
@@ -1864,7 +1970,7 @@ void World::damageDragon(float raw) {
     if (d.guardTime > 0.f) dmg *= cfg::kGuardDamageMul;  // T6 수호의 물약
     d.hp -= dmg;
     d.hitFlash = 0.2f;
-    if (!d.procession && (!d.breath || d.breath->inputLock <= 0.f) &&
+    if (!d.carpetCast && !d.procession && (!d.breath || d.breath->inputLock <= 0.f) &&
         (!d.skillCast || !d.skillCast->soulfireCastId)) setDragonAnim(AnimState::Hit, cfg::kAnimHitHold);
     statHitsTaken++;
     addText(intText(dmg), d.pos - Vec2{0.f, 52.f}, kColorDamageToDragon, 20.f, 0.9f);
@@ -1872,6 +1978,8 @@ void World::damageDragon(float raw) {
     if (d.hp <= 0.f) {
         d.hp = 0.f;
         d.alive = false;
+        d.carpetCast.reset();
+        d.flying = false;
         resetSouls();
         d.breath.reset();
         if (d.skillCast && d.skillCast->soulfireCastId) advanceSkillCast(0.f, true);
@@ -1982,7 +2090,9 @@ void World::advanceBoneShot(Projectile& shot, BoneShotFlight& flight, float dt) 
 void World::controlDragon(float dt, CombatMode mode, const PlayerInput& in, bool ultimateInput) {
     DragonActor& d = dragon_;
     // 전투 중에는 자동 행동(날기)을 쓰지 않는다. 적이 없어 wander가 돌면 그 안에서 다시 켜진다.
-    d.flying = false;
+    d.flying = d.carpetCast.has_value();
+    const Vec2 previousPosition = d.pos;
+    const bool carpetAlreadyActive = d.carpetCast.has_value();
     // 타이머
     d.basicCd = std::max(0.f, d.basicCd - dt);
     const float cdStep = dt * (d.swiftTime > 0.f ? cfg::kSwiftCdMul : 1.f);  // T6 신속의 물약
@@ -2065,6 +2175,7 @@ void World::controlDragon(float dt, CombatMode mode, const PlayerInput& in, bool
     advanceCoreOverheat(dt);
     advanceHeatBladeStorm(dt);
     if (mobileBreath) advanceBreath(dt);
+    if (carpetAlreadyActive) advanceCarpetCast(dt, previousPosition);
 }
 
 void World::updateCombat(float dt, CombatMode mode, const PlayerInput& in) {
@@ -2103,6 +2214,10 @@ void World::updateCombat(float dt, CombatMode mode, const PlayerInput& in) {
 
     // 투사체
     for (Projectile& p : projectiles_) {
+        if (p.carpetBomb) {
+            advanceCarpetFlight(p, dt);
+            continue;
+        }
         if (p.heatBlade) {
             advanceHeatBladeFlight(p, dt);
             continue;
@@ -2281,6 +2396,7 @@ void World::updateFx(float dt, bool combatEnded) {
     dragon_.overheatResidual = std::max(0.f, dragon_.overheatResidual - dt);
     if (!dragon_.alive) dragon_.heatBladeStorm.reset();
     if (combatEnded) {
+        clearCarpetBombardment();
         dragon_.heatBladeStorm.reset();
         for (auto& member : party_) member.actor.heatBladeStorm.reset();
         fx_.erase(std::remove_if(fx_.begin(), fx_.end(), [](const Fx& fx) {
