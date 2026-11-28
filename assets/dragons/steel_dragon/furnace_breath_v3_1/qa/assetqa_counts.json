@@ -1,0 +1,27 @@
+{
+  "base": {
+    "FAIL": {
+      "empty_layer": 1
+    },
+    "WARN": {
+      "frame_shift": 5,
+      "loop_seam": 2
+    },
+    "REVIEW": {
+      "game_readability": 1,
+      "visual_timing": 1,
+      "visual_alignment": 1
+    }
+  },
+  "l4": {
+    "FAIL": {},
+    "WARN": {
+      "frame_shift": 16
+    },
+    "REVIEW": {
+      "game_readability": 1,
+      "visual_timing": 1,
+      "visual_alignment": 1
+    }
+  }
+}

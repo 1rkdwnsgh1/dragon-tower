@@ -306,6 +306,26 @@ struct FloatText {
 enum class IdleBehavior { Rest = 0, Walk = 1, Fly = 2 };
 const char* idleBehaviorName(IdleBehavior b);
 
+// Mouth landmarks in the original right-facing steel body cells.
+inline Vec2 furnaceBreathMouth(AnimState state, int frame, bool idleVent = false) {
+    static const Vec2 idle[] = {
+        {247,187},{247,187},{247,187},{248,186},{248,186},{248,186},
+        {248,185},{248,185},{248,185},{248,185},{248,185},{248,185},
+        {248,185},{248,186},{248,186},{248,186},{248,186},{248,186},
+        {248,186},{247,187},{247,187},{247,187},{247,187},{247,187}
+    };
+    static const Vec2 fly[] = {
+        {241,148},{241,148},{239,150},{239,150},{239,150},{242,151},
+        {242,151},{242,151},{244,152},{244,152},{244,149},{241,117},
+        {241,117},{239,120},{239,120},{242,123},{242,123},{242,123},
+        {242,123},{243,125},{243,125},{243,125},{244,125},{244,125}
+    };
+    if (state == AnimState::Idle && !idleVent) return idle[frame % 24];
+    if (state == AnimState::Fly) return fly[frame % 24];
+    if (state == AnimState::Move) return {249,186};
+    return {247,186};
+}
+
 struct BreathCast {
     static constexpr float frameSeconds = 0.12f;
     static constexpr float impactTime = 4 * frameSeconds;

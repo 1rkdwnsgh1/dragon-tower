@@ -2031,7 +2031,8 @@ void Renderer::drawBreath(Graphics& g, const DragonActor& dragon, const Sprites&
     const SkillDef& skill = sp.skills[static_cast<size_t>(cast.skill)];
     const BreathSheets* pack = sprites.breathSheets(sp.key, skill.layeredBreath);
     const Sheet body = sprites.breathBody(sp, skill);
-    if (!pack || !body.bmp) {
+    const bool furnace = skill.usesFurnaceBreath();
+    if (!pack || (!furnace && !body.bmp)) {
         Fx legacy;
         legacy.a = cast.origin;
         legacy.b = cast.origin + cast.aim * cast.range;
@@ -2051,16 +2052,32 @@ void Renderer::drawBreath(Graphics& g, const DragonActor& dragon, const Sprites&
         return;
     }
     const bool umbral = skill.usesUmbralBreath();
-    const AnimDef& pose = umbral ? skill.motionAnim : sp.anims[static_cast<int>(AnimState::Attack)];
+    const AnimState bodyState = furnace ? dragon.anim : AnimState::Attack;
+    const AnimDef& pose = umbral ? skill.motionAnim : sp.anims[static_cast<int>(bodyState)];
     const float bodyHeight = cfg::kDragonRadius * 3.f * charScale * pose.renderScale;
-    const bool left = sp.flipAllowed && cast.facingLeft;
+    const bool left = sp.flipAllowed && (furnace ? dragon.facing.x < 0.f : cast.facingLeft);
     // Mouth landmarks in the right-facing 256px body cells, including the closing frames.
     static const Vec2 shadowMouth[] = {{232, 112}, {233, 110}, {225, 100}, {229, 100},
                                       {224, 99}, {239, 104}, {246, 108}, {248, 110},
                                       {245, 113}, {232, 116}, {230, 117}, {232, 117}};
-    const Vec2 anchor = umbral ? shadowMouth[cast.bodyFrame(skill)] : Vec2{243.f, 129.f};
+    Vec2 anchor = umbral ? shadowMouth[cast.bodyFrame(skill)] : Vec2{243.f, 129.f};
+    if (furnace) {
+        const Sheet sheet = sprites.sheet(sp.key, bodyState);
+        int index = animFrame(dragon.animTime, pose.fps, sheet.frames, pose.loop);
+        bool vent = false;
+        if (bodyState == AnimState::Idle && sheet.frames == steel::idleFrames &&
+            sprites.fxSheet(sp.key, "idle_vent_body").frames == steel::ventBodyFrames &&
+            sprites.fxSheet(sp.key, "idle_vent").frames == steel::ventFrames) {
+            const int cycle = animFrame(dragon.animTime, pose.fps, steel::idleCycleFrames, true);
+            const int ventEnd = steel::idleFrames + steel::ventFrames;
+            vent = cycle >= steel::idleFrames && cycle < ventEnd;
+            index = cycle < ventEnd ? cycle : cycle - ventEnd + 1;
+        }
+        anchor = furnaceBreathMouth(bodyState, index, vent);
+    }
+    const float bodyAspect = furnace ? 1.f : static_cast<float>(body.frameW) / body.frameH;
     const Vec2 mouth = dragon.pos + Vec2{(left ? -1.f : 1.f) * (anchor.x - 128.f) / 256.f *
-                                            bodyHeight * body.frameW / body.frameH,
+                                            bodyHeight * bodyAspect,
                                         cfg::kDragonRadius + (anchor.y - 240.f) / 256.f * bodyHeight};
     const float scale = breathScale(sp, skill, cast.range, charScale);
     if (scale <= 0.f) return;
@@ -2086,9 +2103,16 @@ void Renderer::drawBreath(Graphics& g, const DragonActor& dragon, const Sprites&
         blendKey = 4 + loopPhase(from + elapsed);
     }
 
+    const float aimX = furnace ? (left ? -1.f : 1.f) * std::fabs(cast.aim.x) : cast.aim.x;
+    if (furnace) {
+        const Vec2 tip = mouth + Vec2{aimX, cast.aim.y} * (2.f * halfW - bonestorm::anchorX * scale);
+        const float pad = halfH + bonestorm::anchorX * scale;
+        markRegion(RectF(std::min(mouth.x, tip.x) - pad, std::min(mouth.y, tip.y) - pad,
+                         std::fabs(tip.x - mouth.x) + 2.f * pad, std::fabs(tip.y - mouth.y) + 2.f * pad));
+    }
     const GraphicsState state = g.Save();
     g.TranslateTransform(mouth.x, mouth.y);
-    g.RotateTransform(std::atan2(cast.aim.y, cast.aim.x) * 57.2957795f);
+    g.RotateTransform(std::atan2(cast.aim.y, aimX) * 57.2957795f);
     if (left) g.ScaleTransform(1.f, -1.f);
     const auto paste = [&](int k, float alpha) {
         Bitmap* frame = pack->frames[static_cast<size_t>(k)].get();
@@ -2097,6 +2121,33 @@ void Renderer::drawBreath(Graphics& g, const DragonActor& dragon, const Sprites&
     };
     if (blendKey >= 0) paste(blendKey, 1.f - keyAlpha);
     paste(key, keyAlpha);
+    if (furnace) {
+        const auto overlay = [&](int phase, int frame, float opacity = 1.f) {
+            const auto& cell = pack->overlay[phase][frame];
+            if (!cell.bitmap || opacity <= 0.f) return;
+            const int width = static_cast<int>(cell.bitmap->GetWidth());
+            const int height = static_cast<int>(cell.bitmap->GetHeight());
+            drawFrameCached(g, {cell.bitmap.get(), 0, 0, width, height},
+                            (cell.x + width * .5f - bonestorm::anchorX) * scale,
+                            (cell.y + height * .5f - 256.f) * scale,
+                            width * scale, height * scale, false, 0.f, opacity);
+        };
+        constexpr float step = .04f;
+        const auto overlayFrame = [](float local, int last) {
+            return std::clamp(static_cast<int>((local + 1e-6f) / step), 0, last);
+        };
+        if (cast.elapsed < BreathCast::impactTime) {
+            overlay(0, overlayFrame(cast.elapsed, 11));
+        } else if (cast.elapsed < cast.tailStart()) {
+            // Keep the final sustain frame for the last 100 ms instead of starting new flames.
+            overlay(1, overlayFrame(cast.elapsed - BreathCast::impactTime, 59));
+        } else {
+            const float tail = cast.elapsed - cast.tailStart();
+            const float blend = std::clamp(tail / .08f, 0.f, 1.f);
+            overlay(1, 59, 1.f - blend);
+            overlay(2, overlayFrame(tail, 11), blend);
+        }
+    }
     g.Restore(state);
 }
 
@@ -2109,7 +2160,7 @@ void Renderer::warmBreathCache(Graphics& g, const World& w, const Sprites& sprit
         const SkillDef& skill = sp.skills[static_cast<size_t>(s)];
         if (skill.layeredBreath.empty()) continue;
         const BreathSheets* pack = sprites.breathSheets(sp.key, skill.layeredBreath);
-        if (!pack || !sprites.breathBody(sp, skill).bmp) continue;
+        if (!pack || (!skill.usesFurnaceBreath() && !sprites.breathBody(sp, skill).bmp)) continue;
         const float scale = breathScale(sp, skill, skill.range, charScale);
         if (scale <= 0.f) return;
         int devW = 0, devH = 0;

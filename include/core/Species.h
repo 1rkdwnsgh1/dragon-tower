@@ -148,6 +148,7 @@ struct SkillDef {
     float breathInputLock = 0.f;
     bool sustainedBreath = false;
     bool breathDeferHit = true;  // Compatibility with Bonestorm's impact at LOOP entry.
+    bool usesFurnaceBreath() const { return layeredBreath == "furnace_breath_v3_1"; }
     bool usesUmbralBreath() const { return layeredBreath == "umbral_vortex_v2"; }
     // ---- 2026-11-18: 타격 프레임 (그림자룡 가르기로 처음 검증) ----
     // 피해를 시전 순간이 아니라 본체 모션의 정해진 프레임에 준다. 효과도 정해진 프레임에

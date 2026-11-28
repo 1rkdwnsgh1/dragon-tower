@@ -262,7 +262,7 @@ void PreviewWindow::reset() {
     world_.setBounds({0.f, 0.f, kWorldWidth, kWorldHeight});
     const bool left = checked(Flip);
     const float direction = left ? -1.f : 1.f;
-    const bool raised = skill() && (skill()->coreOverheat || skill()->heatBladeStorm) && captureAim_ < 0.f;
+    const bool raised = skill() && (skill()->coreOverheat || skill()->heatBladeStorm || skill()->usesFurnaceBreath()) && captureAim_ < 0.f;
     const Vec2 origin{left ? 650.f : 350.f, kFloorY - cfg::kDragonRadius - (raised ? 92.f : 0.f)};
     const SpeciesDef& def = speciesDef(species_);
     world_.setupDragon(species_, cfg::kMaxLevel, 0.f, origin);
@@ -364,6 +364,7 @@ void PreviewWindow::reset() {
         duration_ = ProcessionCast::maxDuration(*sk, procession->flightLimit);
     const auto& breath = dragon.breath;
     const bool layered = breath && sprites_.breathBody(def, *sk).bmp;
+    if (breath && sk->usesFurnaceBreath()) duration_ = breath->length();
     if (breath && layered) {
         duration_ = breath->length();
         if (!sk->usesUmbralBreath()) duration_ += 4.f / std::max(1.f, anim.fps);
@@ -384,6 +385,7 @@ void PreviewWindow::reset() {
     duration_ += 0.15f;
     if (selected(Layer) == 2 || !body.bmp || skillIsPassive(sk->kind)) stepFps_ = std::max(1.f, sk->fxAnim.fps);
     if (layered) stepFps_ = 1.f / BreathCast::frameSeconds;
+    if (sk->usesFurnaceBreath()) stepFps_ = 25.f;
 }
 
 void PreviewWindow::seek(float time) {
@@ -566,14 +568,14 @@ bool PreviewWindow::saveCapture(const fs::path& file, const Enemy* enemy, AnimSt
         // Keep the framing fixed across directions, layers and frames at each size.
         const float extraRoom = std::clamp((scale - 1.f) / 2.f, 0.f, 1.f);
         const SkillDef* sk = enemy ? nullptr : skill();
-        const bool longBreath = sk && sk->layeredBreath == "bonestorm";
+        const bool longBreath = sk && (sk->layeredBreath == "bonestorm" || sk->usesFurnaceBreath());
         const float camera = longBreath ? 0.48f / std::max(1.f, scale)
             : (0.85f - 0.20f * extraRoom) / std::max(1.f, scale * 0.50f);
         canvas.TranslateTransform(width * 0.5f, height * (longBreath ? 0.5f : 0.65f - 0.10f * extraRoom));
         canvas.ScaleTransform(camera, camera);
         canvas.TranslateTransform(-kWorldWidth * 0.5f, -kFloorY);
         if (enemy) renderer_.drawEnemyPreview(canvas, *enemy, sprites_, state, time, scale);
-        else renderer_.drawAnimationPreview(canvas, world_, sprites_, time, layer != 2, layer != 1, scale, steelBasicPreview_ || (sk && (sk->spectralCleave || sk->boneShot || sk->furnaceBurst || sk->coreOverheat || sk->heatBladeStorm)));
+        else renderer_.drawAnimationPreview(canvas, world_, sprites_, time, layer != 2, layer != 1, scale, steelBasicPreview_ || (sk && (sk->spectralCleave || sk->boneShot || sk->furnaceBurst || sk->coreOverheat || sk->heatBladeStorm || sk->usesFurnaceBreath())));
     }
     CLSID png{};
     if (FAILED(CLSIDFromString(L"{557CF406-1A04-11D3-9A73-0000F81EF32E}", &png))) return false;
@@ -642,7 +644,7 @@ int PreviewWindow::capture(const fs::path& initial, const fs::path& jobs) {
             reset();
             seek(time);
             // Heat alignment review: for this skill the optional capture angle selects a moving pose.
-            if (skill() && (skill()->coreOverheat || skill()->heatBladeStorm) && aim != 0.f) {
+            if (skill() && (skill()->coreOverheat || skill()->heatBladeStorm || skill()->usesFurnaceBreath()) && aim != 0.f) {
                 auto& actor = world_.dragon();
                 actor.anim = aim < 0.f ? AnimState::Fly : AnimState::Move;
                 actor.flying = aim < 0.f;
@@ -686,7 +688,7 @@ void PreviewWindow::paint() {
             if (!folder_.empty()) {
                 constexpr float zoom[] = {0.5f, 1.f, 1.5f, 2.f, 3.f};
                 const SkillDef* sk = skill();
-                const float framing = sk && sk->layeredBreath == "bonestorm" ? 0.60f : 1.f;
+                const float framing = sk && (sk->layeredBreath == "bonestorm" || sk->usesFurnaceBreath()) ? 0.60f : 1.f;
                 const float scale = std::min(width / kWorldWidth, height / kWorldHeight) *
                                     zoom[std::clamp(selected(Zoom), 0, 4)] * framing;
                 canvas.TranslateTransform(width * 0.5f, height * 0.5f);
@@ -704,7 +706,7 @@ void PreviewWindow::paint() {
                     canvas.DrawLine(&target, target_.x, target_.y - 13.f, target_.x, target_.y + 13.f);
                 }
                 renderer_.drawAnimationPreview(canvas, world_, sprites_, time_, selected(Layer) != 2,
-                                               selected(Layer) != 1, 1.f, steelBasicPreview_ || (sk && (sk->spectralCleave || sk->boneShot || sk->furnaceBurst || sk->coreOverheat || sk->heatBladeStorm)));
+                                               selected(Layer) != 1, 1.f, steelBasicPreview_ || (sk && (sk->spectralCleave || sk->boneShot || sk->furnaceBurst || sk->coreOverheat || sk->heatBladeStorm || sk->usesFurnaceBreath())));
             }
         }
         Graphics screen(dc);

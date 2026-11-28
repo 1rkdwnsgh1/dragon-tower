@@ -1,0 +1,41 @@
+{
+  "sustain_mean_length_full_height_thickness_alpha48_px": {
+    "v3": [
+      834.762,
+      160.508,
+      103.379
+    ],
+    "v3_1": [
+      834.889,
+      162.317,
+      104.941
+    ]
+  },
+  "exhaust_added_pixels_alpha20_mean": 6433.4,
+  "L4_active_objects_min_max": [
+    3,
+    7
+  ],
+  "L4_alpha16_coverage_min_max": [
+    2163,
+    5359
+  ],
+  "L4_loop_alpha_delta_wrap_internal_min_max": [
+    0.501861572265625,
+    0.28273963928222656,
+    0.6454010009765625
+  ],
+  "immutable_sha256": {
+    "assets/bonestorm_L1_start.png": "4e3c70a1bd207da53a24a58a20349f9fa7174899ac6a75e6682cfd9e3cbe13db",
+    "assets/bonestorm_L1_loop.png": "8f0165eb257fe413482b79ff7455fb15e82d4aa8ca6683dce5c047d968202ef1",
+    "assets/bonestorm_L1_end.png": "2c436974724ebf53a434fbb69a435ad85b13b3b728d74282ae45c1d7ce2fd0de",
+    "assets/bonestorm_L2_spiral_loop.png": "7dd0b0f12c155ea8e2f273a34522df177ebceb78f958ec47648398f8a7ed1a4c"
+  },
+  "source_bundle_sha256": "6a22fa6d243adaf72d8453bbdd00e128bc69e079dd05801f39d83a068ad1c8f9",
+  "source_V3_loop_frame_count": 8,
+  "L4_native_counts": {
+    "start": 12,
+    "loop": 60,
+    "end": 12
+  }
+}

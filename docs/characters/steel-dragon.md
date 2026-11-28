@@ -129,3 +129,16 @@ A안 측면 마스터와 독립 배기 방향을 새 제작 기준으로 승인�
 - 승인된 V4가 날개 연기의 시각 기준이다. 당시 임시 대기 루프는 6초였으며, 본체는 주기마다 한 번 호흡한다. 가슴이 부푼 뒤 1.75초에 가라앉기 시작할 때 날개 연기가 나와 3초간 이어진다. 꼬리 연기는 대기 내내 이어진다. 6초는 플레이에서 빈도를 확인하기 위한 임시값이다.
 
 Windows x64 Release에서 CTest 8/8 통과. 전투 테스트는 4초 주기 피해와 이동, 9발 사출, 직선 관통의 적별 중복 방지 및 종료 정리를 검사한다. Windows 렌더러에서 IDLE·WALK·FLY와 좌향을 고정 시간으로 캡처했다. Work와 Windows 캡처는 카메라와 적 배치가 다르다. 프레임 시간과 메모리 실측은 후속 확인 항목이다. [Windows 캡처](steel-heat-blade-windows.gif) · [Work 비교](steel-heat-blade-work-windows.png)
+
+
+## 스킬 4 — 용광로 브레스 V3.1
+
+Work 승인 ZIP의 RGBA PNG 12개와 메타데이터는 [스킬 에셋 폴더](../../assets/dragons/steel_dragon/furnace_breath_v3_1/)에 있다. 원본 파일은 ZIP과 바이트 단위로 일치한다. [원본 QA](../../assets/dragons/steel_dragon/furnace_breath_v3_1/qa/validation_report.md)
+
+Bonestorm의 캐시와 지속 피해 타이머를 재사용한다. L1 중심 격류, L2 외곽 불꽃, L3 검은 연기·불씨·용융 파편을 이 순서로 16개 프레임에 사전 합성한다. 원본 메타데이터의 끝단 마스크와 END 전환을 런타임에 적용한다. L4 보조 화염은 마지막에 합성하는 독립 25FPS 트랙이다. 승인 시트에 480·600·800ms 반복을 엇갈리게 구웠다. START 12장, SUSTAIN 60장, END 12장이며 SUSTAIN 마지막 100ms에는 마지막 프레임을 유지하고 END 첫 80ms에 교차 페이드한다.
+
+Lv.9, 쿨다운 18초, 입 기준 전방 660px, 기본 반폭 45px(캐릭터 크기 비례)다. 준비 0.48초, 지속 2.5초, 종료 0.48초로 총 3.46초다. 지속 중 0.25초 간격으로 10회, 틱당 공격력 0.65배를 지상·공중의 범위 내 적에게 적용한다. 피해 시계와 그림 시계는 독립이다. 기존 IDLE/WALK/FLY 본체와 이동을 유지하며 입 위치와 좌우 방향을 추적한다.
+
+L4 원본의 완전 투명한 여백만 로드 후 메모리에서 제거한다. 원본 좌표를 유지하며, 보관할 L4 RGBA 픽셀은 168 MiB에서 약 12.3 MiB로 줄었다(비트맵 부가 비용·로드 중 임시 메모리·렌더 캐시 제외). Windows x64 Release 및 CTest 8/8을 통과했다. Windows 렌더러의 대기·이동·비행·좌우 캡처와 망령룡 Bonestorm 캡처를 확인했다. 실제 플레이 FPS와 전체 메모리 사용량은 미측정이다.
+
+Work QA 기준 L3 마지막 잔상은 알파가 6 이하로 떨어져 empty_layer 1건이 기록된다. 기본 레이어의 frame_shift 5건·loop_seam 2건과 L4의 frame_shift 16건은 원본 QA 기록에 유지한다. 동일 시점 Windows 캡처에서 지속 구간과 종료 연결을 확인했다. [Windows 재생 GIF](steel-furnace-breath-windows.gif) · [Work 비교](steel-furnace-breath-work-windows.png)

@@ -147,6 +147,48 @@ std::unique_ptr<Gdiplus::Bitmap> composeBreathFrame(const BreathLayers& pack, bo
     return ok ? std::move(out) : nullptr;
 }
 
+// Keep only nontransparent rectangles in memory. Coordinates still refer to the original cell.
+bool loadBreathOverlay(const std::filesystem::path& path, int count,
+                       std::vector<BreathSheets::OverlayFrame>& out) {
+    using namespace Gdiplus;
+    constexpr int w = BreathSheets::kWidth, h = BreathSheets::kHeight;
+    auto atlas = loadPng(path);
+    const int rows = (count + 3) / 4;
+    if (!atlas || atlas->GetWidth() != 4 * w || atlas->GetHeight() != rows * h) return false;
+    const Rect area(0, 0, 4 * w, rows * h);
+    BitmapData pixels{};
+    if (atlas->LockBits(&area, ImageLockModeRead, PixelFormat32bppARGB, &pixels) != Ok) return false;
+    std::vector<Rect> bounds(count);
+    for (int i = 0; i < count; ++i) {
+        const int sx = i % 4 * w, sy = i / 4 * h;
+        int left = w, right = 0, top = h, bottom = 0;
+        for (int y = 0; y < h; ++y) {
+            const auto* row = static_cast<const BYTE*>(pixels.Scan0) + (sy + y) * pixels.Stride + sx * 4;
+            for (int x = 0; x < w; ++x) {
+                if (row[x * 4 + 3] == 0) continue;
+                left = std::min(left, x);
+                right = std::max(right, x + 1);
+                top = std::min(top, y);
+                bottom = std::max(bottom, y + 1);
+            }
+        }
+        if (left < right) bounds[i] = Rect(left, top, right - left, bottom - top);
+    }
+    if (atlas->UnlockBits(&pixels) != Ok) return false;
+    out.resize(count);
+    for (int i = 0; i < count; ++i) {
+        const Rect& rect = bounds[i];
+        if (rect.Width == 0) continue;
+        auto& cell = out[i];
+        cell.x = rect.X;
+        cell.y = rect.Y;
+        cell.bitmap.reset(atlas->Clone(Rect(i % 4 * w + rect.X, i / 4 * h + rect.Y,
+                                            rect.Width, rect.Height), PixelFormat32bppARGB));
+        if (!cell.bitmap || cell.bitmap->GetLastStatus() != Ok) return false;
+    }
+    return true;
+}
+
 }  // namespace
 
 void Sprites::loadPreviewDragon(const std::filesystem::path& dir, const SpeciesDef& def,
@@ -310,12 +352,19 @@ void Sprites::loadBreathSheets(const std::filesystem::path& dir, const SpeciesDe
             warnings_.push_back(label + "/" + skill.layeredBreath + ": could not compose breath frames; using fallback");
             continue;
         }
+        if (skill.usesFurnaceBreath() &&
+            (!loadBreathOverlay(folder / "l4/start.png", 12, sheets.overlay[0]) ||
+             !loadBreathOverlay(folder / "l4/loop.png", 60, sheets.overlay[1]) ||
+             !loadBreathOverlay(folder / "l4/end.png", 12, sheets.overlay[2]))) {
+            warnings_.push_back(label + "/" + skill.layeredBreath + ": missing or invalid L4 atlas");
+            continue;
+        }
         breathSheets_.emplace(key, std::move(sheets));
     }
 }
 
 Sheet Sprites::breathBody(const SpeciesDef& species, const SkillDef& skill) const {
-    if (!breathSheets(species.key, skill.layeredBreath)) return {};
+    if (skill.usesFurnaceBreath() || !breathSheets(species.key, skill.layeredBreath)) return {};
     if (skill.usesUmbralBreath()) return skillSheet(species.key, skill.motion);
     const Sheet attack = sheet(species.key, AnimState::Attack);
     if (attack.frames < 4) return {};

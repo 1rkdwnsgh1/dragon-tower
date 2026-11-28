@@ -846,13 +846,15 @@ bool World::castSkill(int i, bool aiChoice) {
                 d.breath = BreathCast{i, d.pos, dir, 0.f, s.range, skillRadius(s),
                                       d.attack() * s.power, s.breathInputLock, false, false,
                                       s.sustainedBreath, 0, {}};
-                if (s.sustainedBreath) d.breath->inputLock = std::max(d.breath->inputLock, d.breath->length());
+                if (s.sustainedBreath && !s.usesFurnaceBreath()) d.breath->inputLock = std::max(d.breath->inputLock, d.breath->length());
                 d.breath->facingLeft = std::fabs(dir.x) > 0.01f ? dir.x < 0.f : d.facing.x < 0.f;
                 if (!s.breathDeferHit && !s.sustainedBreath) {
                     d.breath->hit = true;
                     hitLine(d.pos, d.pos + dir * s.range, d.breath->radius, d.breath->damage, s.detonatesCurse);
                 }
-                if (!s.usesUmbralBreath()) {
+                if (s.usesFurnaceBreath() && std::fabs(dir.x) > 0.01f)
+                    d.facing = {dir.x < 0.f ? -1.f : 1.f, 0.f};
+                if (!s.usesUmbralBreath() && !s.usesFurnaceBreath()) {
                     if (std::fabs(dir.x) > 0.01f) d.facing = {dir.x < 0.f ? -1.f : 1.f, 0.f};
                     d.dashTime = 0.f;
                     d.moving = false;
@@ -966,7 +968,7 @@ bool World::castSkill(int i, bool aiChoice) {
     }
     if (d.breath && d.breath->skill == i && !s.usesUmbralBreath()) hold = std::max(hold, d.breath->length());
     if ((s.soulfire || s.spectralCleave || s.boneShot) && d.skillCast) hold = d.skillCast->lockTime;
-    setDragonAnim(AnimState::Attack, hold);
+    if (!s.usesFurnaceBreath()) setDragonAnim(AnimState::Attack, hold);
     addText(s.name, d.pos - Vec2{0.f, 78.f}, sp.color | 0xFF000000, 15.f, 0.9f);
     return true;
 }
@@ -1097,7 +1099,7 @@ void World::hitBreathTick(BreathCast& cast, const SkillDef& skill) {
             std::find(cast.curseChecked.begin(), cast.curseChecked.end(), enemy.id) == cast.curseChecked.end();
         if (firstHit) cast.curseChecked.push_back(enemy.id);
         damageEnemy(enemy, cast.damage / BreathCast::sustainedTicks, true, firstHit);
-        if (!enemy.alive || enemyDef(enemy.kind).role == EnemyRole::Boss) continue;
+        if (skill.usesFurnaceBreath() || !enemy.alive || enemyDef(enemy.kind).role == EnemyRole::Boss) continue;
         const int gap = enemy.level - dragon_.level;
         enemy.breathSlowLeft = BreathCast::tickInterval;
         enemy.breathMoveFactor = gap <= 0 ? 0.f : std::min(0.75f, 0.30f + 0.05f * gap);
@@ -1118,6 +1120,17 @@ void World::advanceBreath(float dt, bool combatEnded) {
     }
     BreathCast& cast = *d.breath;
     const SkillDef& skill = speciesDef(d.species).skills[static_cast<size_t>(cast.skill)];
+    if (skill.usesFurnaceBreath()) {
+        const AnimDef& anim = speciesDef(d.species).anims[static_cast<int>(d.anim)];
+        const int frame = static_cast<int>(std::max(0.f, d.animTime) * anim.fps);
+        const Vec2 anchor = furnaceBreathMouth(d.anim, frame);
+        const float sign = d.facing.x < 0.f ? -1.f : 1.f;
+        const float height = cfg::kDragonRadius * 3.f * sizeScale_ * anim.renderScale;
+        cast.facingLeft = sign < 0.f;
+        cast.aim.x = sign * std::fabs(cast.aim.x);
+        cast.origin = d.pos + Vec2{sign * (anchor.x - 128.f) / 256.f * height,
+                                   cfg::kDragonRadius + (anchor.y - 240.f) / 256.f * height};
+    }
     cast.elapsed += dt;
     constexpr float epsilon = 1e-6f;
     if (cast.sustained) {
@@ -1131,9 +1144,9 @@ void World::advanceBreath(float dt, bool combatEnded) {
         hitLine(cast.origin, cast.origin + cast.aim * cast.range, cast.radius, cast.damage, skill.detonatesCurse);
     }
     if (cast.elapsed + epsilon >= cast.length()) {
-        const bool umbral = skill.usesUmbralBreath();
+        const bool animateClosing = !skill.usesUmbralBreath() && !skill.usesFurnaceBreath();
         d.breath.reset();
-        if (!umbral && d.anim == AnimState::Attack) {
+        if (animateClosing && d.anim == AnimState::Attack) {
             const float fps = speciesDef(d.species).anims[static_cast<int>(AnimState::Attack)].fps;
             d.animTime = (BreathCast::openMouthFrame + 1) / std::max(1.f, fps);
             d.animHold = std::max(d.animHold, 4.f / std::max(1.f, fps));
@@ -1993,7 +2006,9 @@ void World::controlDragon(float dt, CombatMode mode, const PlayerInput& in, bool
         ? d.skillCast->lockTime - d.skillCast->elapsed : 0.f;
     const float moveDt = std::max(0.f, dt - std::max(windupLeft, soulfireLock));
     advanceProcession(dt);
-    advanceBreath(dt);
+    const bool mobileBreath = d.breath &&
+        speciesDef(d.species).skills[static_cast<size_t>(d.breath->skill)].usesFurnaceBreath();
+    if (!mobileBreath) advanceBreath(dt);
     if (mode == CombatMode::Direct && in.dodge && d.dodgeCd <= 0.f && d.skillCast &&
         d.skillCast->soulfireCastId && !d.skillCast->hitDone)
         cancelSkillCast(cfg::kSkillCastCancelCooldown);
@@ -2049,7 +2064,7 @@ void World::controlDragon(float dt, CombatMode mode, const PlayerInput& in, bool
     advanceSteelAttack(dt);
     advanceCoreOverheat(dt);
     advanceHeatBladeStorm(dt);
-
+    if (mobileBreath) advanceBreath(dt);
 }
 
 void World::updateCombat(float dt, CombatMode mode, const PlayerInput& in) {

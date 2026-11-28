@@ -4837,6 +4837,51 @@ static void testSteelHeatBladeStorm(Species steel) {
     }) == 9);
 }
 
+static void testSteelFurnaceBreath(Species steel) {
+    World w;
+    w.setBounds(kDesk);
+    w.setupDragon(steel, 9, 0.f, {350.f, 460.f});
+    w.setSlots({3, -1, -1, -1});
+    auto& dragon = w.dragon();
+    dragon.basicCd = 100.f;
+    const SkillDef& skill = speciesDef(steel).skills[3];
+    CHECK(skill.usesFurnaceBreath() && skill.sustainedBreath);
+    const auto add = [&](Vec2 pos, bool flew) {
+        auto& enemy = w.spawnEnemy(defaultMelee(), 1, pos, flew);
+        enemy.hp = enemy.maxHp = 1000.f;
+        enemy.stun = 100.f;
+    };
+    add({660.f, 460.f}, false);
+    add({800.f, 430.f}, true);
+    add({650.f, 650.f}, true);
+    add({1150.f, 460.f}, false);
+    PlayerInput fire;
+    fire.skill[0] = true;
+    w.updateCombat(0.f, CombatMode::Direct, fire);
+    CHECK(dragon.breath && dragon.breath->inputLock == 0.f && dragon.anim != AnimState::Attack);
+    if (!dragon.breath) return;
+    CHECK(std::fabs(dragon.breath->length() - 3.46f) < .001f);
+    w.updateCombat(.47f, CombatMode::Direct, {});
+    CHECK(dragon.breath->ticksApplied == 0 && w.enemies()[0].hp == 1000.f);
+    PlayerInput walk;
+    walk.moveX = 1.f;
+    w.updateCombat(.02f, CombatMode::Direct, walk);
+    CHECK(dragon.pos.x > 350.f && dragon.anim == AnimState::Move && dragon.breath->origin.x > dragon.pos.x);
+    CHECK(dragon.breath->ticksApplied == 1);
+    const float perTick = mitigate(dragon.attack() * skill.power / BreathCast::sustainedTicks, w.enemies()[0].def);
+    CHECK(std::fabs(w.enemies()[0].hp - (1000.f - perTick)) < .01f);
+    CHECK(w.enemies()[1].hp < 1000.f && w.enemies()[2].hp == 1000.f && w.enemies()[3].hp == 1000.f);
+
+    w.enemiesMutable()[0].pos.y = 690.f;
+    w.updateCombat(2.49f, CombatMode::Direct, {});
+    CHECK(dragon.breath && dragon.breath->ticksApplied == 10);
+    CHECK(std::fabs(w.enemies()[0].hp - (1000.f - perTick)) < .01f);
+    CHECK(std::fabs(w.enemies()[1].hp - (1000.f - 10.f * perTick)) < .02f);
+    const float afterSustain = w.enemies()[1].hp;
+    w.updateCombat(.49f, CombatMode::Direct, fire);
+    CHECK(!dragon.breath && w.enemies()[1].hp == afterSustain && dragon.skillCd[3] > 0.f);
+}
+
 static void testSteelDragon(const std::filesystem::path& assets) {
     std::printf("[steel dragon registration]\n");
     const DragonScanResult scan = loadDragonFolders(assets / "dragons");
@@ -4857,7 +4902,7 @@ static void testSteelDragon(const std::filesystem::path& assets) {
     CHECK(move.fps == 16.f && move.frameW == 256 && move.loop);
     const auto& attack = def.anims[static_cast<int>(AnimState::Attack)];
     CHECK(attack.fps == kSteelBasicFps && attack.frameW == 256 && !attack.loop);
-    CHECK(def.skills.size() == 3);
+    CHECK(def.skills.size() == 4);
 
     Game game;
     game.init(SaveData{}, kDesk);
@@ -4875,6 +4920,7 @@ static void testSteelDragon(const std::filesystem::path& assets) {
     testSteelFurnaceBurst(steel);
     testSteelCoreOverheat(steel);
     testSteelHeatBladeStorm(steel);
+    testSteelFurnaceBreath(steel);
 
     game.placeDragon({700.f, 500.f});
     auto& world = game.world();
