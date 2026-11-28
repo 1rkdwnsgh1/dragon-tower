@@ -1,0 +1,29 @@
+﻿kind,severity,layer,frame,check,detail
+numeric,INFO,projectile,,frames_fps,8 frames / 12 fps / 576x256 / 4x2 row-major
+visual,REVIEW,IDLE,,game_readability,Review preview/game_scale.png at 100% display and the animation on a dark background.
+visual,REVIEW,IDLE,,visual_timing,"Review windup, growth, travel, dissipation and visual loop continuity."
+visual,REVIEW,IDLE,,visual_alignment,Review body attachment during all motions and with facing reversed.
+numeric,INFO,muzzle_ignition,,frames_fps,6 frames / 16 fps / 384x352 / 3x2 row-major
+numeric,WARN,muzzle_ignition,3,frame_shift,BBox center moved 68.0 px
+numeric,WARN,muzzle_ignition,4,frame_shift,BBox center moved 36.9 px
+numeric,WARN,muzzle_ignition,6,frame_shift,BBox center moved 30.8 px
+visual,REVIEW,IDLE,,game_readability,Review preview/game_scale.png at 100% display and the animation on a dark background.
+visual,REVIEW,IDLE,,visual_timing,"Review windup, growth, travel, dissipation and visual loop continuity."
+visual,REVIEW,IDLE,,visual_alignment,Review body attachment during all motions and with facing reversed.
+numeric,INFO,impact_explosion,,frames_fps,12 frames / 16 fps / 576x520 / 4x3 row-major
+visual,REVIEW,IDLE,,game_readability,Review preview/game_scale.png at 100% display and the animation on a dark background.
+visual,REVIEW,IDLE,,visual_timing,"Review windup, growth, travel, dissipation and visual loop continuity."
+visual,REVIEW,IDLE,,visual_alignment,Review body attachment during all motions and with facing reversed.
+numeric,INFO,residual_smoke,,frames_fps,12 frames / 12 fps / 512x448 / 4x3 row-major
+numeric,WARN,residual_smoke,4,frame_shift,BBox center moved 54.3 px
+visual,REVIEW,IDLE,,game_readability,Review preview/game_scale.png at 100% display and the animation on a dark background.
+visual,REVIEW,IDLE,,visual_timing,"Review windup, growth, travel, dissipation and visual loop continuity."
+visual,REVIEW,IDLE,,visual_alignment,Review body attachment during all motions and with facing reversed.
+numeric,INFO,impact_flash,,frames_fps,4 frames / 24 fps / 384x232 / 4x1 row-major
+visual,REVIEW,IDLE,,game_readability,Review preview/game_scale.png at 100% display and the animation on a dark background.
+visual,REVIEW,IDLE,,visual_timing,"Review windup, growth, travel, dissipation and visual loop continuity."
+visual,REVIEW,IDLE,,visual_alignment,Review body attachment during all motions and with facing reversed.
+numeric,INFO,ground_shockwave,,frames_fps,6 frames / 24 fps / 512x128 / 3x2 row-major
+visual,REVIEW,IDLE,,game_readability,Review preview/game_scale.png at 100% display and the animation on a dark background.
+visual,REVIEW,IDLE,,visual_timing,"Review windup, growth, travel, dissipation and visual loop continuity."
+visual,REVIEW,IDLE,,visual_alignment,Review body attachment during all motions and with facing reversed.

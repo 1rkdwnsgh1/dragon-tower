@@ -70,6 +70,11 @@ struct BreathSheets {
     static constexpr int kFrames = 16;
     static constexpr int kWidth = 1024, kHeight = 512;
     std::array<std::unique_ptr<Gdiplus::Bitmap>, kFrames> frames;
+    struct OverlayFrame {
+        std::unique_ptr<Gdiplus::Bitmap> bitmap;
+        int x = 0, y = 0;
+    };
+    std::array<std::vector<OverlayFrame>, 3> overlay; // START, SUSTAIN, END
 };
 
 class Sprites {

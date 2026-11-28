@@ -1,0 +1,162 @@
+{
+  "skill_id_proposed": "steel_dragon_a_skill04_furnace_breath",
+  "based_on": "V3 Bonestorm; unchanged L1 and L2; L3 soot pass; additive L4 flame flipbook",
+  "atlas": {
+    "cell": [
+      1024,
+      512
+    ],
+    "columns_for_sheet": 4,
+    "row_major": true,
+    "files": {
+      "start": {
+        "path": "assets/bonestorm_L1_start.png",
+        "frames": 4
+      },
+      "loop": {
+        "path": "assets/bonestorm_L1_loop.png",
+        "frames": 8
+      },
+      "end": {
+        "path": "assets/bonestorm_L1_end.png",
+        "frames": 4
+      },
+      "spirals": {
+        "path": "assets/bonestorm_L2_spiral_loop.png",
+        "frames": 8
+      },
+      "bones": {
+        "path": "assets/bonestorm_L3_bones_loop.png",
+        "frames": 8
+      },
+      "tail0": {
+        "path": "assets/L3_end_tail_01.png",
+        "frames": 1
+      },
+      "tail1": {
+        "path": "assets/L3_end_tail_02.png",
+        "frames": 1
+      },
+      "tail2": {
+        "path": "assets/L3_end_tail_03.png",
+        "frames": 1
+      },
+      "tail3": {
+        "path": "assets/L3_end_tail_04.png",
+        "frames": 1
+      }
+    }
+  },
+  "timings": {
+    "duration_ms": 3460,
+    "start_ms": 480,
+    "active_ms": 2500,
+    "end_ms": 480,
+    "active_start_ms": 480,
+    "end_start_ms": 2980,
+    "start_end_step_ms": 120,
+    "sustain_step_ms": 48,
+    "cycle_ms": 384,
+    "blend_into_end_ms": 96,
+    "crossfade_preview_sample_ms": 8
+  },
+  "raw_fx_anchor_px": [
+    64,
+    256
+  ],
+  "original_mouth_px": [
+    243,
+    129
+  ],
+  "steel_preview_idle_mouth_px": [
+    246,
+    184
+  ],
+  "renderer_scale": {
+    "formula": "(34 * 3 * characterScale * attack.renderScale) * (175/256) / 88",
+    "reference_attack_render_scale": 1.04,
+    "units_per_fx_pixel_when_characterScale_1": 0.8240411931818182
+  },
+  "render_order": [
+    "L1 core",
+    "L2 furnace flame spirals",
+    "L3 soot, embers and molten metal",
+    "L4 staggered supplemental flame"
+  ],
+  "start_l2_l3_phase": "(key+5)%8, opacity = 0/.12/.45/.96",
+  "end_l2": "first four loop images, x smoothstep over 72px after 24/165/390/650 plus opacity .85/.50/.20/.025",
+  "loader_far_mask": "alpha * (1 - .85*smoothstep((x - (64+(965-64)/1.15) + 56)/56))",
+  "preview": "Pillow source-over recreation from verified code; phase timing duplicated, GDI+ subpixel rounding may differ.",
+  "v3": {
+    "l2": "Furnace texture on V2 moving ribbon guide, eight phases; same game loader for START and END",
+    "l3": "Replacement material stamps at detected V2 particle centers with identity matching; first four exit phases inherit the downstream clearing front",
+    "integration": "Keep V2 loader settings. Projectiles, gameplay and repository changes are outside the asset handoff.",
+    "preview": "The mouth landmark is sampled from each approved 256 px body sheet frame. Timing is reproduced using the V2 standalone renderer.",
+    "release": "Preview review only, not installed into the game."
+  },
+  "l4_overlay": {
+    "z_order": "on top of the composited Bonestorm packet",
+    "cell": [
+      1024,
+      512
+    ],
+    "anchor": [
+      64,
+      256
+    ],
+    "columns": 4,
+    "order": "row-major",
+    "frame_ms": 40,
+    "start": {
+      "frames": 12,
+      "t_ms": 0,
+      "file": "assets/l4/start.png"
+    },
+    "loop": {
+      "frames": 60,
+      "t_ms": 480,
+      "file": "assets/l4/loop.png",
+      "cycle_ms": 2400,
+      "stop_ms": 2980,
+      "play_from": "cast elapsed minus 480 ms"
+    },
+    "end": {
+      "frames": 12,
+      "t_ms": 2980,
+      "file": "assets/l4/end.png",
+      "stop_ms": 3460
+    },
+    "baked_life_cycles": {
+      "A": {
+        "repeat_ms": 480,
+        "lifetime_ms": 320,
+        "phase_offsets_ms": [
+          40,
+          200,
+          360
+        ]
+      },
+      "B": {
+        "repeat_ms": 600,
+        "lifetime_ms": 480,
+        "phase_offsets_ms": [
+          120,
+          240,
+          520
+        ]
+      },
+      "C": {
+        "repeat_ms": 800,
+        "lifetime_ms": 640,
+        "phase_offsets_ms": [
+          280,
+          560,
+          720
+        ]
+      }
+    },
+    "integration": "Separate overlay track, sharing the existing Bonestorm muzzle, directional transform and display scale. Existing L1–L3 loader does not automatically read it.",
+    "max_raw_rgba_bytes_if_all_l4_cells_are_decoded": 176160768
+  },
+  "preview_note": "Standalone replay with sampled mouth landmarks for IDLE and FLY. In-game timing/rendering is unverified."
+}

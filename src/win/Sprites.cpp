@@ -1,6 +1,7 @@
 #include <cstdio>
 #include "Sprites.h"
 #include "HeatBladeAtlases.h"
+#include "core/CarpetBombardment.h"
 
 #include "core/World.h"
 
@@ -145,6 +146,48 @@ std::unique_ptr<Gdiplus::Bitmap> composeBreathFrame(const BreathLayers& pack, bo
         layer(pack.endOuter[index].get(), 1, 0);
     }
     return ok ? std::move(out) : nullptr;
+}
+
+// Keep only nontransparent rectangles in memory. Coordinates still refer to the original cell.
+bool loadBreathOverlay(const std::filesystem::path& path, int count,
+                       std::vector<BreathSheets::OverlayFrame>& out) {
+    using namespace Gdiplus;
+    constexpr int w = BreathSheets::kWidth, h = BreathSheets::kHeight;
+    auto atlas = loadPng(path);
+    const int rows = (count + 3) / 4;
+    if (!atlas || atlas->GetWidth() != 4 * w || atlas->GetHeight() != rows * h) return false;
+    const Rect area(0, 0, 4 * w, rows * h);
+    BitmapData pixels{};
+    if (atlas->LockBits(&area, ImageLockModeRead, PixelFormat32bppARGB, &pixels) != Ok) return false;
+    std::vector<Rect> bounds(count);
+    for (int i = 0; i < count; ++i) {
+        const int sx = i % 4 * w, sy = i / 4 * h;
+        int left = w, right = 0, top = h, bottom = 0;
+        for (int y = 0; y < h; ++y) {
+            const auto* row = static_cast<const BYTE*>(pixels.Scan0) + (sy + y) * pixels.Stride + sx * 4;
+            for (int x = 0; x < w; ++x) {
+                if (row[x * 4 + 3] == 0) continue;
+                left = std::min(left, x);
+                right = std::max(right, x + 1);
+                top = std::min(top, y);
+                bottom = std::max(bottom, y + 1);
+            }
+        }
+        if (left < right) bounds[i] = Rect(left, top, right - left, bottom - top);
+    }
+    if (atlas->UnlockBits(&pixels) != Ok) return false;
+    out.resize(count);
+    for (int i = 0; i < count; ++i) {
+        const Rect& rect = bounds[i];
+        if (rect.Width == 0) continue;
+        auto& cell = out[i];
+        cell.x = rect.X;
+        cell.y = rect.Y;
+        cell.bitmap.reset(atlas->Clone(Rect(i % 4 * w + rect.X, i / 4 * h + rect.Y,
+                                            rect.Width, rect.Height), PixelFormat32bppARGB));
+        if (!cell.bitmap || cell.bitmap->GetLastStatus() != Ok) return false;
+    }
+    return true;
 }
 
 }  // namespace
@@ -310,12 +353,19 @@ void Sprites::loadBreathSheets(const std::filesystem::path& dir, const SpeciesDe
             warnings_.push_back(label + "/" + skill.layeredBreath + ": could not compose breath frames; using fallback");
             continue;
         }
+        if (skill.usesFurnaceBreath() &&
+            (!loadBreathOverlay(folder / "l4/start.png", 12, sheets.overlay[0]) ||
+             !loadBreathOverlay(folder / "l4/loop.png", 60, sheets.overlay[1]) ||
+             !loadBreathOverlay(folder / "l4/end.png", 12, sheets.overlay[2]))) {
+            warnings_.push_back(label + "/" + skill.layeredBreath + ": missing or invalid L4 atlas");
+            continue;
+        }
         breathSheets_.emplace(key, std::move(sheets));
     }
 }
 
 Sheet Sprites::breathBody(const SpeciesDef& species, const SkillDef& skill) const {
-    if (!breathSheets(species.key, skill.layeredBreath)) return {};
+    if (skill.usesFurnaceBreath() || !breathSheets(species.key, skill.layeredBreath)) return {};
     if (skill.usesUmbralBreath()) return skillSheet(species.key, skill.motion);
     const Sheet attack = sheet(species.key, AnimState::Attack);
     if (attack.frames < 4) return {};
@@ -451,6 +501,24 @@ void Sprites::loadFxSheets(const std::filesystem::path& dir, const SpeciesDef& d
             data.columns = static_cast<int>(image->GetWidth()) / atlas.width;
             data.bmp = std::move(image);
             sheets_[def.key + "/fx_" + atlas.path] = std::move(data);
+        }
+        if (std::any_of(def.skills.begin(), def.skills.end(), [](const SkillDef& sk) { return sk.carpetBombardment; })) {
+            for (const auto& atlas : carpet::atlases) {
+                const auto file = dir / "carpet_bombardment_v1_1" / (atlas.key + 7) / "sheet.png";
+                auto image = loadPng(file, detachFiles_);
+                if (!image || image->GetWidth() != static_cast<unsigned>(atlas.width * atlas.columns) ||
+                    image->GetHeight() != static_cast<unsigned>(atlas.height * atlas.rows)) {
+                    warnings_.push_back(label + "/" + atlas.key + ": invalid V1.1 atlas");
+                    continue;
+                }
+                SheetData data;
+                data.frames = atlas.frames;
+                data.frameW = atlas.width;
+                data.frameH = atlas.height;
+                data.columns = atlas.columns;
+                data.bmp = std::move(image);
+                sheets_[def.key + "/fx_" + atlas.key] = std::move(data);
+            }
         }
         for (const char* mask : {"overheat_idle", "overheat_idle_vent", "overheat_move", "overheat_fly", "overheat_attack"})
             load(mask, 256);

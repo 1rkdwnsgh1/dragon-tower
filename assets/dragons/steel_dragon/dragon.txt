@@ -98,3 +98,29 @@ extra=0.44
 duration=4
 heat_blade_storm=yes
 heat_blade_repeat_targets=no
+
+; 0.48초 준비 + 2.5초 지속 피해 + 0.48초 소멸
+[skill.4]
+name=용광로 브레스
+desc=입에서 전방으로 용광로 격류를 내뿜어 범위 안의 적에게 지속 피해를 준다.
+kind=Line
+level=9
+cooldown=18
+power=6.5
+range=660
+radius=45
+scale_with_size=yes
+layered_breath=furnace_breath_v3_1
+breath_sustained=yes
+
+; FLY 자동 이륙과 독립 착탄 여섯 발.
+[skill.5]
+name=용광 융단폭격
+desc=전방으로 비행하며 바로 아래에 포탄 여섯 발을 투하한 뒤 빠른 비행으로 재정비한다.
+kind=Line
+level=12
+cooldown=20
+power=2.85
+range=520
+radius=74
+carpet_bombardment=yes

@@ -62,6 +62,8 @@ tests/                     코어 규칙 검증
 | 노심 과열파 시전·범위·갑주 냉각 | `src/core/World.cpp`, `src/win/Renderer.cpp`, `src/win/Sprites.cpp` | `advanceCoreOverheat`의 단발 원형 판정과 앞뒤 시트, `drawDragon`의 프레임별 적열 합성 |
 | 용광 폭렬탄 시전·추적·이중 충격파 | `src/core/World.cpp`, `src/win/Renderer.cpp`, `src/win/Sprites.cpp` | `castSkill`, `advanceSteelAttack`, 지정 표적 투사체 분기, 명중 시 표적 중심 반경 및 독립 충격파 시트 |
 | 강철룡 기본공격·F06 발사·명중 | `src/core/World.cpp`, `src/win/Renderer.cpp`, `src/win/Preview.cpp` | `basicAttack`, `advanceSteelAttack`, `advanceSteelBasicFlight`, `drawDragon`, `drawProjectiles`, `drawFx`, 강철룡 공격 미리보기 |
+| 강철룡 용광 융단폭격 V1.1 | include/core/CarpetBombardment.h, src/core/World.cpp, src/win/Sprites.cpp, src/win/Renderer.cpp | FLY 복부 앵커 및 승인 시트 설정, advanceCarpetCast·advanceCarpetFlight에서 투하와 피해, drawCarpetSprite에서 포탄 방향과 착탄 FX |
+| 강철룡 용광로 브레스 V3.1 | src/core/World.cpp, src/win/Sprites.cpp, src/win/Renderer.cpp | BreathCast·hitBreathTick으로 지속 피해, loadBreathSheets에서 L1~L3 사전 합성 및 L4 여백 제거, drawBreath에서 입 위치 기준 재생 |
 | 강철룡 대기 배기·보행 배기와 불씨·비행 FX | `src/win/Sprites.cpp`, `src/win/Renderer.cpp` | `loadFxSheets`에서 시트 로드, `drawDragon`에서 상태별로 본체와 FX의 프레임 선택·합성 |
 | 망계의 업화 연출 | `src/win/Renderer.cpp` | `drawDragon`에서 도약·비행·착지 본체 모션, `drawSoulfireBreath`에서 하향 브레스, `drawSoulfire`에서 충돌·지면 연결·독립 화염 |
 | 트레이 아이콘·메뉴 | `src/win/App.cpp` | `createTray`, `showTrayMenu` |

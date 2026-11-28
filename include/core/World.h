@@ -211,6 +211,18 @@ struct HeatBladeStorm {
     float time = 0.f;
 };
 
+struct CarpetFlight {
+    Vec2 origin, target, aim;
+    float duration, firstStep, scale, impactScale, radius;
+};
+
+struct CarpetCast {
+    int skill;
+    float direction;
+    float time = 0.f;
+    int nextShot = 0;
+};
+
 struct Projectile {
     Vec2 pos;
     int targetId = 0;
@@ -228,6 +240,7 @@ struct Projectile {
     std::optional<SteelBasicFlight> steelBasic;
     std::optional<FurnaceFlight> furnace;
     std::optional<HeatBladeFlight> heatBlade;
+    std::optional<CarpetFlight> carpetBomb;
 };
 
 // Standing source aligned to the standard 256px revenant cell at 126% scale.
@@ -306,6 +319,26 @@ struct FloatText {
 enum class IdleBehavior { Rest = 0, Walk = 1, Fly = 2 };
 const char* idleBehaviorName(IdleBehavior b);
 
+// Mouth landmarks in the original right-facing steel body cells.
+inline Vec2 furnaceBreathMouth(AnimState state, int frame, bool idleVent = false) {
+    static const Vec2 idle[] = {
+        {247,187},{247,187},{247,187},{248,186},{248,186},{248,186},
+        {248,185},{248,185},{248,185},{248,185},{248,185},{248,185},
+        {248,185},{248,186},{248,186},{248,186},{248,186},{248,186},
+        {248,186},{247,187},{247,187},{247,187},{247,187},{247,187}
+    };
+    static const Vec2 fly[] = {
+        {241,148},{241,148},{239,150},{239,150},{239,150},{242,151},
+        {242,151},{242,151},{244,152},{244,152},{244,149},{241,117},
+        {241,117},{239,120},{239,120},{242,123},{242,123},{242,123},
+        {242,123},{243,125},{243,125},{243,125},{244,125},{244,125}
+    };
+    if (state == AnimState::Idle && !idleVent) return idle[frame % 24];
+    if (state == AnimState::Fly) return fly[frame % 24];
+    if (state == AnimState::Move) return {249,186};
+    return {247,186};
+}
+
 struct BreathCast {
     static constexpr float frameSeconds = 0.12f;
     static constexpr float impactTime = 4 * frameSeconds;
@@ -378,6 +411,7 @@ struct DragonActor {
     float basicCd = 0.f;
     int overheatSkill = -1;
     std::optional<HeatBladeStorm> heatBladeStorm;
+    std::optional<CarpetCast> carpetCast;
     float overheatWindup = 0.f;
     float overheatResidual = 0.f;
     std::optional<SteelAttackCast> steelAttack;  // F06에서 소모한다.
@@ -615,6 +649,9 @@ private:
     void advanceCoreOverheat(float dt);
     void advanceHeatBladeStorm(float dt);
     void advanceHeatBladeFlight(Projectile& shot, float dt);
+    void advanceCarpetCast(float dt, Vec2 recoveryInput);
+    void advanceCarpetFlight(Projectile& shot, float dt);
+    void clearCarpetBombardment();
     void advanceSteelBasicFlight(Projectile& shot, float dt);
     void beginBoneShot(int skillIndex, const Enemy& target, bool basic);
     void updateEnemies(float dt);

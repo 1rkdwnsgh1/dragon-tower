@@ -1,0 +1,21 @@
+{
+  "cell": [
+    384,
+    232
+  ],
+  "anchor": [
+    192,
+    143
+  ],
+  "frame_count": 4,
+  "fps": 24,
+  "loop": false,
+  "preview_scale": 0.19,
+  "columns": 4,
+  "rows": 1,
+  "order": "row-major",
+  "duration_s": 0.16666666666666666,
+  "pixel_format": "RGBA8",
+  "file": "assets/impact_flash/sheet.png",
+  "frames": "assets/impact_flash/frames/"
+}

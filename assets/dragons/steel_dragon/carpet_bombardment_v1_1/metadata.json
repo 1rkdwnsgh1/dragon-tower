@@ -1,0 +1,416 @@
+{
+  "id_proposed": "steel_dragon_a_skill05_carpet_bombardment",
+  "name": "용광 융단폭격",
+  "assets": {
+    "projectile": {
+      "frame_count": 8,
+      "fps": 12,
+      "loop": true,
+      "duration_s": 0.6666666666666666,
+      "cell": [
+        576,
+        256
+      ],
+      "anchor": [
+        541,
+        126
+      ],
+      "source_anchor": [
+        1168,
+        650
+      ],
+      "columns": 4,
+      "rows": 2,
+      "order": "row-major",
+      "pixel_format": "RGBA8",
+      "frames": "assets/projectile/frames/",
+      "file": "assets/projectile/sheet.png",
+      "normalized_from_master_scale": 0.44,
+      "preview_scale": 0.13
+    },
+    "muzzle_ignition": {
+      "frame_count": 6,
+      "fps": 16,
+      "loop": false,
+      "duration_s": 0.375,
+      "cell": [
+        384,
+        352
+      ],
+      "anchor": [
+        116,
+        125
+      ],
+      "source_anchor": [
+        402,
+        454
+      ],
+      "columns": 3,
+      "rows": 2,
+      "order": "row-major",
+      "pixel_format": "RGBA8",
+      "frames": "assets/muzzle_ignition/frames/",
+      "file": "assets/muzzle_ignition/sheet.png",
+      "normalized_from_master_scale": 0.43,
+      "preview_scale": 0.153
+    },
+    "impact_explosion": {
+      "frame_count": 12,
+      "fps": 16,
+      "loop": false,
+      "duration_s": 0.75,
+      "cell": [
+        576,
+        520
+      ],
+      "anchor": [
+        276,
+        392
+      ],
+      "source_anchor": [
+        570,
+        830
+      ],
+      "columns": 4,
+      "rows": 3,
+      "order": "row-major",
+      "pixel_format": "RGBA8",
+      "frames": "assets/impact_explosion/frames/",
+      "file": "assets/impact_explosion/sheet.png",
+      "normalized_from_master_scale": 0.45,
+      "preview_scale": 0.267
+    },
+    "residual_smoke": {
+      "frame_count": 12,
+      "fps": 12,
+      "loop": false,
+      "duration_s": 1.0,
+      "cell": [
+        512,
+        448
+      ],
+      "anchor": [
+        252,
+        367
+      ],
+      "source_anchor": [
+        545,
+        936
+      ],
+      "columns": 4,
+      "rows": 3,
+      "order": "row-major",
+      "pixel_format": "RGBA8",
+      "frames": "assets/residual_smoke/frames/",
+      "file": "assets/residual_smoke/sheet.png",
+      "normalized_from_master_scale": 0.395,
+      "preview_scale": 0.276
+    },
+    "impact_flash": {
+      "cell": [
+        384,
+        232
+      ],
+      "anchor": [
+        192,
+        143
+      ],
+      "frame_count": 4,
+      "fps": 24,
+      "loop": false,
+      "preview_scale": 0.19,
+      "columns": 4,
+      "rows": 1,
+      "order": "row-major",
+      "duration_s": 0.16666666666666666,
+      "pixel_format": "RGBA8",
+      "file": "assets/impact_flash/sheet.png",
+      "frames": "assets/impact_flash/frames/"
+    },
+    "ground_shockwave": {
+      "cell": [
+        512,
+        128
+      ],
+      "anchor": [
+        256,
+        62
+      ],
+      "frame_count": 6,
+      "fps": 24,
+      "loop": false,
+      "preview_scale": 0.25,
+      "columns": 3,
+      "rows": 2,
+      "order": "row-major",
+      "duration_s": 0.25,
+      "pixel_format": "RGBA8",
+      "file": "assets/ground_shockwave/sheet.png",
+      "frames": "assets/ground_shockwave/frames/"
+    }
+  },
+  "projectile": {
+    "axis_right_deg": 0,
+    "pivot": "nose",
+    "movement_rotation": "game position and flight tangent",
+    "events_are_preview_only": true,
+    "armored_pixels_locked": 34539,
+    "rotation_pivot": "original integer pixel nose anchor",
+    "curve": "preview-only downward eased position; rotation is tangent to derivative",
+    "launch_clearance_px": 16,
+    "keeps_prior_pngs": true
+  },
+  "muzzle": {
+    "pivot": "bright discharge center",
+    "recommended_origin": "lower abdomen; facing/animation transform",
+    "game_anchor_unverified": true
+  },
+  "impact_smoke": {
+    "pivot": "shared contact xy for flash, shockwave, explosion and residual smoke",
+    "render_order": [
+      "residual_smoke",
+      "ground_shockwave",
+      "impact_flash",
+      "impact_explosion",
+      "muzzle_ignition",
+      "projectile",
+      "fly_body"
+    ],
+    "impact_flash_delay_s": 0,
+    "ground_shockwave_delay_s": 0,
+    "explosion_delay_s": 0.037,
+    "smoke_delay_s": 0.258
+  },
+  "preview": {
+    "fps": 30,
+    "length_s": 3.3666666666666667,
+    "view_size": [
+      862,
+      340
+    ],
+    "shots": [
+      {
+        "id": 1,
+        "pair": 1,
+        "launch_s": 0.25,
+        "port_world_preview": [
+          721,
+          111
+        ],
+        "projectile_start_xy": [
+          710.529,
+          123.097
+        ],
+        "impact_s": 0.72,
+        "impact_xy": [
+          668,
+          268
+        ],
+        "flash_start_s": 0.72,
+        "shock_start_s": 0.72,
+        "explosion_start_s": 0.757,
+        "smoke_start_s": 0.978,
+        "impact_scale": 0.96
+      },
+      {
+        "id": 2,
+        "pair": 1,
+        "launch_s": 0.39,
+        "port_world_preview": [
+          697,
+          112
+        ],
+        "projectile_start_xy": [
+          684.099,
+          121.464
+        ],
+        "impact_s": 0.88,
+        "impact_xy": [
+          613,
+          270
+        ],
+        "flash_start_s": 0.88,
+        "shock_start_s": 0.88,
+        "explosion_start_s": 0.917,
+        "smoke_start_s": 1.138,
+        "impact_scale": 1.04
+      },
+      {
+        "id": 3,
+        "pair": 2,
+        "launch_s": 0.83,
+        "port_world_preview": [
+          618,
+          105
+        ],
+        "projectile_start_xy": [
+          606.887,
+          116.511
+        ],
+        "impact_s": 1.3,
+        "impact_xy": [
+          557,
+          267
+        ],
+        "flash_start_s": 1.3,
+        "shock_start_s": 1.3,
+        "explosion_start_s": 1.337,
+        "smoke_start_s": 1.558,
+        "impact_scale": 0.99
+      },
+      {
+        "id": 4,
+        "pair": 2,
+        "launch_s": 0.99,
+        "port_world_preview": [
+          593,
+          89
+        ],
+        "projectile_start_xy": [
+          580.255,
+          98.674
+        ],
+        "impact_s": 1.47,
+        "impact_xy": [
+          500,
+          270
+        ],
+        "flash_start_s": 1.47,
+        "shock_start_s": 1.47,
+        "explosion_start_s": 1.507,
+        "smoke_start_s": 1.728,
+        "impact_scale": 0.94
+      },
+      {
+        "id": 5,
+        "pair": 3,
+        "launch_s": 1.42,
+        "port_world_preview": [
+          514,
+          88
+        ],
+        "projectile_start_xy": [
+          502.702,
+          99.33
+        ],
+        "impact_s": 1.91,
+        "impact_xy": [
+          444,
+          268
+        ],
+        "flash_start_s": 1.91,
+        "shock_start_s": 1.91,
+        "explosion_start_s": 1.947,
+        "smoke_start_s": 2.168,
+        "impact_scale": 1.07
+      },
+      {
+        "id": 6,
+        "pair": 3,
+        "launch_s": 1.57,
+        "port_world_preview": [
+          488,
+          90
+        ],
+        "projectile_start_xy": [
+          474.755,
+          98.977
+        ],
+        "impact_s": 2.07,
+        "impact_xy": [
+          385,
+          269
+        ],
+        "flash_start_s": 2.07,
+        "shock_start_s": 2.07,
+        "explosion_start_s": 2.107,
+        "smoke_start_s": 2.328,
+        "impact_scale": 1.02
+      }
+    ],
+    "fire_counts": 6,
+    "precharge_uses_ignition_f01": true,
+    "fly_source": "STEEL_DRAGON_A_FLY_24F.png",
+    "fly_sha256": "12c557c7e8cea27178d17200e59aff9aa55e877ba11454886240b7f43f9bcfc2",
+    "nominal_1x_note": "102 px FLY source cell comparison, not an in-game build",
+    "cadence": "2-2-2 with independent instances and variable inter-pair pauses",
+    "geometry_qa": {
+      "impact_instances": {
+        "projectile": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6
+        ],
+        "impact_flash": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6
+        ],
+        "ground_shockwave": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6
+        ],
+        "impact_explosion": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6
+        ],
+        "residual_smoke": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6
+        ]
+      },
+      "max_heading_step_deg": 5.402,
+      "max_nose_contact_error_px": 0.0,
+      "simultaneous_explosions_max": 3,
+      "explosion_coverage_has_gap": false,
+      "impact_spacing_px": [
+        55.036351623268054,
+        56.08029957123981,
+        57.07889277132134,
+        56.0357029044876,
+        59.00847396772772
+      ]
+    },
+    "body_mount": "approved FLY sampled per frame; abdominal origin estimate",
+    "same_time_comparison": "V1 original GIF sampled with frame durations and held at final frame once ended"
+  },
+  "references": {
+    "master_sha256": {
+      "impact_explosion.png": "b6bf471c6cda54d47c4f109f3a9dd5a9247ab9276b2e4a8190762e21c9406715",
+      "muzzle_ignition.png": "ee5042d2f6fa92bd0562df0db084c9e30ffda6b803db8a8b111283607516a41e",
+      "projectile.png": "7ea07a5be987a0f21c9dc24ffea2eeb82d7391240f233e4298fb6c1eb1435386",
+      "residual_smoke.png": "e12b9e21936aefb00d5a8ad7caef7555b8d394f144e3a0d8e0953c2cee91b5e5"
+    },
+    "fly_alignment_checked_against": "FLY THRUST FX V2 alignment.json",
+    "fx_bible_spec_sha256": "6b68a0386d49e0c05177151476f5c4ca2b193aa877b85b8106f92d4f1876c590",
+    "bible_scope": "Armor, thrust, ignition, explosion, smoke; BREATH excluded."
+  },
+  "version": "1.1",
+  "base_preservation": {
+    "frames_sha256_equal": 38,
+    "png_sha256_equal": 46,
+    "source": {
+      "source": "STEEL_DRAGON_A_SKILL05_CARPET_BOMBARDMENT_V1.zip",
+      "sha256": "ff64e89bdb8fa9fa4d1986364d9bd953597c9d350fdb9f8f639374016bc98639",
+      "attachment_status": "attachment transfer DNS failed; use published V1 with matching local/Downloads SHA-256 and identical attachment length"
+    }
+  }
+}

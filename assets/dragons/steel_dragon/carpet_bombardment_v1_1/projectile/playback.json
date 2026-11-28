@@ -1,0 +1,26 @@
+{
+  "frame_count": 8,
+  "fps": 12,
+  "loop": true,
+  "duration_s": 0.6666666666666666,
+  "cell": [
+    576,
+    256
+  ],
+  "anchor": [
+    541,
+    126
+  ],
+  "source_anchor": [
+    1168,
+    650
+  ],
+  "columns": 4,
+  "rows": 2,
+  "order": "row-major",
+  "pixel_format": "RGBA8",
+  "frames": "assets/projectile/frames/",
+  "file": "assets/projectile/sheet.png",
+  "normalized_from_master_scale": 0.44,
+  "preview_scale": 0.13
+}

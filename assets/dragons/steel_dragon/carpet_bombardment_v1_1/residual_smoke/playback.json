@@ -1,0 +1,26 @@
+{
+  "frame_count": 12,
+  "fps": 12,
+  "loop": false,
+  "duration_s": 1.0,
+  "cell": [
+    512,
+    448
+  ],
+  "anchor": [
+    252,
+    367
+  ],
+  "source_anchor": [
+    545,
+    936
+  ],
+  "columns": 4,
+  "rows": 3,
+  "order": "row-major",
+  "pixel_format": "RGBA8",
+  "frames": "assets/residual_smoke/frames/",
+  "file": "assets/residual_smoke/sheet.png",
+  "normalized_from_master_scale": 0.395,
+  "preview_scale": 0.276
+}

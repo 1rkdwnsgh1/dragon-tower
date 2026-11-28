@@ -1,0 +1,222 @@
+{
+  "composite": {
+    "impact_instances": {
+      "projectile": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "impact_flash": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "ground_shockwave": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "impact_explosion": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "residual_smoke": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ]
+    },
+    "max_heading_step_deg": 5.402,
+    "max_nose_contact_error_px": 0.0,
+    "simultaneous_explosions_max": 3,
+    "explosion_coverage_has_gap": false,
+    "impact_spacing_px": [
+      55.036351623268054,
+      56.08029957123981,
+      57.07889277132134,
+      56.0357029044876,
+      59.00847396772772
+    ]
+  },
+  "new_fx": {
+    "impact_flash": {
+      "positions_at_alpha1": [
+        [
+          155,
+          111,
+          229,
+          147
+        ],
+        [
+          103,
+          74,
+          283,
+          149
+        ],
+        [
+          89,
+          78,
+          297,
+          149
+        ],
+        [
+          88,
+          91,
+          291,
+          147
+        ]
+      ],
+      "visible_area_alpha16": [
+        1241,
+        4091,
+        4269,
+        3
+      ],
+      "terminal_area_relative_to_peak": 0.0007027406886858749,
+      "total_widths_alpha1": [
+        74,
+        180,
+        208,
+        203
+      ],
+      "initial_terminal_area_relative_to_peak": 0.827594284375732
+    },
+    "ground_shockwave": {
+      "positions_at_alpha1": [
+        [
+          202,
+          46,
+          315,
+          77
+        ],
+        [
+          167,
+          50,
+          353,
+          75
+        ],
+        [
+          128,
+          52,
+          393,
+          75
+        ],
+        [
+          96,
+          50,
+          425,
+          73
+        ],
+        [
+          70,
+          52,
+          452,
+          71
+        ],
+        [
+          50,
+          54,
+          471,
+          73
+        ]
+      ],
+      "visible_area_alpha16": [
+        1130,
+        1443,
+        1602,
+        1339,
+        682,
+        0
+      ],
+      "terminal_area_relative_to_peak": 0.0,
+      "total_widths_alpha1": [
+        113,
+        186,
+        265,
+        329,
+        382,
+        421
+      ],
+      "initial_terminal_area_relative_to_peak": 0.2808988764044944
+    }
+  },
+  "assetqa": {
+    "projectile": {
+      "FAIL": {},
+      "WARN": {},
+      "REVIEW": {
+        "game_readability": 1,
+        "visual_timing": 1,
+        "visual_alignment": 1
+      }
+    },
+    "muzzle_ignition": {
+      "FAIL": {},
+      "WARN": {
+        "frame_shift": 3
+      },
+      "REVIEW": {
+        "game_readability": 1,
+        "visual_timing": 1,
+        "visual_alignment": 1
+      }
+    },
+    "impact_explosion": {
+      "FAIL": {},
+      "WARN": {},
+      "REVIEW": {
+        "game_readability": 1,
+        "visual_timing": 1,
+        "visual_alignment": 1
+      }
+    },
+    "residual_smoke": {
+      "FAIL": {},
+      "WARN": {
+        "frame_shift": 1
+      },
+      "REVIEW": {
+        "game_readability": 1,
+        "visual_timing": 1,
+        "visual_alignment": 1
+      }
+    },
+    "impact_flash": {
+      "FAIL": {},
+      "WARN": {},
+      "REVIEW": {
+        "game_readability": 1,
+        "visual_timing": 1,
+        "visual_alignment": 1
+      }
+    },
+    "ground_shockwave": {
+      "FAIL": {},
+      "WARN": {},
+      "REVIEW": {
+        "game_readability": 1,
+        "visual_timing": 1,
+        "visual_alignment": 1
+      }
+    }
+  },
+  "inherited_warnings": 4,
+  "new_warnings": 0,
+  "new_warning_details": []
+}

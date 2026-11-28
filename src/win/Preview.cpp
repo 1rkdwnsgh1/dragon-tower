@@ -1,6 +1,7 @@
 #include "Platform.h"
 #include "Renderer.h"
 #include "core/TowerData.h"
+#include "core/CarpetBombardment.h"
 #include "core/Config.h"
 #include "core/DragonData.h"
 #include "core/EnemyData.h"
@@ -221,7 +222,7 @@ bool PreviewWindow::load(const fs::path& path) {
     auto parsed = parseDragonText(contents, name.empty() ? "preview" : name, nullptr);
     const EnemyDef* targetArt = nullptr;
     if (std::any_of(parsed.def.skills.begin(), parsed.def.skills.end(),
-                    [](const SkillDef& sk) { return sk.spectralCleave || sk.furnaceBurst || sk.coreOverheat || sk.heatBladeStorm; })) {
+                    [](const SkillDef& sk) { return sk.spectralCleave || sk.furnaceBurst || sk.coreOverheat || sk.heatBladeStorm || sk.carpetBombardment; })) {
         loadEnemyFolders(dir.parent_path().parent_path() / "enemies");
         if (!enemyFromKey("goblin", cleaveTargetKind_)) cleaveTargetKind_ = defaultMelee();
         targetArt = &enemyDef(cleaveTargetKind_);
@@ -262,7 +263,7 @@ void PreviewWindow::reset() {
     world_.setBounds({0.f, 0.f, kWorldWidth, kWorldHeight});
     const bool left = checked(Flip);
     const float direction = left ? -1.f : 1.f;
-    const bool raised = skill() && (skill()->coreOverheat || skill()->heatBladeStorm) && captureAim_ < 0.f;
+    const bool raised = skill() && (skill()->coreOverheat || skill()->heatBladeStorm || skill()->usesFurnaceBreath()) && captureAim_ < 0.f;
     const Vec2 origin{left ? 650.f : 350.f, kFloorY - cfg::kDragonRadius - (raised ? 92.f : 0.f)};
     const SpeciesDef& def = speciesDef(species_);
     world_.setupDragon(species_, cfg::kMaxLevel, 0.f, origin);
@@ -322,10 +323,10 @@ void PreviewWindow::reset() {
             second.stun = 10000.f;
             second.facing = -direction;
         }
-        if (sk->furnaceBurst) target_.y = kFloorY - enemyDef(cleaveTargetKind_).radius - distance * std::sin(aim);
-        const EnemyKind kind = (sk->spectralCleave || sk->furnaceBurst || sk->coreOverheat || sk->heatBladeStorm) ? cleaveTargetKind_ : defaultMelee();
-        Enemy& target = world_.spawnEnemy(kind, 1, target_, !sk->spectralCleave && !sk->coreOverheat);
-        if (sk->spectralCleave || sk->boneShot || sk->furnaceBurst || sk->coreOverheat || sk->heatBladeStorm) target.facing = -direction;
+        if (sk->furnaceBurst || sk->carpetBombardment) target_.y = kFloorY - enemyDef(cleaveTargetKind_).radius - distance * std::sin(aim);
+        const EnemyKind kind = (sk->spectralCleave || sk->furnaceBurst || sk->coreOverheat || sk->heatBladeStorm || sk->carpetBombardment) ? cleaveTargetKind_ : defaultMelee();
+        Enemy& target = world_.spawnEnemy(kind, 1, target_, !sk->spectralCleave && !sk->coreOverheat && !sk->carpetBombardment);
+        if (sk->spectralCleave || sk->boneShot || sk->furnaceBurst || sk->coreOverheat || sk->heatBladeStorm || sk->carpetBombardment) target.facing = -direction;
         else target.radius = 8.f;
         target.hp = target.maxHp = 1e20f;
         target.stun = 10000.f;
@@ -364,6 +365,7 @@ void PreviewWindow::reset() {
         duration_ = ProcessionCast::maxDuration(*sk, procession->flightLimit);
     const auto& breath = dragon.breath;
     const bool layered = breath && sprites_.breathBody(def, *sk).bmp;
+    if (breath && sk->usesFurnaceBreath()) duration_ = breath->length();
     if (breath && layered) {
         duration_ = breath->length();
         if (!sk->usesUmbralBreath()) duration_ += 4.f / std::max(1.f, anim.fps);
@@ -381,9 +383,11 @@ void PreviewWindow::reset() {
         duration_ = std::max(duration_, kSteelBasicLaunch + sk->range / (cfg::kProjectileSpeed * 1.1f) + sk->duration);
     if (sk->coreOverheat) duration_ = std::max(duration_, kCoreOverheatWindup + sk->duration);
     if (sk->heatBladeStorm) duration_ = 4.15f;
+    if (sk->carpetBombardment) duration_ = carpet::flightEnd;
     duration_ += 0.15f;
     if (selected(Layer) == 2 || !body.bmp || skillIsPassive(sk->kind)) stepFps_ = std::max(1.f, sk->fxAnim.fps);
     if (layered) stepFps_ = 1.f / BreathCast::frameSeconds;
+    if (sk->usesFurnaceBreath()) stepFps_ = 25.f;
 }
 
 void PreviewWindow::seek(float time) {
@@ -395,8 +399,13 @@ void PreviewWindow::seek(float time) {
     } else {
         for (float remaining = time - time_; remaining > 0.f; remaining -= kStep) {
             const float dt = std::min(kStep, remaining);
-            if (steelBasicPreview_ || (skill() && (skill()->furnaceBurst || skill()->coreOverheat || skill()->heatBladeStorm))) {
-                world_.updateCombat(dt, CombatMode::Direct, {});
+            if (steelBasicPreview_ || (skill() && (skill()->furnaceBurst || skill()->coreOverheat ||
+                                                    skill()->heatBladeStorm || skill()->carpetBombardment))) {
+                PlayerInput input;
+                if (const auto& cast = world_.dragon().carpetCast;
+                    cast && cast->time > carpet::lastDrop + .3f && cast->time < carpet::lastDrop + 1.f)
+                    input.moveX = -cast->direction;
+                world_.updateCombat(dt, CombatMode::Direct, input);
                 world_.updateFx(dt);
             } else {
                 world_.updateFx(dt);
@@ -566,14 +575,14 @@ bool PreviewWindow::saveCapture(const fs::path& file, const Enemy* enemy, AnimSt
         // Keep the framing fixed across directions, layers and frames at each size.
         const float extraRoom = std::clamp((scale - 1.f) / 2.f, 0.f, 1.f);
         const SkillDef* sk = enemy ? nullptr : skill();
-        const bool longBreath = sk && sk->layeredBreath == "bonestorm";
+        const bool longBreath = sk && (sk->layeredBreath == "bonestorm" || sk->usesFurnaceBreath());
         const float camera = longBreath ? 0.48f / std::max(1.f, scale)
             : (0.85f - 0.20f * extraRoom) / std::max(1.f, scale * 0.50f);
         canvas.TranslateTransform(width * 0.5f, height * (longBreath ? 0.5f : 0.65f - 0.10f * extraRoom));
         canvas.ScaleTransform(camera, camera);
         canvas.TranslateTransform(-kWorldWidth * 0.5f, -kFloorY);
         if (enemy) renderer_.drawEnemyPreview(canvas, *enemy, sprites_, state, time, scale);
-        else renderer_.drawAnimationPreview(canvas, world_, sprites_, time, layer != 2, layer != 1, scale, steelBasicPreview_ || (sk && (sk->spectralCleave || sk->boneShot || sk->furnaceBurst || sk->coreOverheat || sk->heatBladeStorm)));
+        else renderer_.drawAnimationPreview(canvas, world_, sprites_, time, layer != 2, layer != 1, scale, steelBasicPreview_ || (sk && (sk->spectralCleave || sk->boneShot || sk->furnaceBurst || sk->coreOverheat || sk->heatBladeStorm || sk->carpetBombardment || sk->usesFurnaceBreath())));
     }
     CLSID png{};
     if (FAILED(CLSIDFromString(L"{557CF406-1A04-11D3-9A73-0000F81EF32E}", &png))) return false;
@@ -642,7 +651,7 @@ int PreviewWindow::capture(const fs::path& initial, const fs::path& jobs) {
             reset();
             seek(time);
             // Heat alignment review: for this skill the optional capture angle selects a moving pose.
-            if (skill() && (skill()->coreOverheat || skill()->heatBladeStorm) && aim != 0.f) {
+            if (skill() && (skill()->coreOverheat || skill()->heatBladeStorm || skill()->usesFurnaceBreath()) && aim != 0.f) {
                 auto& actor = world_.dragon();
                 actor.anim = aim < 0.f ? AnimState::Fly : AnimState::Move;
                 actor.flying = aim < 0.f;
@@ -686,7 +695,7 @@ void PreviewWindow::paint() {
             if (!folder_.empty()) {
                 constexpr float zoom[] = {0.5f, 1.f, 1.5f, 2.f, 3.f};
                 const SkillDef* sk = skill();
-                const float framing = sk && sk->layeredBreath == "bonestorm" ? 0.60f : 1.f;
+                const float framing = sk && (sk->layeredBreath == "bonestorm" || sk->usesFurnaceBreath()) ? 0.60f : 1.f;
                 const float scale = std::min(width / kWorldWidth, height / kWorldHeight) *
                                     zoom[std::clamp(selected(Zoom), 0, 4)] * framing;
                 canvas.TranslateTransform(width * 0.5f, height * 0.5f);
@@ -697,14 +706,14 @@ void PreviewWindow::paint() {
                     ground.SetDashStyle(DashStyleDash);
                     canvas.DrawLine(&ground, -kWorldWidth, kFloorY, 2.f * kWorldWidth, kFloorY);
                 }
-                if (sk && !sk->spectralCleave && !sk->boneShot && !sk->furnaceBurst && !sk->coreOverheat) {
+                if (sk && !sk->spectralCleave && !sk->boneShot && !sk->furnaceBurst && !sk->coreOverheat && !sk->carpetBombardment) {
                     Pen target(dark ? Color(216, 225, 239) : Color(70, 80, 99), 1.4f / scale);
                     canvas.DrawEllipse(&target, target_.x - 8.f, target_.y - 8.f, 16.f, 16.f);
                     canvas.DrawLine(&target, target_.x - 13.f, target_.y, target_.x + 13.f, target_.y);
                     canvas.DrawLine(&target, target_.x, target_.y - 13.f, target_.x, target_.y + 13.f);
                 }
                 renderer_.drawAnimationPreview(canvas, world_, sprites_, time_, selected(Layer) != 2,
-                                               selected(Layer) != 1, 1.f, steelBasicPreview_ || (sk && (sk->spectralCleave || sk->boneShot || sk->furnaceBurst || sk->coreOverheat || sk->heatBladeStorm)));
+                                               selected(Layer) != 1, 1.f, steelBasicPreview_ || (sk && (sk->spectralCleave || sk->boneShot || sk->furnaceBurst || sk->coreOverheat || sk->heatBladeStorm || sk->carpetBombardment || sk->usesFurnaceBreath())));
             }
         }
         Graphics screen(dc);

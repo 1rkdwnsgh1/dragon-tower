@@ -31,7 +31,7 @@
 | **결정이 이미 있는지 확인** | [decisions.md](decisions.md) ← **작업 시작 전에 본다** |
 | **버그 고치기** | [known-issues.md](known-issues.md) → [codemap.md](codemap.md) 해당 줄 |
 | **망령룡 작업** | [characters/revenant-dragon.md](characters/revenant-dragon.md) → [characters/revenant-dragon-progress.md](characters/revenant-dragon-progress.md) |
-| **강철룡 작업** | [characters/steel-dragon.md](characters/steel-dragon.md) (A안·공통 배기·제작 현황·Legacy, [노심 과열파 V2](characters/steel-dragon.md#스킬-2--노심-과열파-용광-해방형)·[방열 칼날환 V6.1](characters/steel-dragon.md#스킬-3--방열-칼날환-v61)) |
+| **강철룡 작업** | [characters/steel-dragon.md](characters/steel-dragon.md) (A안·공통 배기·제작 현황·Legacy, [노심 과열파 V2](characters/steel-dragon.md#스킬-2--노심-과열파-용광-해방형)·[방열 칼날환 V6.1](characters/steel-dragon.md#스킬-3--방열-칼날환-v61)·[용광로 브레스 V3.1](characters/steel-dragon.md#스킬-4--용광로-브레스-v31)·[용광 융단폭격 V1.1](characters/steel-dragon.md#스킬-5--용광-융단폭격-v11)) |
 | **망계의 업화 피격 불꽃** | [A/B 비교·B안 적용과 판정](characters/revenant-soulfire-hit-preview.md) |
 | **망계의 업화 기획·원본 에셋** | [characters/revenant-dragon-nether-soulfire.md](characters/revenant-dragon-nether-soulfire.md) |
 | **망령룡 스킬 그림 고르기** | [characters/revenant-dragon-skill-concepts.md](characters/revenant-dragon-skill-concepts.md) |

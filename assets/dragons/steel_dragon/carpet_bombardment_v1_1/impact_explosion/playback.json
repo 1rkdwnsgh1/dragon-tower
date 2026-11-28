@@ -1,0 +1,26 @@
+{
+  "frame_count": 12,
+  "fps": 16,
+  "loop": false,
+  "duration_s": 0.75,
+  "cell": [
+    576,
+    520
+  ],
+  "anchor": [
+    276,
+    392
+  ],
+  "source_anchor": [
+    570,
+    830
+  ],
+  "columns": 4,
+  "rows": 3,
+  "order": "row-major",
+  "pixel_format": "RGBA8",
+  "frames": "assets/impact_explosion/frames/",
+  "file": "assets/impact_explosion/sheet.png",
+  "normalized_from_master_scale": 0.45,
+  "preview_scale": 0.267
+}
